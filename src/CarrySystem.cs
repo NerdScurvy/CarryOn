@@ -7,19 +7,19 @@ using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Server;
 
-[assembly: ModInfo("CarryCapacity",
+[assembly: ModInfo("Carry On",
 	Description = "Adds the capability to carry various things",
-	Website     = "https://github.com/copygirl/CarryCapacity",
-	Authors     = new []{ "copygirl" })]
-[assembly: ModDependency("game", "1.16.0")]
+	Website     = "https://github.com/NerdScurvy/CarryCapacity",
+	Authors     = new []{ "copygirl", "NerdScurvy" })]
+[assembly: ModDependency("game", "1.17.0")]
 
 namespace CarryCapacity
 {
-	/// <summary> Main system for the "CarryCapacity" mod, which allows certain
+	/// <summary> Main system for the "Carry On" mod, which allows certain
 	///           blocks such as chests to be picked up and carried around. </summary>
 	public class CarrySystem : ModSystem
 	{
-		public static string MOD_ID = "carrycapacity";
+		public static string MOD_ID = "carryon";
 		
 		public override bool AllowRuntimeReload => true;
 		

@@ -1,8 +1,8 @@
 {
 	"type": "code",
-	"name": "CarryCapacity",
-	"modid": "4405",
-	"version": "0.6.6",
+	"name": "Carry On",
+	"modid": "carryon",
+	"version": "0.7.0",
 
 	"description": "Adds the capability to carry various things",
 	"website": "https://github.com/NerdScurvy/CarryCapacity",

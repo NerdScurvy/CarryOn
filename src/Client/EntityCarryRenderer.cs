@@ -11,9 +11,9 @@ namespace CarryCapacity.Client
 	public class EntityCarryRenderer : IRenderer
 	{
 		private static readonly Dictionary<CarrySlot, SlotRenderSettings> _renderSettings = new() {
-			{ CarrySlot.Hands    , new SlotRenderSettings("carrycapacity:FrontCarry", 0.05F, -0.5F, -0.5F) },
+			{ CarrySlot.Hands    , new SlotRenderSettings("carryon:FrontCarry", 0.05F, -0.5F, -0.5F) },
 			{ CarrySlot.Back     , new SlotRenderSettings("Back", 0.0F, -0.6F, -0.5F) },
-			{ CarrySlot.Shoulder , new SlotRenderSettings("carrycapacity:ShoulderL", -0.5F, 0.0F, -0.5F) },
+			{ CarrySlot.Shoulder , new SlotRenderSettings("carryon:ShoulderL", -0.5F, 0.0F, -0.5F) },
 		};
 		
 		private class SlotRenderSettings
@@ -46,8 +46,11 @@ namespace CarryCapacity.Client
 		private ItemRenderInfo GetRenderInfo(CarriedBlock carried)
 		{
 			// Alternative: Cache API.TesselatorManager.GetDefaultBlockMesh manually.
+
 			var renderInfo = API.Render.GetItemStackRenderInfo(carried.ItemStack, EnumItemRenderTarget.Ground);
+			
 			var behavior   = carried.Behavior;
+
 			renderInfo.Transform = behavior.Slots[carried.Slot]?.Transform ?? behavior.DefaultTransform;
 			return renderInfo;
 		}

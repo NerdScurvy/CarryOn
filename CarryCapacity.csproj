@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		
-		<AssemblyTitle>CarryCapacity</AssemblyTitle>
+		<AssemblyTitle>Carry On</AssemblyTitle>
 		<Authors>copygirl,NerdScurvy</Authors>
-		<Version>0.6.6</Version>
+		<Version>0.7.0</Version>
 		
 		<Description>Vintage Story mod which adds the capability to carry various things</Description>
 		<RepositoryUrl>https://github.com/NerdScurvy/CarryCapacity</RepositoryUrl>

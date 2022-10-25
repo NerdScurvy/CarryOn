@@ -1,4 +1,4 @@
-# CarryCapacity
+# Carry On
 
 .. is a [*Vintage Story*][VS] mod which allows picking up blocks, especially containers along with their contents, to carry them in your hands and on your back. Inspired by copygirl's Minecraft mod [*Wearable Backpacks*][WBs] as well as *Charset*, *CarryOn* and similar.
 
@@ -40,7 +40,7 @@ For the curious, the values in the following table show example walk speed modif
 
 The block behavior `Carryable` is [retroactively added][patch] to Vanilla blocks. It is also possible to add it to additional ones. Simply add it to the behavior list like in the following example, or use the patching system to modify existing blocks like I do.
 
-[patch]: ./resources/assets/carrycapacity/patches/carryable.json
+[patch]: ./resources/assets/carryon/patches/carryable.json
 
 ```json
 behaviors: [
@@ -56,7 +56,7 @@ behaviors: [
     
     slots: {
       "Hands": {
-        animation: "carrycapacity:holdheavy",
+        animation: "carryon:holdheavy",
         walkSpeedModifier: 0.75,
         
         translation: [ 0, 0, 0 ],
@@ -71,4 +71,4 @@ behaviors: [
 
 The properties and each of the entries are optional, reverting to the defaults shown here if not present. Note that if you don't include a `"Back"` slot, the block will also default to not be carryable on the back.
 
-CarryCapacity patches the player entity and seraph shape to provide two animations `"carrycapacity:holdheavy"` and `"carrycapacity:holdlight"` made specifically for in-hand carrying. If the block is light, consider using the light variant instead of the default heavy one.
+CarryOn patches the player entity and seraph shape to provide two animations `"carryon:holdheavy"` and `"carryon:holdlight"` made specifically for in-hand carrying. If the block is light, consider using the light variant instead of the default heavy one.
