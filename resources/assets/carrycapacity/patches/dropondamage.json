@@ -1,4 +1,0 @@
-[
-  { file: "game:entities/humanoid/player", op: "add", path: "/server/behaviors/-",
-    value: { code: "carryon:dropondamage" } },
-]
