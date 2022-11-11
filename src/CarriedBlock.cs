@@ -7,6 +7,7 @@ using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
+using Vintagestory.API.Server;
 using Vintagestory.GameContent;
 
 namespace CarryCapacity
@@ -325,20 +326,35 @@ namespace CarryCapacity
 		/// <example cref="ArgumentNullException"> Thrown if entity or slots is null. </exception>
 		/// <example cref="ArgumentOutOfRangeException"> Thrown if hSize or vSize is negative. </exception>
 		public static void DropCarried(this Entity entity, IEnumerable<CarrySlot> slots,
-		                               int hSize = 2, int vSize = 4)
+		                               int hSize = 4, int vSize = 4)
 		{
 			if (entity == null) throw new ArgumentNullException(nameof(entity));
 			if (slots == null) throw new ArgumentNullException(nameof(slots));
 			if (hSize < 0) throw new ArgumentOutOfRangeException(nameof(hSize));
 			if (vSize < 0) throw new ArgumentOutOfRangeException(nameof(vSize));
+			IServerPlayer player = null;
+
+			if(entity is EntityPlayer){
+				player = (IServerPlayer) ((EntityPlayer) entity).Player;
+			}
 			
 			var remaining = new HashSet<CarriedBlock>(
 				slots.Select(s => entity.GetCarried(s))
 				     .Where(c => (c != null)));
 			if (remaining.Count == 0) return;
-			
+			var claimAPI = entity.World.Claims;
+
 			bool Drop(BlockPos pos, CarriedBlock block)
 			{
+				// Check player has permission to drop items here
+				if(player != null){
+					var landClaims = claimAPI.Get(pos);
+					foreach(var claim in landClaims){
+						if(claim.TestPlayerAccess(player, EnumBlockAccessFlags.BuildOrBreak) == EnumPlayerAccessResult.Denied){
+							return false;
+						}
+					}
+				}
 				if (!block.PlaceDown(entity.World, new BlockSelection { Position = pos }, null)) return false;
 				CarriedBlock.Remove(entity, block.Slot);
 				return true;
@@ -355,6 +371,7 @@ namespace CarryCapacity
 			var blockIndex  = 0;
 			var distance    = 0;
 			while (remaining.Count > 0) {
+				if(blockIndex >= nearbyBlocks.Count) break;
 				var pos = nearbyBlocks[blockIndex];
 				if (Math.Abs(pos.Y - centerBlock.Y) <= vSize) {
 					var sign = Math.Sign(pos.Y - centerBlock.Y);
@@ -373,14 +390,14 @@ namespace CarryCapacity
 							remaining.Remove(placeable);
 					}
 					pos.Add(0, sign, 0);
-				} else if (blockIndex >= nearbyBlocks.Count) break;
+				} 
 				
-				if (++distance > 2) {
+				if (++distance > 3) {
 					distance = 0;
 					blockIndex++;
 					if (blockIndex % 4 == 4)
-					if (++blockIndex >= nearbyBlocks.Count)
-						blockIndex = 0;
+						if (++blockIndex >= nearbyBlocks.Count)
+							blockIndex = 0;
 				}
 			}
 			
@@ -392,7 +409,7 @@ namespace CarryCapacity
 		///           blocks around its current position in the specified area. </summary>
 		/// <example cref="ArgumentNullException"> Thrown if entity is null. </exception>
 		/// <example cref="ArgumentOutOfRangeException"> Thrown if hSize or vSize is negative. </exception>
-		public static void DropAllCarried(this Entity entity, int hSize = 2, int vSize = 4)
+		public static void DropAllCarried(this Entity entity, int hSize = 4, int vSize = 4)
 			=> DropCarried(entity, Enum.GetValues(typeof(CarrySlot)).Cast<CarrySlot>(), hSize, vSize);
 		
 		/// <summary>
