@@ -392,7 +392,7 @@ namespace CarryCapacity
 					pos.Add(0, sign, 0);
 				} 
 				
-				if (++distance > vSize) {
+				if (++distance > 3) {
 					distance = 0;
 					blockIndex++;
 					if (blockIndex % 4 == 4)
