@@ -1,0 +1,68 @@
+[
+  {
+    "op": "add",
+    "path": "/behaviorsByType/*/-",
+    "value": {
+      "name": "Carryable",
+      "properties": {
+        "translation": [
+          0.0625,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          180,
+          0
+        ],
+        "slots": {
+          "Hands": {},
+          "Back": {}
+        }
+      }
+    },
+    "file": "game:blocktypes/wood/woodtyped/log-withresin.json",
+    "dependsOn": [
+      {
+        "modid": "carryon"
+      }
+    ],
+    "condition": {
+      "when": "CarryableLogWithResinEnabled",
+      "isValue": "true"
+    }
+  },
+  {
+    "op": "add",
+    "path": "/behaviorsByType/log-resinharvested-*/-",
+    "value": {
+      "name": "Carryable",
+      "properties": {
+        "translation": [
+          0.0625,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          180,
+          0
+        ],
+        "slots": {
+          "Hands": {},
+          "Back": {}
+        }
+      }
+    },
+    "file": "game:blocktypes/wood/woodtyped/log-withresin.json",
+    "dependsOn": [
+      {
+        "modid": "carryon"
+      }
+    ],
+    "condition": {
+      "when": "CarryableLogWithResinEnabled",
+      "isValue": "true"
+    }
+  }
+]

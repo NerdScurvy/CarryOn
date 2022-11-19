@@ -1,0 +1,16 @@
+[
+  {
+    "file": "game:blocktypes/wood/crate-legacy",
+    "op": "add",
+    "path": "/behaviors",
+    "value": [
+      {
+        "name": "Carryable"
+      }
+    ],
+    "condition": {
+      "when": "CarryableCrateLegacyEnabled",
+      "isValue": "true"
+    }
+  }
+]

@@ -1,16 +1,16 @@
-using System.Collections.Generic;
 using ProtoBuf;
+using System.Collections.Generic;
 
-namespace CarryCapacity.Common.Network
+namespace CarryOn.Common.Network
 {
-	[ProtoContract(ImplicitFields = ImplicitFields.AllFields)]
-	public class LockSlotsMessage
-	{
-		public List<int> HotbarSlots { get; }
-		
-		private LockSlotsMessage() {  }
-		
-		public LockSlotsMessage(List<int> hotbarSlots)
-			=> HotbarSlots = hotbarSlots;
-	}
+    [ProtoContract(ImplicitFields = ImplicitFields.AllFields)]
+    public class LockSlotsMessage
+    {
+        public List<int> HotbarSlots { get; }
+
+        private LockSlotsMessage() { }
+
+        public LockSlotsMessage(List<int> hotbarSlots)
+            => HotbarSlots = hotbarSlots;
+    }
 }

@@ -1,0 +1,17 @@
+[
+  {
+    "file": "game:blocktypes/clay/planter",
+    "op": "add",
+    "path": "/behaviorsByType/*/-",
+    "value": {
+      "name": "Carryable",
+      "properties": {
+        "scale": 0.6
+      }
+    },
+    "condition": {
+      "when": "CarryablePlanterEnabled",
+      "isValue": "true"
+    }
+  }
+]

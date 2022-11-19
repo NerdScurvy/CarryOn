@@ -1,0 +1,24 @@
+[
+  {
+    "file": "game:blocktypes/wood/woodtyped/crate",
+    "op": "add",
+    "path": "/behaviors/-",
+    "value": {
+      "name": "Carryable",
+      "properties": {
+        "translation": [
+          -0.0625,
+          0,
+          0
+        ],
+        "slots": {
+          "Hands": {}
+        }
+      }
+    },
+    "condition": {
+      "when": "CarryableCrateEnabled",
+      "isValue": "true"
+    }
+  }
+]
