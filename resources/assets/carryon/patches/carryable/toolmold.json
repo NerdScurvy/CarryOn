@@ -1,24 +1,29 @@
 [
   {
-    "file": "game:blocktypes/clay/storagevessel",
     "op": "add",
     "path": "/behaviorsByType/*/-",
     "value": {
       "name": "Carryable",
       "properties": {
+        "interactDelay": 0.5,
         "translation": [
-          -0.125,
+          0.0625,
           0,
           0
         ],
+        "rotation": [
+          0,
+          180,
+          0
+        ],
         "slots": {
-          "Hands": {},
-          "Back": {}
+          "Hands": {}
         }
       }
     },
+    "file": "game:blocktypes/clay/mold/toolmold.json",
     "condition": {
-      "when": "carryon:StorageVesselEnabled",
+      "when": "carryon:MoldsEnabled",
       "isValue": "true"
     }
   }

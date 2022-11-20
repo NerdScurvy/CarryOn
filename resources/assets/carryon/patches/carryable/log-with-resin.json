@@ -22,13 +22,8 @@
       }
     },
     "file": "game:blocktypes/wood/woodtyped/log-withresin.json",
-    "dependsOn": [
-      {
-        "modid": "carryon"
-      }
-    ],
     "condition": {
-      "when": "CarryableLogWithResinEnabled",
+      "when": "carryon:LogWithResinEnabled",
       "isValue": "true"
     }
   },
@@ -55,13 +50,8 @@
       }
     },
     "file": "game:blocktypes/wood/woodtyped/log-withresin.json",
-    "dependsOn": [
-      {
-        "modid": "carryon"
-      }
-    ],
     "condition": {
-      "when": "CarryableLogWithResinEnabled",
+      "when": "carryon:LogWithResinEnabled",
       "isValue": "true"
     }
   }

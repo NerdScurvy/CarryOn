@@ -10,7 +10,7 @@
       }
     },
     "condition": {
-      "when": "CarryablePlanterEnabled",
+      "when": "carryon:PlanterEnabled",
       "isValue": "true"
     }
   }

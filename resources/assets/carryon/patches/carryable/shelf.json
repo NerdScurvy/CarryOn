@@ -1,14 +1,18 @@
 [
   {
-    "file": "game:blocktypes/clay/storagevessel",
     "op": "add",
-    "path": "/behaviorsByType/*/-",
+    "path": "/behaviors/-",
     "value": {
       "name": "Carryable",
       "properties": {
         "translation": [
-          -0.125,
+          0.0625,
           0,
+          0
+        ],
+        "rotation": [
+          0,
+          180,
           0
         ],
         "slots": {
@@ -17,8 +21,9 @@
         }
       }
     },
+    "file": "game:blocktypes/wood/shelf.json",
     "condition": {
-      "when": "carryon:StorageVesselEnabled",
+      "when": "carryon:ShelfEnabled",
       "isValue": "true"
     }
   }

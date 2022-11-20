@@ -1,24 +1,28 @@
 [
   {
-    "file": "game:blocktypes/clay/storagevessel",
     "op": "add",
-    "path": "/behaviorsByType/*/-",
+    "path": "/behaviors/-",
     "value": {
       "name": "Carryable",
       "properties": {
         "translation": [
-          -0.125,
+          0.0625,
           0,
           0
         ],
+        "rotation": [
+          0,
+          180,
+          0
+        ],
         "slots": {
-          "Hands": {},
-          "Back": {}
+          "Hands": {}
         }
       }
     },
+    "file": "game:blocktypes/metal/chandelier.json",
     "condition": {
-      "when": "carryon:StorageVesselEnabled",
+      "when": "carryon:ChandelierEnabled",
       "isValue": "true"
     }
   }

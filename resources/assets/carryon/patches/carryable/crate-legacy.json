@@ -9,7 +9,7 @@
       }
     ],
     "condition": {
-      "when": "CarryableCrateLegacyEnabled",
+      "when": "carryon:CrateLegacyEnabled",
       "isValue": "true"
     }
   }

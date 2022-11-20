@@ -18,13 +18,14 @@
         ],
         "slots": {
           "Hands": {
+            "animation": "carryon:holdheavy",
             "walkSpeedModifier": -0.5
           }
         }
       }
     },
     "condition": {
-      "when": "CarryableChestTrunkEnabled",
+      "when": "carryon:ChestTrunkEnabled",
       "isValue": "true"
     }
   }

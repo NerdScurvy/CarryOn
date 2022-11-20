@@ -23,7 +23,7 @@
       }
     },
     "condition": {
-      "when": "CarryableChestLabeledEnabled",
+      "when": "carryon:ChestLabeledEnabled",
       "isValue": "true"
     }        
   }

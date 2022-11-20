@@ -18,7 +18,7 @@
       }
     },
     "condition": {
-      "when": "CarryableLootVesselEnabled",
+      "when": "carryon:LootVesselEnabled",
       "isValue": "true"
     }
   }

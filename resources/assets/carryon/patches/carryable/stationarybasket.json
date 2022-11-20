@@ -30,7 +30,7 @@
       }
     },
     "condition": {
-      "when": "CarryableStationaryBasketEnabled",
+      "when": "carryon:StationaryBasketEnabled",
       "isValue": "true"
     }
   }

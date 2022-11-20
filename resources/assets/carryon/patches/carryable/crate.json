@@ -17,7 +17,7 @@
       }
     },
     "condition": {
-      "when": "CarryableCrateEnabled",
+      "when": "carryon:CrateEnabled",
       "isValue": "true"
     }
   }

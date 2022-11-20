@@ -15,7 +15,7 @@
       }
     },
     "condition": {
-      "when": "CarryableQuernEnabled",
+      "when": "carryon:QuernEnabled",
       "isValue": "true"
     }
   }

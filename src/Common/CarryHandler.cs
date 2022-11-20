@@ -110,6 +110,9 @@ namespace CarryOn.Common
             var carriedShoulder = player.Entity.GetCarried(CarrySlot.Shoulder);
             var holdingAny = carriedHands ?? carriedShoulder;
 
+            // If enabled allow player to hold control to focus on swapping to or from back
+            var swapBackFocus = ModConfig.Config.HoldControlForBackSwapFocus && player.Entity.Controls.CtrlKey;
+
             // If something is being carried in-hand, prevent RMB, LMB and sprint.
             // If still holding RMB after an action completed, prevent the default action as well.
             if ((carriedHands != null) || (isInteract && (_timeHeld > 0.0F)))
@@ -122,7 +125,7 @@ namespace CarryOn.Common
             if (holdingAny != null)
             {
                 // ..and aiming at block, try to place it.
-                if (selection != null)
+                if (selection != null && !swapBackFocus)
                 {
                     // If carrying something in-hand, don't require empty hands.
                     // This shouldn't occur since nothing is supposed to go into
@@ -155,7 +158,7 @@ namespace CarryOn.Common
             else if (CanInteract(player.Entity, true))
             {
                 // ..and aiming at carryable block, try to pick it up.
-                if ((block != null) && (_targetSlot = FindActionSlot(slot => block.IsCarryable(slot))) != null)
+                if ((block != null) && (_targetSlot = FindActionSlot(slot => block.IsCarryable(slot))) != null && !swapBackFocus)
                 {
                     _action = CurrentAction.PickUp;
                     _selectedBlock = selection.Position;
@@ -255,7 +258,7 @@ namespace CarryOn.Common
             }
 
             _timeHeld += deltaTime;
-            var progress = (_timeHeld / requiredTime);
+            var progress = _timeHeld / requiredTime;
             System.HudOverlayRenderer.CircleProgress = progress;
             if (progress <= 1.0F) return;
 
@@ -364,7 +367,7 @@ namespace CarryOn.Common
 
         /// <summary>
         ///   Returns whether the specified entity has the required prerequisites
-        ///   to interact using CarryCapacity: Must be sneaking with an empty hand.
+        ///   to interact using CarryOn: Must be sneaking with an empty hand.
         ///   Also tests for whether a valid hotbar slot is currently selected.
         /// </summary>
         private static bool CanInteract(EntityAgent entity, bool requireEmptyHanded)
