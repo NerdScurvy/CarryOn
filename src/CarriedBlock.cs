@@ -372,11 +372,14 @@ namespace CarryOn
                 if (player != null)
                 {
                     var landClaims = claimAPI.Get(pos);
-                    foreach (var claim in landClaims)
+                    if (landClaims != null)
                     {
-                        if (claim.TestPlayerAccess(player, EnumBlockAccessFlags.BuildOrBreak) == EnumPlayerAccessResult.Denied)
+                        foreach (var claim in landClaims)
                         {
-                            return false;
+                            if (claim.TestPlayerAccess(player, EnumBlockAccessFlags.BuildOrBreak) == EnumPlayerAccessResult.Denied)
+                            {
+                                return false;
+                            }
                         }
                     }
                 }
