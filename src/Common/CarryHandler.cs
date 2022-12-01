@@ -14,9 +14,6 @@ namespace CarryOn.Common
     /// </summary>
     public class CarryHandler
     {
-        public const float PlaceSpeedModifier = 0.75F;
-        public const float SwapSpeedModifier = 1.5F;
-
         private CurrentAction _action = CurrentAction.None;
         private CarrySlot? _targetSlot = null;
         private BlockPos _selectedBlock = null;
@@ -253,8 +250,8 @@ namespace CarryOn.Common
             var requiredTime = behavior.InteractDelay;
             switch (_action)
             {
-                case CurrentAction.PlaceDown: requiredTime *= PlaceSpeedModifier; break;
-                case CurrentAction.SwapBack: requiredTime *= SwapSpeedModifier; break;
+                case CurrentAction.PlaceDown: requiredTime *= ModConfig.Config.PlaceSpeedModifier; break;
+                case CurrentAction.SwapBack: requiredTime *= ModConfig.Config.SwapSpeedModifier; break;
             }
 
             _timeHeld += deltaTime;

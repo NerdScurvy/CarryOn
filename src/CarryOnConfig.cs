@@ -30,6 +30,10 @@ namespace CarryOn
 
         public bool HoldControlForBackSwapFocus = true;
 
+        public float PlaceSpeedModifier = 0.75f;
+        public float SwapSpeedModifier = 1.5f;
+        public float PickUpSpeedModifier = 0.8f;
+
         public CarryOnConfig()
         {
         }
@@ -63,6 +67,11 @@ namespace CarryOn
             TorchHolderEnabled = previousConfig.ToolRackEnabled;
 
             HoldControlForBackSwapFocus = previousConfig.HoldControlForBackSwapFocus;
+
+            PlaceSpeedModifier = previousConfig.PlaceSpeedModifier;
+            SwapSpeedModifier = previousConfig.SwapSpeedModifier;
+            PickUpSpeedModifier = previousConfig.PickUpSpeedModifier;
+
         }
     }
 }
