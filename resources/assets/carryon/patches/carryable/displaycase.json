@@ -1,5 +1,7 @@
 [
   {
+    "file": "game:blocktypes/glass/displaycase.json",
+    "side": "Server",
     "op": "add",
     "path": "/behaviors/-",
     "value": {
@@ -20,7 +22,6 @@
         }
       }
     },
-    "file": "game:blocktypes/glass/displaycase.json",
     "condition": {
       "when": "carryon:DisplayCaseEnabled",
       "isValue": "true"

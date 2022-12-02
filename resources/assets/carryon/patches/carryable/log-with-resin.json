@@ -1,5 +1,7 @@
 [
   {
+    "file": "game:blocktypes/wood/woodtyped/log-withresin.json",
+    "side": "Server",
     "op": "add",
     "path": "/behaviorsByType/*/-",
     "value": {
@@ -21,7 +23,6 @@
         }
       }
     },
-    "file": "game:blocktypes/wood/woodtyped/log-withresin.json",
     "condition": {
       "when": "carryon:LogWithResinEnabled",
       "isValue": "true"

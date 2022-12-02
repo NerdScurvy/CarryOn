@@ -1,6 +1,7 @@
 [
   {
     "file": "game:blocktypes/clay/planter",
+    "side": "Server",
     "op": "add",
     "path": "/behaviorsByType/*/-",
     "value": {

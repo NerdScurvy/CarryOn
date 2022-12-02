@@ -1,5 +1,7 @@
 [
   {
+    "file": "game:blocktypes/clay/mold/ingotmold.json",
+    "side": "Server",
     "op": "add",
     "path": "/behaviorsByType/*/-",
     "value": {
@@ -21,7 +23,6 @@
         }
       }
     },
-    "file": "game:blocktypes/clay/mold/ingotmold.json",
     "condition": {
       "when": "carryon:MoldsEnabled",
       "isValue": "true"

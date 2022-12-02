@@ -1,5 +1,7 @@
 [
   {
+    "file": "game:blocktypes/wood/sign.json",
+    "side": "Server",
     "op": "add",
     "path": "/behaviors",
     "value": [
@@ -22,7 +24,6 @@
         }
       }
     ],
-    "file": "game:blocktypes/wood/sign.json",
     "condition": {
       "when": "carryon:SignEnabled",
       "isValue": "true"

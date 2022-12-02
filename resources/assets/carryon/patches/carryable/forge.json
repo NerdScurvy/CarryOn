@@ -1,5 +1,7 @@
 [
   {
+    "file": "game:blocktypes/stone/generic/forge.json",
+    "side": "Server",
     "op": "add",
     "path": "/behaviors/-",
     "value": {
@@ -20,7 +22,6 @@
         }
       }
     },
-    "file": "game:blocktypes/stone/generic/forge.json",
     "condition": {
       "when": "carryon:ForgeEnabled",
       "isValue": "true"

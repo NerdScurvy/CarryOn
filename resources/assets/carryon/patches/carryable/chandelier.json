@@ -1,5 +1,7 @@
 [
   {
+    "file": "game:blocktypes/metal/chandelier.json",
+    "side": "Server",
     "op": "add",
     "path": "/behaviors/-",
     "value": {
@@ -20,7 +22,6 @@
         }
       }
     },
-    "file": "game:blocktypes/metal/chandelier.json",
     "condition": {
       "when": "carryon:ChandelierEnabled",
       "isValue": "true"

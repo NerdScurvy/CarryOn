@@ -1,6 +1,7 @@
 [
   {
     "file": "game:blocktypes/stone/quern",
+    "side": "Server",
     "op": "add",
     "path": "/behaviors/-",
     "value": {

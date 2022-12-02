@@ -1,5 +1,7 @@
 [
   {
+    "file": "game:blocktypes/wood/toolrack.json",
+    "side": "Server",
     "op": "add",
     "path": "/behaviors/-",
     "value": {
@@ -20,7 +22,6 @@
         }
       }
     },
-    "file": "game:blocktypes/wood/toolrack.json",
     "condition": {
       "when": "carryon:ToolRackEnabled",
       "isValue": "true"

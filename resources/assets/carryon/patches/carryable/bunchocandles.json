@@ -1,5 +1,7 @@
 [
   {
+    "file": "game:blocktypes/wax/bunchocandles.json",
+    "side": "Server",
     "op": "add",
     "path": "/behaviors/-",
     "value": {
@@ -20,7 +22,6 @@
         }
       }
     },
-    "file": "game:blocktypes/wax/bunchocandles.json",
     "condition": {
       "when": "carryon:BunchOCandlesEnabled",
       "isValue": "true"

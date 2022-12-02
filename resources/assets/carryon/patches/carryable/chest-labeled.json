@@ -1,6 +1,7 @@
 [
   {
     "file": "game:blocktypes/wood/chest-labeled",
+    "side": "Server",
     "op": "add",
     "path": "/behaviors/-",
     "value": {
@@ -25,6 +26,6 @@
     "condition": {
       "when": "carryon:ChestLabeledEnabled",
       "isValue": "true"
-    }        
+    }
   }
 ]

@@ -335,14 +335,16 @@ namespace CarryOn
             if (entity is EntityPlayer playerEntity)
             {
                 var isCreative = (playerEntity.Player.WorldData.CurrentGameMode == EnumGameMode.Creative);
-                // Check if block was dropped by a player
-                var droppedBlock = DroppedBlockInfo.Get(pos, playerEntity.Player);
-                if (droppedBlock != null)
-                {
-                    entity.Api.World.Logger.Debug($"Dropped block found at '{pos}'");
-                    return true;
+                if(entity.World.Side == EnumAppSide.Server){
+                    // Check if block was dropped by a player
+                    var droppedBlock = DroppedBlockInfo.Get(pos, playerEntity.Player);
+                    if (droppedBlock != null)
+                    {
+                        entity.Api.World.Logger.Debug($"Dropped block found at '{pos}'");
+                        return true;
+                    }
+                    entity.Api.World.Logger.Debug($"No dropped block found at '{pos}'");
                 }
-                entity.Api.World.Logger.Debug($"No dropped block found at '{pos}'");
                 if (!isCreative && isReinforced) return false; // Can't pick up when reinforced unless in creative mode.
                 // Can pick up if has access to any claims that might be present.
                 return entity.World.Claims.TryAccess(playerEntity.Player, pos, EnumBlockAccessFlags.BuildOrBreak);

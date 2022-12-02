@@ -1,5 +1,7 @@
 [
   {
+    "file": "game:blocktypes/wood/moldrack.json",
+    "side": "Server",
     "op": "add",
     "path": "/behaviors/-",
     "value": {
@@ -21,7 +23,6 @@
         }
       }
     },
-    "file": "game:blocktypes/wood/moldrack.json",
     "condition": {
       "when": "carryon:MoldRackEnabled",
       "isValue": "true"

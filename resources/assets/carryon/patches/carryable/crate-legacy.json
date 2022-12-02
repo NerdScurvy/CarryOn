@@ -1,6 +1,7 @@
 [
   {
     "file": "game:blocktypes/wood/crate-legacy",
+    "side": "Server",
     "op": "add",
     "path": "/behaviors",
     "value": [

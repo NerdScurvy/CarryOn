@@ -1,5 +1,7 @@
 [
   {
+    "file": "game:blocktypes/clay/oven.json",
+    "side": "Server",
     "op": "add",
     "path": "/behaviors/-",
     "value": {
@@ -20,7 +22,6 @@
         }
       }
     },
-    "file": "game:blocktypes/clay/oven.json",
     "condition": {
       "when": "carryon:OvenEnabled",
       "isValue": "true"

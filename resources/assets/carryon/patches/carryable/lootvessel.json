@@ -1,6 +1,7 @@
 [
   {
     "file": "game:blocktypes/clay/lootvessel",
+    "side": "Server",
     "op": "add",
     "path": "/behaviors/-",
     "value": {

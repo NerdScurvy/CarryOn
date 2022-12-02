@@ -1,5 +1,7 @@
 [
   {
+    "file": "game:blocktypes/wood/shelf.json",
+    "side": "Server",
     "op": "add",
     "path": "/behaviors/-",
     "value": {
@@ -21,7 +23,6 @@
         }
       }
     },
-    "file": "game:blocktypes/wood/shelf.json",
     "condition": {
       "when": "carryon:ShelfEnabled",
       "isValue": "true"
