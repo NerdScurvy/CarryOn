@@ -259,6 +259,12 @@ namespace CarryOn
             BlockEntityData.SetInt("posz", pos.Z);
 
             var blockEntity = world.BlockAccessor.GetBlockEntity(pos);
+
+            if (blockEntity is BlockEntitySign blockEntitySign)
+            {
+                // Fix sign rotation
+                BlockEntityData.SetFloat("meshAngle", blockEntitySign.MeshAngleRad);
+            }
             blockEntity?.FromTreeAttributes(BlockEntityData, world);
         }
 
@@ -405,13 +411,17 @@ namespace CarryOn
             var accessor = entity.World.BlockAccessor;
 
             // Look for ground 
-            var blockBelow =  centerBlock.DownCopy();
+            var blockBelow = centerBlock.DownCopy();
             bool foundGround = false;
-            while(!foundGround){
+            while (!foundGround)
+            {
                 var testBlock = accessor.GetBlock(blockBelow);
-                if(testBlock.BlockId == 0){
-                    blockBelow =  blockBelow.DownCopy();
-                }else{
+                if (testBlock.BlockId == 0)
+                {
+                    blockBelow = blockBelow.DownCopy();
+                }
+                else
+                {
                     foundGround = true;
                     centerBlock = blockBelow;
                 }
