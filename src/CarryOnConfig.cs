@@ -71,7 +71,6 @@ namespace CarryOn
             PlaceSpeedModifier = previousConfig.PlaceSpeedModifier;
             SwapSpeedModifier = previousConfig.SwapSpeedModifier;
             PickUpSpeedModifier = previousConfig.PickUpSpeedModifier;
-
         }
     }
 }

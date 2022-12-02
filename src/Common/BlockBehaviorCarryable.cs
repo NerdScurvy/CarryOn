@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CarryOn.Server;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
@@ -90,6 +91,15 @@ namespace CarryOn.Common
             if (TryGetVec3f(json, "scale", out var sv)) trans.ScaleXYZ = sv;
             if (TryGetFloat(json, "scale", out var sf)) trans.ScaleXYZ = new Vec3f(sf, sf, sf);
             return trans;
+        }
+
+        public override void OnBlockRemoved(IWorldAccessor world, BlockPos pos, ref EnumHandling handling)
+        {
+            if (world.Api.Side == EnumAppSide.Server)
+            {
+                DroppedBlockInfo.Remove(pos, world.Api);
+            }
+            base.OnBlockRemoved(world, pos, ref handling);
         }
 
         public class SlotSettings

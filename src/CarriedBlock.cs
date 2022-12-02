@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CarryOn.Common;
+using CarryOn.Server;
 using CarryOn.Utility;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
@@ -191,7 +192,7 @@ namespace CarryOn
         /// <summary> Attempts to place down a <see cref="CarriedBlock"/> at the specified world,
         ///           selection and by the entity (if any), returning whether it was successful. </summary>
         /// <example cref="ArgumentNullException"> Thrown if world or pos is null. </exception>
-        public bool PlaceDown(IWorldAccessor world, BlockSelection selection, Entity entity = null)
+        public bool PlaceDown(IWorldAccessor world, BlockSelection selection, Entity entity = null, bool dropped = false)
         {
             if (world == null) throw new ArgumentNullException(nameof(world));
             if (selection == null) throw new ArgumentNullException(nameof(selection));
@@ -200,12 +201,31 @@ namespace CarryOn
             if (entity is EntityPlayer playerEntity)
             {
                 var player = world.PlayerByUid(playerEntity.PlayerUID);
-                var failureCode = "__ignore__";
-                if (!Block.TryPlaceBlock(world, player, ItemStack, selection, ref failureCode)) return false;
+
+                if (dropped)
+                {
+                    world.BlockAccessor.SetBlock(Block.Id, selection.Position);
+
+                    var isReinforced = entity.Api.ModLoader.GetModSystem<ModSystemBlockReinforcement>()?.IsReinforced(selection.Position) ?? false;
+
+                    // Create record of dropped block if at reinforced trader or on a land claim
+                    if (isReinforced || (entity.World.Claims.Get(selection.Position) != null
+                        && !entity.World.Claims.TryAccess(playerEntity.Player, selection.Position, EnumBlockAccessFlags.BuildOrBreak)))
+                    {
+                        DroppedBlockInfo.Create(selection.Position, player);
+                    }
+                }
+                else
+                {
+                    var failureCode = "__ignore__";
+
+                    if (!Block.TryPlaceBlock(world, player, ItemStack, selection, ref failureCode)) return false;
+                }
             }
             else
             {
                 world.BlockAccessor.SetBlock(Block.Id, selection.Position);
+
                 // TODO: Handle type attribute.
             }
 
@@ -309,9 +329,17 @@ namespace CarryOn
             if (entity is EntityPlayer playerEntity)
             {
                 var isCreative = (playerEntity.Player.WorldData.CurrentGameMode == EnumGameMode.Creative);
+                // Check if block was dropped by a player
+                var droppedBlock = DroppedBlockInfo.Get(pos, playerEntity.Player);
+                if (droppedBlock != null)
+                {
+                    entity.Api.World.Logger.Debug($"Dropped block found at '{pos}'");
+                    return true;
+                }
+                entity.Api.World.Logger.Debug($"No dropped block found at '{pos}'");
                 if (!isCreative && isReinforced) return false; // Can't pick up when reinforced unless in creative mode.
-                var hasClaimsAccess = entity.World.Claims.TryAccess(playerEntity.Player, pos, EnumBlockAccessFlags.BuildOrBreak);
-                return hasClaimsAccess; // Can pick up if has access to any claims that might be present.
+                // Can pick up if has access to any claims that might be present.
+                return entity.World.Claims.TryAccess(playerEntity.Player, pos, EnumBlockAccessFlags.BuildOrBreak);
             }
             else
             {
@@ -368,27 +396,27 @@ namespace CarryOn
 
             bool Drop(BlockPos pos, CarriedBlock block)
             {
-                // Check player has permission to drop items here
-                if (player != null)
-                {
-                    var landClaims = claimAPI.Get(pos);
-                    if (landClaims != null)
-                    {
-                        foreach (var claim in landClaims)
-                        {
-                            if (claim.TestPlayerAccess(player, EnumBlockAccessFlags.BuildOrBreak) == EnumPlayerAccessResult.Denied)
-                            {
-                                return false;
-                            }
-                        }
-                    }
-                }
-                if (!block.PlaceDown(entity.World, new BlockSelection { Position = pos }, null)) return false;
+                if (!block.PlaceDown(entity.World, new BlockSelection { Position = pos }, player.Entity, true)) return false;
                 CarriedBlock.Remove(entity, block.Slot);
                 return true;
             }
 
             var centerBlock = entity.Pos.AsBlockPos;
+            var accessor = entity.World.BlockAccessor;
+
+            // Look for ground 
+            var blockBelow =  centerBlock.DownCopy();
+            bool foundGround = false;
+            while(!foundGround){
+                var testBlock = accessor.GetBlock(blockBelow);
+                if(testBlock.BlockId == 0){
+                    blockBelow =  blockBelow.DownCopy();
+                }else{
+                    foundGround = true;
+                    centerBlock = blockBelow;
+                }
+            }
+
             var nearbyBlocks = new List<BlockPos>(((hSize * 2) + 1) * ((hSize * 2) + 1));
             for (int x = -hSize; x <= hSize; x++)
             {
@@ -398,7 +426,6 @@ namespace CarryOn
 
             nearbyBlocks = nearbyBlocks.OrderBy(b => b.DistanceTo(centerBlock)).ToList();
 
-            var accessor = entity.World.BlockAccessor;
             var blockIndex = 0;
             var distance = 0;
             while (remaining.Count > 0)
@@ -412,7 +439,7 @@ namespace CarryOn
                     var placeable = remaining.FirstOrDefault(c => testBlock.IsReplacableBy(c.Block));
                     if (sign == 0)
                     {
-                        sign = ((placeable != null) ? -1 : 1);
+                        sign = (placeable != null) ? -1 : 1;
                     }
                     else if (sign > 0)
                     {
