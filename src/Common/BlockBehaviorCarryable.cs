@@ -47,7 +47,7 @@ namespace CarryOn.Common
                 { CarrySlot.Shoulder , $"{ CarrySystem.ModId }:shoulder"  },
             };
 
-        public float InteractDelay { get; private set; } = ModConfig.Config.PickUpSpeedModifier;
+        public float InteractDelay { get; private set; } = CarrySystem.PickUpSpeedDefault;
 
         public ModelTransform DefaultTransform { get; private set; } = DefaultBlockTransform;
 

@@ -108,7 +108,7 @@ namespace CarryOn.Common
             var holdingAny = carriedHands ?? carriedShoulder;
 
             // If enabled allow player to hold control to focus on swapping to or from back
-            var swapBackFocus = ModConfig.Config.HoldControlForBackSwapFocus && player.Entity.Controls.CtrlKey;
+            var swapBackFocus = ModConfig.ClientConfig.HoldControlForBackSwapFocus && player.Entity.Controls.CtrlKey;
 
             // If something is being carried in-hand, prevent RMB, LMB and sprint.
             // If still holding RMB after an action completed, prevent the default action as well.
@@ -250,8 +250,8 @@ namespace CarryOn.Common
             var requiredTime = behavior.InteractDelay;
             switch (_action)
             {
-                case CurrentAction.PlaceDown: requiredTime *= ModConfig.Config.PlaceSpeedModifier; break;
-                case CurrentAction.SwapBack: requiredTime *= ModConfig.Config.SwapSpeedModifier; break;
+                case CurrentAction.PlaceDown: requiredTime *= CarrySystem.PlaceSpeedDefault; break;
+                case CurrentAction.SwapBack: requiredTime *= CarrySystem.SwapSpeedDefault; break;
             }
 
             _timeHeld += deltaTime;

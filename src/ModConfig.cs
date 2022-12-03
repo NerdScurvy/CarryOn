@@ -4,59 +4,90 @@ namespace CarryOn
 {
     static class ModConfig
     {
-        public static CarryOnConfig Config;
+        public static CarryOnClientConfig ClientConfig;
 
         private const string ConfigFile = "CarryOnConfig.json";
+        private const string ClientConfigFile = "CarryOnClientConfig.json";
 
         public static void ReadConfig(ICoreAPI api)
         {
-            try
+            if (api.Side == EnumAppSide.Server)
             {
-                Config = LoadConfig(api);
+                CarryOnConfig serverConfig;
+                try
+                {
+                    serverConfig = LoadConfig(api);
 
-                if (Config == null)
+                    if (serverConfig == null)
+                    {
+                        GenerateConfig(api);
+                        serverConfig = LoadConfig(api);
+                    }
+                    else
+                    {
+                        GenerateConfig(api, serverConfig);
+                    }
+                }
+                catch
                 {
                     GenerateConfig(api);
-                    Config = LoadConfig(api);
+                    serverConfig = LoadConfig(api);
                 }
-                else
+
+                if (api.Side == EnumAppSide.Server)
                 {
-                    GenerateConfig(api, Config);
+                    var worldConfig = api.World.Config;
+
+                    worldConfig.SetBool(CarrySystem.ModId + ":AnvilEnabled", serverConfig.AnvilEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":BarrelEnabled", serverConfig.BarrelEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":BunchOCandlesEnabled", serverConfig.BunchOCandlesEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":ChandelierEnabled", serverConfig.ChandelierEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":ChestLabeledEnabled", serverConfig.ChestLabeledEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":ChestTrunkEnabled", serverConfig.ChestTrunkEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":ChestEnabled", serverConfig.ChestEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":CrateEnabled", serverConfig.CrateEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":CrateLegacyEnabled", serverConfig.CrateLegacyEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":DisplayCaseEnabled", serverConfig.DisplayCaseEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":FlowerpotEnabled", serverConfig.FlowerpotEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":ForgeEnabled", serverConfig.ForgeEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":LogWithResinEnabled", serverConfig.LogWithResinEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":MoldRackEnabled", serverConfig.MoldRackEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":MoldsEnabled", serverConfig.MoldsEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":LootVesselEnabled", serverConfig.LootVesselEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":OvenEnabled", serverConfig.OvenEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":PlanterEnabled", serverConfig.PlanterEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":QuernEnabled", serverConfig.QuernEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":ShelfEnabled", serverConfig.ShelfEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":SignEnabled", serverConfig.SignEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":StationaryBasketEnabled", serverConfig.StationaryBasketEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":StorageVesselEnabled", serverConfig.StorageVesselEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":ToolRackEnabled", serverConfig.ToolRackEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":TorchHolderEnabled", serverConfig.TorchHolderEnabled);
                 }
             }
-            catch
+            else
             {
-                GenerateConfig(api);
-                Config = LoadConfig(api);
+                // Load client side config
+                try
+                {
+                    ClientConfig = LoadClientConfig(api);
+
+                    if (ClientConfig == null)
+                    {
+                        GenerateClientConfig(api);
+                        ClientConfig = LoadClientConfig(api);
+                    }
+                    else
+                    {
+                        GenerateClientConfig(api, ClientConfig);
+                    }
+                }
+                catch
+                {
+                    GenerateClientConfig(api);
+                    ClientConfig = LoadClientConfig(api);
+                }
             }
-
-            var worldConfig = api.World.Config;
-
-            worldConfig.SetBool(CarrySystem.ModId + ":AnvilEnabled", Config.AnvilEnabled);
-            worldConfig.SetBool(CarrySystem.ModId + ":BarrelEnabled", Config.BarrelEnabled);
-            worldConfig.SetBool(CarrySystem.ModId + ":BunchOCandlesEnabled", Config.BunchOCandlesEnabled);
-            worldConfig.SetBool(CarrySystem.ModId + ":ChandelierEnabled", Config.ChandelierEnabled);
-            worldConfig.SetBool(CarrySystem.ModId + ":ChestLabeledEnabled", Config.ChestLabeledEnabled);
-            worldConfig.SetBool(CarrySystem.ModId + ":ChestTrunkEnabled", Config.ChestTrunkEnabled);
-            worldConfig.SetBool(CarrySystem.ModId + ":ChestEnabled", Config.ChestEnabled);
-            worldConfig.SetBool(CarrySystem.ModId + ":CrateEnabled", Config.CrateEnabled);
-            worldConfig.SetBool(CarrySystem.ModId + ":CrateLegacyEnabled", Config.CrateLegacyEnabled);
-            worldConfig.SetBool(CarrySystem.ModId + ":DisplayCaseEnabled", Config.DisplayCaseEnabled);
-            worldConfig.SetBool(CarrySystem.ModId + ":FlowerpotEnabled", Config.FlowerpotEnabled);
-            worldConfig.SetBool(CarrySystem.ModId + ":ForgeEnabled", Config.ForgeEnabled);
-            worldConfig.SetBool(CarrySystem.ModId + ":LogWithResinEnabled", Config.LogWithResinEnabled);
-            worldConfig.SetBool(CarrySystem.ModId + ":MoldRackEnabled", Config.MoldRackEnabled);
-            worldConfig.SetBool(CarrySystem.ModId + ":MoldsEnabled", Config.MoldsEnabled);
-            worldConfig.SetBool(CarrySystem.ModId + ":LootVesselEnabled", Config.LootVesselEnabled);
-            worldConfig.SetBool(CarrySystem.ModId + ":OvenEnabled", Config.OvenEnabled);
-            worldConfig.SetBool(CarrySystem.ModId + ":PlanterEnabled", Config.PlanterEnabled);
-            worldConfig.SetBool(CarrySystem.ModId + ":QuernEnabled", Config.QuernEnabled);
-            worldConfig.SetBool(CarrySystem.ModId + ":ShelfEnabled", Config.ShelfEnabled);
-            worldConfig.SetBool(CarrySystem.ModId + ":SignEnabled", Config.SignEnabled);
-            worldConfig.SetBool(CarrySystem.ModId + ":StationaryBasketEnabled", Config.StationaryBasketEnabled);
-            worldConfig.SetBool(CarrySystem.ModId + ":StorageVesselEnabled", Config.StorageVesselEnabled);
-            worldConfig.SetBool(CarrySystem.ModId + ":ToolRackEnabled", Config.ToolRackEnabled);
-            worldConfig.SetBool(CarrySystem.ModId + ":TorchHolderEnabled", Config.TorchHolderEnabled);
         }
 
         private static CarryOnConfig LoadConfig(ICoreAPI api)
@@ -72,6 +103,20 @@ namespace CarryOn
         private static void GenerateConfig(ICoreAPI api, CarryOnConfig previousConfig)
         {
             api.StoreModConfig(new CarryOnConfig(previousConfig), ConfigFile);
+        }
+
+        private static CarryOnClientConfig LoadClientConfig(ICoreAPI api)
+        {
+            return api.LoadModConfig<CarryOnClientConfig>(ClientConfigFile);
+        }
+
+        private static void GenerateClientConfig(ICoreAPI api)
+        {
+            api.StoreModConfig(new CarryOnClientConfig(), ClientConfigFile);
+        }
+        private static void GenerateClientConfig(ICoreAPI api, CarryOnClientConfig previousConfig)
+        {
+            api.StoreModConfig(new CarryOnClientConfig(previousConfig), ClientConfigFile);
         }
     }
 }

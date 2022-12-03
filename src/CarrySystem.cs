@@ -21,7 +21,9 @@ namespace CarryOn
     public class CarrySystem : ModSystem
     {
         public static string ModId = "carryon";
-
+        public static float PlaceSpeedDefault = 0.75f;
+        public static float SwapSpeedDefault = 1.5f;
+        public static float PickUpSpeedDefault = 0.8f;
         public override bool AllowRuntimeReload => true;
 
         // Client
