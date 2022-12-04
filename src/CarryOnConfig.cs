@@ -28,6 +28,8 @@ namespace CarryOn
         public bool ToolRackEnabled;
         public bool TorchHolderEnabled;
 
+        public string [] NonGroundBlockClasses = new[] { "BlockWater", "BlockLava" };
+
         public CarryOnConfig()
         {
         }
@@ -59,6 +61,8 @@ namespace CarryOn
             StorageVesselEnabled = previousConfig.StorageVesselEnabled;
             ToolRackEnabled = previousConfig.ToolRackEnabled;
             TorchHolderEnabled = previousConfig.ToolRackEnabled;
+
+            NonGroundBlockClasses = previousConfig.NonGroundBlockClasses;
         }
     }
 }

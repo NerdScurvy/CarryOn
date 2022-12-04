@@ -3,7 +3,6 @@ using CarryOn.Common;
 using CarryOn.Common.Network;
 using CarryOn.Server;
 using CarryOn.Utility;
-using CarryOn;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Server;
