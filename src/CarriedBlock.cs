@@ -210,7 +210,7 @@ namespace CarryOn
 
                     // Create record of dropped block if at reinforced trader or on a land claim
                     if (isReinforced || (entity.World.Claims.Get(selection.Position) != null
-                        && !entity.World.Claims.TryAccess(playerEntity.Player, selection.Position, EnumBlockAccessFlags.BuildOrBreak)))
+                        && entity.World.Claims.TestAccess(playerEntity.Player, selection.Position, EnumBlockAccessFlags.BuildOrBreak) != EnumWorldAccessResponse.Granted))
                     {
                         DroppedBlockInfo.Create(selection.Position, player);
                     }
@@ -335,7 +335,8 @@ namespace CarryOn
             if (entity is EntityPlayer playerEntity)
             {
                 var isCreative = (playerEntity.Player.WorldData.CurrentGameMode == EnumGameMode.Creative);
-                if(entity.World.Side == EnumAppSide.Server){
+                if (entity.World.Side == EnumAppSide.Server)
+                {
                     // Check if block was dropped by a player
                     var droppedBlock = DroppedBlockInfo.Get(pos, playerEntity.Player);
                     if (droppedBlock != null)
@@ -400,7 +401,6 @@ namespace CarryOn
                 slots.Select(s => entity.GetCarried(s))
                      .Where(c => c != null));
             if (remaining.Count == 0) return;
-            var claimAPI = entity.World.Claims;
 
             bool Drop(BlockPos pos, CarriedBlock block)
             {
@@ -418,14 +418,15 @@ namespace CarryOn
             while (!foundGround)
             {
                 var testBlock = accessor.GetBlock(blockBelow);
-                if (testBlock.BlockId == 0)
+                // Check if block is air or defined set of non-ground blocks
+                if (testBlock.BlockId == 0 || ModConfig.ServerConfig.NonGroundBlockClasses.Contains(testBlock.Class))
                 {
+                    centerBlock = blockBelow;
                     blockBelow = blockBelow.DownCopy();
                 }
                 else
                 {
                     foundGround = true;
-                    centerBlock = blockBelow;
                 }
             }
 
@@ -436,18 +437,46 @@ namespace CarryOn
                     nearbyBlocks.Add(centerBlock.AddCopy(x, 0, z));
             }
 
+            var airBlocks = new List<BlockPos>();
+
             nearbyBlocks = nearbyBlocks.OrderBy(b => b.DistanceTo(centerBlock)).ToList();
 
             var blockIndex = 0;
             var distance = 0;
             while (remaining.Count > 0)
             {
-                if (blockIndex >= nearbyBlocks.Count) break;
+                if (blockIndex >= nearbyBlocks.Count)
+                {
+                    while (remaining.Count > 0)
+                    {
+                        // Try to place blocks in known air
+                        var placeable = remaining.FirstOrDefault();
+                        var airPos = airBlocks.FirstOrDefault();
+
+                        if (airPos == null) break;
+
+                        if ((placeable != null) && Drop(airPos, placeable))
+                        {
+                            remaining.Remove(placeable);
+                            airBlocks.Remove(airPos);
+                        }
+                    }
+                    if (remaining.Count > 0)
+                    {
+                        entity.Api.Logger.Warning($"Entity {entity.GetName()} could not drop carryable on or near {centerBlock}");
+                    }
+                    break;
+                }
                 var pos = nearbyBlocks[blockIndex];
                 if (Math.Abs(pos.Y - centerBlock.Y) <= vSize)
                 {
                     var sign = Math.Sign(pos.Y - centerBlock.Y);
                     var testBlock = accessor.GetBlock(pos);
+                    // Record known air blocks and non ground blocks
+                    if (testBlock.BlockId == 0 || ModConfig.ServerConfig.NonGroundBlockClasses.Contains(testBlock.Class))
+                    {
+                        airBlocks.Add(pos.Copy());
+                    }
                     var placeable = remaining.FirstOrDefault(c => testBlock.IsReplacableBy(c.Block));
                     if (sign == 0)
                     {
@@ -456,7 +485,10 @@ namespace CarryOn
                     else if (sign > 0)
                     {
                         if ((placeable != null) && Drop(pos, placeable))
+                        {
                             remaining.Remove(placeable);
+                            airBlocks.Remove(pos);
+                        }
                     }
                     else if (placeable == null)
                     {
@@ -464,7 +496,10 @@ namespace CarryOn
                         testBlock = accessor.GetBlock(above);
                         placeable = remaining.FirstOrDefault(c => testBlock.IsReplacableBy(c.Block));
                         if ((placeable != null) && Drop(above, placeable))
+                        {
                             remaining.Remove(placeable);
+                            airBlocks.Remove(above);
+                        }
                     }
                     pos.Add(0, sign, 0);
                 }
@@ -480,7 +515,6 @@ namespace CarryOn
                     }
                 }
             }
-
             // FIXME: Drop container contents if blocks could not be placed.
             //        Right now, the player just gets to keep them equipped.
         }
