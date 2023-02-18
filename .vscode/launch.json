@@ -1,6 +1,7 @@
 {
 	"version": "0.2.0",
-	"configurations": [{
+	"configurations": [
+	{
 		"name": "Launch Client (Mono)",
 		"type": "mono",
 		"request": "launch",
@@ -9,21 +10,19 @@
 		"args": [
 			"--playStyle", "surviveandbuild",
 			"--openWorld", "modding test world",
-			"--addModPath", "${workspaceFolder}/bin/Debug/net461",
+			"--addModPath", "${workspaceFolder}/bin/Debug/net7",
 			"--addOrigin", "${workspaceFolder}/resources/assets",
 		],
 		"console": "internalConsole",
 		"internalConsoleOptions": "openOnSessionStart",
 	},{
 		"name": "Launch Client (.NET)",
-		"type": "clr",
+		"type": "coreclr",
 		"request": "launch",
 		"preLaunchTask": "Build (Debug)",
 		"program": "${env:VINTAGE_STORY}/Vintagestory.exe",
 		"args": [
-			"--playStyle", "surviveandbuild",
-			"--openWorld", "modding test world",
-			"--addModPath", "${workspaceFolder}/bin/Debug/net461",
+			"--addModPath", "${workspaceFolder}/bin/Debug/net7",
 			"--addOrigin", "${workspaceFolder}/resources/assets",
 		],
 		"console": "internalConsole",
