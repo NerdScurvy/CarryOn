@@ -84,10 +84,10 @@ namespace CarryOn.Common
             switch (action)
             {
                 // Right click (interact action) starts carry's pickup and place handling.
-                case EnumEntityAction.RightMouseDown:
+                case EnumEntityAction.InWorldRightMouseDown:
                     isInteract = true; break;
                 // Other actions, which are prevented while holding something.
-                case EnumEntityAction.LeftMouseDown:
+                case EnumEntityAction.InWorldLeftMouseDown:
                 case EnumEntityAction.Sprint:
                     isInteract = false; break;
                 default: return;
