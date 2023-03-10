@@ -6,6 +6,7 @@ using CarryOn.Server;
 using CarryOn.Utility;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
+using Vintagestory.API.Config;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Server;
@@ -205,15 +206,7 @@ namespace CarryOn
                 if (dropped)
                 {
                     world.BlockAccessor.SetBlock(Block.Id, selection.Position);
-
-                    var isReinforced = entity.Api.ModLoader.GetModSystem<ModSystemBlockReinforcement>()?.IsReinforced(selection.Position) ?? false;
-
-                    // Create record of dropped block if at reinforced trader or on a land claim
-                    if (isReinforced || (entity.World.Claims.Get(selection.Position) != null
-                        && entity.World.Claims.TestAccess(playerEntity.Player, selection.Position, EnumBlockAccessFlags.BuildOrBreak) != EnumWorldAccessResponse.Granted))
-                    {
-                        DroppedBlockInfo.Create(selection.Position, player);
-                    }
+                    DroppedBlockInfo.Create(selection.Position, player, BlockEntityData);
                 }
                 else
                 {
@@ -232,7 +225,13 @@ namespace CarryOn
             RestoreBlockEntityData(world, selection.Position);
             world.BlockAccessor.TriggerNeighbourBlockUpdate(selection.Position);
             if (entity != null) Remove(entity, Slot);
-            PlaySound(selection.Position, world, entity as EntityPlayer);
+            var entityPlayer = entity as EntityPlayer;
+            PlaySound(selection.Position, world, dropped?null : entityPlayer);
+
+            if(dropped && world.Api.Side == EnumAppSide.Server){
+                var api = world.Api as ICoreServerAPI;
+                api.SendMessage(entityPlayer.Player, GlobalConstants.GeneralChatGroup, Lang.Get("You dropped something"), EnumChatType.OwnMessage);
+            }
 
             return true;
         }
@@ -272,13 +271,14 @@ namespace CarryOn
                                 EntityPlayer entityPlayer = null)
         {
             const float SOUND_RANGE = 16.0F;
-            const float SOUND_VOLUME = 0.8F;
+            const float SOUND_VOLUME = 1.0F;
 
             // TODO: In 1.7.0, Block.Sounds should not be null anymore.
+
             if (Block.Sounds?.Place == null) return;
 
             var player = (entityPlayer != null) && (world.Side == EnumAppSide.Server)
-                ? world.PlayerByUid(entityPlayer.PlayerUID) : null;
+                ? entityPlayer.Player : null;
 
             world.PlaySoundAt(Block.Sounds.Place,
                 pos.X + 0.5, pos.Y + 0.25, pos.Z + 0.5, player,
