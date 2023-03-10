@@ -48,7 +48,7 @@ namespace CarryOn
 
         /// <summary> Gets the <see cref="CarriedBlock"/> currently
         ///           carried by the specified entity, or null if none. </summary>
-        /// <example cref="ArgumentNullException"> Thrown if entity is null. </exception>
+        /// <exception cref="ArgumentNullException"> Thrown if entity is null. </exception>
         public static CarriedBlock Get(Entity entity, CarrySlot slot)
         {
             if (entity == null) throw new ArgumentNullException(nameof(entity));
@@ -76,7 +76,7 @@ namespace CarryOn
 
         /// <summary> Stores the specified stack and blockEntityData (may be null)
         ///           as the <see cref="CarriedBlock"/> of the entity in that slot. </summary>
-        /// <example cref="ArgumentNullException"> Thrown if entity is null. </exception>
+        /// <exception cref="ArgumentNullException"> Thrown if entity is null. </exception>
         public static void Set(Entity entity, CarrySlot slot, ItemStack stack, ITreeAttribute blockEntityData)
         {
             if (entity == null) throw new ArgumentNullException(nameof(entity));
@@ -110,13 +110,13 @@ namespace CarryOn
 
         /// <summary> Stores this <see cref="CarriedBlock"/> as the
         ///           specified entity's carried block in that slot. </summary>
-        /// <example cref="ArgumentNullException"> Thrown if entity is null. </exception>
+        /// <exception cref="ArgumentNullException"> Thrown if entity is null. </exception>
         public void Set(Entity entity, CarrySlot slot)
             => Set(entity, slot, ItemStack, BlockEntityData);
 
         /// <summary> Removes the <see cref="CarriedBlock"/>
         ///           carried by the specified entity in that slot. </summary>
-        /// <example cref="ArgumentNullException"> Thrown if entity is null. </exception>
+        /// <exception cref="ArgumentNullException"> Thrown if entity is null. </exception>
         public static void Remove(Entity entity, CarrySlot slot)
         {
             if (entity == null) throw new ArgumentNullException(nameof(entity));
@@ -140,7 +140,7 @@ namespace CarryOn
 
         /// <summary> Creates a <see cref="CarriedBlock"/> from the specified world
         ///           and position, but doesn't remove it. Returns null if unsuccessful. </summary>
-        /// <example cref="ArgumentNullException"> Thrown if world or pos is null. </exception>
+        /// <exception cref="ArgumentNullException"> Thrown if world or pos is null. </exception>
         public static CarriedBlock Get(IWorldAccessor world, BlockPos pos, CarrySlot slot)
         {
             if (world == null) throw new ArgumentNullException(nameof(world));
@@ -174,7 +174,7 @@ namespace CarryOn
 
         /// <summary> Attempts to pick up a <see cref="CarriedBlock"/> from the specified
         ///           world and position, removing it. Returns null if unsuccessful. </summary>
-        /// <example cref="ArgumentNullException"> Thrown if world or pos is null. </exception>
+        /// <exception cref="ArgumentNullException"> Thrown if world or pos is null. </exception>
         public static CarriedBlock PickUp(IWorldAccessor world, BlockPos pos,
                                           CarrySlot slot, bool checkIsCarryable = false)
         {
@@ -191,7 +191,7 @@ namespace CarryOn
 
         /// <summary> Attempts to place down a <see cref="CarriedBlock"/> at the specified world,
         ///           selection and by the entity (if any), returning whether it was successful. </summary>
-        /// <example cref="ArgumentNullException"> Thrown if world or pos is null. </exception>
+        /// <exception cref="ArgumentNullException"> Thrown if world or pos is null. </exception>
         public bool PlaceDown(IWorldAccessor world, BlockSelection selection, Entity entity = null, bool dropped = false)
         {
             if (world == null) throw new ArgumentNullException(nameof(world));
@@ -295,12 +295,12 @@ namespace CarryOn
 
         /// <summary> Returns the <see cref="CarriedBlock"/> this entity
         ///           is carrying in the specified slot, or null of none. </summary>
-        /// <example cref="ArgumentNullException"> Thrown if entity or pos is null. </exception>
+        /// <exception cref="ArgumentNullException"> Thrown if entity or pos is null. </exception>
         public static CarriedBlock GetCarried(this Entity entity, CarrySlot slot)
             => CarriedBlock.Get(entity, slot);
 
         /// <summary> Returns all the <see cref="CarriedBlock"/>s this entity is carrying. </summary>
-        /// <example cref="ArgumentNullException"> Thrown if entity or pos is null. </exception>
+        /// <exception cref="ArgumentNullException"> Thrown if entity or pos is null. </exception>
         public static IEnumerable<CarriedBlock> GetCarried(this Entity entity)
         {
             foreach (var slot in Enum.GetValues(typeof(CarrySlot)).Cast<CarrySlot>())
@@ -315,7 +315,7 @@ namespace CarryOn
         ///   specified position as a <see cref="CarriedBlock"/>,
         ///   returning whether it was successful.
         /// </summary>
-        /// <example cref="ArgumentNullException"> Thrown if entity or pos is null. </exception>
+        /// <exception cref="ArgumentNullException"> Thrown if entity or pos is null. </exception>
         public static bool Carry(this Entity entity, BlockPos pos,
                                  CarrySlot slot, bool checkIsCarryable = true)
         {
@@ -361,7 +361,7 @@ namespace CarryOn
         ///   <see cref="CarriedBlock"/> (if any) at the specified
         ///   selection, returning whether it was successful.
         /// </summary>
-        /// <example cref="ArgumentNullException"> Thrown if player or selection is null. </exception>
+        /// <exception cref="ArgumentNullException"> Thrown if player or selection is null. </exception>
         public static bool PlaceCarried(this IPlayer player, BlockSelection selection, CarrySlot slot)
         {
             if (player == null) throw new ArgumentNullException(nameof(player));
@@ -381,8 +381,8 @@ namespace CarryOn
 
         /// <summary> Attempts to make this entity drop its carried blocks from the
         ///           specified slots around its current position in the specified area. </summary>
-        /// <example cref="ArgumentNullException"> Thrown if entity or slots is null. </exception>
-        /// <example cref="ArgumentOutOfRangeException"> Thrown if hSize or vSize is negative. </exception>
+        /// <exception cref="ArgumentNullException"> Thrown if entity or slots is null. </exception>
+        /// <exception cref="ArgumentOutOfRangeException"> Thrown if hSize or vSize is negative. </exception>
         public static void DropCarried(this Entity entity, IEnumerable<CarrySlot> slots,
                                        int hSize = 4, int vSize = 4)
         {
@@ -521,8 +521,8 @@ namespace CarryOn
 
         /// <summary> Attempts to make this entity drop all of its carried
         ///           blocks around its current position in the specified area. </summary>
-        /// <example cref="ArgumentNullException"> Thrown if entity is null. </exception>
-        /// <example cref="ArgumentOutOfRangeException"> Thrown if hSize or vSize is negative. </exception>
+        /// <exception cref="ArgumentNullException"> Thrown if entity is null. </exception>
+        /// <exception cref="ArgumentOutOfRangeException"> Thrown if hSize or vSize is negative. </exception>
         public static void DropAllCarried(this Entity entity, int hSize = 4, int vSize = 4)
             => DropCarried(entity, Enum.GetValues(typeof(CarrySlot)).Cast<CarrySlot>(), hSize, vSize);
 
@@ -530,7 +530,7 @@ namespace CarryOn
         ///   Attempts to swap the <see cref="CarriedBlock"/>s currently carried in the
         ///   entity's <paramref name="first"/> and <paramref name="second"/> slots.
         /// </summary>
-        /// <example cref="ArgumentNullException"> Thrown if entity is null. </exception>
+        /// <exception cref="ArgumentNullException"> Thrown if entity is null. </exception>
         public static bool Swap(this Entity entity, CarrySlot first, CarrySlot second)
         {
             if (first == second) throw new ArgumentException("Slots can't be the same");
