@@ -74,6 +74,26 @@ namespace CarryOn.API.Common
 
             if ((entity.World.Side == EnumAppSide.Server) && (blockEntityData != null))
                 entity.Attributes.Set(blockEntityData, AttributeId, slot.ToString(), "Data");
+
+            var behavior = stack.Block.GetBehaviorOrDefault(BlockBehaviorCarryable.Default);
+            var slotSettings = behavior.Slots[slot];
+
+            if (slotSettings?.Animation != null)
+                entity.StartAnimation(slotSettings.Animation);
+
+            if (entity is EntityAgent agent)
+            {
+                var speed = slotSettings?.WalkSpeedModifier ?? 0.0F;
+                if (speed != 0.0F)
+                {
+                    agent.Stats.Set("walkspeed",
+                    $"{CarrySystem.ModId}:{slot}", speed, false);
+                }
+
+                if (slot == CarrySlot.Hands) LockedItemSlot.Lock(agent.RightHandItemSlot);
+                if (slot != CarrySlot.Back) LockedItemSlot.Lock(agent.LeftHandItemSlot);
+                CarryHandler.SendLockSlotsMessage(agent as EntityPlayer);
+            }
         }
 
         /// <summary> Stores this <see cref="CarriedBlock"/> as the
@@ -88,6 +108,18 @@ namespace CarryOn.API.Common
         public static void Remove(Entity entity, CarrySlot slot)
         {
             if (entity == null) throw new ArgumentNullException(nameof(entity));
+
+            var animation = entity.GetCarried(slot)?.Behavior?.Slots?[slot]?.Animation;
+            if (animation != null) entity.StopAnimation(animation);
+
+            if (entity is EntityAgent agent)
+            {
+                agent.Stats.Remove("walkspeed", $"{CarrySystem.ModId}:{slot}");
+
+                if (slot == CarrySlot.Hands) LockedItemSlot.Restore(agent.RightHandItemSlot);
+                if (slot != CarrySlot.Back) LockedItemSlot.Restore(agent.LeftHandItemSlot);
+                CarryHandler.SendLockSlotsMessage(agent as EntityPlayer);
+            }
 
             entity.WatchedAttributes.Remove(AttributeId, slot.ToString());
             ((SyncedTreeAttribute)entity.WatchedAttributes).MarkPathDirty(AttributeId);
@@ -153,7 +185,6 @@ namespace CarryOn.API.Common
         {
             if (world == null) throw new ArgumentNullException(nameof(world));
             if (selection == null) throw new ArgumentNullException(nameof(selection));
-            if (entity == null) throw new ArgumentNullException(nameof(entity));
             if (!world.BlockAccessor.IsValidPos(selection.Position)) return false;
 
             if (entity is EntityPlayer playerEntity)
