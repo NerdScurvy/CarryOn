@@ -1,3 +1,7 @@
 {
-  "blockhelp-pickup": "Tragen"
+  "blockhelp-pickup": "Tragen",
+  "drop-notice":"Du hast {0} aus deiner {1} fallen lassen.",
+  "slot-hands": "händen",
+  "slot-back": "rücken",
+  "slot-shoulder": "schulter"  
 }

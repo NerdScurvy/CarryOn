@@ -1,3 +1,9 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using CarryOn.API.Common;
+using CarryOn.API.Event;
 using CarryOn.Client;
 using CarryOn.Common;
 using CarryOn.Common.Network;
@@ -25,6 +31,8 @@ namespace CarryOn
         public static float PickUpSpeedDefault = 0.8f;
         public override bool AllowRuntimeReload => true;
 
+        public ICoreAPI Api { get { return ClientAPI ?? ServerAPI as ICoreAPI; } }
+
         // Client
         public ICoreClientAPI ClientAPI { get; private set; }
         public IClientNetworkChannel ClientChannel { get; private set; }
@@ -35,10 +43,11 @@ namespace CarryOn
         public ICoreServerAPI ServerAPI { get; private set; }
         public IServerNetworkChannel ServerChannel { get; private set; }
         public DeathHandler DeathHandler { get; private set; }
-        public BackwardCompatHandler BackwardCompatHandler { get; private set; }
 
         // Common
         public CarryHandler CarryHandler { get; private set; }
+
+        public CarryEvents CarryEvents { get; private set; }
 
         public override void StartPre(ICoreAPI api)
         {
@@ -53,6 +62,7 @@ namespace CarryOn
             api.Register<BlockBehaviorCarryable>();
 
             CarryHandler = new CarryHandler(this);
+            CarryEvents = new CarryEvents();
         }
 
         public override void StartClientSide(ICoreClientAPI api)
@@ -66,8 +76,8 @@ namespace CarryOn
 
             EntityCarryRenderer = new EntityCarryRenderer(api);
             HudOverlayRenderer = new HudOverlayRenderer(api);
-
             CarryHandler.InitClient();
+            InitEvents();
         }
 
         public override void StartServerSide(ICoreServerAPI api)
@@ -82,9 +92,16 @@ namespace CarryOn
                 .RegisterMessageType<SwapSlotsMessage>();
 
             DeathHandler = new DeathHandler(api);
-            BackwardCompatHandler = new BackwardCompatHandler(api);
-
             CarryHandler.InitServer();
+            InitEvents();
+        }
+
+        private void InitEvents(){
+            // Initialise all ICarryEvent 
+            foreach (Type type in Assembly.GetExecutingAssembly().GetTypes().Where(t => t.GetInterfaces().Contains(typeof(ICarryEvent))))
+            {
+                (Activator.CreateInstance(type) as ICarryEvent)?.Init(this);
+            }
         }
     }
 }

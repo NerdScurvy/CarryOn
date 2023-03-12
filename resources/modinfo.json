@@ -2,10 +2,10 @@
 	"type": "code",
 	"name": "Carry On",
 	"modid": "carryon",
-	"version": "0.10.3",
+	"version": "0.12.0",
 
 	"description": "Adds the capability to carry various things",
-	"website": "https://github.com/NerdScurvy/CarryCapacity",
+	"website": "https://github.com/NerdScurvy/CarryOn",
 	"authors": [ "copygirl","NerdScurvy" ],
 
 	"dependencies": {
