@@ -1,5 +1,6 @@
 using CarryOn.API.Common;
 using CarryOn.API.Event;
+using CarryOn.API.Event.Data;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
 using Vintagestory.API.Server;

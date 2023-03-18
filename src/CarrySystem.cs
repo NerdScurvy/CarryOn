@@ -96,11 +96,27 @@ namespace CarryOn
             InitEvents();
         }
 
-        private void InitEvents(){
-            // Initialise all ICarryEvent 
-            foreach (Type type in Assembly.GetExecutingAssembly().GetTypes().Where(t => t.GetInterfaces().Contains(typeof(ICarryEvent))))
+        private void InitEvents()
+        {
+            var ignoreMods = new[] { "game", "creative", "survival" };
+
+            var assemblies = Api.ModLoader.Mods.Where(m => !ignoreMods.Contains(m.Info.ModID))
+                                               .Select(s => s.Systems)
+                                               .SelectMany(o => o.ToArray())
+                                               .Select(t => t.GetType().Assembly)
+                                               .Distinct();
+
+            foreach (var assembly in assemblies)
             {
-                (Activator.CreateInstance(type) as ICarryEvent)?.Init(this);
+                // Initialise all ICarryEvent 
+                foreach (Type type in assembly.GetTypes().Where(t => t.GetInterfaces().Contains(typeof(ICarryEvent))))
+                {
+                    try{
+                    (Activator.CreateInstance(type) as ICarryEvent)?.Init(this);
+                    }catch(Exception e){
+                        Api.Logger.Error(e.Message);
+                    }
+                }
             }
         }
     }
