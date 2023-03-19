@@ -1,0 +1,10 @@
+[
+  {
+    "file": "game:blocktypes/wood/trapdoor",
+    "op": "add",
+    "path": "/behaviors/-",
+    "value": {
+      "name": "CarryableInteract"
+    }
+  }
+]

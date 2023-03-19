@@ -1,0 +1,33 @@
+[
+  {
+    "file": "game:blocktypes/wood/door",
+    "op": "add",
+    "path": "/behaviors/-",
+    "value": {
+      "name": "CarryableInteract"
+    }
+  },
+  {
+    "file": "game:blocktypes/metal/irondoor",
+    "op": "add",
+    "path": "/behaviors/-",
+    "value": {
+      "name": "CarryableInteract",
+      "properties": {
+        "interactDelay": 1.3
+      }      
+    }
+  },
+  {
+    "file": "game:blocktypes/metal/cokeovendoor",
+    "op": "add",
+    "path": "/behaviors/-",
+    "value": {
+      "name": "CarryableInteract",
+      "properties": {
+        "interactDelay": 1.3
+      }
+    }
+  }   
+
+]

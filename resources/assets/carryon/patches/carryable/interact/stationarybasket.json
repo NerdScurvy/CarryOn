@@ -1,0 +1,10 @@
+[
+  {
+    "file": "game:blocktypes/stationarybasket",
+    "op": "add",
+    "path": "/behaviors/-",
+    "value": {
+      "name": "CarryableInteract"
+    }
+  }
+]

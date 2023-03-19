@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using CarryOn.API.Common;
 using CarryOn.Common.Network;
@@ -41,6 +43,7 @@ namespace CarryOn.Common
         public void InitServer()
         {
             System.ServerChannel
+                .SetMessageHandler<InteractMessage>(OnInteractMessage)
                 .SetMessageHandler<PickUpMessage>(OnPickUpMessage)
                 .SetMessageHandler<PlaceDownMessage>(OnPlaceDownMessage)
                 .SetMessageHandler<SwapSlotsMessage>(OnSwapSlotsMessage);
@@ -103,7 +106,6 @@ namespace CarryOn.Common
             var world = System.ClientAPI.World;
             var player = world.Player;
             var selection = player.CurrentBlockSelection;
-            var block = (selection != null) ? world.BlockAccessor.GetBlock(selection.Position) : null;
 
             var carriedHands = player.Entity.GetCarried(CarrySlot.Hands);
             var carriedBack = player.Entity.GetCarried(CarrySlot.Back);
@@ -131,7 +133,23 @@ namespace CarryOn.Common
                     // This shouldn't occur since nothing is supposed to go into
                     // an active slot while something is carried there. This is
                     // just in case, so a carried block can still be placed down.
-                    if (!CanInteract(player.Entity, carriedHands != null)) return;
+                    if (!CanInteract(player.Entity, carriedHands != null))
+                    {
+                        selection = GetMultiblockOriginSelection(selection);
+
+                        // Cannot pick up or put down - check for interact behavior
+                        if (selection?.Block?.HasBehavior<BlockBehaviorCarryableInteract>() == true)
+                        {
+                            _action = CurrentAction.Interact;
+                            _selectedBlock = selection.Position;
+                        }
+                        else
+                        {
+                            handled = EnumHandling.PreventDefault;
+                        }
+                        return;
+                    }
+
                     _selectedBlock = GetPlacedPosition(world, selection, holdingAny.Block);
                     if (_selectedBlock == null) return;
 
@@ -157,8 +175,9 @@ namespace CarryOn.Common
             // If nothing's being held..
             else if (CanInteract(player.Entity, true))
             {
+                selection = GetMultiblockOriginSelection(selection);
                 // ..and aiming at carryable block, try to pick it up.
-                if ((block != null) && (_targetSlot = FindActionSlot(slot => block.IsCarryable(slot))) != null && !swapBackFocus)
+                if ((selection?.Block != null) && (_targetSlot = FindActionSlot(slot => selection.Block.IsCarryable(slot))) != null && !swapBackFocus)
                 {
                     _action = CurrentAction.PickUp;
                     _selectedBlock = selection.Position;
@@ -198,17 +217,18 @@ namespace CarryOn.Common
             // TODO: Only allow close blocks to be picked up.
             // TODO: Don't allow the block underneath to change?
 
-            if (!CanInteract(player.Entity, (_action != CurrentAction.PlaceDown) || (_targetSlot != CarrySlot.Hands)))
+            if (_action != CurrentAction.Interact && !CanInteract(player.Entity, (_action != CurrentAction.PlaceDown) || (_targetSlot != CarrySlot.Hands)))
             { CancelInteraction(); return; }
 
             var carriedTarget = _targetSlot.HasValue ? player.Entity.GetCarried(_targetSlot.Value) : null;
             var holdingAny = player.Entity.GetCarried(CarrySlot.Hands)
                              ?? player.Entity.GetCarried(CarrySlot.Shoulder);
             BlockSelection selection = null;
-            BlockBehaviorCarryable behavior;
-
+            BlockBehaviorCarryable carryBehavior = null;
+            BlockBehaviorCarryableInteract interactBehavior = null;
             switch (_action)
             {
+                case CurrentAction.Interact:
                 case CurrentAction.PickUp:
                 case CurrentAction.PlaceDown:
 
@@ -217,20 +237,26 @@ namespace CarryOn.Common
                     if ((_action == CurrentAction.PickUp) == (holdingAny != null))
                     { CancelInteraction(); return; }
 
-                    selection = player.CurrentBlockSelection;
+                    selection = (_action == CurrentAction.PlaceDown) ? player.CurrentBlockSelection : GetMultiblockOriginSelection(player.CurrentBlockSelection);
+
                     var position = (_action == CurrentAction.PlaceDown)
-                        ? GetPlacedPosition(world, selection, carriedTarget.Block)
+                        ? GetPlacedPosition(world, player?.CurrentBlockSelection, carriedTarget.Block)
                         : selection?.Position;
+
                     // Make sure the player is still looking at the same block.
                     if (_selectedBlock != position)
                     { CancelInteraction(); return; }
 
+                    if (_action == CurrentAction.Interact)
+                    {
+                        interactBehavior = selection?.Block.GetBehavior<BlockBehaviorCarryableInteract>();
+                        break;
+                    }
                     // Get the block behavior from either the block
                     // to be picked up or the currently carried block.
-                    behavior = (_action == CurrentAction.PickUp)
-                        ? world.BlockAccessor.GetBlock(selection.Position)
-                            .GetBehaviorOrDefault(BlockBehaviorCarryable.Default)
-                        : carriedTarget.Behavior;
+                    carryBehavior = (_action == CurrentAction.PickUp)
+                        ? selection?.Block?.GetBehaviorOrDefault(BlockBehaviorCarryable.Default)
+                        : carriedTarget?.Behavior;
                     break;
 
                 case CurrentAction.SwapBack:
@@ -241,20 +267,28 @@ namespace CarryOn.Common
                     if ((carriedTarget != null) == (carriedBack != null))
                     { CancelInteraction(); return; }
 
-                    behavior = (carriedTarget != null) ? carriedTarget.Behavior : carriedBack.Behavior;
+                    carryBehavior = (carriedTarget != null) ? carriedTarget.Behavior : carriedBack.Behavior;
                     // Make sure the block to swap can still be put in that slot.
-                    if (behavior.Slots[_targetSlot.Value] == null) return;
+                    if (carryBehavior.Slots[_targetSlot.Value] == null) return;
 
                     break;
 
                 default: return;
             }
 
-            var requiredTime = behavior.InteractDelay;
-            switch (_action)
+            float requiredTime;
+            if (_action == CurrentAction.Interact)
             {
-                case CurrentAction.PlaceDown: requiredTime *= CarrySystem.PlaceSpeedDefault; break;
-                case CurrentAction.SwapBack: requiredTime *= CarrySystem.SwapSpeedDefault; break;
+                requiredTime = interactBehavior?.InteractDelay ?? CarrySystem.InteractSpeedDefault;
+            }
+            else
+            {
+                requiredTime = carryBehavior?.InteractDelay ?? CarrySystem.PickUpSpeedDefault;
+                switch (_action)
+                {
+                    case CurrentAction.PlaceDown: requiredTime *= CarrySystem.PlaceSpeedDefault; break;
+                    case CurrentAction.SwapBack: requiredTime *= CarrySystem.SwapSpeedDefault; break;
+                }
             }
 
             _timeHeld += deltaTime;
@@ -264,6 +298,10 @@ namespace CarryOn.Common
 
             switch (_action)
             {
+                case CurrentAction.Interact:
+                    if (selection?.Block?.OnBlockInteractStart(world, player, selection) == true)
+                        System.ClientChannel.SendPacket(new InteractMessage(selection.Position));
+                    break;
                 case CurrentAction.PickUp:
                     if (player.Entity.Carry(selection.Position, _targetSlot.Value))
                         System.ClientChannel.SendPacket(new PickUpMessage(selection.Position, _targetSlot.Value));
@@ -321,6 +359,24 @@ namespace CarryOn.Common
             if ((player == null) || (player.World.PlayerByUid(player.PlayerUID) is not IServerPlayer serverPlayer)) return;
             var system = player.World.Api.ModLoader.GetModSystem<CarrySystem>();
             system.CarryHandler.SendLockSlotsMessage(serverPlayer);
+        }
+
+        private void OnInteractMessage(IServerPlayer player, InteractMessage message)
+        {
+            var world = player.Entity.World;
+            var block = world.BlockAccessor.GetBlock(message.Position);
+
+            // Check block has interact behavior serverside
+            if (block?.HasBlockBehavior<BlockBehaviorCarryableInteract>() == true)
+            {
+                //var behavior = block.GetBehavior<BlockBehaviorCarryableInteract>();
+
+                var blockSelection = player.CurrentBlockSelection.Clone();
+                blockSelection.Position = message.Position;
+                blockSelection.Block = block;
+                // TODO: add event hook here
+                block?.OnBlockInteractStart(world, player, blockSelection);
+            }
         }
 
         public void OnPickUpMessage(IServerPlayer player, PickUpMessage message)
@@ -433,12 +489,43 @@ namespace CarryOn.Common
             return position;
         }
 
+        /// <summary>Get the block position for the main block within for a multiblock structure</summary>
+        private BlockPos GetMultiblockOrigin(BlockPos position, BlockMultiblock multiblock)
+        {
+            if(position == null) return null;
+
+            if(multiblock != null){
+                var multiPosition = position.Copy();
+                multiPosition.Add(multiblock.OffsetInv);
+                return multiPosition;
+            }
+            return position;
+        }
+
+        /// <summary>Create a new block selection pointing to the main block within a multiblock structure</summary>
+        private BlockSelection GetMultiblockOriginSelection(BlockSelection blockSelection)
+        {
+            if (blockSelection.Block is BlockMultiblock multiblock)
+            {
+                var world = System.Api.World;
+                var position = GetMultiblockOrigin(blockSelection.Position, multiblock);
+                var block = world.BlockAccessor.GetBlock(position);
+                var selection = blockSelection.Clone();
+                selection.Position = position;
+                selection.Block = block;
+
+                return selection;
+            }
+            return blockSelection;
+        }
+
         private enum CurrentAction
         {
             None,
             PickUp,
             PlaceDown,
-            SwapBack
+            SwapBack,
+            Interact
         }
     }
 }

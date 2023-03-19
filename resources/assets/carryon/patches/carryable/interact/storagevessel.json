@@ -1,0 +1,10 @@
+[
+  {
+    "file": "game:blocktypes/clay/storagevessel",
+    "op": "add",
+    "path": "/behaviors/-",
+    "value": {
+      "name": "CarryableInteract"
+    }
+  }
+]

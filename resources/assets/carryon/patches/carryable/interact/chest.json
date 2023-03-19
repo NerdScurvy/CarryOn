@@ -1,0 +1,10 @@
+[
+  {
+    "file": "game:blocktypes/wood/chest*",
+    "op": "add",
+    "path": "/behaviors/-",
+    "value": {
+      "name": "CarryableInteract"
+    }
+  }
+]
