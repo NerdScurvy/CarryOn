@@ -1,6 +1,7 @@
 [
   {
     "file": "game:blocktypes/wood/chest*",
+    "side": "Server",
     "op": "add",
     "path": "/behaviors/-",
     "value": {

@@ -1,0 +1,20 @@
+[
+  {
+    "file": "game:blocktypes/wood/woodtyped/fencegate",
+    "side": "Server",
+    "op": "add",
+    "path": "/behaviors/-",
+    "value": {
+      "name": "CarryableInteract"
+    }
+  },
+  {
+    "file": "game:blocktypes/wood/woodtyped/roughhewnfencegate",
+    "side": "Server",
+    "op": "add",
+    "path": "/behaviors/-",
+    "value": {
+      "name": "CarryableInteract"
+    }
+  }
+]
