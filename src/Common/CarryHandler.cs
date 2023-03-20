@@ -175,10 +175,10 @@ namespace CarryOn.Common
             // If nothing's being held..
             else if (CanInteract(player.Entity, true))
             {
-                selection = GetMultiblockOriginSelection(selection);
                 // ..and aiming at carryable block, try to pick it up.
                 if ((selection?.Block != null) && (_targetSlot = FindActionSlot(slot => selection.Block.IsCarryable(slot))) != null && !swapBackFocus)
                 {
+                    selection = GetMultiblockOriginSelection(selection);
                     _action = CurrentAction.PickUp;
                     _selectedBlock = selection.Position;
                 }
