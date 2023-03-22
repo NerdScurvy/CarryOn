@@ -1,11 +1,12 @@
 using CarryOn.API.Common;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
+using Vintagestory.API.MathTools;
 using Vintagestory.GameContent;
 
 namespace CarryOn.Events
 {
-    public class SignFix : ICarryEvent
+    public class TrunkFix : ICarryEvent
     {
         public void Init(CarrySystem carrySystem)
         {
@@ -16,10 +17,10 @@ namespace CarryOn.Events
 
         public void OnRestoreEntityBlockData(BlockEntity blockEntity, ITreeAttribute blockEntityData, bool dropped)
         {
-            if (blockEntity is BlockEntitySign blockEntitySign)
+            if (dropped && blockEntity.Block.Class == "BlockGenericTypedContainerTrunk")
             {
-                // Fix sign rotation
-                blockEntityData.SetFloat("meshAngle", blockEntitySign.MeshAngleRad);
+                // Fix dropped trunk angle
+                blockEntityData.SetFloat("meshAngle", -90 * GameMath.DEG2RAD);
             }
         }
     }

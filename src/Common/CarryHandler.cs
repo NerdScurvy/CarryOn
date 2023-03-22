@@ -140,8 +140,11 @@ namespace CarryOn.Common
                         // Cannot pick up or put down - check for interact behavior
                         if (selection?.Block?.HasBehavior<BlockBehaviorCarryableInteract>() == true)
                         {
-                            _action = CurrentAction.Interact;
-                            _selectedBlock = selection.Position;
+                            var interactBehavior = selection?.Block.GetBehavior<BlockBehaviorCarryableInteract>();
+                            if(interactBehavior.CanInteract(player)){
+                                _action = CurrentAction.Interact;
+                                _selectedBlock = selection.Position;
+                            }
                         }
                         else
                         {
@@ -175,10 +178,10 @@ namespace CarryOn.Common
             // If nothing's being held..
             else if (CanInteract(player.Entity, true))
             {
+                if(selection != null) selection = GetMultiblockOriginSelection(selection);
                 // ..and aiming at carryable block, try to pick it up.
                 if ((selection?.Block != null) && (_targetSlot = FindActionSlot(slot => selection.Block.IsCarryable(slot))) != null && !swapBackFocus)
                 {
-                    selection = GetMultiblockOriginSelection(selection);
                     _action = CurrentAction.PickUp;
                     _selectedBlock = selection.Position;
                 }
@@ -369,13 +372,15 @@ namespace CarryOn.Common
             // Check block has interact behavior serverside
             if (block?.HasBlockBehavior<BlockBehaviorCarryableInteract>() == true)
             {
-                //var behavior = block.GetBehavior<BlockBehaviorCarryableInteract>();
+                var behavior = block.GetBehavior<BlockBehaviorCarryableInteract>();
 
-                var blockSelection = player.CurrentBlockSelection.Clone();
-                blockSelection.Position = message.Position;
-                blockSelection.Block = block;
-                // TODO: add event hook here
-                block?.OnBlockInteractStart(world, player, blockSelection);
+                if(behavior.CanInteract(player)){
+                    var blockSelection = player.CurrentBlockSelection.Clone();
+                    blockSelection.Position = message.Position;
+                    blockSelection.Block = block;
+                    // TODO: add event hook here
+                    block?.OnBlockInteractStart(world, player, blockSelection);
+                }
             }
         }
 

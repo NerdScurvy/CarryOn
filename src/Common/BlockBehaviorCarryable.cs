@@ -55,6 +55,8 @@ namespace CarryOn.Common
 
         public SlotStorage Slots { get; } = new SlotStorage();
 
+        public Vec3i MultiblockOffset {get; private set;} = null;
+
         public BlockBehaviorCarryable(Block block)
             : base(block) { }
 
@@ -62,6 +64,9 @@ namespace CarryOn.Common
         {
             base.Initialize(properties);
             if (JsonHelper.TryGetFloat(properties, "interactDelay", out var d)) InteractDelay = d;
+
+            if(JsonHelper.TryGetVec3i(properties, "multiblockOffset", out var o)) MultiblockOffset = o;
+
             DefaultTransform = JsonHelper.GetTransform(properties, DefaultBlockTransform);
             Slots.Initialize(properties["slots"], DefaultTransform);
         }

@@ -187,33 +187,28 @@ namespace CarryOn.API.Common
             if (selection == null) throw new ArgumentNullException(nameof(selection));
             if (!world.BlockAccessor.IsValidPos(selection.Position)) return false;
 
-            if (entity is EntityPlayer playerEntity)
+            if (entity is EntityPlayer playerEntity && !dropped)
             {
-                if (dropped)
-                {
-                    world.BlockAccessor.SetBlock(Block.Id, selection.Position);
-                }
-                else
-                {
-                    var failureCode = "__ignore__";
-                    var player = world.PlayerByUid(playerEntity.PlayerUID);
+                var failureCode = "__ignore__";
+                var player = world.PlayerByUid(playerEntity.PlayerUID);
 
-                    if (!Block.TryPlaceBlock(world, player, ItemStack, selection, ref failureCode)) return false;
-                }
+                if (!Block.TryPlaceBlock(world, player, ItemStack, selection, ref failureCode)) return false;
             }
             else
             {
-                world.BlockAccessor.SetBlock(Block.Id, selection.Position);
+                world.BlockAccessor.SetBlock(Block.Id, selection.Position, ItemStack);
 
                 // TODO: Handle type attribute.
+
             }
 
-            RestoreBlockEntityData(world, selection.Position);
+            RestoreBlockEntityData(world, selection.Position, dropped);
             world.BlockAccessor.TriggerNeighbourBlockUpdate(selection.Position);
             if (entity != null) Remove(entity, Slot);
             if (playSound) PlaySound(selection.Position, world, dropped ? null : entity as EntityPlayer);
 
-            if(dropped){
+            if (dropped)
+            {
                 world.GetCarryEvents()?.TriggerBlockDropped(world, selection.Position, entity, this);
             }
 
@@ -231,7 +226,7 @@ namespace CarryOn.API.Common
         ///   no entity at the specified location.
         /// </para>
         /// </summary>
-        public void RestoreBlockEntityData(IWorldAccessor world, BlockPos pos)
+        public void RestoreBlockEntityData(IWorldAccessor world, BlockPos pos, bool dropped = false)
         {
             if ((world.Side != EnumAppSide.Server) || (BlockEntityData == null)) return;
 
@@ -251,9 +246,12 @@ namespace CarryOn.API.Common
             {
                 foreach (var blockEntityDataDelegate in delegates.Cast<BlockEntityDataDelegate>())
                 {
-                    try{
-                        blockEntityDataDelegate(blockEntity, blockEntityData);
-                    }catch(Exception e){
+                    try
+                    {
+                        blockEntityDataDelegate(blockEntity, blockEntityData, dropped);
+                    }
+                    catch (Exception e)
+                    {
                         world.Logger.Error(e.Message);
                     }
                 }

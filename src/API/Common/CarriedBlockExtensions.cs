@@ -236,13 +236,26 @@ namespace CarryOn.API.Common
                     }
                     else if (placeable == null)
                     {
+                        BlockPos multiPos = null;
                         var above = pos.UpCopy();
+
                         testBlock = accessor.GetBlock(above);
                         placeable = remaining.FirstOrDefault(c => testBlock.IsReplacableBy(c.Block));
+
+                        // Dirty fix to test second block of multiblock. e.g. trunk
+                        if(placeable?.Behavior?.MultiblockOffset != null){
+                            multiPos = above.AddCopy(placeable.Behavior.MultiblockOffset);
+                            testBlock = accessor.GetBlock(multiPos);
+                            if(!testBlock.IsReplacableBy(placeable.Block)){
+                                placeable = null;
+                            }
+                        }
+
                         if ((placeable != null) && Drop(above, placeable))
                         {
                             remaining.Remove(placeable);
                             airBlocks.Remove(above);
+                            airBlocks.Remove(multiPos);
                         }
                     }
                     pos.Add(0, sign, 0);

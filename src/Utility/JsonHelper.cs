@@ -20,6 +20,14 @@ namespace CarryOn.Utility
             return success;
         }
 
+        public static bool TryGetVec3i(JsonObject json, string key, out Vec3i result)
+        {
+            var ints = json[key].AsArray<int>();
+            var success = (ints?.Length == 3);
+            result = success ? new Vec3i(ints[0], ints[1], ints[2]) : null;
+            return success;
+        }
+
         public static ModelTransform GetTransform(JsonObject json, ModelTransform baseTransform)
         {
             var trans = baseTransform.Clone();
