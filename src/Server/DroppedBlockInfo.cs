@@ -1,7 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using Vintagestory.API.Common;
+using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
+using Vintagestory.GameContent;
 
 namespace CarryOn.Server
 {
@@ -9,6 +12,13 @@ namespace CarryOn.Server
     {
         public DateTime DroppedDateTime { get; set; }
         public string OwnerUID { get; set; }
+        public string OwnerName { get; set; }
+        public string BlockCode { get; set; }
+        public string Teleport { get; set; }
+
+        public BlockPos Position { get; set; }
+
+        public List<string> Inventory { get; set; }
 
         private static string GetFileLocation(BlockPos pos, ICoreAPI api)
         {
@@ -36,15 +46,34 @@ namespace CarryOn.Server
             return null;
         }
 
-        public static void Create(BlockPos pos, IPlayer player)
+        public static void Create(BlockPos pos, IPlayer player, ITreeAttribute blockEntityData)
         {
             ICoreAPI api = player.Entity.Api;
             var fileLocation = GetFileLocation(pos, api);
 
+            var blockAccessor = api.World.BlockAccessor;
+
+            var block = blockAccessor.GetBlock(pos);
+            var slotItems = new List<string>();
+            if (blockEntityData["inventory"] is TreeAttribute inventory)
+            {
+                foreach (var slot in inventory.GetTreeAttribute("slots"))
+                {
+                    if(slot.Value is ItemstackAttribute itemstack){
+                        slotItems.Add(itemstack.value.ToString());
+                    }
+                }
+            }
+
             var droppedBlockInfo = new DroppedBlockInfo()
             {
                 DroppedDateTime = DateTime.Now,
-                OwnerUID = player.PlayerUID
+                OwnerUID = player.PlayerUID,
+                OwnerName = player.PlayerName,
+                BlockCode = block.Code.ToString(),
+                Position = pos,
+                Inventory = slotItems,
+                Teleport = $"/tp ={pos.X} ={pos.Y} ={pos.Z}"
             };
 
             try

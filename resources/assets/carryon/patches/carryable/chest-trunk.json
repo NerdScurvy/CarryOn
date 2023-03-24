@@ -22,7 +22,8 @@
             "animation": "carryon:holdheavy",
             "walkSpeedModifier": -0.5
           }
-        }
+        },
+        "multiblockOffset": [0, 0, 1]
       }
     },
     "condition": {

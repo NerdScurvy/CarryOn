@@ -5,6 +5,7 @@ namespace CarryOn
     static class ModConfig
     {
         public static CarryOnClientConfig ClientConfig;
+        public static CarryOnConfig ServerConfig;
 
         private const string ConfigFile = "CarryOnConfig.json";
         private const string ClientConfigFile = "CarryOnClientConfig.json";
@@ -13,56 +14,58 @@ namespace CarryOn
         {
             if (api.Side == EnumAppSide.Server)
             {
-                CarryOnConfig serverConfig;
                 try
                 {
-                    serverConfig = LoadConfig(api);
+                    ServerConfig = LoadConfig(api);
 
-                    if (serverConfig == null)
+                    if (ServerConfig == null)
                     {
                         GenerateConfig(api);
-                        serverConfig = LoadConfig(api);
+                        ServerConfig = LoadConfig(api);
                     }
                     else
                     {
-                        GenerateConfig(api, serverConfig);
+                        GenerateConfig(api, ServerConfig);
                     }
                 }
                 catch
                 {
                     GenerateConfig(api);
-                    serverConfig = LoadConfig(api);
+                    ServerConfig = LoadConfig(api);
                 }
 
                 if (api.Side == EnumAppSide.Server)
                 {
                     var worldConfig = api.World.Config;
 
-                    worldConfig.SetBool(CarrySystem.ModId + ":AnvilEnabled", serverConfig.AnvilEnabled);
-                    worldConfig.SetBool(CarrySystem.ModId + ":BarrelEnabled", serverConfig.BarrelEnabled);
-                    worldConfig.SetBool(CarrySystem.ModId + ":BunchOCandlesEnabled", serverConfig.BunchOCandlesEnabled);
-                    worldConfig.SetBool(CarrySystem.ModId + ":ChandelierEnabled", serverConfig.ChandelierEnabled);
-                    worldConfig.SetBool(CarrySystem.ModId + ":ChestLabeledEnabled", serverConfig.ChestLabeledEnabled);
-                    worldConfig.SetBool(CarrySystem.ModId + ":ChestTrunkEnabled", serverConfig.ChestTrunkEnabled);
-                    worldConfig.SetBool(CarrySystem.ModId + ":ChestEnabled", serverConfig.ChestEnabled);
-                    worldConfig.SetBool(CarrySystem.ModId + ":CrateEnabled", serverConfig.CrateEnabled);
-                    worldConfig.SetBool(CarrySystem.ModId + ":CrateLegacyEnabled", serverConfig.CrateLegacyEnabled);
-                    worldConfig.SetBool(CarrySystem.ModId + ":DisplayCaseEnabled", serverConfig.DisplayCaseEnabled);
-                    worldConfig.SetBool(CarrySystem.ModId + ":FlowerpotEnabled", serverConfig.FlowerpotEnabled);
-                    worldConfig.SetBool(CarrySystem.ModId + ":ForgeEnabled", serverConfig.ForgeEnabled);
-                    worldConfig.SetBool(CarrySystem.ModId + ":LogWithResinEnabled", serverConfig.LogWithResinEnabled);
-                    worldConfig.SetBool(CarrySystem.ModId + ":MoldRackEnabled", serverConfig.MoldRackEnabled);
-                    worldConfig.SetBool(CarrySystem.ModId + ":MoldsEnabled", serverConfig.MoldsEnabled);
-                    worldConfig.SetBool(CarrySystem.ModId + ":LootVesselEnabled", serverConfig.LootVesselEnabled);
-                    worldConfig.SetBool(CarrySystem.ModId + ":OvenEnabled", serverConfig.OvenEnabled);
-                    worldConfig.SetBool(CarrySystem.ModId + ":PlanterEnabled", serverConfig.PlanterEnabled);
-                    worldConfig.SetBool(CarrySystem.ModId + ":QuernEnabled", serverConfig.QuernEnabled);
-                    worldConfig.SetBool(CarrySystem.ModId + ":ShelfEnabled", serverConfig.ShelfEnabled);
-                    worldConfig.SetBool(CarrySystem.ModId + ":SignEnabled", serverConfig.SignEnabled);
-                    worldConfig.SetBool(CarrySystem.ModId + ":StationaryBasketEnabled", serverConfig.StationaryBasketEnabled);
-                    worldConfig.SetBool(CarrySystem.ModId + ":StorageVesselEnabled", serverConfig.StorageVesselEnabled);
-                    worldConfig.SetBool(CarrySystem.ModId + ":ToolRackEnabled", serverConfig.ToolRackEnabled);
-                    worldConfig.SetBool(CarrySystem.ModId + ":TorchHolderEnabled", serverConfig.TorchHolderEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":AnvilEnabled", ServerConfig.AnvilEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":BarrelEnabled", ServerConfig.BarrelEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":BunchOCandlesEnabled", ServerConfig.BunchOCandlesEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":ChandelierEnabled", ServerConfig.ChandelierEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":ChestLabeledEnabled", ServerConfig.ChestLabeledEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":ChestTrunkEnabled", ServerConfig.ChestTrunkEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":ChestEnabled", ServerConfig.ChestEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":CrateEnabled", ServerConfig.CrateEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":CrateLegacyEnabled", ServerConfig.CrateLegacyEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":DisplayCaseEnabled", ServerConfig.DisplayCaseEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":FlowerpotEnabled", ServerConfig.FlowerpotEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":ForgeEnabled", ServerConfig.ForgeEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":LogWithResinEnabled", ServerConfig.LogWithResinEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":MoldRackEnabled", ServerConfig.MoldRackEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":MoldsEnabled", ServerConfig.MoldsEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":LootVesselEnabled", ServerConfig.LootVesselEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":OvenEnabled", ServerConfig.OvenEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":PlanterEnabled", ServerConfig.PlanterEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":QuernEnabled", ServerConfig.QuernEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":ShelfEnabled", ServerConfig.ShelfEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":SignEnabled", ServerConfig.SignEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":StationaryBasketEnabled", ServerConfig.StationaryBasketEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":StorageVesselEnabled", ServerConfig.StorageVesselEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":ToolRackEnabled", ServerConfig.ToolRackEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":TorchHolderEnabled", ServerConfig.TorchHolderEnabled);
+
+                    worldConfig.SetBool(CarrySystem.ModId + ":InteractDoorEnabled", ServerConfig.InteractDoorEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":InteractStorageEnabled", ServerConfig.InteractStorageEnabled);
                 }
             }
             else

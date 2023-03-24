@@ -3,10 +3,10 @@
 		
 		<AssemblyTitle>Carry On</AssemblyTitle>
 		<Authors>copygirl,NerdScurvy</Authors>
-		<Version>0.11.0-pre.1</Version>
+		<Version>0.13.0-pre.2</Version>
 		
 		<Description>Vintage Story mod which adds the capability to carry various things</Description>
-		<RepositoryUrl>https://github.com/NerdScurvy/CarryCapacity</RepositoryUrl>
+		<RepositoryUrl>https://github.com/NerdScurvy/CarryOn</RepositoryUrl>
 		
 		<TargetFramework>net461</TargetFramework>
 		<LangVersion>latest</LangVersion>

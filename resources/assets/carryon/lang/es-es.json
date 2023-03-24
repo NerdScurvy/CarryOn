@@ -1,3 +1,7 @@
 {
-  "blockhelp-pickup": "Levantar"
+  "blockhelp-pickup": "Levantar",
+  "drop-notice":"Perdiste {0} de tu {1}.",
+  "slot-hands": "manos",
+  "slot-back": "espalda",
+  "slot-shoulder": "hombro"
 }
