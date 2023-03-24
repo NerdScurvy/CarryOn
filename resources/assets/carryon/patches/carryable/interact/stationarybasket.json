@@ -6,6 +6,10 @@
     "path": "/behaviors/-",
     "value": {
       "name": "CarryableInteract"
-    }
+    },
+    "condition": {
+      "when": "carryon:InteractStorageEnabled",
+      "isValue": "true"
+    }  
   }
 ]

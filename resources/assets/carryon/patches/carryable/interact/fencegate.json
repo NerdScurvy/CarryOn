@@ -6,7 +6,11 @@
     "path": "/behaviors/-",
     "value": {
       "name": "CarryableInteract"
-    }
+    },
+    "condition": {
+      "when": "carryon:InteractDoorEnabled",
+      "isValue": "true"
+    } 
   },
   {
     "file": "game:blocktypes/wood/woodtyped/roughhewnfencegate",
@@ -15,6 +19,10 @@
     "path": "/behaviors/-",
     "value": {
       "name": "CarryableInteract"
-    }
+    },
+    "condition": {
+      "when": "carryon:InteractDoorEnabled",
+      "isValue": "true"
+    } 
   }
 ]

@@ -6,7 +6,11 @@
     "path": "/behaviors/-",
     "value": {
       "name": "CarryableInteract"
-    }
+    },
+    "condition": {
+      "when": "carryon:InteractDoorEnabled",
+      "isValue": "true"
+    } 
   },
   {
     "file": "game:blocktypes/legacy/door",
@@ -15,7 +19,11 @@
     "path": "/behaviors/-",
     "value": {
       "name": "CarryableInteract"
-    }
+    },
+    "condition": {
+      "when": "carryon:InteractDoorEnabled",
+      "isValue": "true"
+    } 
   },  
   {
     "file": "game:blocktypes/wood/woodtyped/door",
@@ -24,7 +32,11 @@
     "path": "/behaviors/-",
     "value": {
       "name": "CarryableInteract"
-    }
+    },
+    "condition": {
+      "when": "carryon:InteractDoorEnabled",
+      "isValue": "true"
+    } 
   },   
   {
     "file": "game:blocktypes/metal/irondoor",
@@ -36,7 +48,11 @@
       "properties": {
         "interactDelay": 1.3
       }      
-    }
+    },
+    "condition": {
+      "when": "carryon:InteractDoorEnabled",
+      "isValue": "true"
+    } 
   },
   {
     "file": "game:blocktypes/metal/cokeovendoor",
@@ -47,7 +63,11 @@
       "properties": {
         "interactDelay": 1.3
       }
-    }
+    },
+    "condition": {
+      "when": "carryon:InteractDoorEnabled",
+      "isValue": "true"
+    } 
   }   
 
 ]
