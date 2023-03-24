@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CarryOn.API.Common;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
@@ -45,11 +46,9 @@ namespace CarryOn.Client
         {
             // Alternative: Cache API.TesselatorManager.GetDefaultBlockMesh manually.
 
-            var renderInfo = Api.Render.GetItemStackRenderInfo(carried.ItemStack, EnumItemRenderTarget.Ground);
+            var renderInfo = Api.Render.GetItemStackRenderInfo(new DummySlot(carried.ItemStack), EnumItemRenderTarget.Ground);
 
-            var behavior = carried.Behavior;
-
-            renderInfo.Transform = behavior.Slots[carried.Slot]?.Transform ?? behavior.DefaultTransform;
+            renderInfo.Transform = carried.Behavior.Slots[carried.Slot]?.Transform ?? carried.Behavior.DefaultTransform;
             return renderInfo;
         }
 

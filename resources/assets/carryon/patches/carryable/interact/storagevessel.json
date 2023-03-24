@@ -1,0 +1,15 @@
+[
+  {
+    "file": "game:blocktypes/clay/storagevessel",
+    "side": "Server",
+    "op": "add",
+    "path": "/behaviorsByType/*/-",
+    "value": {
+      "name": "CarryableInteract"
+    },
+    "condition": {
+      "when": "carryon:InteractStorageEnabled",
+      "isValue": "true"
+    }  
+  }
+]

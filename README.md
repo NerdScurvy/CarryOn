@@ -13,7 +13,7 @@ Available right here through [GitHub Releases][DL].
 
 To install, start the game and go to the *Mod Manager* in the main menu. There you can find a button labeled *Open Mod Folder* that will open said folder in your file explorer. Simply copy the `.zip` file you downloaded into here **without extracting it**.
 
-[DL]: https://github.com/NerdScurvy/CarryCapacity/releases
+[DL]: https://github.com/NerdScurvy/CarryOn/releases
 
 
 ## Usage

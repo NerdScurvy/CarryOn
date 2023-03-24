@@ -1,3 +1,4 @@
+using CarryOn.API.Common;
 using ProtoBuf;
 using System;
 

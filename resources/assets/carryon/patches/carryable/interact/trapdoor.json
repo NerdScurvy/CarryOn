@@ -1,0 +1,15 @@
+[
+  {
+    "file": "game:blocktypes/wood/trapdoor",
+    "side": "Server",
+    "op": "add",
+    "path": "/behaviors/-",
+    "value": {
+      "name": "CarryableInteract"
+    },
+    "condition": {
+      "when": "carryon:InteractDoorEnabled",
+      "isValue": "true"
+    }  
+  }
+]

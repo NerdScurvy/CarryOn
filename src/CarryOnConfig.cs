@@ -27,6 +27,8 @@ namespace CarryOn
         public bool StorageVesselEnabled = true;
         public bool ToolRackEnabled;
         public bool TorchHolderEnabled;
+        public bool InteractDoorEnabled { get; set; } = true;
+        public bool InteractStorageEnabled { get; set; } = true;
 
         public string [] NonGroundBlockClasses = new[] { "BlockWater", "BlockLava" };
 
@@ -63,6 +65,9 @@ namespace CarryOn
             TorchHolderEnabled = previousConfig.ToolRackEnabled;
 
             NonGroundBlockClasses = previousConfig.NonGroundBlockClasses;
+
+            InteractDoorEnabled = previousConfig.InteractDoorEnabled;
+            InteractStorageEnabled = previousConfig.InteractStorageEnabled;
         }
     }
 }

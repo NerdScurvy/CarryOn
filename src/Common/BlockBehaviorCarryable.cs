@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CarryOn.API.Common;
 using CarryOn.Server;
+using CarryOn.Utility;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
@@ -53,45 +55,25 @@ namespace CarryOn.Common
 
         public SlotStorage Slots { get; } = new SlotStorage();
 
+        public Vec3i MultiblockOffset {get; private set;} = null;
+
         public BlockBehaviorCarryable(Block block)
             : base(block) { }
 
         public override void Initialize(JsonObject properties)
         {
             base.Initialize(properties);
-            if (TryGetFloat(properties, "interactDelay", out var d)) InteractDelay = d;
-            DefaultTransform = GetTransform(properties, DefaultBlockTransform);
+            if (JsonHelper.TryGetFloat(properties, "interactDelay", out var d)) InteractDelay = d;
+
+            if(JsonHelper.TryGetVec3i(properties, "multiblockOffset", out var o)) MultiblockOffset = o;
+
+            DefaultTransform = JsonHelper.GetTransform(properties, DefaultBlockTransform);
             Slots.Initialize(properties["slots"], DefaultTransform);
         }
 
         public override WorldInteraction[] GetPlacedBlockInteractionHelp(
             IWorldAccessor world, BlockSelection selection, IPlayer forPlayer, ref EnumHandling handled)
                 => Interactions;
-
-        private static bool TryGetFloat(JsonObject json, string key, out float result)
-        {
-            result = json[key].AsFloat(float.NaN);
-            return !float.IsNaN(result);
-        }
-        private static bool TryGetVec3f(JsonObject json, string key, out Vec3f result)
-        {
-            var floats = json[key].AsArray<float>();
-            var success = (floats?.Length == 3);
-            result = success ? new Vec3f(floats) : null;
-            return success;
-        }
-
-        private static ModelTransform GetTransform(JsonObject json, ModelTransform baseTransform)
-        {
-            var trans = baseTransform.Clone();
-            if (TryGetVec3f(json, "translation", out var t)) trans.Translation = t;
-            if (TryGetVec3f(json, "rotation", out var r)) trans.Rotation = r;
-            if (TryGetVec3f(json, "origin", out var o)) trans.Origin = o;
-            // Try to get scale both as a Vec3f and single float - for compatibility reasons.
-            if (TryGetVec3f(json, "scale", out var sv)) trans.ScaleXYZ = sv;
-            if (TryGetFloat(json, "scale", out var sf)) trans.ScaleXYZ = new Vec3f(sf, sf, sf);
-            return trans;
-        }
 
         public override void OnBlockRemoved(IWorldAccessor world, BlockPos pos, ref EnumHandling handling)
         {
@@ -139,7 +121,7 @@ namespace CarryOn.Common
                             _dict.Add(slot, settings = new SlotSettings { Animation = anim });
                         }
 
-                        settings.Transform = GetTransform(slotProperties, defaultTansform);
+                        settings.Transform = JsonHelper.GetTransform(slotProperties, defaultTansform);
                         settings.Animation = slotProperties["animation"].AsString(settings.Animation);
 
                         if (!DefaultWalkSpeed.TryGetValue(slot, out var speed)) speed = 0.0F;
