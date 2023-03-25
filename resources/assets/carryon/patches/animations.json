@@ -36,6 +36,7 @@
   } },
   { "file": "game:entities/humanoid/player", "op": "add", "path": "/client/animations/-", "value": {
     "code": "carryon:holdheavy",
+    "side": "Server",
     "animation": "carryon:holdheavy",
     "blendMode": "Add",
     "elementWeight": {
@@ -70,6 +71,7 @@
   } },
   { "file": "game:entities/humanoid/player", "op": "add", "path": "/client/animations/-", "value": {
     "code": "carryon:holdlight",
+    "side": "Server",
     "animation": "carryon:holdlight",
     "blendMode": "Add",
     "elementWeight": {
@@ -102,6 +104,7 @@
   } },
   { "file": "game:entities/humanoid/player", "op": "add", "path": "/client/animations/-", "value": {
     "code": "carryon:shoulder",
+    "side": "Server",
     "animation": "carryon:shoulder",
     "blendMode": "Add",
     "elementWeight": {
