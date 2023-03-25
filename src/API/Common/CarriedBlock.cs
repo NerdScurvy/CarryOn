@@ -203,6 +203,7 @@ namespace CarryOn.API.Common
             }
 
             RestoreBlockEntityData(world, selection.Position, dropped);
+            world.BlockAccessor.MarkBlockDirty(selection.Position);
             world.BlockAccessor.TriggerNeighbourBlockUpdate(selection.Position);
             if (entity != null) Remove(entity, Slot);
             if (playSound) PlaySound(selection.Position, world, dropped ? null : entity as EntityPlayer);
