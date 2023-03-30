@@ -10,7 +10,7 @@
 			"--playStyle", "surviveandbuild",
 			"--openWorld", "modding test world",
 			"--addModPath", "${workspaceFolder}/bin/Debug/net461",
-			"--addOrigin", "${workspaceFolder}/resources/assets",
+			"--addOrigin", "${workspaceFolder}/resources/assets"
 		],
 		"console": "internalConsole",
 		"internalConsoleOptions": "openOnSessionStart",
@@ -25,6 +25,7 @@
 			"--openWorld", "modding test world",
 			"--addModPath", "${workspaceFolder}/bin/Debug/net461",
 			"--addOrigin", "${workspaceFolder}/resources/assets",
+			"--dataPath", "${env:VINTAGE_STORY_DATA}/CarryOnDev"
 		],
 		"console": "internalConsole",
 		"internalConsoleOptions": "openOnSessionStart",

@@ -27,6 +27,8 @@ namespace CarryOn
         public bool StorageVesselEnabled = true;
         public bool ToolRackEnabled;
         public bool TorchHolderEnabled;
+        public bool ClutterEnabled;
+        public bool BookshelfEnabled;
         public bool InteractDoorEnabled { get; set; } = true;
         public bool InteractStorageEnabled { get; set; } = true;
 
@@ -40,11 +42,13 @@ namespace CarryOn
         {
             AnvilEnabled = previousConfig.AnvilEnabled;
             BarrelEnabled = previousConfig.BarrelEnabled;
+            BookshelfEnabled = previousConfig.BookshelfEnabled;
             BunchOCandlesEnabled = previousConfig.BunchOCandlesEnabled;
             ChandelierEnabled = previousConfig.ChandelierEnabled;
             ChestLabeledEnabled = previousConfig.ChestLabeledEnabled;
             ChestTrunkEnabled = previousConfig.ChestTrunkEnabled;
             ChestEnabled = previousConfig.ChestEnabled;
+            ClutterEnabled = previousConfig.ClutterEnabled;
             CrateLegacyEnabled = previousConfig.CrateLegacyEnabled;
             CrateEnabled = previousConfig.CrateEnabled;
             DisplayCaseEnabled = previousConfig.DisplayCaseEnabled;
@@ -63,6 +67,7 @@ namespace CarryOn
             StorageVesselEnabled = previousConfig.StorageVesselEnabled;
             ToolRackEnabled = previousConfig.ToolRackEnabled;
             TorchHolderEnabled = previousConfig.ToolRackEnabled;
+
 
             NonGroundBlockClasses = previousConfig.NonGroundBlockClasses;
 

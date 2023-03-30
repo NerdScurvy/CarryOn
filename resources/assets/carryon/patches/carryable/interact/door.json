@@ -1,18 +1,5 @@
 [
   {
-    "file": "game:blocktypes/wood/door",
-    "side": "Server",
-    "op": "add",
-    "path": "/behaviors/-",
-    "value": {
-      "name": "CarryableInteract"
-    },
-    "condition": {
-      "when": "carryon:InteractDoorEnabled",
-      "isValue": "true"
-    } 
-  },
-  {
     "file": "game:blocktypes/legacy/door",
     "side": "Server",
     "op": "add",

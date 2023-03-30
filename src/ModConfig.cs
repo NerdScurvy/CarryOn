@@ -63,6 +63,9 @@ namespace CarryOn
                     worldConfig.SetBool(CarrySystem.ModId + ":StorageVesselEnabled", ServerConfig.StorageVesselEnabled);
                     worldConfig.SetBool(CarrySystem.ModId + ":ToolRackEnabled", ServerConfig.ToolRackEnabled);
                     worldConfig.SetBool(CarrySystem.ModId + ":TorchHolderEnabled", ServerConfig.TorchHolderEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":ClutterEnabled", ServerConfig.ClutterEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":BookshelfEnabled", ServerConfig.BookshelfEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":BookshelfAndClutterEnabled", ServerConfig.BookshelfEnabled && ServerConfig.ClutterEnabled);
 
                     worldConfig.SetBool(CarrySystem.ModId + ":InteractDoorEnabled", ServerConfig.InteractDoorEnabled);
                     worldConfig.SetBool(CarrySystem.ModId + ":InteractStorageEnabled", ServerConfig.InteractStorageEnabled);
