@@ -1,6 +1,6 @@
 [
   {
-    "file": "game:blocktypes/wood/displaycase.json",
+    "file": "game:blocktypes/wood/displaycase*",
     "side": "Server",
     "op": "add",
     "path": "/behaviors/-",
