@@ -4,16 +4,19 @@ namespace CarryOn
     {
         public bool AnvilEnabled = true;
         public bool BarrelEnabled = true;
+        public bool BookshelfEnabled;
         public bool BunchOCandlesEnabled;
         public bool ChandelierEnabled;
         public bool ChestLabeledEnabled = true;
         public bool ChestTrunkEnabled;
         public bool ChestEnabled = true;
+        public bool ClutterEnabled;
         public bool CrateLegacyEnabled = true;
         public bool CrateEnabled = true;
         public bool DisplayCaseEnabled;
         public bool FlowerpotEnabled;
         public bool ForgeEnabled;
+        public bool HenboxEnabled;
         public bool LogWithResinEnabled;
         public bool LootVesselEnabled = true;
         public bool MoldRackEnabled;
@@ -27,8 +30,7 @@ namespace CarryOn
         public bool StorageVesselEnabled = true;
         public bool ToolRackEnabled;
         public bool TorchHolderEnabled;
-        public bool ClutterEnabled;
-        public bool BookshelfEnabled;
+
         public bool InteractDoorEnabled { get; set; } = true;
         public bool InteractStorageEnabled { get; set; } = true;
 
@@ -54,6 +56,7 @@ namespace CarryOn
             DisplayCaseEnabled = previousConfig.DisplayCaseEnabled;
             FlowerpotEnabled = previousConfig.FlowerpotEnabled;
             ForgeEnabled = previousConfig.ForgeEnabled;
+            HenboxEnabled = previousConfig.HenboxEnabled;
             LogWithResinEnabled = previousConfig.LogWithResinEnabled;
             LootVesselEnabled = previousConfig.LootVesselEnabled;
             MoldRackEnabled = previousConfig.MoldRackEnabled;
@@ -67,7 +70,6 @@ namespace CarryOn
             StorageVesselEnabled = previousConfig.StorageVesselEnabled;
             ToolRackEnabled = previousConfig.ToolRackEnabled;
             TorchHolderEnabled = previousConfig.ToolRackEnabled;
-
 
             NonGroundBlockClasses = previousConfig.NonGroundBlockClasses;
 

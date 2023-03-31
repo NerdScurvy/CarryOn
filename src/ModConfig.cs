@@ -40,16 +40,19 @@ namespace CarryOn
 
                     worldConfig.SetBool(CarrySystem.ModId + ":AnvilEnabled", ServerConfig.AnvilEnabled);
                     worldConfig.SetBool(CarrySystem.ModId + ":BarrelEnabled", ServerConfig.BarrelEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":BookshelfEnabled", ServerConfig.BookshelfEnabled);
                     worldConfig.SetBool(CarrySystem.ModId + ":BunchOCandlesEnabled", ServerConfig.BunchOCandlesEnabled);
                     worldConfig.SetBool(CarrySystem.ModId + ":ChandelierEnabled", ServerConfig.ChandelierEnabled);
                     worldConfig.SetBool(CarrySystem.ModId + ":ChestLabeledEnabled", ServerConfig.ChestLabeledEnabled);
                     worldConfig.SetBool(CarrySystem.ModId + ":ChestTrunkEnabled", ServerConfig.ChestTrunkEnabled);
                     worldConfig.SetBool(CarrySystem.ModId + ":ChestEnabled", ServerConfig.ChestEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":ClutterEnabled", ServerConfig.ClutterEnabled);
                     worldConfig.SetBool(CarrySystem.ModId + ":CrateEnabled", ServerConfig.CrateEnabled);
                     worldConfig.SetBool(CarrySystem.ModId + ":CrateLegacyEnabled", ServerConfig.CrateLegacyEnabled);
                     worldConfig.SetBool(CarrySystem.ModId + ":DisplayCaseEnabled", ServerConfig.DisplayCaseEnabled);
                     worldConfig.SetBool(CarrySystem.ModId + ":FlowerpotEnabled", ServerConfig.FlowerpotEnabled);
                     worldConfig.SetBool(CarrySystem.ModId + ":ForgeEnabled", ServerConfig.ForgeEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":HenboxEnabled", ServerConfig.HenboxEnabled);
                     worldConfig.SetBool(CarrySystem.ModId + ":LogWithResinEnabled", ServerConfig.LogWithResinEnabled);
                     worldConfig.SetBool(CarrySystem.ModId + ":MoldRackEnabled", ServerConfig.MoldRackEnabled);
                     worldConfig.SetBool(CarrySystem.ModId + ":MoldsEnabled", ServerConfig.MoldsEnabled);
@@ -63,8 +66,7 @@ namespace CarryOn
                     worldConfig.SetBool(CarrySystem.ModId + ":StorageVesselEnabled", ServerConfig.StorageVesselEnabled);
                     worldConfig.SetBool(CarrySystem.ModId + ":ToolRackEnabled", ServerConfig.ToolRackEnabled);
                     worldConfig.SetBool(CarrySystem.ModId + ":TorchHolderEnabled", ServerConfig.TorchHolderEnabled);
-                    worldConfig.SetBool(CarrySystem.ModId + ":ClutterEnabled", ServerConfig.ClutterEnabled);
-                    worldConfig.SetBool(CarrySystem.ModId + ":BookshelfEnabled", ServerConfig.BookshelfEnabled);
+
                     worldConfig.SetBool(CarrySystem.ModId + ":BookshelfAndClutterEnabled", ServerConfig.BookshelfEnabled && ServerConfig.ClutterEnabled);
 
                     worldConfig.SetBool(CarrySystem.ModId + ":InteractDoorEnabled", ServerConfig.InteractDoorEnabled);

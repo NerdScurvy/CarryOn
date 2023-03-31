@@ -1,0 +1,20 @@
+[
+  {
+    "file": "game:blocktypes/wood/henbox",
+    "side": "Server",
+    "op": "add",
+    "path": "/behaviors/-",
+    "value": {
+      "name": "Carryable",
+      "properties": {
+        "slots": {
+          "Hands": {}
+        }
+      }
+    },
+    "condition": {
+      "when": "carryon:HenboxEnabled",
+      "isValue": "true"
+    }
+  }
+]
