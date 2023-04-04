@@ -31,11 +31,11 @@ namespace CarryOn.Events
             var droppedBlock = DroppedBlockInfo.Get(pos, playerEntity.Player);
             if (droppedBlock != null)
             {
-                world.Logger.Debug($"Dropped block found at '{pos}'");
+                if (ModConfig.ServerConfig.LoggingEnabled) world.Logger.Debug($"Dropped block found at '{pos}'");
                 hasPermission = true;
                 return;
             }
-            world.Logger.Debug($"No dropped block found at '{pos}'");
+            if (ModConfig.ServerConfig.LoggingEnabled) world.Logger.Debug($"No dropped block found at '{pos}'");
         }
 
         public void OnCarriedBlockDropped(object sender, BlockDroppedEventArgs e)

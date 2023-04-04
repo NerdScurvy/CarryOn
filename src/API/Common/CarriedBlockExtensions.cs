@@ -17,6 +17,18 @@ namespace CarryOn.API.Common
 {
     public static class CarriedBlockExtensions
     {
+        /// <summary> Returns whether the specified block can be carried.
+        ///           Checks if <see cref="BlockBehaviorCarryable"/> is present.</summary>
+        public static bool IsCarryable(this Block block)
+        {
+            return block.GetBehavior<BlockBehaviorCarryable>() != null;
+        }
+
+        public static bool IsCarryableInteract(this Block block)
+        {
+            return block.GetBehavior<BlockBehaviorCarryableInteract>() != null;
+        }
+
         /// <summary> Returns whether the specified block can be carried in the specified slot.
         ///           Checks if <see cref="BlockBehaviorCarryable"/> is present and has slot enabled. </summary>
         public static bool IsCarryable(this Block block, CarrySlot slot)

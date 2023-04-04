@@ -1,6 +1,6 @@
 [
   {
-    "file": "game:blocktypes/legacy/crate",
+    "file": "game:blocktypes/metal/plaque.json",
     "side": "Server",
     "op": "add",
     "path": "/behaviors",
@@ -9,22 +9,23 @@
         "name": "Carryable",
         "properties": {
           "translation": [
-            -0.0625,
             0,
+            -0.25,
+            0.5
+          ],
+          "rotation": [
+            0,
+            -90,
             0
           ],
           "slots": {
-            "Hands": {},
-            "Back": {
-              "walkSpeedModifier": -0.2,
-              "keepWhenTrue": "carryon:AllowCratesOnBack"            
-            }
+            "Hands": {"walkSpeedModifier": -0.5}
           }
-        }        
+        }
       }
     ],
     "condition": {
-      "when": "carryon:CrateLegacyEnabled",
+      "when": "carryon:SignEnabled",
       "isValue": "true"
     }
   }

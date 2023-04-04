@@ -57,12 +57,19 @@ namespace CarryOn.Common
 
         public Vec3i MultiblockOffset {get; private set;} = null;
 
+        public int PatchPriority { get; private set;} = 0;
+
         public BlockBehaviorCarryable(Block block)
             : base(block) { }
 
+        public JsonObject Properties { get; set; }
+
         public override void Initialize(JsonObject properties)
         {
+            Properties = properties;
             base.Initialize(properties);
+            if (JsonHelper.TryGetInt(properties, "patchPriority", out var p)) PatchPriority = p;
+
             if (JsonHelper.TryGetFloat(properties, "interactDelay", out var d)) InteractDelay = d;
 
             if(JsonHelper.TryGetVec3i(properties, "multiblockOffset", out var o)) MultiblockOffset = o;
@@ -114,6 +121,11 @@ namespace CarryOn.Common
                     {
                         var slotProperties = properties[slot.ToString()];
                         if (slotProperties?.Exists != true) continue;
+
+                        if(slotProperties["keepWhenTrue"].Exists ){
+                            var keep = ModConfig.WorldConfig.GetBool(slotProperties["keepWhenTrue"].AsString(), true);
+                            if(!keep) continue;
+                        }
 
                         if (!_dict.TryGetValue(slot, out var settings))
                         {

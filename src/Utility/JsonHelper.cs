@@ -6,6 +6,16 @@ namespace CarryOn.Utility
 {
     public static class JsonHelper
     {
+        public static bool TryGetInt(JsonObject json, string key, out int result)
+        {
+            if(!json.KeyExists(key)){
+                result = 0;
+                return false;
+            }
+            result = json[key].AsInt();
+            return true;
+        }
+
         public static bool TryGetFloat(JsonObject json, string key, out float result)
         {
             result = json[key].AsFloat(float.NaN);

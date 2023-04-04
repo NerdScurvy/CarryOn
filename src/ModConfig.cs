@@ -1,4 +1,5 @@
 using Vintagestory.API.Common;
+using Vintagestory.API.Datastructures;
 
 namespace CarryOn
 {
@@ -7,6 +8,8 @@ namespace CarryOn
         public static CarryOnClientConfig ClientConfig;
         public static CarryOnConfig ServerConfig;
 
+        public static ITreeAttribute WorldConfig;
+
         private const string ConfigFile = "CarryOnConfig.json";
         private const string ClientConfigFile = "CarryOnClientConfig.json";
 
@@ -14,6 +17,7 @@ namespace CarryOn
         {
             if (api.Side == EnumAppSide.Server)
             {
+                WorldConfig = api.World.Config;
                 try
                 {
                     ServerConfig = LoadConfig(api);
@@ -71,6 +75,10 @@ namespace CarryOn
 
                     worldConfig.SetBool(CarrySystem.ModId + ":InteractDoorEnabled", ServerConfig.InteractDoorEnabled);
                     worldConfig.SetBool(CarrySystem.ModId + ":InteractStorageEnabled", ServerConfig.InteractStorageEnabled);
+
+                    worldConfig.SetBool(CarrySystem.ModId + ":AllowChestTrunksOnBack", ServerConfig.AllowChestTrunksOnBack);
+                    worldConfig.SetBool(CarrySystem.ModId + ":AllowLargeChestsOnBack", ServerConfig.AllowLargeChestsOnBack);
+                    worldConfig.SetBool(CarrySystem.ModId + ":AllowCratesOnBack", ServerConfig.AllowCratesOnBack);
                 }
             }
             else

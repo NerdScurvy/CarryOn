@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using CarryOn.API.Common;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
@@ -17,9 +18,9 @@ namespace CarryOn.Events
 
         public void OnRestoreEntityBlockData(BlockEntity blockEntity, ITreeAttribute blockEntityData, bool dropped)
         {
-            if (dropped && blockEntity.Block.Class == "BlockGenericTypedContainerTrunk")
+            if (dropped && blockEntity.Block.ShapeInventory.Base.Path == "block/wood/trunk/normal")
             {
-                // Fix dropped trunk angle
+                // Workaround fix dropped trunk angle
                 blockEntityData.SetFloat("meshAngle", -90 * GameMath.DEG2RAD);
             }
         }

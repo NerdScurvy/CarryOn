@@ -31,10 +31,20 @@ namespace CarryOn
         public bool ToolRackEnabled;
         public bool TorchHolderEnabled;
 
+        public bool AllowChestTrunksOnBack;
+        public bool AllowLargeChestsOnBack;
+        public bool AllowCratesOnBack;
+
         public bool InteractDoorEnabled { get; set; } = true;
         public bool InteractStorageEnabled { get; set; } = true;
 
-        public string [] NonGroundBlockClasses = new[] { "BlockWater", "BlockLava" };
+        public string[] NonGroundBlockClasses = new[] { "BlockWater", "BlockLava" };
+
+        public string[] AutoMatchIgnoreMods = new[] { "mcrate" };
+
+        public string[] AllowedShapeOnlyMatches = new[] { "block/clay/lootvessel", "block/wood/chest/normal", "block/wood/trunk/normal", "block/reed/basket-normal" };
+
+        public bool LoggingEnabled { get; set; }
 
         public CarryOnConfig()
         {
@@ -72,9 +82,17 @@ namespace CarryOn
             TorchHolderEnabled = previousConfig.ToolRackEnabled;
 
             NonGroundBlockClasses = previousConfig.NonGroundBlockClasses;
+            AutoMatchIgnoreMods = previousConfig.AutoMatchIgnoreMods;
+            AllowedShapeOnlyMatches = previousConfig.AllowedShapeOnlyMatches;
 
             InteractDoorEnabled = previousConfig.InteractDoorEnabled;
             InteractStorageEnabled = previousConfig.InteractStorageEnabled;
+
+            AllowChestTrunksOnBack = previousConfig.AllowChestTrunksOnBack;
+            AllowLargeChestsOnBack = previousConfig.AllowLargeChestsOnBack;
+            AllowCratesOnBack = previousConfig.AllowCratesOnBack;
+
+            LoggingEnabled = previousConfig.LoggingEnabled;
         }
     }
 }
