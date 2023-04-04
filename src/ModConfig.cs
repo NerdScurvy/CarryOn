@@ -8,16 +8,16 @@ namespace CarryOn
         public static CarryOnClientConfig ClientConfig;
         public static CarryOnConfig ServerConfig;
 
-        public static ITreeAttribute WorldConfig;
+        public static IWorldAccessor World;
 
         private const string ConfigFile = "CarryOnConfig.json";
         private const string ClientConfigFile = "CarryOnClientConfig.json";
 
         public static void ReadConfig(ICoreAPI api)
         {
+            World = api.World;
             if (api.Side == EnumAppSide.Server)
             {
-                WorldConfig = api.World.Config;
                 try
                 {
                     ServerConfig = LoadConfig(api);
@@ -38,8 +38,6 @@ namespace CarryOn
                     ServerConfig = LoadConfig(api);
                 }
 
-                if (api.Side == EnumAppSide.Server)
-                {
                     var worldConfig = api.World.Config;
 
                     worldConfig.SetBool(CarrySystem.ModId + ":AnvilEnabled", ServerConfig.AnvilEnabled);
@@ -79,7 +77,6 @@ namespace CarryOn
                     worldConfig.SetBool(CarrySystem.ModId + ":AllowChestTrunksOnBack", ServerConfig.AllowChestTrunksOnBack);
                     worldConfig.SetBool(CarrySystem.ModId + ":AllowLargeChestsOnBack", ServerConfig.AllowLargeChestsOnBack);
                     worldConfig.SetBool(CarrySystem.ModId + ":AllowCratesOnBack", ServerConfig.AllowCratesOnBack);
-                }
             }
             else
             {

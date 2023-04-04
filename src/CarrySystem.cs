@@ -105,12 +105,13 @@ namespace CarryOn
 
         public override void AssetsFinalize(ICoreAPI api)
         {
-            base.AssetsFinalize(api);
-            if (api.Side != EnumAppSide.Server) return;
+            if (api.Side == EnumAppSide.Server){
+                ResolveMultipleCarryableBehaviors(api);
+                AutoMapSimilarCarryables(api);
+                AutoMapSimilarCarryableInteract(api);
+            }
 
-            ResolveMultipleCarryableBehaviors(api);
-            AutoMapSimilarCarryables(api);
-            AutoMapSimilarCarryableInteract(api);
+            base.AssetsFinalize(api);
         }
 
         private void ResolveMultipleCarryableBehaviors(ICoreAPI api)

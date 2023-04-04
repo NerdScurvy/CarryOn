@@ -122,9 +122,12 @@ namespace CarryOn.Common
                         var slotProperties = properties[slot.ToString()];
                         if (slotProperties?.Exists != true) continue;
 
-                        if(slotProperties["keepWhenTrue"].Exists ){
-                            var keep = ModConfig.WorldConfig.GetBool(slotProperties["keepWhenTrue"].AsString(), true);
-                            if(!keep) continue;
+                        // If world config is false then do not include the shot settings
+                        var jsonObjProperty = slotProperties["keepWhenTrue"];
+                        if (ModConfig.World?.Config != null && jsonObjProperty.Exists
+                            && !ModConfig.World.Config.GetBool(jsonObjProperty.AsString(), true))
+                        {
+                            continue;
                         }
 
                         if (!_dict.TryGetValue(slot, out var settings))
