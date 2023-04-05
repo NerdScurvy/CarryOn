@@ -1,6 +1,9 @@
 {
   "blockhelp-pickup": "Tragen",
-  "drop-notice":"Du hast {0} aus deiner {1} fallen lassen.",
+  "drop-notice": "Du hast {0} aus deiner {1} fallen lassen.",
+  "drop-notice-destroyed": "Du hast {0} aus deiner {1} fallen lassen und es wurde zerstört.",
+  "drop-notice-destroyed-spill-contents": "Du hast {0} aus deiner {1} fallen lassen und es wurde zerstört, wodurch der Inhalt verschüttet wurde.",
+  "drop-notice-spill-contents": "Du hast {0} aus deiner {1} fallen lassen und es ist aufgebrochen, wodurch der Inhalt verschüttet wurde.",
   "slot-hands": "händen",
   "slot-back": "rücken",
   "slot-shoulder": "schulter"  

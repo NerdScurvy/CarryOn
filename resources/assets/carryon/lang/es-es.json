@@ -1,6 +1,9 @@
 {
   "blockhelp-pickup": "Levantar",
-  "drop-notice":"Perdiste {0} de tu {1}.",
+  "drop-notice": "Perdiste {0} de tu {1}.",
+  "drop-notice-destroyed": "Perdiste {0} de tu {1} y se destruyó.",
+  "drop-notice-destroyed-spill-contents": "Perdiste {0} de tu {1} y se destruyó, derramando el contenido.",
+  "drop-notice-spill-contents": "Perdiste {0} de tu {1} y se abrió, derramando el contenido.",
   "slot-hands": "manos",
   "slot-back": "espalda",
   "slot-shoulder": "hombro"

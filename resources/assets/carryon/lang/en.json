@@ -1,6 +1,9 @@
 {
   "blockhelp-pickup": "Carry",
-  "drop-notice":"You dropped {0} from your {1}.",
+  "drop-notice": "You dropped {0} from your {1}.",
+  "drop-notice-destroyed": "You dropped {0} from your {1} and it was destroyed.",
+  "drop-notice-destroyed-spill-contents": "You dropped {0} from your {1} and it was destroyed, spilling the contents.",
+  "drop-notice-spill-contents": "You dropped {0} from your {1} and it broke open, spilling the contents.",
   "slot-hands": "hands",
   "slot-back": "back",
   "slot-shoulder": "shoulder"

@@ -55,7 +55,7 @@ namespace CarryOn.Server
 
             var block = blockAccessor.GetBlock(pos);
             var slotItems = new List<string>();
-            if (blockEntityData["inventory"] is TreeAttribute inventory)
+            if (blockEntityData?["inventory"] is TreeAttribute inventory)
             {
                 foreach (var slot in inventory.GetTreeAttribute("slots"))
                 {

@@ -46,7 +46,9 @@ namespace CarryOn.Client
         {
             // Alternative: Cache API.TesselatorManager.GetDefaultBlockMesh manually.
 
-            var renderInfo = Api.Render.GetItemStackRenderInfo(new DummySlot(carried.ItemStack), EnumItemRenderTarget.Ground);
+            var slot = new DummySlot(carried.ItemStack);
+
+            var renderInfo = Api.Render.GetItemStackRenderInfo(slot, EnumItemRenderTarget.Ground);
 
             renderInfo.Transform = carried.Behavior.Slots[carried.Slot]?.Transform ?? carried.Behavior.DefaultTransform;
             return renderInfo;

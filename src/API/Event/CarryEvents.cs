@@ -17,14 +17,16 @@ namespace CarryOn.API.Event
 
         public event EventHandler<BlockRemovedEventArgs> BlockRemoved;
 
-        public void TriggerBlockDropped(IWorldAccessor world, BlockPos position, Entity entity, CarriedBlock carriedBlock)
+        public void TriggerBlockDropped(IWorldAccessor world, BlockPos position, Entity entity, CarriedBlock carriedBlock, bool destroyed = false, bool hadContents = false)
         {
             var args = new BlockDroppedEventArgs
             {
                 World = world,
                 Entity = entity,
                 Position = position,
-                CarriedBlock = carriedBlock
+                CarriedBlock = carriedBlock,
+                Destroyed = destroyed,
+                HadContents = hadContents
             };
 
             OnBlockDropped(args);

@@ -18,12 +18,18 @@ namespace CarryOn.Events
 
         public void OnCarriedBlockDropped(object sender, BlockDroppedEventArgs e)
         {
+            var messageKey = string.Format("{0}:drop-notice{1}{2}",
+                    CarrySystem.ModId,
+                    e.Destroyed ? "-destroyed" : null,
+                    e.HadContents ? "-spill-contents" : null
+                    );
+
             var player = (e.Entity as EntityPlayer)?.Player as IServerPlayer;
 
             var name = e.CarriedBlock.ItemStack?.GetName()?.ToLower();
             var slot = Lang.Get($"{CarrySystem.ModId}:slot-{e.CarriedBlock.Slot.ToString().ToLower()}");
 
-            player.SendMessage(GlobalConstants.GeneralChatGroup,Lang.Get($"{CarrySystem.ModId}:drop-notice", name, slot), EnumChatType.Notification);
+            player.SendMessage(GlobalConstants.GeneralChatGroup,Lang.Get(messageKey, name, slot), EnumChatType.Notification);
         }
     }
 }
