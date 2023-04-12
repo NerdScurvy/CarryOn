@@ -23,7 +23,8 @@
           "Back": {
             "walkSpeedModifier": -0.2
           }
-        }
+        },
+        "patchPriority": 1
       }
     },
     "condition": {
@@ -60,7 +61,8 @@
           "Back": {
             "walkSpeedModifier": -0.2
           }
-        }
+        },
+        "patchPriority": 1
       }
     },
     "condition": {
