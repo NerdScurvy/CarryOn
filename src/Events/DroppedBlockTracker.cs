@@ -12,14 +12,22 @@ namespace CarryOn.Events
     {
         public void Init(CarrySystem carrySystem)
         {
-            if (carrySystem.Api.Side != EnumAppSide.Server) return;
-
             var events = carrySystem.CarryEvents;
+
+            if (carrySystem.Api.Side == EnumAppSide.Client) {
+                events.OnCheckPermissionToCarry += OnCheckPermissionToCarryClient;
+                return;
+            }
 
             events.OnCheckPermissionToCarry += OnCheckPermissionToCarry;
             events.BlockDropped += OnCarriedBlockDropped;
 
             events.BlockRemoved += OnCarryableBlockRemoved;
+        }
+
+        public void OnCheckPermissionToCarryClient(EntityPlayer playerEntity, BlockPos pos, out bool? hasPermission){
+            // Allow client side permission so checks are done server side
+            hasPermission = true;
         }
 
         public void OnCheckPermissionToCarry(EntityPlayer playerEntity, BlockPos pos, out bool? hasPermission)
