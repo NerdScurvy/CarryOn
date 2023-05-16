@@ -162,6 +162,7 @@ namespace CarryOn.Common
                 // If something's being held and aiming at nothing, try to put held block on back.
                 else
                 {
+                    if (!ModConfig.BackSlotEnabled) return;
                     // Check to make sure that player is sneaking empty-handed,
                     // is not already carrying something in the back slot, and
                     // the currently held block can be equipped on the back.
@@ -263,6 +264,7 @@ namespace CarryOn.Common
                     break;
 
                 case CurrentAction.SwapBack:
+                    if (!ModConfig.BackSlotEnabled) return;
 
                     var carriedBack = player.Entity.GetCarried(CarrySlot.Back);
                     // Ensure that the player hasn't in the meantime
@@ -418,6 +420,8 @@ namespace CarryOn.Common
 
         public void OnSwapSlotsMessage(IServerPlayer player, SwapSlotsMessage message)
         {
+            if (!ModConfig.BackSlotEnabled) return;
+
             if ((message.First == message.Second) || (message.First != CarrySlot.Back) ||
                 !CanInteract(player.Entity, true) ||
                 !player.Entity.Swap(message.First, message.Second))

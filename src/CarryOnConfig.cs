@@ -31,6 +31,7 @@ namespace CarryOn
         public bool ToolRackEnabled;
         public bool TorchHolderEnabled;
 
+        public bool BackSlotEnabled = true;
         public bool AllowChestTrunksOnBack;
         public bool AllowLargeChestsOnBack;
         public bool AllowCratesOnBack;
@@ -81,6 +82,7 @@ namespace CarryOn
             ToolRackEnabled = previousConfig.ToolRackEnabled;
             TorchHolderEnabled = previousConfig.ToolRackEnabled;
 
+            BackSlotEnabled = previousConfig.BackSlotEnabled;
             NonGroundBlockClasses = previousConfig.NonGroundBlockClasses;
             AutoMatchIgnoreMods = previousConfig.AutoMatchIgnoreMods;
             AllowedShapeOnlyMatches = previousConfig.AllowedShapeOnlyMatches;
