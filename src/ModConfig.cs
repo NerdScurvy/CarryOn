@@ -13,6 +13,10 @@ namespace CarryOn
         private const string ConfigFile = "CarryOnConfig.json";
         private const string ClientConfigFile = "CarryOnClientConfig.json";
 
+        public static bool BackSlotEnabled { get{
+            return World.Config.GetBool(CarrySystem.ModId + ":BackSlotEnabled");
+        } }
+
         public static void ReadConfig(ICoreAPI api)
         {
             World = api.World;
@@ -74,6 +78,7 @@ namespace CarryOn
                     worldConfig.SetBool(CarrySystem.ModId + ":InteractDoorEnabled", ServerConfig.InteractDoorEnabled);
                     worldConfig.SetBool(CarrySystem.ModId + ":InteractStorageEnabled", ServerConfig.InteractStorageEnabled);
 
+                    worldConfig.SetBool(CarrySystem.ModId + ":BackSlotEnabled", ServerConfig.BackSlotEnabled);
                     worldConfig.SetBool(CarrySystem.ModId + ":AllowChestTrunksOnBack", ServerConfig.AllowChestTrunksOnBack);
                     worldConfig.SetBool(CarrySystem.ModId + ":AllowLargeChestsOnBack", ServerConfig.AllowLargeChestsOnBack);
                     worldConfig.SetBool(CarrySystem.ModId + ":AllowCratesOnBack", ServerConfig.AllowCratesOnBack);
