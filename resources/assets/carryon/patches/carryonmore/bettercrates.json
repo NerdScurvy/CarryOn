@@ -18,6 +18,10 @@
         "patchPriority": 1
       }
     },
+    "condition": {
+      "when": "carryon:CrateEnabled",
+      "isValue": "true"
+    },
     "dependsOn": [ { "modid": "bettercrates" } ]
   }
 ]

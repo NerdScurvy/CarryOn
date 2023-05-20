@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using CarryOn.API.Common;
 using CarryOn.API.Event;
 using CarryOn.Client;
@@ -9,10 +8,8 @@ using CarryOn.Common;
 using CarryOn.Common.Network;
 using CarryOn.Server;
 using CarryOn.Utility;
-using Newtonsoft.Json.Linq;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
-using Vintagestory.API.Datastructures;
 using Vintagestory.API.Server;
 using Vintagestory.API.Util;
 
@@ -109,23 +106,53 @@ namespace CarryOn
                 ResolveMultipleCarryableBehaviors(api);
                 AutoMapSimilarCarryables(api);
                 AutoMapSimilarCarryableInteract(api);
+                RemoveExcludedCarryableBehaviours(api);
             }
 
             base.AssetsFinalize(api);
+        }
+
+        private void RemoveExcludedCarryableBehaviours(ICoreAPI api){
+            var loggingEnabled = ModConfig.ServerConfig.LoggingEnabled;
+            var removeArray = ModConfig.ServerConfig.RemoveCarryableBehaviour;
+            if(removeArray == null || removeArray.Length == 0){
+                return;
+            }
+
+            foreach (var block in api.World.Blocks.Where(b => b.Code != null))
+            {
+                foreach(var remove in removeArray){
+                    if(block.Code.ToString().StartsWith(remove)){
+                        var count = block.BlockBehaviors.Length;
+                        block.BlockBehaviors = RemoveCarryableBehaviours(block.BlockBehaviors.OfType<CollectibleBehavior>().ToArray()).OfType<BlockBehavior>().ToArray();
+                        block.CollectibleBehaviors = RemoveCarryableBehaviours(block.CollectibleBehaviors);
+
+                        if(count != block.BlockBehaviors.Length && loggingEnabled){
+                            api.Logger.Debug($"CarryOn Removed Carryable Behaviour: {block.Code}");
+                        }
+                    }
+                }
+            }
         }
 
         private void ResolveMultipleCarryableBehaviors(ICoreAPI api)
         {
             foreach (var block in api.World.Blocks)
             {
+                bool removeBaseBehavior = false;
                 if (block.Code == null || block.Id == 0) continue;
-
-                block.BlockBehaviors = RemoveOveriddenCarryableBehaviours(block.BlockBehaviors.OfType<CollectibleBehavior>().ToArray()).OfType<BlockBehavior>().ToArray();
-                block.CollectibleBehaviors = RemoveOveriddenCarryableBehaviours(block.CollectibleBehaviors);
+                foreach(var match in ModConfig.ServerConfig.RemoveBaseCarryableBehaviour){
+                    if(block.Code.ToString().StartsWith(match)){
+                        removeBaseBehavior = true;
+                        break;
+                    }
+                }
+                block.BlockBehaviors = RemoveOveriddenCarryableBehaviours(block.BlockBehaviors.OfType<CollectibleBehavior>().ToArray(), removeBaseBehavior).OfType<BlockBehavior>().ToArray();
+                block.CollectibleBehaviors = RemoveOveriddenCarryableBehaviours(block.CollectibleBehaviors, removeBaseBehavior);
             }
         }
 
-        private CollectibleBehavior[] RemoveOveriddenCarryableBehaviours(CollectibleBehavior[] behaviours)
+        private CollectibleBehavior[] RemoveOveriddenCarryableBehaviours(CollectibleBehavior[] behaviours, bool removeBaseBehavior = false)
         {
             var behaviourList = behaviours.ToList();
             var carryableList = FindCarryables(behaviourList);
@@ -134,10 +161,27 @@ namespace CarryOn
                 var priorityCarryable = carryableList.First(p => p.PatchPriority == carryableList.Max(m => m.PatchPriority));
                 if (priorityCarryable != null)
                 {
-                    carryableList.Remove(priorityCarryable);
+                    if (!(removeBaseBehavior && priorityCarryable.PatchPriority == 0)){
+                        carryableList.Remove(priorityCarryable);
+                    }
                     behaviourList.RemoveAll(r => carryableList.Contains(r));
                 }
+            }else if(removeBaseBehavior && carryableList.Count == 1 && carryableList[0].PatchPriority == 0){
+                // Remove base behavior
+                behaviourList.RemoveAll(r => carryableList.Contains(r));
             }
+            return behaviourList.ToArray();
+        }
+
+        private CollectibleBehavior[] RemoveCarryableBehaviours(CollectibleBehavior[] behaviours)
+        {
+            var behaviourList = behaviours.ToList();
+            var carryableList = FindCarryables(behaviourList);
+
+            if (carryableList.Count == 0) return behaviours;
+
+            behaviourList.RemoveAll(r => carryableList.Contains(r));
+
             return behaviourList.ToArray();
         }
 
@@ -181,7 +225,7 @@ namespace CarryOn
             var loggingEnabled = ModConfig.ServerConfig.LoggingEnabled;
 
             var matchBehaviors = new Dictionary<string, BlockBehaviorCarryable>();
-            foreach (var carryableBlock in api.World.Blocks.Where(b => b.IsCarryable()))
+            foreach (var carryableBlock in api.World.Blocks.Where(b => b.IsCarryable() && b.Code.Domain == "game"))
             {
                 var shapePath = carryableBlock?.ShapeInventory?.Base?.Path ?? carryableBlock?.Shape?.Base?.Path;
                 var shapeKey = shapePath != null && shapePath != "block/basic/cube" ? $"Shape:{shapePath}" : null;
@@ -194,6 +238,7 @@ namespace CarryOn
                     if (!matchBehaviors.ContainsKey(entityClassKey))
                     {
                         matchBehaviors[entityClassKey] = carryableBlock.GetBehavior<BlockBehaviorCarryable>();
+                        if (loggingEnabled) api.Logger.Debug($"CarryOn matchBehavior: {entityClassKey} carryableBlock: {carryableBlock.Code}");
                     }
                 }
 
@@ -204,6 +249,7 @@ namespace CarryOn
                     if (!matchBehaviors.ContainsKey(classKey))
                     {
                         matchBehaviors[classKey] = carryableBlock.GetBehavior<BlockBehaviorCarryable>();
+                        if (loggingEnabled) api.Logger.Debug($"CarryOn matchBehavior: {classKey} carryableBlock: {carryableBlock.Code}");
                     }
                 }
 
@@ -215,6 +261,7 @@ namespace CarryOn
                         if (!matchBehaviors.ContainsKey(key))
                         {
                             matchBehaviors[key] = carryableBlock.GetBehavior<BlockBehaviorCarryable>();
+                            if (loggingEnabled) api.Logger.Debug($"CarryOn matchBehavior: {key} carryableBlock: {carryableBlock.Code}");
                         }
                     }
 
@@ -224,12 +271,15 @@ namespace CarryOn
                         if (!matchBehaviors.ContainsKey(key))
                         {
                             matchBehaviors[key] = carryableBlock.GetBehavior<BlockBehaviorCarryable>();
+                            if (loggingEnabled) api.Logger.Debug($"CarryOn matchBehavior: {key} carryableBlock: {carryableBlock.Code}");
                         }
                     }
 
                     if (ModConfig.ServerConfig.AllowedShapeOnlyMatches.Contains(shapePath) && !matchBehaviors.ContainsKey(shapeKey))
                     {
                         matchBehaviors[shapeKey] = carryableBlock.GetBehavior<BlockBehaviorCarryable>();
+
+                        if (loggingEnabled) api.Logger.Debug($"CarryOn matchBehavior: {shapeKey} carryableBlock: {carryableBlock.Code}");
                     }
                 }
             }
@@ -249,8 +299,7 @@ namespace CarryOn
                     $"{classKey}|{shapeKey}",
                     $"{entityClassKey}|{shapeKey}",
                     shapeKey,
-                    classKey,
-                    entityClassKey
+                    classKey
                 };
 
                 foreach (var matchKey in matchKeys)
@@ -274,11 +323,6 @@ namespace CarryOn
                     newBehavior = new BlockBehaviorCarryable(block);
                     block.CollectibleBehaviors = block.CollectibleBehaviors.Append(newBehavior);
                     newBehavior.Initialize(behavior.Properties);
-
-                    if (block.Code.Path.Contains("chest"))
-                    {
-                        var test = block;
-                    }
                 }
             }
         }

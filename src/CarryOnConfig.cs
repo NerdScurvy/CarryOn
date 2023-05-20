@@ -45,6 +45,10 @@ namespace CarryOn
 
         public string[] AllowedShapeOnlyMatches = new[] { "block/clay/lootvessel", "block/wood/chest/normal", "block/wood/trunk/normal", "block/reed/basket-normal" };
 
+        public string[] RemoveBaseCarryableBehaviour = new [] {"woodchests:wtrunk"};
+
+        public string[] RemoveCarryableBehaviour = new [] {"game:banner"};
+
         public bool LoggingEnabled { get; set; }
 
         public CarryOnConfig()
@@ -93,6 +97,8 @@ namespace CarryOn
             AllowChestTrunksOnBack = previousConfig.AllowChestTrunksOnBack;
             AllowLargeChestsOnBack = previousConfig.AllowLargeChestsOnBack;
             AllowCratesOnBack = previousConfig.AllowCratesOnBack;
+            RemoveBaseCarryableBehaviour = previousConfig.RemoveBaseCarryableBehaviour;
+            RemoveCarryableBehaviour = previousConfig.RemoveCarryableBehaviour;
 
             LoggingEnabled = previousConfig.LoggingEnabled;
         }
