@@ -105,6 +105,10 @@ namespace CarryOn.Common
 
             var world = System.ClientAPI.World;
             var player = world.Player;
+
+            // Don't do carryon interaction if player looking at an entity (i.e. raft or armor stand)
+            if (player.CurrentEntitySelection != null) return;
+
             var selection = player.CurrentBlockSelection;
 
             var carriedHands = player.Entity.GetCarried(CarrySlot.Hands);
