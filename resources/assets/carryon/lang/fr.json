@@ -1,0 +1,10 @@
+{
+  "blockhelp-pickup": "Porter",
+  "drop-notice": "Vous avez déposé {0} de votre {1}.",
+  "drop-notice-destroyed": "Vous avez déposé {0} de votre {1} et il a été détruit.",
+  "drop-notice-destroyed-spill-contents": "Vous avez déposé {0} de votre {1} et il a été détruit, renversant le contenu.",
+  "drop-notice-spill-contents": "Vous avez déposé {0} de votre {1} et il s'est ouvert, renversant le contenu.",
+  "slot-hands": "mains",
+  "slot-back": "dos",
+  "slot-shoulder": "épaule"
+}

@@ -1,0 +1,10 @@
+{
+  "blockhelp-pickup": "Trasporta",
+  "drop-notice": "Hai lasciato {0} dal tuo {1}.",
+  "drop-notice-destroyed": "Hai lasciato {0} dal tuo {1} ed è stato distrutto.",
+  "drop-notice-destroyed-spill-contents": "Hai lasciato {0} dal tuo {1} ed è stato distrutto, rovesciando il contenuto.",
+  "drop-notice-spill-contents": "Hai lasciato {0} dal tuo {1} e si è rotto, rovesciando il contenuto.",
+  "slot-hands": "mani",
+  "slot-back": "schiena",
+  "slot-shoulder": "spalle"
+}
