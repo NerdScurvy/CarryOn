@@ -6,5 +6,8 @@
   "drop-notice-spill-contents": "You dropped {0} from your {1} and it broke open, spilling the contents.",
   "slot-hands": "hands",
   "slot-back": "back",
-  "slot-shoulder": "shoulder"
+  "slot-shoulder": "shoulder",
+  "pickup-hotkey": "CarryOn - Pick Up / Put Down",
+  "swap-back-hotkey": "CarryOn - Swap to back modifier",
+  "toggle-hotkey": "CarryOn - Enable / Disable interaction"
 }

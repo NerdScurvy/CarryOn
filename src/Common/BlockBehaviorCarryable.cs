@@ -20,7 +20,7 @@ namespace CarryOn.Common
         public static WorldInteraction[] Interactions { get; }
             = { new WorldInteraction {
                 ActionLangCode  = CarrySystem.ModId + ":blockhelp-pickup",
-                HotKeyCode      = "sneak",
+                HotKeyCode      = "carryonpickupkey",
                 MouseButton     = EnumMouseButton.Right,
                 RequireFreeHand = true,
             } };
