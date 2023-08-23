@@ -1,9 +1,7 @@
-using System.Collections.Generic;
 using CarryOn.API.Common;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
-using Vintagestory.GameContent;
 
 namespace CarryOn.Events
 {

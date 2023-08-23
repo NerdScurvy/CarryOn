@@ -3,12 +3,12 @@
 		
 		<AssemblyTitle>Carry On</AssemblyTitle>
 		<Authors>copygirl,NerdScurvy</Authors>
-		<Version>1.4.0</Version>
+		<Version>1.5.0</Version>
 		
 		<Description>Vintage Story mod which adds the capability to carry various things</Description>
 		<RepositoryUrl>https://github.com/NerdScurvy/CarryOn</RepositoryUrl>
 		
-		<TargetFramework>net461</TargetFramework>
+		<TargetFramework>net7</TargetFramework>
 		<LangVersion>latest</LangVersion>
 		
 	</PropertyGroup>
@@ -29,11 +29,7 @@
 		<Reference Include="protobuf-net">
 			<HintPath>$(VINTAGE_STORY)/Lib/protobuf-net.dll</HintPath>
 			<Private>false</Private>
-		</Reference>
-		<Reference Include="Newtonsoft.Json">
-			<HintPath>$(VINTAGE_STORY)/Lib/Newtonsoft.Json.dll</HintPath>
-			<Private>false</Private>
-		</Reference>		
+		</Reference>	
 	</ItemGroup>
 	
 	<ItemGroup Condition="'$(Configuration)' == 'Release'">
