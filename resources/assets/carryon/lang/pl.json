@@ -1,0 +1,13 @@
+{
+  "blockhelp-pickup": "Podnieś",
+  "drop-notice": "Upuściłeś {0} z twoich {1}.",
+  "drop-notice-destroyed": "Upuściłeś {0} z twoich {1} i zostało zniszczone.",
+  "drop-notice-destroyed-spill-contents": "Upuściłeś {0} z twoich {1} i zostało zniszczone, wylewając zawartość.",
+  "drop-notice-spill-contents": "Upuściłeś {0} z twoich {1} i to się rozbiło, wylewając zawartość.",
+  "slot-hands": "ręce",
+  "slot-back": "plecy",
+  "slot-shoulder": "ramię",
+  "pickup-hotkey": "CarryOn - Podnieś / Odłóż",
+  "swap-back-hotkey": "CarryOn - Przełącz na plecy",
+  "toggle-hotkey": "CarryOn - Włącz / Wyłącz interakcję"
+}
