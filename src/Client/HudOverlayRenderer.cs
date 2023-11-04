@@ -53,8 +53,8 @@ namespace CarryOn.Client
                 var x = (float)Math.Sin(p);
                 var y = -(float)Math.Cos(p);
 
-                data.AddVertex(x, y, 0);
-                data.AddVertex(x * ringSize, y * ringSize, 0);
+                data.AddVertexSkipTex(x, y, 0);
+                data.AddVertexSkipTex(x * ringSize, y * ringSize, 0);
 
                 if (i > 0)
                 {
