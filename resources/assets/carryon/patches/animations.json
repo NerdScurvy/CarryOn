@@ -1,5 +1,5 @@
 [
-  { "file": "game:shapes/entity/humanoid/seraph-faceless", "op": "add", "path": "/elements/0/children/0/attachmentpoints/-", "value": {
+  { "file": "game:shapes/entity/humanoid/seraph-faceless", "op": "add", "path": "/elements/0/children/0/children/0/attachmentpoints/-", "value": {
     "code": "carryon:FrontCarry",
     "posX": 0.0, "rotationX":   0.0,
     "posY": 0.0, "rotationY": 180.0,

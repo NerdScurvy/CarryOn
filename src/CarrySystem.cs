@@ -15,11 +15,11 @@ using Vintagestory.API.Util;
 
 [assembly: ModInfo("Carry On", 
     modID: "carryon",
-    Version = "1.7.0-pre.1",
+    Version = "1.7.0-pre.2",
     Description = "Adds the capability to carry various things",
     Website = "https://github.com/NerdScurvy/CarryOn",
     Authors = new[] { "copygirl", "NerdScurvy" })]
-[assembly: ModDependency("game", "1.19.0-pre.4")]
+[assembly: ModDependency("game", "1.19.0-pre.7")]
 
 namespace CarryOn
 {
