@@ -1,0 +1,13 @@
+{
+  "blockhelp-pickup": "Нести",
+  "drop-notice": "Ви впустили {0} з своїх/єї {1}.",
+  "drop-notice-destroyed": "Ви впустили {0} з своїх/єї {1} і це знищило контейнер.",
+  "drop-notice-destroyed-spill-contents": "Ви впустили {0} з своїх/єї {1} і це знищило контейнер та висипало вміст.",
+  "drop-notice-spill-contents": "Ви впустили {0} з своїх/єї {1} і це знищило контейнер та висипало вміст.",
+  "slot-hands": "рук",
+  "slot-back": "спини",
+  "slot-shoulder": "плечей",
+  "pickup-hotkey": "CarryOn - Підняти/опустити",
+  "swap-back-hotkey": "CarryOn - Змінити на спину",
+  "toggle-hotkey": "CarryOn - Увімкнути/вимкнути взаємодію"
+}
