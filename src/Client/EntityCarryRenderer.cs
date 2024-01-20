@@ -130,6 +130,7 @@ namespace CarryOn.Client
             }
             else
             {
+                if (animator == null || renderSettings == null) return;
                 var attachPointAndPose = animator.GetAttachmentPointPose(renderSettings.AttachmentPoint);
                 if (attachPointAndPose == null) return; // Couldn't find attachment point.
                 modelMat = GetAttachmentPointMatrix(renderer, attachPointAndPose);
