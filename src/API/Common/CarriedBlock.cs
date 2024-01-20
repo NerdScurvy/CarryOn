@@ -191,8 +191,12 @@ namespace CarryOn.API.Common
             {
                 var failureCode = "__ignore__";
                 var player = world.PlayerByUid(playerEntity.PlayerUID);
-
-                if (!Block.TryPlaceBlock(world, player, ItemStack, selection, ref failureCode)) return false;
+                try{
+                    if (!Block.TryPlaceBlock(world, player, ItemStack, selection, ref failureCode)) return false;
+                }catch(NullReferenceException ex){
+                    // Woraround to null ref with reed chest - BlockBehaviorCreatureContainer null ref
+                    world.BlockAccessor.SetBlock(Block.Id, selection.Position, ItemStack);
+                }
             }
             else
             {
