@@ -1,0 +1,13 @@
+{
+  "blockhelp-pickup": "運ぶ",
+  "drop-notice": "{1}から{0}を落としました。",
+  "drop-notice-destroyed": "{1}から{0}を落とし、破損しました。",
+  "drop-notice-destroyed-spill-contents": "{1} から {0} を落として破損し、中身がこぼれてしまいました。",
+  "drop-notice-spill-contents": "{1}から{0}を落としてしまい、壊れて中身がこぼれました。",
+  "slot-hands": "両手",
+  "slot-back": "背中",
+  "slot-shoulder": "肩",
+  "pickup-hotkey": "CarryOn - 拾う / 置く",
+  "swap-back-hotkey": "CarryOn - 背負うときの補助キー",
+  "toggle-hotkey": "CarryOn - 動作のの有効化 / 無効化"
+}
