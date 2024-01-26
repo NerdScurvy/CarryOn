@@ -7,7 +7,7 @@
   "slot-hands": "両手",
   "slot-back": "背中",
   "slot-shoulder": "肩",
-  "pickup-hotkey": "CarryOn - 拾う / 置く",
+  "pickup-hotkey": "CarryOn - 持ち上げる / 置く",
   "swap-back-hotkey": "CarryOn - 背負うときの補助キー",
-  "toggle-hotkey": "CarryOn - 動作のの有効化 / 無効化"
+  "toggle-hotkey": "CarryOn - 動作の有効化 / 無効化"
 }
