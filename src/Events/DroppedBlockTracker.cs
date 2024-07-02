@@ -23,14 +23,17 @@ namespace CarryOn.Events
             events.BlockRemoved += OnCarryableBlockRemoved;
         }
 
-        public void OnCheckPermissionToCarryClient(EntityPlayer playerEntity, BlockPos pos, out bool? hasPermission){
-            // Allow client side permission so checks are done server side
-            hasPermission = true;
+        public void OnCheckPermissionToCarryClient(EntityPlayer playerEntity, BlockPos pos, bool isReinforced, out bool? hasPermission){
+            // Allow client side permission so checks are done server side unless is reinforced
+            hasPermission = isReinforced?null:true;
         }
 
-        public void OnCheckPermissionToCarry(EntityPlayer playerEntity, BlockPos pos, out bool? hasPermission)
+        public void OnCheckPermissionToCarry(EntityPlayer playerEntity, BlockPos pos, bool isReinforced, out bool? hasPermission)
         {
             hasPermission = null;
+
+            if(isReinforced) return;
+
             var world = playerEntity.Api.World;
 
             // Check if block was dropped by a player
