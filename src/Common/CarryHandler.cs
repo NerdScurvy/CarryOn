@@ -22,69 +22,75 @@ namespace CarryOn.Common
         private CarrySlot? _targetSlot = null;
         private BlockPos _selectedBlock = null;
         private float _timeHeld = 0.0F;
-        private bool _carryOnEnabled = true;
+        public bool IsCarryOnEnabled { get; set; } = true;
 
-        private const string pickupKeyCode = "carryonpickupkey";
-        private const string swapBackModifierKeyCode = "carryonswapbackmodifierkey";
-        private const string toggleKeyCode = "carryontogglekey";
+        private KeyCombination CarryKeyCombination{get; set;} 
 
-        private KeyCombination _pickupKeyCombination = null;
+        private KeyCombination CarrySwapKeyCombination{get;set;}
 
-        private CarrySystem System { get; }
-   
-        public CarryHandler(CarrySystem system)
-            => System = system;
+        private CarrySystem CarrySystem { get; }
+
+        public CarryHandler(CarrySystem carrySystem)
+            => CarrySystem = carrySystem;
 
         public void InitClient()
         {
-            var input = System.ClientAPI.Input;
+            var cApi = CarrySystem.ClientAPI;
+            var input = cApi.Input;
 
-            input.RegisterHotKey(pickupKeyCode, Lang.Get(CarrySystem.ModId + ":pickup-hotkey"), GlKeys.ShiftLeft);
-            input.SetHotKeyHandler(pickupKeyCode, TriggerPickupKeyPressed);
+            input.RegisterHotKey(CarrySystem.PickupKeyCode, Lang.Get(CarrySystem.ModId + ":pickup-hotkey"), CarrySystem.PickupKeyDefault);
 
-            input.RegisterHotKey(swapBackModifierKeyCode, Lang.Get(CarrySystem.ModId + ":swap-back-hotkey"), GlKeys.ControlLeft);
+            input.RegisterHotKey(CarrySystem.SwapBackModifierKeyCode, Lang.Get(CarrySystem.ModId + ":swap-back-hotkey"), CarrySystem.SwapBackModifierDefault);
 
-            input.RegisterHotKey(toggleKeyCode, Lang.Get(CarrySystem.ModId + ":toggle-hotkey"), GlKeys.K);
-            input.SetHotKeyHandler(toggleKeyCode, TriggerToggleKeyPressed);            
+            input.RegisterHotKey(CarrySystem.ToggleKeyCode, Lang.Get(CarrySystem.ModId + ":toggle-hotkey"), CarrySystem.ToggleDefault);
+            input.SetHotKeyHandler(CarrySystem.ToggleKeyCode, TriggerToggleKeyPressed);
 
-            System.ClientChannel.SetMessageHandler<LockSlotsMessage>(OnLockSlotsMessage);
+            CarrySystem.ClientChannel.SetMessageHandler<LockSlotsMessage>(OnLockSlotsMessage);
 
-            System.ClientAPI.Input.InWorldAction += OnEntityAction;
-            System.ClientAPI.Event.RegisterGameTickListener(OnGameTick, 0);
+            cApi.Input.InWorldAction +=  OnEntityAction;
+            cApi.Event.RegisterGameTickListener(OnGameTick, 0);
 
-            System.ClientAPI.Event.BeforeActiveSlotChanged +=
-                (_) => OnBeforeActiveSlotChanged(System.ClientAPI.World.Player.Entity);
+            cApi.Event.BeforeActiveSlotChanged +=
+                (_) => OnBeforeActiveSlotChanged(CarrySystem.ClientAPI.World.Player.Entity);
+
+
+            CarryKeyCombination = input.HotKeys[CarrySystem.PickupKeyCode]?.CurrentMapping;
+            CarrySwapKeyCombination = input.HotKeys[CarrySystem.SwapBackModifierKeyCode]?.CurrentMapping;
         }
 
         public void InitServer()
         {
-            System.ServerChannel
+            CarrySystem.ServerChannel
                 .SetMessageHandler<InteractMessage>(OnInteractMessage)
                 .SetMessageHandler<PickUpMessage>(OnPickUpMessage)
                 .SetMessageHandler<PlaceDownMessage>(OnPlaceDownMessage)
                 .SetMessageHandler<SwapSlotsMessage>(OnSwapSlotsMessage);
 
-            System.ServerAPI.Event.OnEntitySpawn += OnServerEntitySpawn;
-            System.ServerAPI.Event.PlayerNowPlaying += OnServerPlayerNowPlaying;
+            CarrySystem.ServerAPI.Event.OnEntitySpawn += OnServerEntitySpawn;
+            CarrySystem.ServerAPI.Event.PlayerNowPlaying += OnServerPlayerNowPlaying;
 
-            System.ServerAPI.Event.BeforeActiveSlotChanged +=
+            CarrySystem.ServerAPI.Event.BeforeActiveSlotChanged +=
                 (player, _) => OnBeforeActiveSlotChanged(player.Entity);
         }
 
-        public bool TriggerPickupKeyPressed(KeyCombination keyCombination) {
-            _pickupKeyCombination = keyCombination;
+        public bool TriggerToggleKeyPressed(KeyCombination keyCombination)
+        {
+
+            IsCarryOnEnabled = !IsCarryOnEnabled;
+
+            CarrySystem.ClientAPI.ShowChatMessage("CarryOn " + (IsCarryOnEnabled ? "Enabled" : "Disabled"));
             return true;
         }
 
-        public bool TriggerToggleKeyPressed(KeyCombination keyCombination) {
-            _carryOnEnabled = !_carryOnEnabled;
+        public bool IsCarryKeyPressed(bool checkMouse = false){
+            var input = CarrySystem.ClientAPI.Input;
+            if(checkMouse && !input.InWorldMouseButton.Right) return false;
+            
+            return input.KeyboardKeyState[CarryKeyCombination.KeyCode];
+        }
 
-            if(!_carryOnEnabled){
-                _pickupKeyCombination = null;
-            }
-
-            System.ClientAPI.ShowChatMessage("CarryOn " + (_carryOnEnabled?"Enabled":"Disabled"));
-            return true;
+        public bool IsCarrySwapKeyPressed(){
+            return CarrySystem.ClientAPI.Input.KeyboardKeyState[CarrySwapKeyCombination.KeyCode];
         }
 
         public void OnServerEntitySpawn(Entity entity)
@@ -116,7 +122,7 @@ namespace CarryOn.Common
         public void OnEntityAction(EnumEntityAction action, bool on, ref EnumHandling handled)
         {
             // Only handle action if it's being activated rather than deactivated.
-            if (!on || !_carryOnEnabled) return;
+            if (!on || !IsCarryOnEnabled) return;
 
             bool isInteract;
             switch (action)
@@ -135,7 +141,7 @@ namespace CarryOn.Common
             if (_action != CurrentAction.None)
             { handled = EnumHandling.PreventDefault; return; }
 
-            var world = System.ClientAPI.World;
+            var world = CarrySystem.ClientAPI.World;  
             var player = world.Player;
 
             // Don't do carryon interaction if player looking at an entity (i.e. raft or armor stand)
@@ -148,10 +154,7 @@ namespace CarryOn.Common
             var carriedShoulder = player.Entity.GetCarried(CarrySlot.Shoulder);
             var holdingAny = carriedHands ?? carriedShoulder;
 
-            // Check if swap back modifier key pressed
-            var input = System.ClientAPI.Input;
-            var swapKeyCombination = input.HotKeys[swapBackModifierKeyCode];
-            var swapBack = input.KeyboardKeyState[swapKeyCombination.CurrentMapping.KeyCode];
+            var swapBack = IsCarrySwapKeyPressed();
 
             // If something is being carried in-hand, prevent RMB, LMB and sprint.
             // If still holding RMB after an action completed, prevent the default action as well.
@@ -171,15 +174,16 @@ namespace CarryOn.Common
                     // This shouldn't occur since nothing is supposed to go into
                     // an active slot while something is carried there. This is
                     // just in case, so a carried block can still be placed down.
-                    if (!CanInteract(player.Entity, carriedHands != null))
+                    if (!CanInteract(player.Entity, carriedHands == null))
                     {
                         selection = GetMultiblockOriginSelection(selection);
 
-                        // Cannot pick up or put down - check for interact behavior
+                        // Cannot pick up or put down - check for interact behavior such as open door or chest.
                         if (selection?.Block?.HasBehavior<BlockBehaviorCarryableInteract>() == true)
                         {
                             var interactBehavior = selection?.Block.GetBehavior<BlockBehaviorCarryableInteract>();
-                            if(interactBehavior.CanInteract(player)){
+                            if (interactBehavior.CanInteract(player))
+                            {
                                 _action = CurrentAction.Interact;
                                 _selectedBlock = selection.Position;
                             }
@@ -249,14 +253,25 @@ namespace CarryOn.Common
 
         public void OnGameTick(float deltaTime)
         {
-            if(!_carryOnEnabled) return;
+            if (!IsCarryOnEnabled) return;
 
-            var interactHeld = System.ClientAPI.Input.MouseButton.Right;
-            if (!interactHeld) { CancelInteraction(true); return; }
+            var world = CarrySystem.ClientAPI.World;
+            var player = world.Player;            
+            var input = CarrySystem.ClientAPI.Input;
 
+            if (!input.MouseButton.Right) { CancelInteraction(true); return; }
+
+            if(input.IsHotKeyPressed(CarrySystem.PickupKeyCode)){
+                if(!player.Entity.IsCarryKeyHeld()){
+                    player.Entity.SetCarryKeyHeld(true);
+                }
+            }else{
+                if(player.Entity.IsCarryKeyHeld()){
+                    player.Entity.SetCarryKeyHeld(false);
+                }
+            }
             if (_action == CurrentAction.None) return;
-            var world = System.ClientAPI.World;
-            var player = world.Player;
+
 
             // TODO: Only allow close blocks to be picked up.
             // TODO: Don't allow the block underneath to change?
@@ -338,26 +353,26 @@ namespace CarryOn.Common
 
             _timeHeld += deltaTime;
             var progress = _timeHeld / requiredTime;
-            System.HudOverlayRenderer.CircleProgress = progress;
+            CarrySystem.HudOverlayRenderer.CircleProgress = progress;
             if (progress <= 1.0F) return;
 
             switch (_action)
             {
                 case CurrentAction.Interact:
                     if (selection?.Block?.OnBlockInteractStart(world, player, selection) == true)
-                        System.ClientChannel.SendPacket(new InteractMessage(selection.Position));
+                        CarrySystem.ClientChannel.SendPacket(new InteractMessage(selection.Position));
                     break;
                 case CurrentAction.PickUp:
                     if (player.Entity.Carry(selection.Position, _targetSlot.Value))
-                        System.ClientChannel.SendPacket(new PickUpMessage(selection.Position, _targetSlot.Value));
+                        CarrySystem.ClientChannel.SendPacket(new PickUpMessage(selection.Position, _targetSlot.Value));
                     break;
                 case CurrentAction.PlaceDown:
                     if (PlaceDown(player, carriedTarget, selection, out var placedAt))
-                        System.ClientChannel.SendPacket(new PlaceDownMessage(_targetSlot.Value, selection, placedAt));
+                        CarrySystem.ClientChannel.SendPacket(new PlaceDownMessage(_targetSlot.Value, selection, placedAt));
                     break;
                 case CurrentAction.SwapBack:
                     if (player.Entity.Swap(_targetSlot.Value, CarrySlot.Back))
-                        System.ClientChannel.SendPacket(new SwapSlotsMessage(CarrySlot.Back, _targetSlot.Value));
+                        CarrySystem.ClientChannel.SendPacket(new SwapSlotsMessage(CarrySlot.Back, _targetSlot.Value));
                     break;
             }
 
@@ -368,7 +383,7 @@ namespace CarryOn.Common
         {
             _action = CurrentAction.None;
             _targetSlot = null;
-            System.HudOverlayRenderer.CircleVisible = false;
+            CarrySystem.HudOverlayRenderer.CircleVisible = false;
             if (resetTimeHeld) _timeHeld = 0.0F;
         }
 
@@ -381,9 +396,10 @@ namespace CarryOn.Common
                 : EnumHandling.PassThrough;
         }
 
+
         public void OnLockSlotsMessage(LockSlotsMessage message)
         {
-            var player = System.ClientAPI.World.Player;
+            var player = CarrySystem.ClientAPI.World.Player;
             var hotbar = player.InventoryManager.GetHotbarInventory();
             for (var i = 0; i < hotbar.Count; i++)
             {
@@ -397,7 +413,7 @@ namespace CarryOn.Common
         {
             var hotbar = player.InventoryManager.GetHotbarInventory();
             var slots = Enumerable.Range(0, hotbar.Count).Where(i => hotbar[i] is LockedItemSlot).ToList();
-            System.ServerChannel.SendPacket(new LockSlotsMessage(slots), player);
+            CarrySystem.ServerChannel.SendPacket(new LockSlotsMessage(slots), player);
         }
         public static void SendLockSlotsMessage(EntityPlayer player)
         {
@@ -416,7 +432,8 @@ namespace CarryOn.Common
             {
                 var behavior = block.GetBehavior<BlockBehaviorCarryableInteract>();
 
-                if(behavior.CanInteract(player)){
+                if (behavior.CanInteract(player))
+                {
                     var blockSelection = player.CurrentBlockSelection.Clone();
                     blockSelection.Position = message.Position;
                     blockSelection.Block = block;
@@ -470,35 +487,40 @@ namespace CarryOn.Common
             }
         }
 
+
+        /// <summary>
+        /// Checks if entity can begin interaction with carryable item that is in the world or in hand slot
+        /// Their left and right hands be empty.
+        /// </summary>
+        /// <param name="entityAgent"></param>
+        /// <param name="requireEmptyHanded"></param>
+        /// <returns></returns>
+        public bool CanDoCarryAction(EntityAgent entityAgent, bool requireEmptyHanded)
+        {
+            var isEmptyHanded = entityAgent.RightHandItemSlot.Empty && entityAgent.LeftHandItemSlot.Empty;
+            if (!isEmptyHanded && requireEmptyHanded) return false;
+
+            if (entityAgent is not EntityPlayer entityPlayer) return true;
+
+            // Active slot must be main hotbar (This excludes the backpack slots)
+            var activeHotbarSlot = entityPlayer.Player.InventoryManager.ActiveHotbarSlotNumber;
+            return (activeHotbarSlot >= 0) && (activeHotbarSlot < 10);
+        }
+
         /// <summary>
         ///   Returns whether the specified entity has the required prerequisites
         ///   to interact using CarryOn: Must be sneaking with an empty hand.
         ///   Also tests for whether a valid hotbar slot is currently selected.
         /// </summary>
-        private  bool CanInteract(EntityAgent entity, bool requireEmptyHanded)
+        public bool CanInteract(EntityAgent entityAgent, bool requireEmptyHanded)
         {
-            if(System.Api.Side == EnumAppSide.Client){
-
-                var carryKeyPressed = false;
-
-                var input = System.ClientAPI.Input;
-
-                if(_pickupKeyCombination != null){
-                    carryKeyPressed = input.KeyboardKeyState[_pickupKeyCombination.KeyCode];
-                    if(!carryKeyPressed){
-                        _pickupKeyCombination = null;
-                    }
+            if(entityAgent.Api.Side == EnumAppSide.Client){
+                if(!IsCarryKeyPressed(true)){
+                    return false;
                 }
-
-                if(!carryKeyPressed) return false;
             }
 
-            var isEmptyHanded = entity.RightHandItemSlot.Empty && entity.LeftHandItemSlot.Empty;
-            if (!isEmptyHanded && requireEmptyHanded) return false;
-
-            if (entity is not EntityPlayer entityPlayer) return true;
-            var activeHotbarSlot = entityPlayer.Player.InventoryManager.ActiveHotbarSlotNumber;
-            return (activeHotbarSlot >= 0) && (activeHotbarSlot < 10);
+            return CanDoCarryAction(entityAgent, requireEmptyHanded);
         }
 
         public bool PlaceDown(IPlayer player, CarriedBlock carried,
@@ -555,9 +577,10 @@ namespace CarryOn.Common
         /// <summary>Get the block position for the main block within for a multiblock structure</summary>
         private BlockPos GetMultiblockOrigin(BlockPos position, BlockMultiblock multiblock)
         {
-            if(position == null) return null;
+            if (position == null) return null;
 
-            if(multiblock != null){
+            if (multiblock != null)
+            {
                 var multiPosition = position.Copy();
                 multiPosition.Add(multiblock.OffsetInv);
                 return multiPosition;
@@ -570,7 +593,7 @@ namespace CarryOn.Common
         {
             if (blockSelection?.Block is BlockMultiblock multiblock)
             {
-                var world = System.Api.World;
+                var world = CarrySystem.Api.World;
                 var position = GetMultiblockOrigin(blockSelection.Position, multiblock);
                 var block = world.BlockAccessor.GetBlock(position);
                 var selection = blockSelection.Clone();

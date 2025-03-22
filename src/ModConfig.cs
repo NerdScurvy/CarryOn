@@ -67,7 +67,7 @@ namespace CarryOn
                     worldConfig.SetBool(CarrySystem.ModId + ":QuernEnabled", ServerConfig.QuernEnabled);
                     worldConfig.SetBool(CarrySystem.ModId + ":ShelfEnabled", ServerConfig.ShelfEnabled);
                     worldConfig.SetBool(CarrySystem.ModId + ":SignEnabled", ServerConfig.SignEnabled);
-                    worldConfig.SetBool(CarrySystem.ModId + ":StationaryBasketEnabled", ServerConfig.StationaryBasketEnabled);
+                    worldConfig.SetBool(CarrySystem.ModId + ":ReedBasketEnabled", ServerConfig.ReedBasketEnabled);
                     worldConfig.SetBool(CarrySystem.ModId + ":StorageVesselEnabled", ServerConfig.StorageVesselEnabled);
                     worldConfig.SetBool(CarrySystem.ModId + ":ToolRackEnabled", ServerConfig.ToolRackEnabled);
                     worldConfig.SetBool(CarrySystem.ModId + ":TorchHolderEnabled", ServerConfig.TorchHolderEnabled);

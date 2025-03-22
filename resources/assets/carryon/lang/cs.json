@@ -1,0 +1,13 @@
+{
+  "blockhelp-pickup": "Nést",
+  "drop-notice": "Vyhodili jste {0} ze svého {1}.",
+  "drop-notice-destroyed": "Vyhodili jste {0} ze svého {1} a to bylo zničeno.",
+  "drop-notice-destroyed-spill-contents": "Vyhodili jste {0} ze svého {1} a to bylo zničeno, obsah se rozlil.",
+  "drop-notice-spill-contents": "Vyhodili jste {0} ze svého {1} a to se otevřelo, obsah se rozlil.",
+  "slot-hands": "ruce",
+  "slot-back": "záda",
+  "slot-shoulder": "ramena",
+  "pickup-hotkey": "CarryOn - Zvednout / položit",
+  "swap-back-hotkey": "CarryOn - Přehodit na záda",
+  "toggle-hotkey": "CarryOn - Povolit / zakázat interakci"
+}
