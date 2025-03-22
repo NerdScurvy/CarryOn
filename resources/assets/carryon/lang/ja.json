@@ -1,0 +1,18 @@
+{
+    "comment_description": "Japanese localization file for 'Carry On'.",
+    "comment_version": "Mod Version: v1.7.4",
+    "comment_author": "Translated By: Macoto Hino",
+    "comment_technical_details": "Machine translation using PCOT and DeepL.",
+	
+  "blockhelp-pickup": "持ち上げる",
+  "drop-notice":"{1}から{0}を落とした。",
+  "drop-notice-destroyed": "{1}から{0}を落として、壊れてしまった。",
+  "drop-notice-destroyed-spill-contents": "{1}から{0}を落とし、壊れてしまい、中身をぶちまけた。",
+  "drop-notice-spill-contents": "{1}から{0}を落とし、割れてしまい、中身をぶちまけた。",
+  "slot-hands": "手",
+  "slot-back": "バックパック",
+  "slot-shoulder": "背中",
+  "pickup-hotkey": "CarryOn - 持ち上げる / 置く",
+  "swap-back-hotkey": "CarryOn - 背負う時の補助キー",
+  "toggle-hotkey": "CarryOn - 動作の有効化 / 無効化"
+}

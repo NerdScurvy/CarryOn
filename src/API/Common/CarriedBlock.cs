@@ -30,7 +30,7 @@ namespace CarryOn.API.Common
             ItemStack = stack ?? throw new ArgumentNullException(nameof(stack));
             BlockEntityData = blockEntityData;
         }
-
+ 
         public BlockBehaviorCarryable Behavior
             => Block.GetBehaviorOrDefault(BlockBehaviorCarryable.Default);
 
@@ -191,8 +191,19 @@ namespace CarryOn.API.Common
             {
                 var failureCode = "__ignore__";
                 var player = world.PlayerByUid(playerEntity.PlayerUID);
-
-                if (!Block.TryPlaceBlock(world, player, ItemStack, selection, ref failureCode)) return false;
+                try{
+                    // Add phantom Item to player's active slot so any related block placement code can fire. (Workaround for creature container)
+                    player.InventoryManager.ActiveHotbarSlot.Itemstack = ItemStack;
+                    if (!Block.TryPlaceBlock(world, player, ItemStack, selection, ref failureCode)) {
+                        // Remove phantom item from active slot if failed to place
+                        player.InventoryManager.ActiveHotbarSlot.Itemstack = null;
+                        return false;
+                    }
+                }catch(NullReferenceException ex){
+                    world.Logger.Error("Error occured while trying to place a carried block: " + ex.Message);
+                    // Woraround twas for null ref with reed chest - Leaving here in case of other issues
+                    world.BlockAccessor.SetBlock(Block.Id, selection.Position, ItemStack);
+                }
             }
             else
             {

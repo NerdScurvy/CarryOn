@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.002.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CarryOn", "CarryOn.csproj", "{4DA127C3-E2B4-466D-B173-633D7CF5937C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CarryOn", "CarryOn.csproj", "{550A2748-3284-4F65-94A7-A2C6D5F5E7C0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -11,15 +11,15 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{4DA127C3-E2B4-466D-B173-633D7CF5937C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{4DA127C3-E2B4-466D-B173-633D7CF5937C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{4DA127C3-E2B4-466D-B173-633D7CF5937C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{4DA127C3-E2B4-466D-B173-633D7CF5937C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{550A2748-3284-4F65-94A7-A2C6D5F5E7C0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{550A2748-3284-4F65-94A7-A2C6D5F5E7C0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{550A2748-3284-4F65-94A7-A2C6D5F5E7C0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{550A2748-3284-4F65-94A7-A2C6D5F5E7C0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {2D291EB1-3AE1-4B81-A597-1BB909546F40}
+		SolutionGuid = {EED8A785-6095-49B9-991A-058EF1982BC3}
 	EndGlobalSection
 EndGlobal

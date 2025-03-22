@@ -48,7 +48,7 @@ namespace CarryOn.Client
 
             var slot = new DummySlot(carried.ItemStack);
 
-            var renderInfo = Api.Render.GetItemStackRenderInfo(slot, EnumItemRenderTarget.Ground);
+            var renderInfo = Api.Render.GetItemStackRenderInfo(slot, EnumItemRenderTarget.Ground, 0);
 
             renderInfo.Transform = carried.Behavior.Slots[carried.Slot]?.Transform ?? carried.Behavior.DefaultTransform;
             return renderInfo;
@@ -115,10 +115,11 @@ namespace CarryOn.Client
                                    bool isFirstPerson, bool isImmersiveFirstPerson, bool isShadowPass,
                                    EntityShapeRenderer renderer, IAnimator animator)
         {
+            var rapi = Api.Render;
             var inHands = (carried.Slot == CarrySlot.Hands);
             if (!inHands && isFirstPerson && !isShadowPass) return; // Only Hands slot is rendered in first person.
 
-            var viewMat = Array.ConvertAll(Api.Render.CameraMatrixOrigin, i => (float)i);
+            var viewMat = Array.ConvertAll(rapi.CameraMatrixOrigin, i => (float)i);
             var renderSettings = _renderSettings[carried.Slot];
             var renderInfo = GetRenderInfo(carried);
 
@@ -129,6 +130,7 @@ namespace CarryOn.Client
             }
             else
             {
+                if (animator == null || renderSettings == null) return;
                 var attachPointAndPose = animator.GetAttachmentPointPose(renderSettings.AttachmentPoint);
                 if (attachPointAndPose == null) return; // Couldn't find attachment point.
                 modelMat = GetAttachmentPointMatrix(renderer, attachPointAndPose);
@@ -149,24 +151,24 @@ namespace CarryOn.Client
 
             if (isShadowPass)
             {
-                var prog = Api.Render.CurrentActiveShader;
-                Mat4f.Mul(modelMat, Api.Render.CurrentShadowProjectionMatrix, modelMat);
+                var prog = rapi.CurrentActiveShader;
+                Mat4f.Mul(modelMat, rapi.CurrentShadowProjectionMatrix, modelMat);
                 prog.BindTexture2D("tex2d", renderInfo.TextureId, 0);
                 prog.UniformMatrix("mvpMatrix", modelMat);
                 prog.Uniform("origin", renderer.OriginPos);
 
-                Api.Render.RenderMesh(renderInfo.ModelRef);
+                rapi.RenderMultiTextureMesh(renderInfo.ModelRef, "tex2d");
             }
             else
             {
-                var prog = Api.Render.PreparedStandardShader((int)entity.Pos.X, (int)entity.Pos.Y, (int)entity.Pos.Z);
+                var prog = rapi.PreparedStandardShader((int)entity.Pos.X, (int)entity.Pos.Y, (int)entity.Pos.Z);
                 prog.Tex2D = renderInfo.TextureId;
                 prog.AlphaTest = 0.01f;
                 prog.ViewMatrix = viewMat;
                 prog.ModelMatrix = modelMat;
                 prog.DontWarpVertices = 1;
 
-                Api.Render.RenderMesh(renderInfo.ModelRef);
+                rapi.RenderMultiTextureMesh(renderInfo.ModelRef, "tex");
 
                 prog.Stop();
             }

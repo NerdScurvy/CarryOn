@@ -1,0 +1,13 @@
+{
+  "blockhelp-pickup": "Carregar",
+  "drop-notice": "Você deixou cair {0} de suas {1}.",
+  "drop-notice-destroyed": "Você deixou cair {0} de {1} e acabou quebrando.",
+  "drop-notice-destroyed-spill-contents": "Você deixou cair {0} de {1} e acabou quebrando, soltando o conteúdo.",
+  "drop-notice-spill-contents": "Você deixou cair {0} de {1} e acabou abrindo, soltando o conteúdo.",
+  "slot-hands": "suas mãos",
+  "slot-back": "suas costas",
+  "slot-shoulder": "seus ombros",
+  "pickup-hotkey": "CarryOn - Carregar / Colocar",
+  "swap-back-hotkey": "CarryOn - Mudar para as costas",
+  "toggle-hotkey": "CarryOn - Habilitar / Desabilitar interação"
+}

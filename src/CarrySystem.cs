@@ -15,11 +15,11 @@ using Vintagestory.API.Util;
 
 [assembly: ModInfo("Carry On", 
     modID: "carryon",
-    Version = "1.6.1",
+    Version = "1.8.0-pre.1",
     Description = "Adds the capability to carry various things",
     Website = "https://github.com/NerdScurvy/CarryOn",
     Authors = new[] { "copygirl", "NerdScurvy" })]
-[assembly: ModDependency("game", "1.18.8")]
+[assembly: ModDependency("game", "1.20.0-pre")]
 
 namespace CarryOn
 {
@@ -32,7 +32,6 @@ namespace CarryOn
         public static float SwapSpeedDefault = 1.5f;
         public static float PickUpSpeedDefault = 0.8f;
         public static float InteractSpeedDefault = 0.8f;
-        public override bool AllowRuntimeReload => true;
 
         public ICoreAPI Api { get { return ClientAPI ?? ServerAPI as ICoreAPI; } }
 

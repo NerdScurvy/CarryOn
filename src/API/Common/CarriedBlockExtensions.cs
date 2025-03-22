@@ -86,7 +86,7 @@ namespace CarryOn.API.Common
                     {
                         try
                         {
-                            checkPermissionToCarryDelegate(playerEntity, pos, out bool? hasPermission);
+                            checkPermissionToCarryDelegate(playerEntity, pos, isReinforced, out bool? hasPermission);
 
                             if (hasPermission != null)
                             {
