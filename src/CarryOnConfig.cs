@@ -26,7 +26,7 @@ namespace CarryOn
         public bool QuernEnabled = true;
         public bool ShelfEnabled;
         public bool SignEnabled;
-        public bool StationaryBasketEnabled = true;
+        public bool ReedBasketEnabled = true;
         public bool StorageVesselEnabled = true;
         public bool ToolRackEnabled;
         public bool TorchHolderEnabled;
@@ -81,7 +81,7 @@ namespace CarryOn
             QuernEnabled = previousConfig.QuernEnabled;
             ShelfEnabled = previousConfig.ShelfEnabled;
             SignEnabled = previousConfig.SignEnabled;
-            StationaryBasketEnabled = previousConfig.StationaryBasketEnabled;
+            ReedBasketEnabled = previousConfig.ReedBasketEnabled;
             StorageVesselEnabled = previousConfig.StorageVesselEnabled;
             ToolRackEnabled = previousConfig.ToolRackEnabled;
             TorchHolderEnabled = previousConfig.ToolRackEnabled;

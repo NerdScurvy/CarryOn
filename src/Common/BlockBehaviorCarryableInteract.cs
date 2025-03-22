@@ -27,6 +27,7 @@ namespace CarryOn.Common
             base.Initialize(properties);
             if (JsonHelper.TryGetFloat(properties, "interactDelay", out var d)) InteractDelay = d;
 
+            // Whitelist of carryable blocks that can be used to interact with a block entity
             if (!properties.KeyExists("allowedCarryables")) return;
 
             foreach (var allowedJson in properties["allowedCarryables"]?.AsArray())
@@ -41,6 +42,11 @@ namespace CarryOn.Common
             }
         }
 
+        /// <summary>
+        /// Checks if the carried block can be used to interact with block entity
+        /// </summary>
+        /// <param name="player"></param>
+        /// <returns></returns>
         public bool CanInteract(IPlayer player){
             if(AllowedCarryables.Count == 0) return true;
 

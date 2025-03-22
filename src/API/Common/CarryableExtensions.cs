@@ -6,6 +6,7 @@ using CarryOn.API.Event;
 using CarryOn.Common;
 using CarryOn.Server;
 using CarryOn.Utility;
+using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
 using Vintagestory.API.Datastructures;
@@ -15,8 +16,12 @@ using Vintagestory.GameContent;
 
 namespace CarryOn.API.Common
 {
-    public static class CarriedBlockExtensions
+    public static class CarryableExtensions
     {
+        /* ------------------------------ */
+        /* Block extensions               */
+        /* ------------------------------ */
+
         /// <summary> Returns whether the specified block can be carried.
         ///           Checks if <see cref="BlockBehaviorCarryable"/> is present.</summary>
         public static bool IsCarryable(this Block block)
@@ -35,6 +40,10 @@ namespace CarryOn.API.Common
         {
             return block.GetBehavior<BlockBehaviorCarryable>()?.Slots?[slot] != null;
         }
+
+        /* ------------------------------ */
+        /* Entity extensions              */
+        /* ------------------------------ */
 
         /// <summary> Returns the <see cref="CarriedBlock"/> this entity
         ///           is carrying in the specified slot, or null of none. </summary>
@@ -112,28 +121,6 @@ namespace CarryOn.API.Common
             }
         }
 
-        /// <summary>
-        ///   Attempts to get this player to place down its
-        ///   <see cref="CarriedBlock"/> (if any) at the specified
-        ///   selection, returning whether it was successful.
-        /// </summary>
-        /// <exception cref="ArgumentNullException"> Thrown if player or selection is null. </exception>
-        public static bool PlaceCarried(this IPlayer player, BlockSelection selection, CarrySlot slot)
-        {
-            if (player == null) throw new ArgumentNullException(nameof(player));
-            if (selection == null) throw new ArgumentNullException(nameof(selection));
-
-            if (!player.Entity.World.Claims.TryAccess(
-                player, selection.Position, EnumBlockAccessFlags.BuildOrBreak))
-            {
-                return false;
-            }
-
-            var carried = CarriedBlock.Get(player.Entity, slot);
-            if (carried == null) return false;
-
-            return carried.PlaceDown(player.Entity.World, selection, player.Entity);
-        }
 
         /// <summary> Attempts to make this entity drop its carried blocks from the
         ///           specified slots around its current position in the specified area. </summary>
@@ -382,10 +369,70 @@ namespace CarryOn.API.Common
             return true;
         }
 
-        public static CarryEvents GetCarryEvents(this IWorldAccessor world)
-        {
-            var carrySystem = world.Api.ModLoader.GetModSystem<CarrySystem>();
-            return carrySystem.CarryEvents;
+        public static bool IsCarryKeyHeld(this Entity entity){
+            return entity.WatchedAttributes.GetBool("carryKeyHeld");
         }
+
+        public static void SetCarryKeyHeld(this Entity entity, bool isHeld){
+            if(entity.IsCarryKeyHeld() != isHeld){
+                entity.WatchedAttributes.SetBool("carryKeyHeld", isHeld);
+            }
+        }
+
+        /* ------------------------------ */
+        /* EntityAgent Extensions         */
+        /* ------------------------------ */
+
+
+        /// <summary>
+        /// Checks if entity can begin interaction with carryable item that is in the world or in hand slot
+        /// Their left and right hands be empty.
+        /// </summary>
+        /// <param name="entityAgent"></param>
+        /// <param name="requireEmptyHanded"></param>
+        /// <returns></returns>
+        public static bool CanDoCarryAction(this EntityAgent entityAgent, bool requireEmptyHanded)
+        {
+            var system = entityAgent.World.GetCarrySystem();
+            return system.CarryHandler.CanDoCarryAction(entityAgent, requireEmptyHanded);
+        }
+
+        /* ------------------------------ */
+        /* IPlayer extensions             */
+        /* ------------------------------ */
+
+        /// <summary>
+        ///   Attempts to get this player to place down its
+        ///   <see cref="CarriedBlock"/> (if any) at the specified
+        ///   selection, returning whether it was successful.
+        /// </summary>
+        /// <exception cref="ArgumentNullException"> Thrown if player or selection is null. </exception>
+        public static bool PlaceCarried(this IPlayer player, BlockSelection selection, CarrySlot slot)
+        {
+            if (player == null) throw new ArgumentNullException(nameof(player));
+            if (selection == null) throw new ArgumentNullException(nameof(selection));
+
+            if (!player.Entity.World.Claims.TryAccess(
+                player, selection.Position, EnumBlockAccessFlags.BuildOrBreak))
+            {
+                return false;
+            }
+
+            var carried = CarriedBlock.Get(player.Entity, slot);
+            if (carried == null) return false;
+
+            return carried.PlaceDown(player.Entity.World, selection, player.Entity);
+        }
+
+        /* ------------------------------ */
+        /* IWorldAccessor Extensions      */
+        /* ------------------------------ */
+
+        public static CarrySystem GetCarrySystem(this IWorldAccessor world)
+            => world.Api.ModLoader.GetModSystem<CarrySystem>();
+
+        public static CarryEvents GetCarryEvents(this IWorldAccessor world)
+            => world.GetCarrySystem().CarryEvents;
+        
     }
 }
