@@ -102,6 +102,9 @@ namespace CarryOn.Client
             var renderer = (EntityShapeRenderer)entity.Properties.Client.Renderer;
             var animator = entity.AnimManager.Animator;
 
+            // Rendered not ready?
+            if(renderer == null) return;
+
             foreach (var carried in allCarried)
             {
                 RenderCarried(entity, carried, deltaTime,
@@ -177,7 +180,7 @@ namespace CarryOn.Client
         /// <summary> Returns a model view matrix for rendering a carried block on the specified attachment point. </summary>
         private float[] GetAttachmentPointMatrix(EntityShapeRenderer renderer, AttachmentPointAndPose attachPointAndPose)
         {
-            var modelMat = renderer.ModelMat == null?null:Mat4f.CloneIt(renderer.ModelMat);
+            var modelMat = renderer?.ModelMat == null?null:Mat4f.CloneIt(renderer.ModelMat);
             var animModelMat = attachPointAndPose.AnimModelMatrix;
             Mat4f.Mul(modelMat, modelMat, animModelMat);
 
