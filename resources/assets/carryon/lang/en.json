@@ -9,5 +9,6 @@
   "slot-shoulder": "shoulder",
   "pickup-hotkey": "CarryOn - Pick Up / Put Down",
   "swap-back-hotkey": "CarryOn - Swap to back modifier",
-  "toggle-hotkey": "CarryOn - Enable / Disable interaction"
+  "toggle-hotkey": "CarryOn - Enable / Disable interaction (+ ALT)",
+  "quickdrop-hotkey": "CarryOn - Quick Drop (+ CTRL + ALT)"
 }
