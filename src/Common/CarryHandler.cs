@@ -43,7 +43,10 @@ namespace CarryOn.Common
             input.RegisterHotKey(CarrySystem.SwapBackModifierKeyCode, Lang.Get(CarrySystem.ModId + ":swap-back-hotkey"), CarrySystem.SwapBackModifierDefault);
 
             input.RegisterHotKey(CarrySystem.ToggleKeyCode, Lang.Get(CarrySystem.ModId + ":toggle-hotkey"), CarrySystem.ToggleDefault, altPressed: true);
+            input.RegisterHotKey(CarrySystem.QuickDropKeyCode, Lang.Get(CarrySystem.ModId + ":quickdrop-hotkey"), CarrySystem.QuickDropDefault, altPressed: true, ctrlPressed: true);
+
             input.SetHotKeyHandler(CarrySystem.ToggleKeyCode, TriggerToggleKeyPressed);
+            input.SetHotKeyHandler(CarrySystem.QuickDropKeyCode, TriggerQuickDropKeyPressed);
 
             CarrySystem.ClientChannel.SetMessageHandler<LockSlotsMessage>(OnLockSlotsMessage);
 
@@ -64,7 +67,8 @@ namespace CarryOn.Common
                 .SetMessageHandler<InteractMessage>(OnInteractMessage)
                 .SetMessageHandler<PickUpMessage>(OnPickUpMessage)
                 .SetMessageHandler<PlaceDownMessage>(OnPlaceDownMessage)
-                .SetMessageHandler<SwapSlotsMessage>(OnSwapSlotsMessage);
+                .SetMessageHandler<SwapSlotsMessage>(OnSwapSlotsMessage)
+                .SetMessageHandler<QuickDropMessage>(OnQuickDropMessage);
 
             CarrySystem.ServerAPI.Event.OnEntitySpawn += OnServerEntitySpawn;
             CarrySystem.ServerAPI.Event.PlayerNowPlaying += OnServerPlayerNowPlaying;
@@ -79,6 +83,13 @@ namespace CarryOn.Common
             IsCarryOnEnabled = !IsCarryOnEnabled;
 
             CarrySystem.ClientAPI.ShowChatMessage("CarryOn " + (IsCarryOnEnabled ? "Enabled" : "Disabled"));
+            return true;
+        }
+
+        public bool TriggerQuickDropKeyPressed(KeyCombination keyCombination)
+        {
+            // Send drop message even if client shows nothing being held
+            CarrySystem.ClientChannel.SendPacket(new QuickDropMessage());
             return true;
         }
 
@@ -194,7 +205,7 @@ namespace CarryOn.Common
                         }
                         return;
                     }
-
+                    
                     _selectedBlock = GetPlacedPosition(world, selection, holdingAny.Block);
                     if (_selectedBlock == null) return;
 
@@ -487,6 +498,12 @@ namespace CarryOn.Common
             }
         }
 
+        public void OnQuickDropMessage(IServerPlayer player, QuickDropMessage message){
+            CarrySlot[] fromHands = new []{CarrySlot.Hands, CarrySlot.Shoulder};
+
+            player.Entity.DropCarried(fromHands, 1, 2);
+
+        }
 
         /// <summary>
         /// Checks if entity can begin interaction with carryable item that is in the world or in hand slot

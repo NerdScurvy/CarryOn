@@ -201,7 +201,7 @@ namespace CarryOn.API.Common
                     }
                 }catch(NullReferenceException ex){
                     world.Logger.Error("Error occured while trying to place a carried block: " + ex.Message);
-                    // Woraround twas for null ref with reed chest - Leaving here in case of other issues
+                    // Workaround was for null ref with reed chest - Leaving here in case of other issues
                     world.BlockAccessor.SetBlock(Block.Id, selection.Position, ItemStack);
                 }
             }

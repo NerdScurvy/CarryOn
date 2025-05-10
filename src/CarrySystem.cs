@@ -15,7 +15,7 @@ using Vintagestory.API.Util;
 
 [assembly: ModInfo("Carry On", 
     modID: "carryon",
-    Version = "1.8.0-rc.4",
+    Version = "1.8.0",
     Description = "Adds the capability to carry various things",
     Website = "https://github.com/NerdScurvy/CarryOn",
     Authors = new[] { "copygirl", "NerdScurvy" })]
@@ -39,6 +39,8 @@ namespace CarryOn
         public static GlKeys SwapBackModifierDefault = GlKeys.ControlLeft;
         public static string ToggleKeyCode = "carryontogglekey";        
         public static GlKeys ToggleDefault = GlKeys.K;
+        public static string QuickDropKeyCode = "carryonquickdropkey";
+        public static GlKeys QuickDropDefault = GlKeys.K;
 
         public ICoreAPI Api { get { return ClientAPI ?? ServerAPI as ICoreAPI; } }
 
@@ -83,7 +85,8 @@ namespace CarryOn
                 .RegisterMessageType<LockSlotsMessage>()
                 .RegisterMessageType<PickUpMessage>()
                 .RegisterMessageType<PlaceDownMessage>()
-                .RegisterMessageType<SwapSlotsMessage>();
+                .RegisterMessageType<SwapSlotsMessage>()
+                .RegisterMessageType<QuickDropMessage>();
 
             EntityCarryRenderer = new EntityCarryRenderer(api);
             HudOverlayRenderer = new HudOverlayRenderer(api);
@@ -101,7 +104,8 @@ namespace CarryOn
                 .RegisterMessageType<LockSlotsMessage>()
                 .RegisterMessageType<PickUpMessage>()
                 .RegisterMessageType<PlaceDownMessage>()
-                .RegisterMessageType<SwapSlotsMessage>();
+                .RegisterMessageType<SwapSlotsMessage>()
+                .RegisterMessageType<QuickDropMessage>();
 
             DeathHandler = new DeathHandler(api);
             CarryHandler.InitServer();
