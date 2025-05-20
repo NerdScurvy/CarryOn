@@ -82,7 +82,7 @@ namespace CarryOn.Common
 
         private ItemSlot GetItemSlot(int slotIndex)
         {
-            return slotIndex >= 0 ? _behaviorAttachable?.Inventory[slotIndex] : null;
+            return (slotIndex >= 0 && slotIndex < _behaviorAttachable?.Inventory.Count)?_behaviorAttachable?.Inventory[slotIndex]:null;
         }
 
         private bool IsItemSlotEmpty(ItemSlot itemSlot)

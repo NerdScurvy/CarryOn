@@ -512,6 +512,7 @@ namespace CarryOn.Common
         public void OnAttachMessage(IServerPlayer player, AttachMessage message)
         {
             CarrySystem.Api.World.Logger.Debug("OnAttach");
+            // TODO: Why am I validating the target entity here? Is CurrentEntitySelection even valid on the server?
             var targetEntity = player.CurrentEntitySelection?.Entity;
             if (targetEntity != null && targetEntity.EntityId == message.TargetEntityId)
             {
@@ -546,13 +547,20 @@ namespace CarryOn.Common
 
                     if(!targetSlot.Empty || isOccupied){
                         CarrySystem.ServerAPI.SendIngameError(player, "occupied", Lang.Get("Target slot is occupied"));
-                       CarrySystem.Api.Logger.Log(EnumLogType.Debug, "Target Slot is occupied!");
-                       return;
+                        CarrySystem.Api.Logger.Log(EnumLogType.Debug, "Target Slot is occupied!");
+                        return;
                     }
 
                     var sourceItemSlot = (ItemSlot)new DummySlot(null);
                     sourceItemSlot.Itemstack = carriedBlock.ItemStack.Clone();
                     TreeAttribute attr = sourceItemSlot.Itemstack.Attributes as TreeAttribute;
+
+                    if (attr == null)
+                    {
+                        CarrySystem.ServerAPI.SendIngameError(player, "invalid", Lang.Get("Source item is invalid"));
+                        CarrySystem.Api.Logger.Log(EnumLogType.Debug, "Source item is invalid!");
+                        return;                        
+                    }
 
                     attr.SetString("type", type);
 
@@ -645,6 +653,13 @@ namespace CarryOn.Common
 
         public void OnDetachMessage(IServerPlayer player, DetachMessage message)
         {
+
+            /* TODO
+                - Validate message.SlotIndex against attachableBehavior.Inventory.Count.
+                - Ensure the player is close enough and has line-of-sight if that is a design constraint.
+                - Double-check sourceSlot?.Inventory is indeed part of targetEntity to avoid tampering.
+            */
+
             CarrySystem.Api.World.Logger.Debug("OnDetach");
             var targetEntity = player.CurrentEntitySelection?.Entity;
             if (targetEntity != null && targetEntity.EntityId == message.TargetEntityId)
