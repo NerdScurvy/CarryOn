@@ -1,0 +1,27 @@
+[
+  {
+    "file": "game:entities/water/boat",
+    "side": "Server",
+    "op": "add",
+    "path": "/client/behaviors/-",
+    "value": {
+      "code": "carryon:attachablecarryable"
+    }
+  },
+  {
+    "file": "game:entities/water/boat",
+    "side": "Server",
+    "op": "add",
+    "path": "/server/behaviors/-",
+    "value": {
+      "code": "carryon:attachablecarryable"
+    }
+  },
+  {
+    "file": "game:entities/water/boat",
+    "side": "Server",
+    "op": "replace",
+    "path": "/class",
+    "value": "EntityBoatCarryOn"
+  }   
+]

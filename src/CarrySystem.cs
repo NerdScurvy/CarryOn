@@ -15,7 +15,7 @@ using Vintagestory.API.Util;
 
 [assembly: ModInfo("Carry On", 
     modID: "carryon",
-    Version = "1.8.0",
+    Version = "1.9.0-pre.1",
     Description = "Adds the capability to carry various things",
     Website = "https://github.com/NerdScurvy/CarryOn",
     Authors = new[] { "copygirl", "NerdScurvy" })]
