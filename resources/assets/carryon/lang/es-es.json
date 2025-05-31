@@ -1,10 +1,17 @@
 {
-  "blockhelp-pickup": "Levantar",
-  "drop-notice": "Perdiste {0} de tu {1}.",
-  "drop-notice-destroyed": "Perdiste {0} de tu {1} y se destruyó.",
-  "drop-notice-destroyed-spill-contents": "Perdiste {0} de tu {1} y se destruyó, derramando el contenido.",
-  "drop-notice-spill-contents": "Perdiste {0} de tu {1} y se abrió, derramando el contenido.",
-  "slot-hands": "manos",
-  "slot-back": "espalda",
-  "slot-shoulder": "hombro"
+  "_comentarios-1": "Carry On v1.8.0 || Enlace de VS ModDB: https://mods.vintagestory.at/carryon ",
+  "_comentarios-2": "Traducido por C4BR3R4 || Última Modificación: 30/05/2025 || Registro de Cambios: http://c4br3r4.es/index.php?topic=1283.0 ",
+
+  "blockhelp-pickup": "Levantar Objeto",
+  "drop-notice": "Has soltado {0} que llevabas en {1}.",
+  "drop-notice-destroyed": "Has soltado {0} que llevabas en {1} y se ha destruido.",
+  "drop-notice-destroyed-spill-contents": "Has soltado {0} que llevabas en {1} y se ha destruido, derramando el contenido.",
+  "drop-notice-spill-contents": "Has soltado {0} que llevabas en {1} y se ha abierto, derramando el contenido.",
+  "slot-hands": "tus manos",
+  "slot-back": "tu espalda",
+  "slot-shoulder": "tu hombro",
+  "pickup-hotkey": "CarryOn ► Recoger o Colocar",
+  "swap-back-hotkey": "CarryOn ► Cambiar de Posición",
+  "toggle-hotkey": "CarryOn ► Activar o Desactivar Interacción",
+  "quickdrop-hotkey": "CarryOn ► Caída Rápida (Ctrl + Alt)"
 }
