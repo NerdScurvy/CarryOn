@@ -14,51 +14,60 @@ async function setVersion() {
     console.log(`Setting carryOnVersion to: ${carryOnVersion} and vintageStoryVersion to: ${vintageStoryVersion}`);
 
     if (!carryOnVersion) {
-        console.error('No carryOnVersion specified. Update package.json with the carryOnVersion field.');
+        console.error('No carryOnVersion specified. Update CarryOn.json with the carryOnVersion field.');
         return Promise.reject(new Error('carryOnVersion not specified'));
     }
 
     if (!vintageStoryVersion) {
-        console.error('No vintageStoryVersion specified. Update package.json with the vintageStorVersion field.');
+        console.error('No vintageStoryVersion specified. Update CarryOn.json with the vintageStoryVersion field.');
         return Promise.reject(new Error('vintageStoryVersion not specified'));
     }
 
-    var success = 0;
+    try {
+        await new Promise((resolve, reject) => {
+            gulp.src('./resources/modinfo.json')
+                .pipe(replace(/"version"\s*:\s*".*?"/, `"version": "${carryOnVersion}"`))
+                .pipe(replace(/"game"\s*:\s*".*?"/, `"game": "${vintageStoryVersion}"`))
+                .pipe(gulp.dest('./resources/'))
+                .on('end', () => {
+                    console.log('Version updated successfully in modinfo.json');
+                    resolve();
+                })
+                .on('error', reject);
+        });
 
-    if (gulp.src('./resources/modinfo.json')
-        .pipe(replace(/"version"\s*:\s*".*?"/, `"version": "${carryOnVersion}"`))
-        .pipe(replace(/"game"\s*:\s*".*?"/, `"game": "${vintageStoryVersion}"`))
-        .pipe(gulp.dest('./resources/')))
-    {
-        console.log('Version updated successfully in modinfo.json');
-        success++;
-    }
+        await new Promise((resolve, reject) => {
+            gulp.src('./CarryOn.csproj')
+                .pipe(replace(/<Version>.*?<\/Version>/, `<Version>${carryOnVersion}</Version>`))
+                .pipe(gulp.dest('./'))
+                .on('end', () => {
+                    console.log('Version updated successfully in CarryOn.csproj');
+                    resolve();
+                })
+                .on('error', reject);
+        });
 
-    if (gulp.src('./CarryOn.csproj')
-        .pipe(replace(/<Version>.*?<\/Version>/, `<Version>${carryOnVersion}</Version>`))
-        .pipe(gulp.dest('./')))
-    {
-        console.log('Version updated successfully in CarryOn.csproj');
-        success++;
-    }
+        await new Promise((resolve, reject) => {
+            gulp.src('./src/CarrySystem.cs')
+                .pipe(replace(/(Version\s*=\s*")[^"]*(")/, `$1${carryOnVersion}$2`))
+                .pipe(replace(
+                    /\[assembly:\s*ModDependency\(\s*"game"\s*,\s*"(.*?)"\s*\)\]/,
+                    `[assembly: ModDependency("game", "${vintageStoryVersion}")]`
+                ))
+                .pipe(gulp.dest('./src/'))
+                .on('end', () => {
+                    console.log('Version updated successfully in CarrySystem.cs');
+                    resolve();
+                })
+                .on('error', reject);
+        });
 
-    if (gulp.src('./src/CarrySystem.cs')
-        .pipe(replace(/(Version\s*=\s*")[^"]*(")/, `$1${carryOnVersion}$2`))
-        .pipe(replace(
-                /\[assembly:\s*ModDependency\(\s*"game"\s*,\s*"(.*?)"\s*\)\]/,
-                `[assembly: ModDependency("game", "${vintageStoryVersion}")]`
-            ))
-        .pipe(gulp.dest('./src/')))
-    {
-        console.log('Version updated successfully in CarrySystem.cs');
-        success++;
+        console.log('Version update completed successfully.');
+        return true;
+    } catch (error) {
+        console.error('One or more version updates failed:', error.message);
+        throw error;
     }
-    if (success !== 3) {
-        console.error('One or more version updates failed. Please check the logs.');
-        return Promise.reject(new Error('Version update failed'));
-    }
-    console.log('Version update completed successfully.');
-    return Promise.resolve(true);
 }
 
 gulp.task('set-version', setVersion);
