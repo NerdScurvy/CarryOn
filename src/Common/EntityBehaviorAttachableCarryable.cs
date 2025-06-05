@@ -87,6 +87,7 @@ namespace CarryOn.Common
 
         private bool IsItemSlotEmpty(ItemSlot itemSlot)
         {
+            // TODO: Is returning a false value correct when itemSlot is null?
             if (itemSlot != null)
             {
                 return itemSlot.Empty;

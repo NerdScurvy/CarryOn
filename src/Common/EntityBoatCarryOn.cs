@@ -11,11 +11,10 @@ namespace CarryOn.Common
     public class EntityBoatCarryOn : EntityBoat
     {
 
-
-public override void OnInteract(EntityAgent byEntity, ItemSlot itemslot, Vec3d hitPosition, EnumInteractMode mode)
-{
-    Api.Logger.Debug($"EntityBoatCarryOn.OnInteract {mode}");
-    EnumHandling handled = EnumHandling.PassThrough;
+        public override void OnInteract(EntityAgent byEntity, ItemSlot itemslot, Vec3d hitPosition, EnumInteractMode mode)
+        {
+            Api.Logger.Debug($"EntityBoatCarryOn.OnInteract {mode}");
+            EnumHandling handled = EnumHandling.PassThrough;
 
             var carryBehavior = GetBehavior<EntityBehaviorAttachableCarryable>();
 
@@ -97,7 +96,7 @@ public override void OnInteract(EntityAgent byEntity, ItemSlot itemslot, Vec3d h
             ItemStack itemstack = new ItemStack(World.GetItem(Code), 1);
             if (!byEntity.TryGiveItemStack(itemstack))
                 World.SpawnItemEntity(itemstack, ServerPos.XYZ);
-            Api.World.Logger.Audit($"{byEntity.GetName()} Picked up boat 1x{itemstack.Collectible.Code} at {Pos}");
+            Api.Logger.Audit($"{byEntity.GetName()} Picked up boat 1x{itemstack.Collectible.Code} at {Pos}");
             Die();
             return true;
         }

@@ -276,13 +276,19 @@ namespace CarryOn.Common
 
             if (!input.MouseButton.Right) { CancelInteraction(true); return; }
 
-            if(input.IsHotKeyPressed(CarrySystem.PickupKeyCode)){
-                if(!player.Entity.IsCarryKeyHeld()){
+            // One-shot sent carry key status to server.
+            if (input.IsHotKeyPressed(CarrySystem.PickupKeyCode))
+            {
+                if (!player.Entity.IsCarryKeyHeld())
+                {
                     CarrySystem.ClientChannel.SendPacket(new CarryKeyMessage(true));
                     player.Entity.SetCarryKeyHeld(true);
                 }
-            }else{
-                if(player.Entity.IsCarryKeyHeld()){
+            }
+            else
+            {
+                if (player.Entity.IsCarryKeyHeld())
+                {
                     CarrySystem.ClientChannel.SendPacket(new CarryKeyMessage(false));
                     player.Entity.SetCarryKeyHeld(false);
                 }
@@ -415,7 +421,7 @@ namespace CarryOn.Common
         }
 
         public void OnCarryKeyMessage(IServerPlayer player, CarryKeyMessage message){
-            player.Entity.Api.Logger.Debug($"OnCarryKeyMessage - key held = {message.IsCarryKeyHeld}");
+            player.Entity.Api.Logger.VerboseDebug($"CarryKey: {player.PlayerName}={message.IsCarryKeyHeld}");
             player.Entity.SetCarryKeyHeld(message.IsCarryKeyHeld);
         }
 
@@ -602,6 +608,8 @@ namespace CarryOn.Common
             }
         }
 
+        // TODO: Looks like backpack format may have changed, so this may not work as expected. Will cause crash if open container on boat when first slot is empty and others are not.
+// Boat Container has no slots if empty
         public static ITreeAttribute ConvertBlockInventoryToBackpack(ITreeAttribute blockInventory)
         {
             if (blockInventory == null) return new TreeAttribute(); // graceful fallback
@@ -612,17 +620,18 @@ namespace CarryOn.Common
 
             // create backpack slots and copy items
             var backpackSlots = new TreeAttribute();
-            for(int i = 0; i < slotCount; i++){
+            for (int i = 0; i < slotCount; i++)
+            {
                 var slotKey = "slot-" + i;
-               
+
                 var itemstack = slots.GetItemstack(i.ToString());
                 if (itemstack != null)
                 {
                     backpackSlots.SetItemstack(slotKey, itemstack);
-                 }
-                
+                }
+
             }
-            
+
             backpack.SetAttribute("slots", backpackSlots);
             return backpack;
         }
