@@ -19,7 +19,7 @@ using Vintagestory.API.Util;
     Description = "Adds the capability to carry various things",
     Website = "https://github.com/NerdScurvy/CarryOn",
     Authors = new[] { "copygirl", "NerdScurvy" })]
-[assembly: ModDependency("game", "1.20.0")]
+[assembly: ModDependency("game", "1.20.4")]
 
 namespace CarryOn
 {
