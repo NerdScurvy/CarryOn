@@ -16,7 +16,7 @@ namespace CarryOn.Events
 
         public void OnRestoreEntityBlockData(BlockEntity blockEntity, ITreeAttribute blockEntityData, bool dropped)
         {
-            if (dropped && blockEntity.Block.ShapeInventory.Base.Path == "block/wood/trunk/normal")
+            if (dropped && blockEntity.Block.Shape.Base.Path == "block/wood/trunk/normal")
             {
                 // Workaround fix dropped trunk angle
                 blockEntityData.SetFloat("meshAngle", -90 * GameMath.DEG2RAD);
