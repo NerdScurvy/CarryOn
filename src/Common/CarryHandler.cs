@@ -57,7 +57,6 @@ namespace CarryOn.Common
             cApi.Event.BeforeActiveSlotChanged +=
                 (_) => OnBeforeActiveSlotChanged(CarrySystem.ClientAPI.World.Player.Entity);
 
-
             CarryKeyCombination = input.HotKeys[CarrySystem.PickupKeyCode]?.CurrentMapping;
             CarrySwapKeyCombination = input.HotKeys[CarrySystem.SwapBackModifierKeyCode]?.CurrentMapping;
         }
@@ -551,7 +550,7 @@ namespace CarryOn.Common
                     }
                     
 
-                    if(!targetSlot.Empty || isOccupied){
+                    if (targetSlot == null || !targetSlot.Empty || isOccupied){
                         CarrySystem.ServerAPI.SendIngameError(player, "occupied", Lang.Get("Target slot is occupied"));
                         CarrySystem.Api.Logger.Log(EnumLogType.Debug, "Target Slot is occupied!");
                         return;
@@ -667,6 +666,7 @@ namespace CarryOn.Common
                 - Validate message.SlotIndex against attachableBehavior.Inventory.Count.
                 - Ensure the player is close enough and has line-of-sight if that is a design constraint.
                 - Double-check sourceSlot?.Inventory is indeed part of targetEntity to avoid tampering.
+                - Validate hotbar lock / slot cooldown
             */
 
             CarrySystem.Api.World.Logger.Debug("OnDetach");
