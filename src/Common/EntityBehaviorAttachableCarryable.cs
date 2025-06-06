@@ -340,14 +340,14 @@ namespace CarryOn.Common
             {
                 if (targetSlot.Itemstack.Block?.GetBehavior<BlockBehaviorCarryable>() != null)
                 {
-                    langCode = CarrySystem.ModId + ":blockhelp-pickup:" + targetSlot.Itemstack.GetName();
+                    langCode = CarrySystem.ModId + ":blockhelp-detach:" + targetSlot.Itemstack.GetName();
                 }
             }
             else
             {
                 // TODO: Show all blocks that are carryable and associated item is attachable
                 //var stacks = AttachableInteractionHelp.GetOrCreateInteractionHelp(world.Api, behaviorAttachable,  , es.SelectionBoxIndex, targetSlot);
-                langCode = CarrySystem.ModId + ":blockhelp-place";
+                langCode = CarrySystem.ModId + ":blockhelp-attach";
             }
 
 

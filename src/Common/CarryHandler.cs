@@ -624,10 +624,7 @@ namespace CarryOn.Common
                 var slotKey = "slot-" + i;
 
                 var itemstack = slots.GetItemstack(i.ToString());
-                if (itemstack != null)
-                {
-                    backpackSlots.SetItemstack(slotKey, itemstack);
-                }
+                backpackSlots.SetItemstack(slotKey, itemstack);
 
             }
 
