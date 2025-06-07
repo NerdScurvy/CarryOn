@@ -340,7 +340,7 @@ namespace CarryOn.Common
             {
                 if (targetSlot.Itemstack.Block?.GetBehavior<BlockBehaviorCarryable>() != null)
                 {
-                    langCode = CarrySystem.ModId + ":blockhelp-detach:" + targetSlot.Itemstack.GetName();
+                    langCode = CarrySystem.ModId + ":blockhelp-detach";
                 }
             }
             else
