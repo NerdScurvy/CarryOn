@@ -70,5 +70,47 @@ async function setVersion() {
     }
 }
 
+function renameZip() {
+    const carryOnVersion = require('./CarryOn.json').carryOnVersion;
+    const vintageStoryVersion = require('./CarryOn.json').vintageStoryVersion;
+
+    if (!carryOnVersion || !vintageStoryVersion) {
+        console.error('Cannot rename zip: carryOnVersion or vintageStoryVersion is not set.');
+        return Promise.reject(new Error('carryOnVersion or vintageStoryVersion not set'));
+    }
+
+    const oldName = `CarryOn.zip`;
+    const newName = `CarryOn-${vintageStoryVersion}_v${carryOnVersion}.zip`;
+    const destinationPath = `./release`;
+    const sourcePath = `./bin`;
+
+
+    return new Promise((resolve, reject) => {
+        if( !fs.existsSync(`${sourcePath}/${oldName}`)) {
+            console.log(`Release has not been built yet, skipping rename.`);
+            return resolve();
+        }        
+        fs.mkdir(destinationPath, { recursive: true }, (err) => {
+            if (err) {
+                console.error(`Error creating release directory: ${err.message}`);
+                return reject(err);
+            }
+        });        
+        if( fs.existsSync(`${destinationPath}/${newName}`)) {
+            console.log(`Release file already exists: ${newName}`);
+            return reject(new Error(`Release file already exists: ${newName}`));
+        }
+        fs.rename(`${sourcePath}/${oldName}`, `./release/${newName}`, (err) => {
+            if (err) {
+                console.error(`Error renaming zip file: ${err.message}`);
+                return reject(err);
+            }
+            console.log(`Renamed ${oldName} to ${newName} and moved to release folder`);
+            resolve();
+        });
+    });
+}
+
 gulp.task('set-version', setVersion);
+gulp.task('rename-zip', renameZip);
 gulp.task('hello-world', helloWorld);
