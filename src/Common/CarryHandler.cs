@@ -275,7 +275,7 @@ namespace CarryOn.Common
             var player = world.Player;
             var input = CarrySystem.ClientAPI.Input;
 
-            if (!input.MouseButton.Right) { CancelInteraction(true); return; }
+            if (!input.InWorldMouseButton.Right) { CancelInteraction(true); return; }
 
             // One-shot sent carry key status to server.
             if (input.IsHotKeyPressed(CarrySystem.PickupKeyCode))
