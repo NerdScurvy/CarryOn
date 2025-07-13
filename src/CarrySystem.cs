@@ -70,8 +70,10 @@ namespace CarryOn
 
         public override void Start(ICoreAPI api)
         {
+            api.RegisterEntity("EntityBoatCarryOn", typeof(EntityBoatCarryOn));
             api.Register<BlockBehaviorCarryable>( );
             api.Register<BlockBehaviorCarryableInteract>();
+            api.Register<EntityBehaviorAttachableCarryable>();
 
             CarryHandler = new CarryHandler(this);
             CarryEvents = new CarryEvents();
@@ -86,6 +88,9 @@ namespace CarryOn
                 .RegisterMessageType<PickUpMessage>()
                 .RegisterMessageType<PlaceDownMessage>()
                 .RegisterMessageType<SwapSlotsMessage>()
+                .RegisterMessageType<AttachMessage>()
+                .RegisterMessageType<DetachMessage>()
+                .RegisterMessageType<CarryKeyMessage>()
                 .RegisterMessageType<QuickDropMessage>();
 
             EntityCarryRenderer = new EntityCarryRenderer(api);
@@ -105,6 +110,9 @@ namespace CarryOn
                 .RegisterMessageType<PickUpMessage>()
                 .RegisterMessageType<PlaceDownMessage>()
                 .RegisterMessageType<SwapSlotsMessage>()
+                .RegisterMessageType<AttachMessage>()
+                .RegisterMessageType<DetachMessage>()
+                .RegisterMessageType<CarryKeyMessage>()
                 .RegisterMessageType<QuickDropMessage>();
 
             DeathHandler = new DeathHandler(api);

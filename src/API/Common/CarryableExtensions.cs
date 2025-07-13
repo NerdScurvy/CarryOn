@@ -374,8 +374,10 @@ namespace CarryOn.API.Common
         }
 
         public static void SetCarryKeyHeld(this Entity entity, bool isHeld){
-            if(entity.IsCarryKeyHeld() != isHeld){
+            if (entity.IsCarryKeyHeld() != isHeld)
+            {
                 entity.WatchedAttributes.SetBool("carryKeyHeld", isHeld);
+                entity.WatchedAttributes.MarkPathDirty("carryKeyHeld");
             }
         }
 
