@@ -16,12 +16,5 @@
     "value": {
       "code": "carryon:attachablecarryable"
     }
-  },
-  {
-    "file": "game:entities/water/boat",
-    "side": "Server",
-    "op": "replace",
-    "path": "/class",
-    "value": "EntityBoatCarryOn"
-  }   
+  } 
 ]

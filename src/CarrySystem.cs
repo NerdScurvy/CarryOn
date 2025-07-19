@@ -8,10 +8,12 @@ using CarryOn.Common;
 using CarryOn.Common.Network;
 using CarryOn.Server;
 using CarryOn.Utility;
+using HarmonyLib;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Server;
 using Vintagestory.API.Util;
+using Vintagestory.GameContent;
 
 [assembly: ModInfo("Carry On", 
     modID: "carryon",
@@ -60,17 +62,22 @@ namespace CarryOn
 
         public CarryEvents CarryEvents { get; private set; }
 
+        private Harmony _harmony;
+
         public override void StartPre(ICoreAPI api)
         {
             base.StartPre(api);
-
+            _harmony = new Harmony("CarryOn");
             ModConfig.ReadConfig(api);
+            _harmony.PatchAll();
             api.World.Logger.Event("started 'CarryOn' mod");
         }
 
         public override void Start(ICoreAPI api)
         {
-            api.RegisterEntity("EntityBoatCarryOn", typeof(EntityBoatCarryOn));
+            // Legacy support for EntityBoatCarryOn - pre.1
+            api.RegisterEntity("EntityBoatCarryOn", typeof(EntityBoat));
+
             api.Register<BlockBehaviorCarryable>( );
             api.Register<BlockBehaviorCarryableInteract>();
             api.Register<EntityBehaviorAttachableCarryable>();

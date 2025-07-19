@@ -34,6 +34,8 @@ namespace CarryOn.Common
         public CarryHandler(CarrySystem carrySystem)
             => CarrySystem = carrySystem;
 
+        public int MaxInteractionDistance { get; set; }
+
         public void InitClient()
         {
             var cApi = CarrySystem.ClientAPI;
@@ -63,6 +65,9 @@ namespace CarryOn.Common
 
         public void InitServer()
         {
+            // TODO: Change this to a config value.
+            MaxInteractionDistance = 6;
+
             CarrySystem.ServerChannel
                 .SetMessageHandler<InteractMessage>(OnInteractMessage)
                 .SetMessageHandler<PickUpMessage>(OnPickUpMessage)
@@ -519,9 +524,7 @@ namespace CarryOn.Common
 
         public void OnAttachMessage(IServerPlayer player, AttachMessage message)
         {
-            CarrySystem.Api.World.Logger.Debug("OnAttach");
-            // TODO: Why am I validating the target entity here? Is CurrentEntitySelection even valid on the server?
-            //var targetEntity = player.CurrentEntitySelection?.Entity;
+ 
             var targetEntity = CarrySystem.Api.World.GetEntityById(message.TargetEntityId);
             if (targetEntity == null)
             {
@@ -530,14 +533,13 @@ namespace CarryOn.Common
                 return;
             }
             // If target entity is null or too far away, do nothing
-            if (targetEntity == null || targetEntity.SidedPos?.DistanceTo(player.Entity.Pos) > 6)
+            if (targetEntity == null || targetEntity.SidedPos?.DistanceTo(player.Entity.Pos) > MaxInteractionDistance)
             {
                 CarrySystem.ServerAPI.SendIngameError(player, "unmoved", Lang.Get("Target entity is too far away"));
                 CarrySystem.Api.Logger.Log(EnumLogType.Debug, "Target entity is too far away!");
                 return;
             }
 
-            //if (targetEntity != null && targetEntity.EntityId == message.TargetEntityId)
             if (targetEntity != null)
             {
                 var attachableBehavior = targetEntity.GetBehavior<EntityBehaviorAttachable>();
@@ -552,10 +554,11 @@ namespace CarryOn.Common
 
                     var blockEntityData = carriedBlock?.BlockEntityData;
 
-                    if (blockEntityData == null) { 
+                    if (blockEntityData == null)
+                    {
                         CarrySystem.Api.Logger.Log(EnumLogType.Warning, "Block entity data is null, cannot attach block");
                         CarrySystem.ServerAPI.SendIngameError(player, "invalid", Lang.Get("Source item data is missing"));
-                        return; 
+                        return;
                     }
                     var type = blockEntityData.GetString("type");
                     var sourceInventory = blockEntityData.GetTreeAttribute("inventory");
@@ -593,18 +596,9 @@ namespace CarryOn.Common
 
                     attr.SetString("type", type);
 
-
-
                     var backpack = ConvertBlockInventoryToBackpack(blockEntityData.GetTreeAttribute("inventory"));
 
-                    // backpack.SetAttribute("slots", slots);
-
                     attr.SetAttribute("backpack", backpack);
-
-
-
-                    //var itemSlot = new ItemSlot(inv);
-                    //itemSlot.Itemstack = new ItemStack(System.Api.World.GetBlock(3899), 1);
 
                     if (!targetSlot.CanTakeFrom(sourceItemSlot)) return;
 
@@ -684,77 +678,75 @@ namespace CarryOn.Common
         public void OnDetachMessage(IServerPlayer player, DetachMessage message)
         {
 
-            /* TODO
-                - Validate message.SlotIndex against attachableBehavior.Inventory.Count.
-                - Ensure the player is close enough and has line-of-sight if that is a design constraint.
-                - Double-check sourceSlot?.Inventory is indeed part of targetEntity to avoid tampering.
-                - Validate hotbar lock / slot cooldown
-            */
-
-            CarrySystem.Api.World.Logger.Debug("OnDetach");
-            var targetEntity = player.CurrentEntitySelection?.Entity;
-            if (targetEntity != null && targetEntity.EntityId == message.TargetEntityId)
+            var targetEntity = CarrySystem.Api.World.GetEntityById(message.TargetEntityId);
+            if (targetEntity == null)
             {
-                var attachableBehavior = targetEntity.GetBehavior<EntityBehaviorAttachable>();
+                CarrySystem.ServerAPI.SendIngameError(player, "unmoved", Lang.Get("Target entity does not exist"));
+                return;
+            }
 
-                if (attachableBehavior != null)
-                {
+            // Validate distance
+            if (targetEntity.SidedPos?.DistanceTo(player.Entity.Pos) > MaxInteractionDistance)
+            {
+                CarrySystem.ServerAPI.SendIngameError(player, "unmoved", Lang.Get("Target entity is too far away"));
+                return;
+            }
 
-                    var sourceSlot = attachableBehavior.GetSlotFromSelectionBoxIndex(message.SlotIndex);
+            var attachableBehavior = targetEntity.GetBehavior<EntityBehaviorAttachable>();
 
-                    if (!sourceSlot.CanTake()) return;
+            if (attachableBehavior != null)
+            {
 
-                    var block = sourceSlot?.Itemstack?.Block;
-                    if (block == null) return;
+                var sourceSlot = attachableBehavior.GetSlotFromSelectionBoxIndex(message.SlotIndex);
 
-                    if (!block.HasBehavior<BlockBehaviorCarryable>()) return;
+                if (!sourceSlot.CanTake()) return;
 
-                    // Player hands must be empty - active/offhand slot and carryon hands slot
-                    // If active slot has an item then it will prevent block from being placed
-                    var carriedBlock = player?.Entity?.GetCarried(CarrySlot.Hands);
-                    if (carriedBlock != null) return;
+                var block = sourceSlot?.Itemstack?.Block;
+                if (block == null) return;
 
-                    //var inventory = player.InventoryManager.OpenedInventories.Find(f=>f.InventoryID == $"mountedbaginv-{message.SlotIndex}-{message.TargetEntityId}");
-                    //                if(inventory != null) player.InventoryManager.CloseInventory(inventory);
+                if (!block.HasBehavior<BlockBehaviorCarryable>()) return;
 
-                    var itemstack = sourceSlot?.Itemstack;
+                // Player hands must be empty - active/offhand slot and carryon hands slot
+                // If active slot has an item then it will prevent block from being placed
+                var carriedBlock = player?.Entity?.GetCarried(CarrySlot.Hands);
+                if (carriedBlock != null) return;
 
-                    var sourceBackpack = itemstack?.Attributes?["backpack"] as ITreeAttribute;
+                var itemstack = sourceSlot?.Itemstack;
 
-                    var destInventory = ConvertBackpackToBlockInventory(sourceBackpack);
+                var sourceBackpack = itemstack?.Attributes?["backpack"] as ITreeAttribute;
 
-                    var blockEntityData = new TreeAttribute();
-                    blockEntityData.SetString("blockCode", block.Code.ToShortString());
-                    blockEntityData.SetAttribute("inventory", destInventory);
-                    blockEntityData.SetString("forBlockCode", block.Code.ToShortString());
-                    blockEntityData.SetString("type", itemstack.Attributes.GetString("type"));
+                var destInventory = ConvertBackpackToBlockInventory(sourceBackpack);
 
-                    // Clone itemstack and remove inventory attribute since it will be stored as blockdata
-                    var itemstackCopy = itemstack.Clone();
-                    itemstackCopy.Attributes.Remove("backpack");
+                var blockEntityData = new TreeAttribute();
+                blockEntityData.SetString("blockCode", block.Code.ToShortString());
+                blockEntityData.SetAttribute("inventory", destInventory);
+                blockEntityData.SetString("forBlockCode", block.Code.ToShortString());
+                blockEntityData.SetString("type", itemstack.Attributes.GetString("type"));
 
-                    carriedBlock = new CarriedBlock(CarrySlot.Hands, itemstackCopy, blockEntityData);
-                    carriedBlock.Set(player.Entity, CarrySlot.Hands);
+                // Clone itemstack and remove inventory attribute since it will be stored as blockdata
+                var itemstackCopy = itemstack.Clone();
+                itemstackCopy.Attributes.Remove("backpack");
 
-                    var sound = block?.Sounds.Place ?? new AssetLocation("sounds/player/build");
-                    CarrySystem.Api.World.PlaySoundAt(sound, targetEntity, player, true, 16);
+                carriedBlock = new CarriedBlock(CarrySlot.Hands, itemstackCopy, blockEntityData);
+                carriedBlock.Set(player.Entity, CarrySlot.Hands);
 
-
-                    itemstack?.Collectible.GetCollectibleInterface<IAttachedListener>()?.OnDetached(sourceSlot, message.SlotIndex, targetEntity, player.Entity);
-
-                    EntityBehaviorAttachableCarryable.ClearCachedSlotStorage(CarrySystem.Api, message.SlotIndex, sourceSlot, targetEntity);
-                    sourceSlot.Itemstack = null;
-                    attachableBehavior.storeInv();
-
+                var sound = block?.Sounds.Place ?? new AssetLocation("sounds/player/build");
+                CarrySystem.Api.World.PlaySoundAt(sound, targetEntity, player, true, 16);
 
 
-                    targetEntity.MarkShapeModified();
-                    targetEntity.World.BlockAccessor.GetChunkAtBlockPos(targetEntity.ServerPos.AsBlockPos).MarkModified();
-                }
+                itemstack?.Collectible.GetCollectibleInterface<IAttachedListener>()?.OnDetached(sourceSlot, message.SlotIndex, targetEntity, player.Entity);
 
+                EntityBehaviorAttachableCarryable.ClearCachedSlotStorage(CarrySystem.Api, message.SlotIndex, sourceSlot, targetEntity);
+                sourceSlot.Itemstack = null;
+                attachableBehavior.storeInv();
+
+                targetEntity.MarkShapeModified();
+                targetEntity.World.BlockAccessor.GetChunkAtBlockPos(targetEntity.ServerPos.AsBlockPos).MarkModified();
             }
 
         }
+
+
         public void OnQuickDropMessage(IServerPlayer player, QuickDropMessage message)
         {
             CarrySlot[] fromHands = new[] { CarrySlot.Hands, CarrySlot.Shoulder };
