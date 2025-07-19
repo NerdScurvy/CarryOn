@@ -46,31 +46,6 @@ namespace CarryOn.Common
             };
         }
 
-
-        public override void AfterInitialized(bool onFirstSpawn)
-        {
-            base.AfterInitialized(onFirstSpawn);
-            if (Api.Side == EnumAppSide.Client)
-            {
-                UpdateSeatControls();
-            }
-
-
-
-        }
-
-        private void UpdateSeatControls()
-        {
-            var seatable = entity.GetBehavior<EntityBehaviorSeatable>();
-            if (seatable == null) return;
-
-            foreach (var seat in seatable.Seats)
-            {
-                seat.Controls.OnAction = OnControls;
-            }
-        }
-
-
         private EntityBehaviorAttachable _behaviorAttachable;
 
         private int GetSlotIndex(int selBoxIndex)
@@ -82,7 +57,7 @@ namespace CarryOn.Common
 
         private ItemSlot GetItemSlot(int slotIndex)
         {
-            return (slotIndex >= 0 && slotIndex < _behaviorAttachable?.Inventory.Count)?_behaviorAttachable?.Inventory[slotIndex]:null;
+            return (slotIndex >= 0 && slotIndex < _behaviorAttachable?.Inventory.Count) ? _behaviorAttachable?.Inventory[slotIndex] : null;
         }
 
         private bool IsItemSlotEmpty(ItemSlot itemSlot)
@@ -103,9 +78,6 @@ namespace CarryOn.Common
                 base.OnInteract(byEntity, itemslot, hitPosition, mode, ref handled);
                 return;
             }
-            
-            Api.Logger.Log(EnumLogType.Debug, $"EntityBehaviorAttachableCarryable.OnInteract {mode.ToString()}");
- 
 
             //TODO: prevent spinner if player cannot pickup or putdown block
 
@@ -125,30 +97,24 @@ namespace CarryOn.Common
             if (!CarrySystem.CarryHandler.IsCarryKeyPressed(true))
             {
                 Interaction.WasReleased = true;
-                Api.Logger.Log(EnumLogType.Debug, "OnInteract-1");
             }
 
             // Exit here and allow OnGameTick to handle the pickup interaction
             if (!Interaction.WasReleased)
             {
                 handled = EnumHandling.PreventSubsequent;
-                Api.Logger.Log(EnumLogType.Debug, "OnInteract-2");
-
                 return;
             }
-            Api.Logger.Log(EnumLogType.Debug, "OnInteract-3");
-            if (IsItemSlotEmpty(slot) && byEntity.GetCarried(CarrySlot.Hands) == null) return;
+
+            // If the slot is empty and the player is not carrying anything, or not ready to do carry action then exit early
+            if ((IsItemSlotEmpty(slot) && byEntity.GetCarried(CarrySlot.Hands) == null) || !byEntity.CanDoCarryAction(true)) return;
             handled = EnumHandling.PreventSubsequent;
-            Api.Logger.Log(EnumLogType.Debug, "OnInteract-3.1");
             if (mode == EnumInteractMode.Interact && CarrySystem.CarryHandler.IsCarryKeyPressed())
             {
-                Api.Logger.Log(EnumLogType.Debug, "OnInteract-4");
-
                 var entityPlayer = byEntity as EntityPlayer;
                 var inventory = entityPlayer.Player.InventoryManager.OpenedInventories.Find(f => f.InventoryID == $"mountedbaginv-{slotIndex}-{entity.EntityId}");
                 if (inventory != null) entityPlayer.Player.InventoryManager.CloseInventory(inventory);
 
-                // TODO: Check that both hands and active toolbar slot are empty
                 var carried = entityPlayer.GetCarried(CarrySlot.Hands);
 
                 if (slot == null) return;
@@ -180,70 +146,10 @@ namespace CarryOn.Common
             base.OnInteract(byEntity, itemslot, hitPosition, mode, ref handled);
         }
 
-        private bool _hasColSelBoxesUpdated;
-
-        public override void UpdateColSelBoxes()
-        {
-            base.UpdateColSelBoxes();
-            _hasColSelBoxesUpdated = true;
-        }
-
-        private Stopwatch _sneakTapStopwatch = new Stopwatch();
-        private Stopwatch _sneakDoubleTapStopwatch = new Stopwatch();
-
-        private void OnControls(EnumEntityAction action, bool on, ref EnumHandling handled)
-        {
-
-            handled = EnumHandling.PassThrough;
-
-            if(!CarrySystem.CarryHandler.IsCarryOnEnabled) return;
-
-            if (action == EnumEntityAction.Sneak && on)
-            {
-                // Detect double tap
-                if (_sneakDoubleTapStopwatch.IsRunning)
-                {
-                    _sneakDoubleTapStopwatch.Stop();
-                    if (_sneakDoubleTapStopwatch.ElapsedMilliseconds < 250)
-                    {
-                        Api.Logger.Log(EnumLogType.Debug, "OnControls DoubleTap");
-                        handled = EnumHandling.PassThrough;
-                        return;
-                    }
-                }
-
-                // Detect sneak tap
-                if (!_sneakTapStopwatch.IsRunning)
-                {
-                    _sneakTapStopwatch.Restart();
-                }
-                handled = EnumHandling.PreventSubsequent;
-            }
-
-            return;
-        }
-
         public override void OnGameTick(float deltaTime)
         {
 
             if (Api.Side == EnumAppSide.Server || !CarrySystem.CarryHandler.IsCarryOnEnabled) return;
-
-            // Set seat controls to override sneak which is the default carry key
-            if (_hasColSelBoxesUpdated)
-            {
-                UpdateSeatControls();
-                _hasColSelBoxesUpdated = false;
-            }
-
-            // Detect tap release of sneak key and start timer for second tap
-            if (_sneakTapStopwatch.IsRunning && !CarrySystem.ClientAPI.Input.IsHotKeyPressed("sneak"))
-            {
-                _sneakTapStopwatch.Stop();
-                if (_sneakTapStopwatch.ElapsedMilliseconds < 250)
-                {
-                    _sneakDoubleTapStopwatch.Restart();
-                }
-            }
 
             if (!Interaction.WasReleased)
             {
@@ -285,7 +191,6 @@ namespace CarryOn.Common
 
                 // Clear cached inventory
                 // TODO: Does this need to be updated on other players?
-                //ObjectCacheUtil.Delete(Api, "att-cont-workspace-" + Interaction.SlotIndex.ToString() + "-" + entity.EntityId.ToString() + "-" + Interaction.Slot.Itemstack.Id.ToString());
                 ClearCachedSlotStorage(Api, Interaction.SlotIndex, Interaction.Slot, entity);
             }
 
@@ -345,8 +250,6 @@ namespace CarryOn.Common
             }
             else
             {
-                // TODO: Show all blocks that are carryable and associated item is attachable
-                //var stacks = AttachableInteractionHelp.GetOrCreateInteractionHelp(world.Api, behaviorAttachable,  , es.SelectionBoxIndex, targetSlot);
                 langCode = CarrySystem.ModId + ":blockhelp-attach";
             }
 
@@ -355,14 +258,14 @@ namespace CarryOn.Common
 
             if (langCode == null) return null;
 
-            return new WorldInteraction[] { new WorldInteraction()
+            return [ new WorldInteraction()
                         {
                             ActionLangCode = langCode,
                             Itemstacks = targetSlot.Empty?carryableStacks?.ToArray():null,
                             MouseButton = EnumMouseButton.Right,
                             HotKeyCode = "carryonpickupkey",
                             RequireFreeHand = true
-                        }};
+                        }];
         }
 
         public Vec3d GetInteractionHelpPosition()
