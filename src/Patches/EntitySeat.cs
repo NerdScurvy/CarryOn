@@ -19,9 +19,9 @@ namespace CarryOn.Patches
             var entityAgent = __instance.Passenger as EntityAgent;
             if (entityAgent == null) return true;
 
-            if(entityAgent.Api.Side == EnumAppSide.Client)
+            if (entityAgent.Api.Side == EnumAppSide.Client)
             {
-                return false; 
+                return false;
             }
 
             // Only check for Sneak key down
@@ -30,16 +30,23 @@ namespace CarryOn.Patches
                 long nowMs = entityAgent.World.ElapsedMilliseconds;
                 long lastTapMs = entityAgent.Attributes.GetLong(DoubleTapSneakState.LastSneakTapMsKey, 0);
 
-                if (nowMs - lastTapMs < DoubleTapSneakState.DoubleTapThresholdMs)
+                // Check last tap was in the past. If in the future then the server time has been reset.
+                if (lastTapMs < nowMs)
                 {
-                    // Double tap detected
-                    entityAgent.Attributes.SetLong(DoubleTapSneakState.LastSneakTapMsKey, nowMs); // Reset
-                    return true;
+                    if (nowMs - lastTapMs < DoubleTapSneakState.DoubleTapThresholdMs)
+                    {
+                        // Double tap detected
+                        entityAgent.Api.Logger.Debug($"Double tap detected for seat interaction {nowMs - lastTapMs}");
+                        entityAgent.Attributes.SetLong(DoubleTapSneakState.LastSneakTapMsKey, nowMs); // Reset
+                        //handled = EnumHandling.PassThrough;
+                        entityAgent.TryUnmount();
+                        __instance.controls.StopAllMovement();   
+                    }
                 }
 
                 entityAgent.Attributes.SetLong(DoubleTapSneakState.LastSneakTapMsKey, nowMs);
             }
-            return false; // Continue with original method
+            return false; // Skips original method execution
         }
     }
 }
