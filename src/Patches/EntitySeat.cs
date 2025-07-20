@@ -40,7 +40,7 @@ namespace CarryOn.Patches
                         entityAgent.Attributes.SetLong(DoubleTapSneakState.LastSneakTapMsKey, nowMs); // Reset
                         //handled = EnumHandling.PassThrough;
                         entityAgent.TryUnmount();
-                        __instance.controls.StopAllMovement();   
+                        __instance.controls.StopAllMovement();
                     }
                 }
 
