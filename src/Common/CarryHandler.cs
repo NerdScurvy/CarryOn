@@ -6,6 +6,7 @@ using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
 using Vintagestory.API.Config;
+using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Server;
 using Vintagestory.GameContent;
@@ -24,14 +25,16 @@ namespace CarryOn.Common
         private float _timeHeld = 0.0F;
         public bool IsCarryOnEnabled { get; set; } = true;
 
-        private KeyCombination CarryKeyCombination{get; set;} 
+        private KeyCombination CarryKeyCombination { get; set; }
 
-        private KeyCombination CarrySwapKeyCombination{get;set;}
+        private KeyCombination CarrySwapKeyCombination { get; set; }
 
         private CarrySystem CarrySystem { get; }
 
         public CarryHandler(CarrySystem carrySystem)
             => CarrySystem = carrySystem;
+
+        public int MaxInteractionDistance { get; set; }
 
         public void InitClient()
         {
@@ -50,12 +53,11 @@ namespace CarryOn.Common
 
             CarrySystem.ClientChannel.SetMessageHandler<LockSlotsMessage>(OnLockSlotsMessage);
 
-            cApi.Input.InWorldAction +=  OnEntityAction;
+            cApi.Input.InWorldAction += OnEntityAction;
             cApi.Event.RegisterGameTickListener(OnGameTick, 0);
 
             cApi.Event.BeforeActiveSlotChanged +=
                 (_) => OnBeforeActiveSlotChanged(CarrySystem.ClientAPI.World.Player.Entity);
-
 
             CarryKeyCombination = input.HotKeys[CarrySystem.PickupKeyCode]?.CurrentMapping;
             CarrySwapKeyCombination = input.HotKeys[CarrySystem.SwapBackModifierKeyCode]?.CurrentMapping;
@@ -63,11 +65,17 @@ namespace CarryOn.Common
 
         public void InitServer()
         {
+            // TODO: Change this to a config value.
+            MaxInteractionDistance = 6;
+
             CarrySystem.ServerChannel
                 .SetMessageHandler<InteractMessage>(OnInteractMessage)
                 .SetMessageHandler<PickUpMessage>(OnPickUpMessage)
                 .SetMessageHandler<PlaceDownMessage>(OnPlaceDownMessage)
                 .SetMessageHandler<SwapSlotsMessage>(OnSwapSlotsMessage)
+                .SetMessageHandler<AttachMessage>(OnAttachMessage)
+                .SetMessageHandler<DetachMessage>(OnDetachMessage)
+                .SetMessageHandler<CarryKeyMessage>(OnCarryKeyMessage)
                 .SetMessageHandler<QuickDropMessage>(OnQuickDropMessage);
 
             CarrySystem.ServerAPI.Event.OnEntitySpawn += OnServerEntitySpawn;
@@ -93,14 +101,16 @@ namespace CarryOn.Common
             return true;
         }
 
-        public bool IsCarryKeyPressed(bool checkMouse = false){
+        public bool IsCarryKeyPressed(bool checkMouse = false)
+        {
             var input = CarrySystem.ClientAPI.Input;
-            if(checkMouse && !input.InWorldMouseButton.Right) return false;
-            
+            if (checkMouse && !input.InWorldMouseButton.Right) return false;
+
             return input.KeyboardKeyState[CarryKeyCombination.KeyCode];
         }
 
-        public bool IsCarrySwapKeyPressed(){
+        public bool IsCarrySwapKeyPressed()
+        {
             return CarrySystem.ClientAPI.Input.KeyboardKeyState[CarrySwapKeyCombination.KeyCode];
         }
 
@@ -152,7 +162,7 @@ namespace CarryOn.Common
             if (_action != CurrentAction.None)
             { handled = EnumHandling.PreventDefault; return; }
 
-            var world = CarrySystem.ClientAPI.World;  
+            var world = CarrySystem.ClientAPI.World;
             var player = world.Player;
 
             // Don't do carryon interaction if player looking at an entity (i.e. raft or armor stand)
@@ -205,7 +215,7 @@ namespace CarryOn.Common
                         }
                         return;
                     }
-                    
+
                     _selectedBlock = GetPlacedPosition(world, selection, holdingAny.Block);
                     if (_selectedBlock == null) return;
 
@@ -267,20 +277,29 @@ namespace CarryOn.Common
             if (!IsCarryOnEnabled) return;
 
             var world = CarrySystem.ClientAPI.World;
-            var player = world.Player;            
+            var player = world.Player;
             var input = CarrySystem.ClientAPI.Input;
 
             if (!input.InWorldMouseButton.Right) { CancelInteraction(true); return; }
 
-            if(input.IsHotKeyPressed(CarrySystem.PickupKeyCode)){
-                if(!player.Entity.IsCarryKeyHeld()){
+            // One-shot sent carry key status to server.
+            if (input.IsHotKeyPressed(CarrySystem.PickupKeyCode))
+            {
+                if (!player.Entity.IsCarryKeyHeld())
+                {
+                    CarrySystem.ClientChannel.SendPacket(new CarryKeyMessage(true));
                     player.Entity.SetCarryKeyHeld(true);
                 }
-            }else{
-                if(player.Entity.IsCarryKeyHeld()){
+            }
+            else
+            {
+                if (player.Entity.IsCarryKeyHeld())
+                {
+                    CarrySystem.ClientChannel.SendPacket(new CarryKeyMessage(false));
                     player.Entity.SetCarryKeyHeld(false);
                 }
             }
+
             if (_action == CurrentAction.None) return;
 
 
@@ -407,6 +426,11 @@ namespace CarryOn.Common
                 : EnumHandling.PassThrough;
         }
 
+        public void OnCarryKeyMessage(IServerPlayer player, CarryKeyMessage message)
+        {
+            player.Entity.Api.Logger.VerboseDebug($"CarryKey: {player.PlayerName}={message.IsCarryKeyHeld}");
+            player.Entity.SetCarryKeyHeld(message.IsCarryKeyHeld);
+        }
 
         public void OnLockSlotsMessage(LockSlotsMessage message)
         {
@@ -498,8 +522,234 @@ namespace CarryOn.Common
             }
         }
 
-        public void OnQuickDropMessage(IServerPlayer player, QuickDropMessage message){
-            CarrySlot[] fromHands = new []{CarrySlot.Hands, CarrySlot.Shoulder};
+        public void OnAttachMessage(IServerPlayer player, AttachMessage message)
+        {
+ 
+            var targetEntity = CarrySystem.Api.World.GetEntityById(message.TargetEntityId);
+            if (targetEntity == null)
+            {
+                CarrySystem.ServerAPI.SendIngameError(player, "unmoved", Lang.Get("Target entity does not exist"));
+                CarrySystem.Api.Logger.Log(EnumLogType.Debug, "Target entity does not exist!");
+                return;
+            }
+            // If target entity is null or too far away, do nothing
+            if (targetEntity == null || targetEntity.SidedPos?.DistanceTo(player.Entity.Pos) > MaxInteractionDistance)
+            {
+                CarrySystem.ServerAPI.SendIngameError(player, "unmoved", Lang.Get("Target entity is too far away"));
+                CarrySystem.Api.Logger.Log(EnumLogType.Debug, "Target entity is too far away!");
+                return;
+            }
+
+            if (targetEntity != null)
+            {
+                var attachableBehavior = targetEntity.GetBehavior<EntityBehaviorAttachable>();
+
+                if (attachableBehavior != null)
+                {
+
+                    // Check player is carrying block
+                    var carriedBlock = player.Entity.GetCarried(CarrySlot.Hands);
+
+                    if (carriedBlock == null) return;
+
+                    var blockEntityData = carriedBlock?.BlockEntityData;
+
+                    if (blockEntityData == null)
+                    {
+                        CarrySystem.Api.Logger.Log(EnumLogType.Warning, "Block entity data is null, cannot attach block");
+                        CarrySystem.ServerAPI.SendIngameError(player, "invalid", Lang.Get("Source item data is missing"));
+                        return;
+                    }
+                    var type = blockEntityData.GetString("type");
+                    var sourceInventory = blockEntityData.GetTreeAttribute("inventory");
+                    var block = carriedBlock?.Block;
+
+                    var targetSlot = attachableBehavior.GetSlotFromSelectionBoxIndex(message.SlotIndex);
+                    var apname = targetEntity.GetBehavior<EntityBehaviorSelectionBoxes>()?.selectionBoxes[message.SlotIndex]?.AttachPoint?.Code;
+
+                    var seatableBehavior = targetEntity.GetBehavior<EntityBehaviorSeatable>();
+                    bool isOccupied = false;
+                    if (seatableBehavior != null)
+                    {
+                        var seatId = seatableBehavior.SeatConfigs.Where(s => s.APName == apname).FirstOrDefault()?.SeatId;
+                        isOccupied = seatableBehavior.Seats.Where(s => s.SeatId == seatId).FirstOrDefault()?.Passenger != null;
+                    }
+
+
+                    if (targetSlot == null || !targetSlot.Empty || isOccupied)
+                    {
+                        CarrySystem.ServerAPI.SendIngameError(player, "occupied", Lang.Get("Target slot is occupied"));
+                        CarrySystem.Api.Logger.Log(EnumLogType.Debug, "Target Slot is occupied!");
+                        return;
+                    }
+
+                    var sourceItemSlot = (ItemSlot)new DummySlot(null);
+                    sourceItemSlot.Itemstack = carriedBlock.ItemStack.Clone();
+                    TreeAttribute attr = sourceItemSlot.Itemstack.Attributes as TreeAttribute;
+
+                    if (attr == null)
+                    {
+                        CarrySystem.ServerAPI.SendIngameError(player, "invalid", Lang.Get("Source item is invalid"));
+                        CarrySystem.Api.Logger.Log(EnumLogType.Debug, "Source item is invalid!");
+                        return;
+                    }
+
+                    attr.SetString("type", type);
+
+                    var backpack = ConvertBlockInventoryToBackpack(blockEntityData.GetTreeAttribute("inventory"));
+
+                    attr.SetAttribute("backpack", backpack);
+
+                    if (!targetSlot.CanTakeFrom(sourceItemSlot)) return;
+
+                    var iai = sourceItemSlot.Itemstack.Collectible.GetCollectibleInterface<IAttachedInteractions>();
+                    if (iai?.OnTryAttach(sourceItemSlot, message.SlotIndex, targetEntity) == false) return;
+
+                    var ial = sourceItemSlot.Itemstack?.Collectible.GetCollectibleInterface<IAttachedListener>();
+
+                    var moved = sourceItemSlot.TryPutInto(targetEntity.World, targetSlot) > 0;
+                    if (moved)
+                    {
+                        attachableBehavior.storeInv();
+
+                        targetEntity.MarkShapeModified();
+                        targetEntity.World.BlockAccessor.GetChunkAtBlockPos(targetEntity.ServerPos.AsBlockPos).MarkModified();
+
+                        // Remove held block from player
+                        CarriedBlock.Remove(player.Entity, CarrySlot.Hands);
+
+                    }
+                    else
+                    {
+                        CarrySystem.ServerAPI.SendIngameError(player, "unmoved", Lang.Get("Something went wrong attaching block"));
+                    }
+                }
+            }
+        }
+
+
+        public static ITreeAttribute ConvertBlockInventoryToBackpack(ITreeAttribute blockInventory)
+        {
+            if (blockInventory == null) return new TreeAttribute(); // graceful fallback
+
+            var backpack = new TreeAttribute();
+            var slotCount = blockInventory.GetAsInt("qslots");
+            var slots = blockInventory.GetTreeAttribute("slots");
+
+            // create backpack slots and copy items
+            var backpackSlots = new TreeAttribute();
+            for (int i = 0; i < slotCount; i++)
+            {
+                var slotKey = "slot-" + i;
+
+                var itemstack = slots.GetItemstack(i.ToString());
+                backpackSlots.SetItemstack(slotKey, itemstack);
+
+            }
+
+            backpack.SetAttribute("slots", backpackSlots);
+            return backpack;
+        }
+
+        public static IAttribute ConvertBackpackToBlockInventory(ITreeAttribute backpack)
+        {
+            var inventory = new TreeAttribute();
+            if (backpack != null)
+            {
+                var backpackSlots = backpack["slots"] as ITreeAttribute;
+                var count = backpackSlots.Count();
+
+                inventory.SetInt("qslots", count);
+                var slotsAttribute = new TreeAttribute();
+
+                for (var i = 0; i < count; i++)
+                {
+                    var value = backpackSlots.Values[i];
+                    if (value?.GetValue() == null) continue;
+                    slotsAttribute.SetAttribute(i.ToString(), value.Clone());
+                }
+
+                inventory.SetAttribute("slots", slotsAttribute);
+            }
+
+            return inventory;
+        }
+
+        public void OnDetachMessage(IServerPlayer player, DetachMessage message)
+        {
+
+            var targetEntity = CarrySystem.Api.World.GetEntityById(message.TargetEntityId);
+            if (targetEntity == null)
+            {
+                CarrySystem.ServerAPI.SendIngameError(player, "unmoved", Lang.Get("Target entity does not exist"));
+                return;
+            }
+
+            // Validate distance
+            if (targetEntity.SidedPos?.DistanceTo(player.Entity.Pos) > MaxInteractionDistance)
+            {
+                CarrySystem.ServerAPI.SendIngameError(player, "unmoved", Lang.Get("Target entity is too far away"));
+                return;
+            }
+
+            var attachableBehavior = targetEntity.GetBehavior<EntityBehaviorAttachable>();
+
+            if (attachableBehavior != null)
+            {
+
+                var sourceSlot = attachableBehavior.GetSlotFromSelectionBoxIndex(message.SlotIndex);
+
+                if (!sourceSlot.CanTake()) return;
+
+                var block = sourceSlot?.Itemstack?.Block;
+                if (block == null) return;
+
+                if (!block.HasBehavior<BlockBehaviorCarryable>()) return;
+
+                // Player hands must be empty - active/offhand slot and carryon hands slot
+                // If active slot has an item then it will prevent block from being placed
+                var carriedBlock = player?.Entity?.GetCarried(CarrySlot.Hands);
+                if (carriedBlock != null) return;
+
+                var itemstack = sourceSlot?.Itemstack;
+
+                var sourceBackpack = itemstack?.Attributes?["backpack"] as ITreeAttribute;
+
+                var destInventory = ConvertBackpackToBlockInventory(sourceBackpack);
+
+                var blockEntityData = new TreeAttribute();
+                blockEntityData.SetString("blockCode", block.Code.ToShortString());
+                blockEntityData.SetAttribute("inventory", destInventory);
+                blockEntityData.SetString("forBlockCode", block.Code.ToShortString());
+                blockEntityData.SetString("type", itemstack.Attributes.GetString("type"));
+
+                // Clone itemstack and remove inventory attribute since it will be stored as blockdata
+                var itemstackCopy = itemstack.Clone();
+                itemstackCopy.Attributes.Remove("backpack");
+
+                carriedBlock = new CarriedBlock(CarrySlot.Hands, itemstackCopy, blockEntityData);
+                carriedBlock.Set(player.Entity, CarrySlot.Hands);
+
+                var sound = block?.Sounds.Place ?? new AssetLocation("sounds/player/build");
+                CarrySystem.Api.World.PlaySoundAt(sound, targetEntity, player, true, 16);
+
+
+                itemstack?.Collectible.GetCollectibleInterface<IAttachedListener>()?.OnDetached(sourceSlot, message.SlotIndex, targetEntity, player.Entity);
+
+                EntityBehaviorAttachableCarryable.ClearCachedSlotStorage(CarrySystem.Api, message.SlotIndex, sourceSlot, targetEntity);
+                sourceSlot.Itemstack = null;
+                attachableBehavior.storeInv();
+
+                targetEntity.MarkShapeModified();
+                targetEntity.World.BlockAccessor.GetChunkAtBlockPos(targetEntity.ServerPos.AsBlockPos).MarkModified();
+            }
+
+        }
+
+
+        public void OnQuickDropMessage(IServerPlayer player, QuickDropMessage message)
+        {
+            CarrySlot[] fromHands = new[] { CarrySlot.Hands, CarrySlot.Shoulder };
 
             player.Entity.DropCarried(fromHands, 1, 2);
 
@@ -531,8 +781,10 @@ namespace CarryOn.Common
         /// </summary>
         public bool CanInteract(EntityAgent entityAgent, bool requireEmptyHanded)
         {
-            if(entityAgent.Api.Side == EnumAppSide.Client){
-                if(!IsCarryKeyPressed(true)){
+            if (entityAgent.Api.Side == EnumAppSide.Client)
+            {
+                if (!IsCarryKeyPressed(true))
+                {
                     return false;
                 }
             }
