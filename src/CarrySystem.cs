@@ -8,14 +8,16 @@ using CarryOn.Common;
 using CarryOn.Common.Network;
 using CarryOn.Server;
 using CarryOn.Utility;
+using HarmonyLib;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Server;
 using Vintagestory.API.Util;
+using Vintagestory.GameContent;
 
 [assembly: ModInfo("Carry On", 
     modID: "carryon",
-    Version = "1.8.2",
+    Version = "1.9.0-pre.2",
     Description = "Adds the capability to carry various things",
     Website = "https://github.com/NerdScurvy/CarryOn",
     Authors = new[] { "copygirl", "NerdScurvy" })]
@@ -60,18 +62,25 @@ namespace CarryOn
 
         public CarryEvents CarryEvents { get; private set; }
 
+        private Harmony _harmony;
+
         public override void StartPre(ICoreAPI api)
         {
             base.StartPre(api);
-
+            _harmony = new Harmony("CarryOn");
             ModConfig.ReadConfig(api);
+            _harmony.PatchAll();
             api.World.Logger.Event("started 'CarryOn' mod");
         }
 
         public override void Start(ICoreAPI api)
         {
+            // Legacy support for EntityBoatCarryOn - pre.1
+            api.RegisterEntity("EntityBoatCarryOn", typeof(EntityBoat));
+
             api.Register<BlockBehaviorCarryable>( );
             api.Register<BlockBehaviorCarryableInteract>();
+            api.Register<EntityBehaviorAttachableCarryable>();
 
             CarryHandler = new CarryHandler(this);
             CarryEvents = new CarryEvents();
@@ -86,6 +95,9 @@ namespace CarryOn
                 .RegisterMessageType<PickUpMessage>()
                 .RegisterMessageType<PlaceDownMessage>()
                 .RegisterMessageType<SwapSlotsMessage>()
+                .RegisterMessageType<AttachMessage>()
+                .RegisterMessageType<DetachMessage>()
+                .RegisterMessageType<CarryKeyMessage>()
                 .RegisterMessageType<QuickDropMessage>();
 
             EntityCarryRenderer = new EntityCarryRenderer(api);
@@ -105,6 +117,9 @@ namespace CarryOn
                 .RegisterMessageType<PickUpMessage>()
                 .RegisterMessageType<PlaceDownMessage>()
                 .RegisterMessageType<SwapSlotsMessage>()
+                .RegisterMessageType<AttachMessage>()
+                .RegisterMessageType<DetachMessage>()
+                .RegisterMessageType<CarryKeyMessage>()
                 .RegisterMessageType<QuickDropMessage>();
 
             DeathHandler = new DeathHandler(api);

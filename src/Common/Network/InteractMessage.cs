@@ -11,6 +11,8 @@ namespace CarryOn.Common.Network
         private InteractMessage() { }
 
         public InteractMessage(BlockPos position)
-        { Position = position; }
+        {
+            Position = position;
+        }
     }
 }
