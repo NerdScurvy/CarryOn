@@ -369,15 +369,16 @@ namespace CarryOn.API.Common
             return true;
         }
 
-        public static bool IsCarryKeyHeld(this Entity entity){
-            return entity.WatchedAttributes.GetBool("carryKeyHeld");
+        public static bool IsCarryKeyHeld(this Entity entity)
+        {
+            return entity.Attributes.GetBool("carryKeyHeld");
         }
 
-        public static void SetCarryKeyHeld(this Entity entity, bool isHeld){
+        public static void SetCarryKeyHeld(this Entity entity, bool isHeld)
+        {
             if (entity.IsCarryKeyHeld() != isHeld)
             {
-                entity.WatchedAttributes.SetBool("carryKeyHeld", isHeld);
-                entity.WatchedAttributes.MarkPathDirty("carryKeyHeld");
+                entity.Attributes.SetBool("carryKeyHeld", isHeld);
             }
         }
 
@@ -435,6 +436,6 @@ namespace CarryOn.API.Common
 
         public static CarryEvents GetCarryEvents(this IWorldAccessor world)
             => world.GetCarrySystem().CarryEvents;
-        
+
     }
 }

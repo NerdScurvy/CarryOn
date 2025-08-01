@@ -12,5 +12,23 @@
   "toggle-hotkey": "CarryOn - Enable / Disable interaction",
   "quickdrop-hotkey": "CarryOn - Quick Drop",
   "blockhelp-attach": "Attach carried",
-  "blockhelp-detach": "Detach and carry"
+  "blockhelp-detach": "Detach and carry",
+
+  "carryon-enabled": "CarryOn Enabled",
+  "carryon-disabled": "CarryOn Disabled",
+  "attachable-behavior-not-found": "Attachable behavior not found on entity",
+  "slot-not-found": "Target slot is not valid",
+  "slot-not-empty": "Target slot is occupied",
+  "slot-empty": "Target slot is empty",
+  "slot-not-carryable": "Cannot carry block",
+  "slot-data-missing": "Cannot attach block, data missing",
+  "slot-incompatible-block": "Cannot place carried block in slot",  
+  "cannot-swap-back": "Cannot put carried item on back",
+  "nothing-carried": "Nothing carried on back",
+  "entity-not-found": "Target entity not found",
+  "entity-out-of-reach": "Target entity is too far away",
+  "attach-failed": "Something went wrong attaching block",
+  "attach-unavailable": "Cannot attach item to target",
+  "detach-unavailable": "Cannot detach item from target"
+
 }

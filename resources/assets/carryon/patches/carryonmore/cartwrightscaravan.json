@@ -1,0 +1,88 @@
+[
+  {
+    "file": "cartwrightscaravan:entities/land/cart",
+    "side": "Server",
+    "op": "add",
+    "path": "/server/behaviors/-",
+    "value": {
+      "code": "carryon:attachablecarryable"
+    },
+    "dependsOn": [
+      {
+        "modid": "cartwrightscaravan"
+      }
+    ]
+  },
+  {
+    "file": "cartwrightscaravan:entities/land/cart",
+    "side": "Server",
+    "op": "add",
+    "path": "/client/behaviors/-",
+    "value": {
+      "code": "carryon:attachablecarryable"
+    },
+    "dependsOn": [
+      {
+        "modid": "cartwrightscaravan"
+      }
+    ]
+  },
+  
+  {
+    "file": "cartwrightscaravan:entities/land/sled",
+    "side": "Server",
+    "op": "add",
+    "path": "/server/behaviors/-",
+    "value": {
+      "code": "carryon:attachablecarryable"
+    },
+    "dependsOn": [
+      {
+        "modid": "cartwrightscaravan"
+      }
+    ]
+  },
+  {
+    "file": "cartwrightscaravan:entities/land/sled",
+    "side": "Server",
+    "op": "add",
+    "path": "/client/behaviors/-",
+    "value": {
+      "code": "carryon:attachablecarryable"
+    },
+    "dependsOn": [
+      {
+        "modid": "cartwrightscaravan"
+      }
+    ]
+  },
+  
+  {
+    "file": "cartwrightscaravan:entities/land/marketstall",
+    "side": "Server",
+    "op": "add",
+    "path": "/server/behaviors/-",
+    "value": {
+      "code": "carryon:attachablecarryable"
+    },
+    "dependsOn": [
+      {
+        "modid": "cartwrightscaravan"
+      }
+    ]
+  },
+  {
+    "file": "cartwrightscaravan:entities/land/marketstall",
+    "side": "Server",
+    "op": "add",
+    "path": "/client/behaviors/-",
+    "value": {
+      "code": "carryon:attachablecarryable"
+    },
+    "dependsOn": [
+      {
+        "modid": "cartwrightscaravan"
+      }
+    ]
+  }    
+]

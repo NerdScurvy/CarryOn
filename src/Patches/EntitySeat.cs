@@ -1,5 +1,6 @@
 using HarmonyLib;
 using Vintagestory.API.Common;
+using Vintagestory.GameContent;
 
 namespace CarryOn.Patches
 {
@@ -10,11 +11,11 @@ namespace CarryOn.Patches
         public static readonly int DoubleTapThresholdMs = 300;
     }
 
-    [HarmonyPatch(typeof(Vintagestory.GameContent.EntitySeat), "onControls")]
+    [HarmonyPatch(typeof(EntitySeat), "onControls")]
     public class Patch_EntitySeat_onControls
     {
         [HarmonyPrefix]
-        public static bool Prefix(Vintagestory.GameContent.EntitySeat __instance, EnumEntityAction action, bool on, ref EnumHandling handled)
+        public static bool Prefix(EntitySeat __instance, EnumEntityAction action, bool on, ref EnumHandling handled)
         {
             var entityAgent = __instance.Passenger as EntityAgent;
             if (entityAgent == null) return true;
@@ -40,7 +41,7 @@ namespace CarryOn.Patches
                         entityAgent.Attributes.SetLong(DoubleTapSneakState.LastSneakTapMsKey, nowMs); // Reset
                         //handled = EnumHandling.PassThrough;
                         entityAgent.TryUnmount();
-                        __instance.controls.StopAllMovement();   
+                        __instance.controls.StopAllMovement();
                     }
                 }
 
