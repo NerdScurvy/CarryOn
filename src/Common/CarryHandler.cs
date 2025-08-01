@@ -2,6 +2,7 @@ using System.Linq;
 using CarryOn.API.Common;
 using CarryOn.Common.Network;
 using CarryOn.Utility;
+using HarmonyLib;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
@@ -235,7 +236,20 @@ namespace CarryOn.Common
                 return false;
             }
 
-            if (player.Entity.IsCarryKeyHeld() && (player.CurrentBlockSelection == null || IsCarrySwapKeyPressed()))
+            
+            // Can player carry target block
+            bool canCarryTarget = player.CurrentBlockSelection?.Block?.IsCarryable(CarrySlot.Hands) == true;
+
+            // Swap back conditions: When carry key is held down and one of the following is true:
+            // 1. The carry swap key is pressed
+            // 2. The player is not targeting a block
+            // 3. The player has empty hands but has something in back slot and the target block is not carryable
+            bool carryKeyHeld = player.Entity.IsCarryKeyHeld();
+            bool swapKeyPressed = IsCarrySwapKeyPressed();
+            bool notTargetingBlock = player.CurrentBlockSelection == null;
+            bool canSwapBackFromBackSlot = !canCarryTarget && carriedBack != null && carriedHands == null;
+
+            if (carryKeyHeld && (swapKeyPressed || notTargetingBlock || canSwapBackFromBackSlot))
             {
 
                 if (carriedHands != null)
@@ -520,8 +534,21 @@ namespace CarryOn.Common
                     break;
 
                 case CarryAction.PlaceDown:
-                    if (PlaceDown(player, carriedTarget, selection, out var placedAt))
+                    string failureCode = null;
+                    if (PlaceDown(player, carriedTarget, selection, out var placedAt, ref failureCode))
                         CarrySystem.ClientChannel.SendPacket(new PlaceDownMessage(Interaction.CarrySlot.Value, selection, placedAt));
+                    else
+                    {
+                        // Show in-game error if placing down failed.
+                        if (failureCode != null && failureCode != "__ignore__")
+                        {
+                            CarrySystem.ClientAPI.TriggerIngameError("carryon", failureCode, Lang.Get(CarrySystem.ModId + ":place-down-failed-" + failureCode));
+                        }
+                        else
+                        {
+                            CarrySystem.ClientAPI.TriggerIngameError("carryon", "place-down-failed", Lang.Get(CarrySystem.ModId + ":place-down-failed"));
+                        }
+                    }
                     break;
 
                 case CarryAction.SwapBack:
@@ -630,13 +657,23 @@ namespace CarryOn.Common
         public void OnPlaceDownMessage(IServerPlayer player, PlaceDownMessage message)
         {
             // FIXME: Do at least some validation of this data.
-
+            string failureCode = null;
             var carried = player.Entity.GetCarried(message.Slot);
             if ((message.Slot == CarrySlot.Back) || (carried == null) ||
                 !CanInteract(player.Entity, message.Slot != CarrySlot.Hands) ||
-                !PlaceDown(player, carried, message.Selection, out var placedAt))
+                !PlaceDown(player, carried, message.Selection, out var placedAt, ref failureCode))
             {
                 InvalidCarry(player, message.PlacedAt);
+
+                if (failureCode != null && failureCode != "__ignore__")
+                {
+                    CarrySystem.ServerAPI.SendIngameError(player, failureCode, Lang.Get(CarrySystem.ModId + ":place-down-failed-" + failureCode));
+                }
+                else
+                {
+                    CarrySystem.ServerAPI.SendIngameError(player, "place-down-failed", Lang.Get(CarrySystem.ModId + ":place-down-failed"));
+                }
+
             }
             // If succeeded, but by chance the client's projected placement isn't
             // the same as the server's, re-sync the block at the client's position.
@@ -960,7 +997,7 @@ namespace CarryOn.Common
         }
 
         public bool PlaceDown(IPlayer player, CarriedBlock carried,
-                                     BlockSelection selection, out BlockPos placedAt)
+                                     BlockSelection selection, out BlockPos placedAt, ref string failureCode)
         {
             var clickedBlock = player.Entity.World.BlockAccessor.GetBlock(selection.Position);
 
@@ -980,7 +1017,7 @@ namespace CarryOn.Common
             }
 
             placedAt = selection.Position;
-            return player.PlaceCarried(selection, carried.Slot);
+            return player.PlaceCarried(selection, carried.Slot, ref failureCode);
         }
 
         /// <summary> Called when a player picks up or places down an invalid block,

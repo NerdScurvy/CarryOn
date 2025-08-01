@@ -29,6 +29,10 @@
   "entity-out-of-reach": "Target entity is too far away",
   "attach-failed": "Something went wrong attaching block",
   "attach-unavailable": "Cannot attach item to target",
-  "detach-unavailable": "Cannot detach item from target"
+  "detach-unavailable": "Cannot detach item from target",
+  "place-down-failed": "Cannot place carried block here",
+  "place-down-failed-entityintersecting": "Cannot place carried block here, an entity is in the way",
+  "place-down-failed-requiresolidground": "Cannot place carried block here, requires solid ground"
+  
 
 }
