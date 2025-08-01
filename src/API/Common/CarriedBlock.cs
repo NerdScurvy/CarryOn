@@ -181,7 +181,7 @@ namespace CarryOn.API.Common
         ///           selection and by the entity (if any), returning whether it was successful.
         ///           </summary>
         /// <exception cref="ArgumentNullException"> Thrown if world or pos is null. </exception>
-        public bool PlaceDown(IWorldAccessor world, BlockSelection selection, Entity entity, bool dropped = false, bool playSound = true)
+        public bool PlaceDown(ref string failureCode, IWorldAccessor world, BlockSelection selection, Entity entity, bool dropped = false, bool playSound = true)
         {
             if (world == null) throw new ArgumentNullException(nameof(world));
             if (selection == null) throw new ArgumentNullException(nameof(selection));
@@ -189,7 +189,8 @@ namespace CarryOn.API.Common
 
             if (entity is EntityPlayer playerEntity && !dropped)
             {
-                var failureCode = "__ignore__";
+                failureCode ??= "__ignore__";
+
                 var player = world.PlayerByUid(playerEntity.PlayerUID);
                 try{
                     // Add phantom Item to player's active slot so any related block placement code can fire. (Workaround for creature container)
