@@ -32,7 +32,8 @@
   "detach-unavailable": "Cannot detach item from target",
   "place-down-failed": "Cannot place carried block here",
   "place-down-failed-entityintersecting": "Cannot place carried block here, an entity is in the way",
-  "place-down-failed-requiresolidground": "Cannot place carried block here, requires solid ground"
+  "place-down-failed-requiresolidground": "Cannot place carried block here, requires solid ground",
+  "place-down-failed-requirehorizontalattachable": "Cannot place carried block here, requires a wall"
   
 
 }
