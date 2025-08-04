@@ -20,11 +20,6 @@ namespace CarryOn.Patches
             var entityAgent = __instance.Passenger as EntityAgent;
             if (entityAgent == null) return true;
 
-            if (entityAgent.Api.Side == EnumAppSide.Client)
-            {
-                return false;
-            }
-
             // Only check for Sneak key down
             if (action == EnumEntityAction.Sneak && on)
             {
@@ -37,9 +32,7 @@ namespace CarryOn.Patches
                     if (nowMs - lastTapMs < DoubleTapSneakState.DoubleTapThresholdMs)
                     {
                         // Double tap detected
-                        entityAgent.Api.Logger.Debug($"Double tap detected for seat interaction {nowMs - lastTapMs}");
                         entityAgent.Attributes.SetLong(DoubleTapSneakState.LastSneakTapMsKey, nowMs); // Reset
-                        //handled = EnumHandling.PassThrough;
                         entityAgent.TryUnmount();
                         __instance.controls.StopAllMovement();
                     }
