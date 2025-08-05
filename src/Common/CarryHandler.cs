@@ -74,6 +74,8 @@ namespace CarryOn.Common
                 .SetMessageHandler<SwapSlotsMessage>(OnSwapSlotsMessage)
                 .SetMessageHandler<AttachMessage>(OnAttachMessage)
                 .SetMessageHandler<DetachMessage>(OnDetachMessage)
+                .SetMessageHandler<InsertMessage>(OnInsertMessage)
+                .SetMessageHandler<ExtractMessage>(OnExtractMessage)                
                 .SetMessageHandler<QuickDropMessage>(OnQuickDropMessage);
 
             CarrySystem.ServerAPI.Event.OnEntitySpawn += OnServerEntitySpawn;
@@ -236,7 +238,7 @@ namespace CarryOn.Common
                 return false;
             }
 
-            
+
             // Can player carry target block
             bool canCarryTarget = player.CurrentBlockSelection?.Block?.IsCarryable(CarrySlot.Hands) == true;
 
@@ -371,6 +373,83 @@ namespace CarryOn.Common
             return false;
         }
 
+        private bool BeginTransferInteraction(ref EnumHandling handled)
+        {
+            var world = CarrySystem.ClientAPI.World;
+            var player = world.Player;
+
+            // Escape early if carry key is not held down.
+            if (!player.Entity.IsCarryKeyHeld())
+            {
+                return false;
+            }
+
+            var selection = player.CurrentBlockSelection;
+            var carriedHands = player.Entity.GetCarried(CarrySlot.Hands);
+
+            var carryableBehavior = selection?.Block?.GetBehavior<BlockBehaviorCarryable>();
+            if (carryableBehavior != null)
+            {
+                if (carryableBehavior.TransferHandlerBehavior != null)
+                {
+                    var transferBehavior = selection.Block?.BlockBehaviors.FirstOrDefault(b => b.GetType().Name == carryableBehavior.TransferHandlerBehavior);
+                    if (transferBehavior != null)
+                    {
+
+                        // determine if transfer is Insert or Extract by whether hands have a block or not
+                        if (carriedHands == null)
+                        {
+                            var method = transferBehavior.GetType().GetMethod("CanExtractCarryable");
+                            if (method == null)
+                            {
+                                CarrySystem.Api.Logger.Warning($"CanExtractCarryable method not found on {carryableBehavior.TransferHandlerBehavior}");
+                                return false;
+                            }
+                            var result = method.Invoke(transferBehavior, new object[] { });
+
+                            if ((bool)result)
+                            {
+                                CarrySystem.Api.Logger.Debug($"CanExtractCarryable returned true");
+                                Interaction.CarryAction = CarryAction.Extract;
+                                handled = EnumHandling.PreventDefault;
+                                return true;
+                            }
+                        }
+                        else
+                        {
+
+                            var method = transferBehavior.GetType().GetMethod("CanInsertCarryable");
+                            if (method == null)
+                            {
+                                CarrySystem.Api.Logger.Warning($"CanInsertCarryable method not found on {carryableBehavior.TransferHandlerBehavior}");
+                                return false;
+                            }                            
+                            var result = method?.Invoke(transferBehavior, new object[] { });
+
+                            if ((bool)result)
+                            {
+                                CarrySystem.Api.Logger.Debug($"CanInsertCarryable returned true");
+                                Interaction.CarryAction = CarryAction.Insert;
+                                handled = EnumHandling.PreventDefault;
+                                return true;
+                            }
+
+                        }
+
+
+
+                    }
+                    else
+                    {
+                        CarrySystem.Api.Logger.Warning($"TransferHandlerBehavior not found: {carryableBehavior.TransferHandlerBehavior}");
+                    }
+                }
+            }
+
+            return false;
+        }
+
+
         public void OnEntityAction(EnumEntityAction action, bool on, ref EnumHandling handled)
         {
             if (!on && action == EnumEntityAction.InWorldRightMouseDown)
@@ -406,6 +485,8 @@ namespace CarryOn.Common
                 if (BeginSwapBackInteraction(ref handled)) return;
 
                 if (BeginBlockEntityInteraction(ref handled)) return;
+
+                if (BeginTransferInteraction(ref handled)) return;
 
                 if (BeginBlockCarryableInteraction(ref handled)) return;
             }
@@ -498,6 +579,10 @@ namespace CarryOn.Common
                     attachableCarryBehavior = Interaction.TargetEntity?.GetBehavior<EntityBehaviorAttachableCarryable>();
                     break;
 
+                case CarryAction.Insert:
+                case CarryAction.Extract:
+                    break;
+
                 default: return;
             }
 
@@ -566,6 +651,13 @@ namespace CarryOn.Common
                     if (Interaction.TargetEntity == null) break;
                     CarrySystem.ClientChannel.SendPacket(new DetachMessage(Interaction.TargetEntity.EntityId, Interaction.TargetSlotIndex.Value));
                     attachableCarryBehavior.OnAttachmentToggled(false, player.Entity, Interaction.Slot, Interaction.TargetSlotIndex.Value);
+                    break;
+
+                case CarryAction.Insert:
+                    CarrySystem.ClientChannel.SendPacket(new InsertMessage());
+                    break;
+                case CarryAction.Extract:
+                    CarrySystem.ClientChannel.SendPacket(new ExtractMessage());
                     break;
             }
 
@@ -950,6 +1042,15 @@ namespace CarryOn.Common
 
         }
 
+        public void OnInsertMessage(IServerPlayer player, InsertMessage message)
+        {
+            CarrySystem.Api.Logger.Debug("OnInsertMessage");
+        }
+
+        public void OnExtractMessage(IServerPlayer player, ExtractMessage message)
+        {
+            CarrySystem.Api.Logger.Debug("OnExtractMessage");
+        }
 
         public void OnQuickDropMessage(IServerPlayer player, QuickDropMessage message)
         {

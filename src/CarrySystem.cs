@@ -81,6 +81,7 @@ namespace CarryOn
             api.Register<BlockBehaviorCarryable>( );
             api.Register<BlockBehaviorCarryableInteract>();
             api.Register<EntityBehaviorAttachableCarryable>();
+            api.Register<BlockBehaviorCarryTest>();
 
             CarryHandler = new CarryHandler(this);
             CarryEvents = new CarryEvents();
@@ -97,6 +98,8 @@ namespace CarryOn
                 .RegisterMessageType<SwapSlotsMessage>()
                 .RegisterMessageType<AttachMessage>()
                 .RegisterMessageType<DetachMessage>()
+                .RegisterMessageType<InsertMessage>()
+                .RegisterMessageType<ExtractMessage>()                
                 .RegisterMessageType<QuickDropMessage>();
 
             EntityCarryRenderer = new EntityCarryRenderer(api);
@@ -118,6 +121,8 @@ namespace CarryOn
                 .RegisterMessageType<SwapSlotsMessage>()
                 .RegisterMessageType<AttachMessage>()
                 .RegisterMessageType<DetachMessage>()
+                .RegisterMessageType<InsertMessage>()
+                .RegisterMessageType<ExtractMessage>()                  
                 .RegisterMessageType<QuickDropMessage>();
 
             DeathHandler = new DeathHandler(api);

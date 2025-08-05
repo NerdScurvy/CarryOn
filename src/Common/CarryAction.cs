@@ -9,6 +9,8 @@ namespace CarryOn.Common
         SwapBack,
         Interact,
         Attach,
-        Detach
+        Detach,
+        Insert,
+        Extract
     }
 }

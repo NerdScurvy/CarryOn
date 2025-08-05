@@ -59,6 +59,8 @@ namespace CarryOn.Common
 
         public int PatchPriority { get; private set;} = 0;
 
+        public string TransferHandlerBehavior{ get; private set; }
+
         public BlockBehaviorCarryable(Block block)
             : base(block) { }
 
@@ -72,10 +74,14 @@ namespace CarryOn.Common
 
             if (JsonHelper.TryGetFloat(properties, "interactDelay", out var d)) InteractDelay = d;
 
-            if(JsonHelper.TryGetVec3i(properties, "multiblockOffset", out var o)) MultiblockOffset = o;
+            if (JsonHelper.TryGetVec3i(properties, "multiblockOffset", out var o)) MultiblockOffset = o;
 
+            if (JsonHelper.TryGetString(properties, "TransferHandlerBehavior", out var c)) TransferHandlerBehavior = c;
+ 
             DefaultTransform = JsonHelper.GetTransform(properties, DefaultBlockTransform);
             Slots.Initialize(properties["slots"], DefaultTransform);
+            
+
         }
 
         public override WorldInteraction[] GetPlacedBlockInteractionHelp(
