@@ -2,7 +2,6 @@ using System.Linq;
 using CarryOn.API.Common;
 using CarryOn.Common.Network;
 using CarryOn.Utility;
-using HarmonyLib;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
@@ -236,7 +235,6 @@ namespace CarryOn.Common
                 return false;
             }
 
-            
             // Can player carry target block
             bool canCarryTarget = player.CurrentBlockSelection?.Block?.IsCarryable(CarrySlot.Hands) == true;
 
@@ -373,6 +371,7 @@ namespace CarryOn.Common
 
         public void OnEntityAction(EnumEntityAction action, bool on, ref EnumHandling handled)
         {
+
             if (!on && action == EnumEntityAction.InWorldRightMouseDown)
             {
                 Interaction.CarryAction = CarryAction.None;
@@ -487,7 +486,12 @@ namespace CarryOn.Common
 
                     var carriedBack = player.Entity.GetCarried(CarrySlot.Back);
                     // Get the carry behavior from from hands slot unless null, then from back slot.
-                    carryBehavior = (carriedTarget != null) ? carriedTarget.Behavior : carriedBack.Behavior;
+                    carryBehavior = (carriedTarget != null) ? carriedTarget?.Behavior : carriedBack?.Behavior;
+                    if (carryBehavior == null)
+                    {
+                        CarrySystem.Api.Logger.Debug("Nothing carried. Player may have dropped the block from being damaged");
+                        return;
+                    }
                     // Make sure the block to swap can still be put in that slot. TODO: check code - this returns if block behaviour has no allowed slots
                     if (carryBehavior.Slots[Interaction.CarrySlot.Value] == null) return;
 
