@@ -6,9 +6,21 @@ namespace CarryOn.Utility
 {
     public static class JsonHelper
     {
+        public static bool TryGetBool(JsonObject json, string key, out bool result)
+        {
+            if (!json.KeyExists(key))
+            {
+                result = false;
+                return false;
+            }
+            result = json[key].AsBool();
+            return true;
+        }
+
         public static bool TryGetInt(JsonObject json, string key, out int result)
         {
-            if(!json.KeyExists(key)){
+            if (!json.KeyExists(key))
+            {
                 result = 0;
                 return false;
             }
