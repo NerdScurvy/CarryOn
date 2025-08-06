@@ -59,6 +59,8 @@ namespace CarryOn.Common
 
         public int PatchPriority { get; private set;} = 0;
 
+        public bool PreventAttaching { get; private set; } = false;
+
         public BlockBehaviorCarryable(Block block)
             : base(block) { }
 
@@ -72,7 +74,9 @@ namespace CarryOn.Common
 
             if (JsonHelper.TryGetFloat(properties, "interactDelay", out var d)) InteractDelay = d;
 
-            if(JsonHelper.TryGetVec3i(properties, "multiblockOffset", out var o)) MultiblockOffset = o;
+            if (JsonHelper.TryGetVec3i(properties, "multiblockOffset", out var o)) MultiblockOffset = o;
+
+            if (JsonHelper.TryGetBool(properties, "preventAttaching", out var a)) PreventAttaching = a;
 
             DefaultTransform = JsonHelper.GetTransform(properties, DefaultBlockTransform);
             Slots.Initialize(properties["slots"], DefaultTransform);
