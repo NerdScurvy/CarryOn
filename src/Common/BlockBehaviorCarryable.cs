@@ -59,6 +59,8 @@ namespace CarryOn.Common
 
         public int PatchPriority { get; private set;} = 0;
 
+        public bool PreventAttaching { get; private set; } = false;
+
         public string TransferHandlerBehavior{ get; private set; }
 
         public BlockBehaviorCarryable(Block block)
@@ -75,6 +77,8 @@ namespace CarryOn.Common
             if (JsonHelper.TryGetFloat(properties, "interactDelay", out var d)) InteractDelay = d;
 
             if (JsonHelper.TryGetVec3i(properties, "multiblockOffset", out var o)) MultiblockOffset = o;
+
+            if (JsonHelper.TryGetBool(properties, "preventAttaching", out var a)) PreventAttaching = a;
 
             if (JsonHelper.TryGetString(properties, "TransferHandlerBehavior", out var c)) TransferHandlerBehavior = c;
  

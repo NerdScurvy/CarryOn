@@ -2,7 +2,6 @@ using System.Linq;
 using CarryOn.API.Common;
 using CarryOn.Common.Network;
 using CarryOn.Utility;
-using HarmonyLib;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
@@ -238,7 +237,6 @@ namespace CarryOn.Common
                 return false;
             }
 
-
             // Can player carry target block
             bool canCarryTarget = player.CurrentBlockSelection?.Block?.IsCarryable(CarrySlot.Hands) == true;
 
@@ -452,6 +450,7 @@ namespace CarryOn.Common
 
         public void OnEntityAction(EnumEntityAction action, bool on, ref EnumHandling handled)
         {
+
             if (!on && action == EnumEntityAction.InWorldRightMouseDown)
             {
                 Interaction.CarryAction = CarryAction.None;
@@ -568,7 +567,12 @@ namespace CarryOn.Common
 
                     var carriedBack = player.Entity.GetCarried(CarrySlot.Back);
                     // Get the carry behavior from from hands slot unless null, then from back slot.
-                    carryBehavior = (carriedTarget != null) ? carriedTarget.Behavior : carriedBack.Behavior;
+                    carryBehavior = (carriedTarget != null) ? carriedTarget?.Behavior : carriedBack?.Behavior;
+                    if (carryBehavior == null)
+                    {
+                        CarrySystem.Api.Logger.Debug("Nothing carried. Player may have dropped the block from being damaged");
+                        return;
+                    }
                     // Make sure the block to swap can still be put in that slot. TODO: check code - this returns if block behaviour has no allowed slots
                     if (carryBehavior.Slots[Interaction.CarrySlot.Value] == null) return;
 
@@ -868,16 +872,28 @@ namespace CarryOn.Common
                     return;
                 }
 
+                var backupAttributes = blockEntityData.Clone();
+                backupAttributes.RemoveAttribute("inventory");
+
                 attr.SetString("type", type);
 
                 var backpack = ConvertBlockInventoryToBackpack(blockEntityData.GetTreeAttribute("inventory"));
 
                 attr.SetAttribute("backpack", backpack);
 
+                attr.SetAttribute("carryonbackup", backupAttributes);
+
                 if (!targetSlot.CanTakeFrom(sourceItemSlot))
                 {
                     CarrySystem.ServerAPI.SendIngameError(player, "slot-incompatible-block", Lang.Get(CarrySystem.ModId + ":slot-incompatible-block"));
                     return;
+                }
+                var carryableBehavior = sourceItemSlot.Itemstack.Block.GetBehavior<BlockBehaviorCarryable>();
+                
+                if (carryableBehavior?.PreventAttaching ?? false)
+                {
+                    CarrySystem.ServerAPI.SendIngameError(player, "slot-prevent-attaching", Lang.Get(CarrySystem.ModId + ":slot-incompatible-block"));
+                    return;                   
                 }
 
                 var iai = sourceItemSlot.Itemstack.Collectible.GetCollectibleInterface<IAttachedInteractions>();
@@ -980,7 +996,6 @@ namespace CarryOn.Common
 
             if (attachableBehavior != null)
             {
-
                 var sourceSlot = attachableBehavior.GetSlotFromSelectionBoxIndex(message.SlotIndex);
                 if (sourceSlot == null || sourceSlot.Empty)
                 {
@@ -1013,7 +1028,16 @@ namespace CarryOn.Common
 
                 var destInventory = ConvertBackpackToBlockInventory(sourceBackpack);
 
-                var blockEntityData = new TreeAttribute();
+                TreeAttribute blockEntityData;
+                if (itemstack?.Attributes?["carryonbackup"] is not TreeAttribute backupAttributes)
+                {
+                    blockEntityData = new TreeAttribute();
+                }
+                else
+                {
+                    blockEntityData = backupAttributes;
+                }
+
                 blockEntityData.SetString("blockCode", block.Code.ToShortString());
                 blockEntityData.SetAttribute("inventory", destInventory);
                 blockEntityData.SetString("forBlockCode", block.Code.ToShortString());
