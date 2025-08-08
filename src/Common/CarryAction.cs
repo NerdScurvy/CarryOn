@@ -10,7 +10,7 @@ namespace CarryOn.Common
         Interact,
         Attach,
         Detach,
-        Insert,
-        Extract
+        Put,
+        Take
     }
 }

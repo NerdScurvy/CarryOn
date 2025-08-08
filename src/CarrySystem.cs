@@ -78,10 +78,10 @@ namespace CarryOn
             // Legacy support for EntityBoatCarryOn - pre.1
             api.RegisterEntity("EntityBoatCarryOn", typeof(EntityBoat));
 
-            api.Register<BlockBehaviorCarryable>( );
+            api.Register<BlockBehaviorCarryable>();
             api.Register<BlockBehaviorCarryableInteract>();
             api.Register<EntityBehaviorAttachableCarryable>();
-            api.Register<BlockBehaviorCarryTest>();
+            api.Register<BlockBehaviorMoldRackTransfer>();
 
             CarryHandler = new CarryHandler(this);
             CarryEvents = new CarryEvents();
@@ -98,8 +98,8 @@ namespace CarryOn
                 .RegisterMessageType<SwapSlotsMessage>()
                 .RegisterMessageType<AttachMessage>()
                 .RegisterMessageType<DetachMessage>()
-                .RegisterMessageType<InsertMessage>()
-                .RegisterMessageType<ExtractMessage>()                
+                .RegisterMessageType<PutMessage>()
+                .RegisterMessageType<TakeMessage>()                
                 .RegisterMessageType<QuickDropMessage>();
 
             EntityCarryRenderer = new EntityCarryRenderer(api);
@@ -121,8 +121,8 @@ namespace CarryOn
                 .RegisterMessageType<SwapSlotsMessage>()
                 .RegisterMessageType<AttachMessage>()
                 .RegisterMessageType<DetachMessage>()
-                .RegisterMessageType<InsertMessage>()
-                .RegisterMessageType<ExtractMessage>()                  
+                .RegisterMessageType<PutMessage>()
+                .RegisterMessageType<TakeMessage>()                  
                 .RegisterMessageType<QuickDropMessage>();
 
             DeathHandler = new DeathHandler(api);
