@@ -43,10 +43,9 @@ namespace CarryOn.Common
 
             var blockName = block.GetPlacedBlockName(world, blockEntity.Pos);
             var collAtrib = itemStack?.Collectible?.Attributes;
-            var moldRackable = collAtrib != null && collAtrib["moldrackable"].AsBool();
+            var moldRackable = collAtrib?["moldrackable"]?.AsBool() ?? false;
             if(!moldRackable){
-                failureCode = "put-block-incompatible";
-                
+                failureCode = "put-block-incompatible";                
                 onScreenErrorMessage = $"Cannot put carried block in {blockName}";
                 return false;
             }

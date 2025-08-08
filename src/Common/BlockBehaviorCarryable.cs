@@ -61,7 +61,7 @@ namespace CarryOn.Common
 
         public bool PreventAttaching { get; private set; } = false;
 
-        public string TransferHandlerBehavior{ get; private set; }
+        public string TransferHandlerBehavior { get; private set; } = null;
 
         public BlockBehaviorCarryable(Block block)
             : base(block) { }

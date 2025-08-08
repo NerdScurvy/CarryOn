@@ -35,7 +35,7 @@
   "place-down-failed-requiresolidground": "Cannot place carried block here, requires solid ground",
   "place-down-failed-requirehorizontalattachable": "Cannot place carried block here, requires a wall",
   "take-block-not-carryable": "Cannot take block in hands",
-  "unknown-error": "An unknown error occured with CarryOn"
+  "unknown-error": "An unknown error occurred with CarryOn"
   
 
 }

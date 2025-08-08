@@ -25,9 +25,8 @@ namespace CarryOn.Utility
                 return false;
             }
             result = json[key].AsString();
-            return true;
-        }
-        
+            return result != null;
+        }        
         public static bool TryGetInt(JsonObject json, string key, out int result)
         {
             if (!json.KeyExists(key))

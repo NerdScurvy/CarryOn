@@ -531,9 +531,13 @@ namespace CarryOn.Common
             string onScreenErrorMessage;
 
             var selection = player.CurrentBlockSelection;
+            if (selection == null)
+            {
+                // Not pointing at a block, cannot transfer
+                return false;
+            }
 
             var blockEntity = world.BlockAccessor.GetBlockEntity(selection.Position);
-
             if (blockEntity == null)
             {
                 return false;
@@ -1228,6 +1232,14 @@ namespace CarryOn.Common
 
         public void OnPutMessage(IServerPlayer player, PutMessage message)
         {
+/*TODO:
+
+Verify player distance (MaxInteractionDistance) to message.BlockPos.
+Ensure the player’s hands are respectively occupied (Put) or empty (Take).
+Reject the action when another carried block already exists (Take).
+*/
+
+
             CarrySystem.Api.Logger.Debug("OnPutMessage");
             if (message.BlockPos == null)
             {
@@ -1352,6 +1364,13 @@ namespace CarryOn.Common
 
         public void OnTakeMessage(IServerPlayer player, TakeMessage message)
         {
+/*TODO:
+
+Verify player distance (MaxInteractionDistance) to message.BlockPos.
+Ensure the player’s hands are respectively occupied (Put) or empty (Take).
+Reject the action when another carried block already exists (Take).
+*/
+
             const int itemStackParam = 3;
             const int blockEntityDataParam = 4;
             const int failureCodeParam = 5;
