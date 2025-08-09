@@ -2,9 +2,10 @@ using ProtoBuf;
 
 namespace CarryOn.Common.Network
 {
-    [ProtoContract(ImplicitFields = ImplicitFields.AllFields)]
-    public class ToggleDoubleTapDismountMessage
+    [ProtoContract]
+    public sealed class ToggleDoubleTapDismountMessage
     {
+        [ProtoMember(1)]
         public bool IsEnabled { get; set; }
 
         public ToggleDoubleTapDismountMessage() { }
