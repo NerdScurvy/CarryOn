@@ -82,10 +82,34 @@ namespace CarryOn
             base.StartPre(api);
             _harmony = new Harmony("CarryOn");
             ModConfig.ReadConfig(api);
-            if(ModConfig.ServerConfig.HarmonyPatchEnabled)
+
+            // Use ServerConfig only on server side; otherwise, default to true for client or unknown
+            bool patchEnabled = true;
+            if (api.Side == EnumAppSide.Server)
             {
-                _harmony.PatchAll();
+                // If config is missing, default to true for backward compatibility
+                patchEnabled = ModConfig.ServerConfig?.HarmonyPatchEnabled ?? true;
             }
+            // If needed, add a client config key and logic here for client-side patch gating
+
+            if (patchEnabled)
+            {
+                try
+                {
+                    _harmony.PatchAll();
+                    api.World.Logger.Notification("CarryOn: Harmony patches enabled.");
+                }
+                catch (Exception ex)
+                {
+                    api.World.Logger.Error($"CarryOn: Exception during Harmony patching: {ex}");
+                }
+            }
+            else
+            {
+                api.World.Logger.Notification("CarryOn: Harmony patches are disabled by config.");
+                // If runtime config changes are supported, call _harmony.UnpatchAll("CarryOn") here
+            }
+
             api.World.Logger.Event("started 'CarryOn' mod");
         }
 
