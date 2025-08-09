@@ -1063,15 +1063,6 @@ namespace CarryOn.Common
             return (activeHotbarSlot >= 0) && (activeHotbarSlot < 10);
         }
 
-        public void OnToggleDoubleTapDismountMessage(IServerPlayer player, ToggleDoubleTapDismountMessage message)
-        {
-            var playerEntity = player?.Entity;
-            if (playerEntity == null) return;
-
-            playerEntity.WatchedAttributes.SetBool(DoubleTapDismountEnabledAttributeKey, message.IsEnabled);
-        }
-
-
         /// <summary>
         ///   Returns whether the specified entity has the required prerequisites
         ///   to interact using CarryOn: Must be sneaking with an empty hand.

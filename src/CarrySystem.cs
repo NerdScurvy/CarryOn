@@ -82,7 +82,10 @@ namespace CarryOn
             base.StartPre(api);
             _harmony = new Harmony("CarryOn");
             ModConfig.ReadConfig(api);
-            _harmony.PatchAll();
+            if(ModConfig.ServerConfig.HarmonyPatchEnabled)
+            {
+                _harmony.PatchAll();
+            }
             api.World.Logger.Event("started 'CarryOn' mod");
         }
 

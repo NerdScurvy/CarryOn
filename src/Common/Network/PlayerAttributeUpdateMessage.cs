@@ -18,7 +18,6 @@ namespace CarryOn.Common.Network
         {
         }
 
-        
         public PlayerAttributeUpdateMessage(string attributeKey, bool value, bool isWatchedAttribute = false)
         {
             AttributeKey = attributeKey;

@@ -22,27 +22,7 @@ namespace CarryOn.Patches
                 return true; // Skip if double tap dismount is not enabled
             }
 
-
-            if (entityAgent.Api.Side == EnumAppSide.Client)
-            {
-                // If the player is seated on multiple seats, then unmount them from the other seats
-                foreach (var seat in __instance.MountSupplier.Seats)
-                {
-                    if (seat != __instance && seat.Passenger == entityAgent)
-                    {
-                        entityAgent.Api.Logger.Warning("Player found seated on multiple seats, unmounting other seats.");
-                        seat.DidUnmount(entityAgent);
-                    }
-                }
-            }
-
-            if (!entityAgent.WatchedAttributes.GetBool(DoubleTapDismountEnabledAttributeKey, false))
-            {
-                return true; // Skip if double tap dismount is not enabled
-            }
-
             bool doubleTapped = false;
-
 
             if (entityAgent.Api.Side == EnumAppSide.Server && entityAgent.Attributes.GetBool(DoubleTappedAttributeKey, false))
             {
@@ -70,7 +50,6 @@ namespace CarryOn.Patches
                                 return false;
                             }
                             carrySystem.ClientChannel.SendPacket(new PlayerAttributeUpdateMessage(DoubleTappedAttributeKey, true, false));
-                            entityAgent.WatchedAttributes.SetBool(DoubleTappedAttributeKey, true);
                         }
                     }
 

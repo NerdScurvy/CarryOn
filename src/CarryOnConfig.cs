@@ -51,6 +51,8 @@ namespace CarryOn
 
         public bool LoggingEnabled { get; set; }
 
+        public bool HarmonyPatchEnabled = true;
+
         public CarryOnConfig()
         {
         }
@@ -101,6 +103,7 @@ namespace CarryOn
             RemoveCarryableBehaviour = previousConfig.RemoveCarryableBehaviour;
 
             LoggingEnabled = previousConfig.LoggingEnabled;
+            HarmonyPatchEnabled = previousConfig.HarmonyPatchEnabled;
         }
     }
 }
