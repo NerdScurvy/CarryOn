@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using CarryOn.API.Common;
 using CarryOn.Common.Network;
@@ -10,6 +11,7 @@ using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Server;
 using Vintagestory.GameContent;
+using static CarryOn.CarrySystem;
 
 namespace CarryOn.Common
 {
@@ -39,15 +41,17 @@ namespace CarryOn.Common
             var cApi = CarrySystem.ClientAPI;
             var input = cApi.Input;
 
-            input.RegisterHotKey(CarrySystem.PickupKeyCode, Lang.Get(CarrySystem.ModId + ":pickup-hotkey"), CarrySystem.PickupKeyDefault);
+            input.RegisterHotKey(PickupKeyCode, Lang.Get(ModId + ":pickup-hotkey"), PickupKeyDefault);
 
-            input.RegisterHotKey(CarrySystem.SwapBackModifierKeyCode, Lang.Get(CarrySystem.ModId + ":swap-back-hotkey"), CarrySystem.SwapBackModifierDefault);
+            input.RegisterHotKey(SwapBackModifierKeyCode, Lang.Get(ModId + ":swap-back-hotkey"), SwapBackModifierDefault);
 
-            input.RegisterHotKey(CarrySystem.ToggleKeyCode, Lang.Get(CarrySystem.ModId + ":toggle-hotkey"), CarrySystem.ToggleDefault, altPressed: true);
-            input.RegisterHotKey(CarrySystem.QuickDropKeyCode, Lang.Get(CarrySystem.ModId + ":quickdrop-hotkey"), CarrySystem.QuickDropDefault, altPressed: true, ctrlPressed: true);
+            input.RegisterHotKey(ToggleKeyCode, Lang.Get(ModId + ":toggle-hotkey"), ToggleDefault, altPressed: true);
+            input.RegisterHotKey(QuickDropKeyCode, Lang.Get(ModId + ":quickdrop-hotkey"), QuickDropDefault, altPressed: true, ctrlPressed: true);
+            input.RegisterHotKey(ToggleDoubleTapDismountKeyCode, Lang.Get(ModId + ":toggle-double-tap-dismount-hotkey"), ToggleDoubleTapDismountDefault, ctrlPressed: true);
 
-            input.SetHotKeyHandler(CarrySystem.ToggleKeyCode, TriggerToggleKeyPressed);
-            input.SetHotKeyHandler(CarrySystem.QuickDropKeyCode, TriggerQuickDropKeyPressed);
+            input.SetHotKeyHandler(ToggleKeyCode, TriggerToggleKeyPressed);
+            input.SetHotKeyHandler(QuickDropKeyCode, TriggerQuickDropKeyPressed);
+            input.SetHotKeyHandler(ToggleDoubleTapDismountKeyCode, TriggerToggleDoubleTapDismountKeyPressed);
 
             CarrySystem.ClientChannel.SetMessageHandler<LockSlotsMessage>(OnLockSlotsMessage);
 
@@ -57,9 +61,11 @@ namespace CarryOn.Common
             cApi.Event.BeforeActiveSlotChanged +=
                 (_) => OnBeforeActiveSlotChanged(CarrySystem.ClientAPI.World.Player.Entity);
 
-            CarryKeyCombination = input.HotKeys[CarrySystem.PickupKeyCode]?.CurrentMapping;
-            CarrySwapKeyCombination = input.HotKeys[CarrySystem.SwapBackModifierKeyCode]?.CurrentMapping;
+            CarryKeyCombination = input.HotKeys[PickupKeyCode]?.CurrentMapping;
+            CarrySwapKeyCombination = input.HotKeys[SwapBackModifierKeyCode]?.CurrentMapping;
         }
+
+
 
         public void InitServer()
         {
@@ -73,7 +79,8 @@ namespace CarryOn.Common
                 .SetMessageHandler<SwapSlotsMessage>(OnSwapSlotsMessage)
                 .SetMessageHandler<AttachMessage>(OnAttachMessage)
                 .SetMessageHandler<DetachMessage>(OnDetachMessage)
-                .SetMessageHandler<QuickDropMessage>(OnQuickDropMessage);
+                .SetMessageHandler<QuickDropMessage>(OnQuickDropMessage)
+                .SetMessageHandler<ToggleDoubleTapDismountMessage>(OnToggleDoubleTapDismountMessage);
 
             CarrySystem.ServerAPI.Event.OnEntitySpawn += OnServerEntitySpawn;
             CarrySystem.ServerAPI.Event.PlayerNowPlaying += OnServerPlayerNowPlaying;
@@ -86,7 +93,7 @@ namespace CarryOn.Common
         {
 
             IsCarryOnEnabled = !IsCarryOnEnabled;
-            CarrySystem.ClientAPI.ShowChatMessage(Lang.Get(CarrySystem.ModId + ":carryon-" + (IsCarryOnEnabled ? "enabled" : "disabled")));
+            CarrySystem.ClientAPI.ShowChatMessage(Lang.Get(ModId + ":carryon-" + (IsCarryOnEnabled ? "enabled" : "disabled")));
             return true;
         }
 
@@ -94,6 +101,18 @@ namespace CarryOn.Common
         {
             // Send drop message even if client shows nothing being held
             CarrySystem.ClientChannel.SendPacket(new QuickDropMessage());
+            return true;
+        }
+
+        private bool TriggerToggleDoubleTapDismountKeyPressed(KeyCombination keyCombination)
+        {
+            var playerEntity = CarrySystem.ClientAPI.World.Player.Entity;
+            var isEnabled = playerEntity.WatchedAttributes.GetBool(DoubleTapDismountEnabledAttributeKey, false);
+
+            // Toggle the opposite state on client and server
+            playerEntity.WatchedAttributes.SetBool(DoubleTapDismountEnabledAttributeKey, !isEnabled);
+            CarrySystem.ClientChannel.SendPacket(new ToggleDoubleTapDismountMessage(!isEnabled));
+            CarrySystem.ClientAPI.ShowChatMessage(Lang.Get(ModId + ":double-tap-dismount-" + (!isEnabled ? "enabled" : "disabled")));
             return true;
         }
 
@@ -166,7 +185,7 @@ namespace CarryOn.Common
                 if (behaviorAttachable == null)
                 {
                     CarrySystem.ClientAPI.Logger.Error("EntityBehaviorAttachable not found on entity {0}", entitySelection?.Entity?.Code);
-                    CarrySystem.ClientAPI.TriggerIngameError("carryon", "attachable-not-found", Lang.Get(CarrySystem.ModId + ":attachable-behavior-not-found"));
+                    CarrySystem.ClientAPI.TriggerIngameError("carryon", "attachable-not-found", Lang.Get(ModId + ":attachable-behavior-not-found"));
                     return true;
                 }
 
@@ -184,7 +203,7 @@ namespace CarryOn.Common
                 {
                     if (!Interaction.Slot.Empty)
                     {
-                        CarrySystem.ClientAPI.TriggerIngameError("carryon", "slot-not-empty", Lang.Get(CarrySystem.ModId + ":slot-not-empty"));
+                        CarrySystem.ClientAPI.TriggerIngameError("carryon", "slot-not-empty", Lang.Get(ModId + ":slot-not-empty"));
                         CompleteInteraction();
                         handled = EnumHandling.PreventDefault;
                         return true;
@@ -195,14 +214,14 @@ namespace CarryOn.Common
                 {
                     if (Interaction.Slot.Empty)
                     {
-                        CarrySystem.ClientAPI.TriggerIngameError("carryon", "slot-empty", Lang.Get(CarrySystem.ModId + ":slot-empty"));
+                        CarrySystem.ClientAPI.TriggerIngameError("carryon", "slot-empty", Lang.Get(ModId + ":slot-empty"));
                         CompleteInteraction();
                         return true;
                     }
 
                     if (Interaction.Slot?.Itemstack?.Block?.GetBehavior<BlockBehaviorCarryable>() == null)
                     {
-                        CarrySystem.ClientAPI.TriggerIngameError("carryon", "slot-not-carryable", Lang.Get(CarrySystem.ModId + ":slot-not-carryable"));
+                        CarrySystem.ClientAPI.TriggerIngameError("carryon", "slot-not-carryable", Lang.Get(ModId + ":slot-not-carryable"));
                         CompleteInteraction();
                         handled = EnumHandling.PreventDefault;
                         return true;
@@ -254,7 +273,7 @@ namespace CarryOn.Common
                 {
                     if (carriedHands.Behavior.Slots[CarrySlot.Back] == null)
                     {
-                        CarrySystem.ClientAPI.TriggerIngameError("carryon", "cannot-swap-back", Lang.Get(CarrySystem.ModId + ":cannot-swap-back"));
+                        CarrySystem.ClientAPI.TriggerIngameError("carryon", "cannot-swap-back", Lang.Get(ModId + ":cannot-swap-back"));
                         CompleteInteraction();
                         return true;
                     }
@@ -263,7 +282,7 @@ namespace CarryOn.Common
                 if (carriedHands == null && carriedBack == null)
                 {
                     // If nothing is being carried, do not allow swap back.
-                    CarrySystem.ClientAPI.TriggerIngameError("carryon", "nothing-carried", Lang.Get(CarrySystem.ModId + ":nothing-carried"));
+                    CarrySystem.ClientAPI.TriggerIngameError("carryon", "nothing-carried", Lang.Get(ModId + ":nothing-carried"));
                     CompleteInteraction();
                     return true;
                 }
@@ -429,7 +448,7 @@ namespace CarryOn.Common
 
             if (!input.InWorldMouseButton.Right) { CancelInteraction(resetTimeHeld: true); return; }
 
-            player.Entity.SetCarryKeyHeld(input.IsHotKeyPressed(CarrySystem.PickupKeyCode));
+            player.Entity.SetCarryKeyHeld(input.IsHotKeyPressed(PickupKeyCode));
 
             if (Interaction.CarryAction == CarryAction.None || Interaction.CarryAction == CarryAction.Done) return;
 
@@ -508,15 +527,15 @@ namespace CarryOn.Common
             float requiredTime;
             if (Interaction.CarryAction == CarryAction.Interact)
             {
-                requiredTime = interactBehavior?.InteractDelay ?? CarrySystem.InteractSpeedDefault;
+                requiredTime = interactBehavior?.InteractDelay ?? InteractSpeedDefault;
             }
             else
             {
-                requiredTime = carryBehavior?.InteractDelay ?? CarrySystem.PickUpSpeedDefault;
+                requiredTime = carryBehavior?.InteractDelay ?? PickUpSpeedDefault;
                 switch (Interaction.CarryAction)
                 {
-                    case CarryAction.PlaceDown: requiredTime *= CarrySystem.PlaceSpeedDefault; break;
-                    case CarryAction.SwapBack: requiredTime *= CarrySystem.SwapSpeedDefault; break;
+                    case CarryAction.PlaceDown: requiredTime *= PlaceSpeedDefault; break;
+                    case CarryAction.SwapBack: requiredTime *= SwapSpeedDefault; break;
                 }
             }
 
@@ -546,11 +565,11 @@ namespace CarryOn.Common
                         // Show in-game error if placing down failed.
                         if (failureCode != null && failureCode != "__ignore__")
                         {
-                            CarrySystem.ClientAPI.TriggerIngameError("carryon", failureCode, Lang.Get(CarrySystem.ModId + ":place-down-failed-" + failureCode));
+                            CarrySystem.ClientAPI.TriggerIngameError("carryon", failureCode, Lang.Get(ModId + ":place-down-failed-" + failureCode));
                         }
                         else
                         {
-                            CarrySystem.ClientAPI.TriggerIngameError("carryon", "place-down-failed", Lang.Get(CarrySystem.ModId + ":place-down-failed"));
+                            CarrySystem.ClientAPI.TriggerIngameError("carryon", "place-down-failed", Lang.Get(ModId + ":place-down-failed"));
                         }
                     }
                     break;
@@ -671,11 +690,11 @@ namespace CarryOn.Common
 
                 if (failureCode != null && failureCode != "__ignore__")
                 {
-                    CarrySystem.ServerAPI.SendIngameError(player, failureCode, Lang.Get(CarrySystem.ModId + ":place-down-failed-" + failureCode));
+                    CarrySystem.ServerAPI.SendIngameError(player, failureCode, Lang.Get(ModId + ":place-down-failed-" + failureCode));
                 }
                 else
                 {
-                    CarrySystem.ServerAPI.SendIngameError(player, "place-down-failed", Lang.Get(CarrySystem.ModId + ":place-down-failed"));
+                    CarrySystem.ServerAPI.SendIngameError(player, "place-down-failed", Lang.Get(ModId + ":place-down-failed"));
                 }
 
             }
@@ -708,21 +727,21 @@ namespace CarryOn.Common
             var targetEntity = CarrySystem.Api.World.GetEntityById(message.TargetEntityId);
             if (targetEntity == null)
             {
-                CarrySystem.ServerAPI.SendIngameError(player, "entity-not-found", Lang.Get(CarrySystem.ModId + ":entity-not-found"));
+                CarrySystem.ServerAPI.SendIngameError(player, "entity-not-found", Lang.Get(ModId + ":entity-not-found"));
                 CarrySystem.Api.Logger.Debug("Target entity does not exist!");
                 return;
             }
             // If target entity is null or too far away, do nothing
             if (targetEntity.SidedPos?.DistanceTo(player.Entity.Pos) > MaxInteractionDistance)
             {
-                CarrySystem.ServerAPI.SendIngameError(player, "entity-out-of-reach", Lang.Get(CarrySystem.ModId + ":entity-out-of-reach"));
+                CarrySystem.ServerAPI.SendIngameError(player, "entity-out-of-reach", Lang.Get(ModId + ":entity-out-of-reach"));
                 CarrySystem.Api.Logger.Debug("Target entity is too far away!");
                 return;
             }
 
             if (message.SlotIndex < 0)
             {
-                CarrySystem.ServerAPI.SendIngameError(player, "slot-not-found", Lang.Get(CarrySystem.ModId + ":slot-not-found"));
+                CarrySystem.ServerAPI.SendIngameError(player, "slot-not-found", Lang.Get(ModId + ":slot-not-found"));
                 CarrySystem.Api.Logger.Debug("Invalid target slot index!");
                 return;
             }
@@ -743,7 +762,7 @@ namespace CarryOn.Common
                 if (blockEntityData == null)
                 {
                     CarrySystem.Api.Logger.Warning("Block entity data is null, cannot attach block");
-                    CarrySystem.ServerAPI.SendIngameError(player, "slot-data-missing", Lang.Get(CarrySystem.ModId + ":slot-data-missing"));
+                    CarrySystem.ServerAPI.SendIngameError(player, "slot-data-missing", Lang.Get(ModId + ":slot-data-missing"));
                     return;
                 }
                 var type = blockEntityData.GetString("type");
@@ -764,7 +783,7 @@ namespace CarryOn.Common
 
                 if (targetSlot == null || !targetSlot.Empty || isOccupied)
                 {
-                    CarrySystem.ServerAPI.SendIngameError(player, "slot-not-empty", Lang.Get(CarrySystem.ModId + ":slot-not-empty"));
+                    CarrySystem.ServerAPI.SendIngameError(player, "slot-not-empty", Lang.Get(ModId + ":slot-not-empty"));
                     CarrySystem.Api.Logger.Log(EnumLogType.Debug, "Target Slot is occupied!");
                     return;
                 }
@@ -775,7 +794,7 @@ namespace CarryOn.Common
 
                 if (attr == null)
                 {
-                    CarrySystem.ServerAPI.SendIngameError(player, "slot-data-missing", Lang.Get(CarrySystem.ModId + ":slot-data-missing"));
+                    CarrySystem.ServerAPI.SendIngameError(player, "slot-data-missing", Lang.Get(ModId + ":slot-data-missing"));
                     CarrySystem.Api.Logger.Log(EnumLogType.Debug, "Source item is invalid!");
                     return;
                 }
@@ -793,21 +812,21 @@ namespace CarryOn.Common
 
                 if (!targetSlot.CanTakeFrom(sourceItemSlot))
                 {
-                    CarrySystem.ServerAPI.SendIngameError(player, "slot-incompatible-block", Lang.Get(CarrySystem.ModId + ":slot-incompatible-block"));
+                    CarrySystem.ServerAPI.SendIngameError(player, "slot-incompatible-block", Lang.Get(ModId + ":slot-incompatible-block"));
                     return;
                 }
                 var carryableBehavior = sourceItemSlot.Itemstack.Block.GetBehavior<BlockBehaviorCarryable>();
                 
                 if (carryableBehavior?.PreventAttaching ?? false)
                 {
-                    CarrySystem.ServerAPI.SendIngameError(player, "slot-prevent-attaching", Lang.Get(CarrySystem.ModId + ":slot-incompatible-block"));
+                    CarrySystem.ServerAPI.SendIngameError(player, "slot-prevent-attaching", Lang.Get(ModId + ":slot-incompatible-block"));
                     return;                   
                 }
 
                 var iai = sourceItemSlot.Itemstack.Collectible.GetCollectibleInterface<IAttachedInteractions>();
                 if (iai?.OnTryAttach(sourceItemSlot, message.SlotIndex, targetEntity) == false)
                 {
-                    CarrySystem.ServerAPI.SendIngameError(player, "attach-unavailable", Lang.Get(CarrySystem.ModId + ":attach-unavailable"));
+                    CarrySystem.ServerAPI.SendIngameError(player, "attach-unavailable", Lang.Get(ModId + ":attach-unavailable"));
                     return;
                 }
 
@@ -827,7 +846,7 @@ namespace CarryOn.Common
                 }
                 else
                 {
-                    CarrySystem.ServerAPI.SendIngameError(player, "attach-failed", Lang.Get(CarrySystem.ModId + ":attach-failed"));
+                    CarrySystem.ServerAPI.SendIngameError(player, "attach-failed", Lang.Get(ModId + ":attach-failed"));
                 }
             }
         }
@@ -889,14 +908,14 @@ namespace CarryOn.Common
             var targetEntity = CarrySystem.Api.World.GetEntityById(message.TargetEntityId);
             if (targetEntity == null)
             {
-                CarrySystem.ServerAPI.SendIngameError(player, "entity-not-found", Lang.Get(CarrySystem.ModId + ":entity-not-found"));
+                CarrySystem.ServerAPI.SendIngameError(player, "entity-not-found", Lang.Get(ModId + ":entity-not-found"));
                 return;
             }
 
             // Validate distance
             if (targetEntity.SidedPos?.DistanceTo(player.Entity.Pos) > MaxInteractionDistance)
             {
-                CarrySystem.ServerAPI.SendIngameError(player, "entity-out-of-reach", Lang.Get(CarrySystem.ModId + ":entity-out-of-reach"));
+                CarrySystem.ServerAPI.SendIngameError(player, "entity-out-of-reach", Lang.Get(ModId + ":entity-out-of-reach"));
                 return;
             }
 
@@ -907,12 +926,12 @@ namespace CarryOn.Common
                 var sourceSlot = attachableBehavior.GetSlotFromSelectionBoxIndex(message.SlotIndex);
                 if (sourceSlot == null || sourceSlot.Empty)
                 {
-                    CarrySystem.ServerAPI.SendIngameError(player, "slot-empty", Lang.Get(CarrySystem.ModId + ":slot-empty"));
+                    CarrySystem.ServerAPI.SendIngameError(player, "slot-empty", Lang.Get(ModId + ":slot-empty"));
                     return;
                 }
                 if (!sourceSlot?.CanTake() ?? true)
                 {
-                    CarrySystem.ServerAPI.SendIngameError(player, "detach-unavailable", Lang.Get(CarrySystem.ModId + ":detach-unavailable"));
+                    CarrySystem.ServerAPI.SendIngameError(player, "detach-unavailable", Lang.Get(ModId + ":detach-unavailable"));
                     return;
                 }
 
@@ -921,7 +940,7 @@ namespace CarryOn.Common
 
                 if (!block.HasBehavior<BlockBehaviorCarryable>())
                 {
-                    CarrySystem.ServerAPI.SendIngameError(player, "slot-not-carryable", Lang.Get(CarrySystem.ModId + ":slot-not-carryable"));
+                    CarrySystem.ServerAPI.SendIngameError(player, "slot-not-carryable", Lang.Get(ModId + ":slot-not-carryable"));
                     return;
                 }
 
@@ -1001,6 +1020,15 @@ namespace CarryOn.Common
             var activeHotbarSlot = entityPlayer.Player.InventoryManager.ActiveHotbarSlotNumber;
             return (activeHotbarSlot >= 0) && (activeHotbarSlot < 10);
         }
+
+        public void OnToggleDoubleTapDismountMessage(IServerPlayer player, ToggleDoubleTapDismountMessage message)
+        {
+            var playerEntity = player?.Entity;
+            if (playerEntity == null) return;
+
+            playerEntity.WatchedAttributes.SetBool(DoubleTapDismountEnabledAttributeKey, message.IsEnabled);
+        }
+
 
         /// <summary>
         ///   Returns whether the specified entity has the required prerequisites
