@@ -10,6 +10,7 @@
   "pickup-hotkey": "CarryOn - Pick Up / Put Down",
   "swap-back-hotkey": "CarryOn - Swap to back modifier",
   "toggle-hotkey": "CarryOn - Enable / Disable interaction",
+  
   "quickdrop-hotkey": "CarryOn - Quick Drop",
   "blockhelp-attach": "Attach carried",
   "blockhelp-detach": "Detach and carry",
@@ -33,7 +34,9 @@
   "place-down-failed": "Cannot place carried block here",
   "place-down-failed-entityintersecting": "Cannot place carried block here, an entity is in the way",
   "place-down-failed-requiresolidground": "Cannot place carried block here, requires solid ground",
-  "place-down-failed-requirehorizontalattachable": "Cannot place carried block here, requires a wall"
+  "place-down-failed-requirehorizontalattachable": "Cannot place carried block here, requires a wall",
   
-
+  "double-tap-dismount-enabled": "Double Tap Dismount Enabled",
+  "double-tap-dismount-disabled": "Double Tap Dismount Disabled",
+  "toggle-double-tap-dismount-hotkey": "CarryOn - Toggle Double Tap Dismount"
 }
