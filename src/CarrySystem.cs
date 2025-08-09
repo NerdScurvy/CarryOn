@@ -17,7 +17,7 @@ using Vintagestory.GameContent;
 
 [assembly: ModInfo("Carry On",
     modID: "carryon",
-    Version = "1.9.4",
+    Version = "1.9.5",
     Description = "Adds the capability to carry various things",
     Website = "https://github.com/NerdScurvy/CarryOn",
     Authors = new[] { "copygirl", "NerdScurvy" })]
@@ -51,6 +51,8 @@ namespace CarryOn
         public static string ToggleDoubleTapDismountKeyCode = "carryontoggledoubletapdismountkey";
 
         public static readonly string DoubleTapDismountEnabledAttributeKey = ModId + ":DoubleTapDismountEnabled";
+
+        public static readonly string DoubleTappedAttributeKey = ModId + ":DoubleTapped";
 
         public static readonly string LastSneakTapMsKey = ModId + ":LastSneakTapMs";
         public static readonly int DoubleTapThresholdMs = 500;
@@ -109,7 +111,7 @@ namespace CarryOn
                 .RegisterMessageType<AttachMessage>()
                 .RegisterMessageType<DetachMessage>()
                 .RegisterMessageType<QuickDropMessage>()
-                .RegisterMessageType<ToggleDoubleTapDismountMessage>();
+                .RegisterMessageType<PlayerAttributeUpdateMessage>();
 
             EntityCarryRenderer = new EntityCarryRenderer(api);
             HudOverlayRenderer = new HudOverlayRenderer(api);
@@ -131,7 +133,7 @@ namespace CarryOn
                 .RegisterMessageType<AttachMessage>()
                 .RegisterMessageType<DetachMessage>()
                 .RegisterMessageType<QuickDropMessage>()
-                .RegisterMessageType<ToggleDoubleTapDismountMessage>();
+                .RegisterMessageType<PlayerAttributeUpdateMessage>();
 
             DeathHandler = new DeathHandler(api);
             CarryHandler.InitServer();

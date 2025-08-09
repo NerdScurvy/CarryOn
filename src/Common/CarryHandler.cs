@@ -80,7 +80,7 @@ namespace CarryOn.Common
                 .SetMessageHandler<AttachMessage>(OnAttachMessage)
                 .SetMessageHandler<DetachMessage>(OnDetachMessage)
                 .SetMessageHandler<QuickDropMessage>(OnQuickDropMessage)
-                .SetMessageHandler<ToggleDoubleTapDismountMessage>(OnToggleDoubleTapDismountMessage);
+                .SetMessageHandler<PlayerAttributeUpdateMessage>(OnPlayerAttributeUpdateMessage);
 
             CarrySystem.ServerAPI.Event.OnEntitySpawn += OnServerEntitySpawn;
             CarrySystem.ServerAPI.Event.PlayerNowPlaying += OnServerPlayerNowPlaying;
@@ -88,6 +88,46 @@ namespace CarryOn.Common
             CarrySystem.ServerAPI.Event.BeforeActiveSlotChanged +=
                 (player, _) => OnBeforeActiveSlotChanged(player.Entity);
         }
+
+        private void OnPlayerAttributeUpdateMessage(IServerPlayer player, PlayerAttributeUpdateMessage message)
+        {
+            var playerEntity = player.Entity;
+            if (message.AttributeKey == null)
+            {
+                return;
+            }
+
+            if (message.AttributeKey == DoubleTapDismountEnabledAttributeKey && message.IsWatchedAttribute)
+            {
+                if (message.BoolValue.HasValue)
+                {
+                    playerEntity.WatchedAttributes.SetBool(message.AttributeKey, message.BoolValue.Value);
+                }
+                else
+                {
+                    playerEntity.WatchedAttributes.RemoveAttribute(message.AttributeKey);
+                }
+
+                return;
+            }
+
+            if (message.AttributeKey == DoubleTappedAttributeKey && !message.IsWatchedAttribute)
+            {
+                if (message.BoolValue.HasValue)
+                {
+                    playerEntity.Attributes.SetBool(message.AttributeKey, message.BoolValue.Value);
+                }
+                else
+                {
+                    playerEntity.Attributes.RemoveAttribute(message.AttributeKey);
+                }
+
+                return;
+            }   
+
+            playerEntity.Api.Logger.Warning($"Received PlayerAttributeUpdateMessage with unknown attribute key: {message.AttributeKey}");         
+        }
+
 
         public bool TriggerToggleKeyPressed(KeyCombination keyCombination)
         {
@@ -109,9 +149,11 @@ namespace CarryOn.Common
             var playerEntity = CarrySystem.ClientAPI.World.Player.Entity;
             var isEnabled = playerEntity.WatchedAttributes.GetBool(DoubleTapDismountEnabledAttributeKey, false);
 
-            // Toggle the opposite state on client and server
+            // Toggle the opposite state 
             playerEntity.WatchedAttributes.SetBool(DoubleTapDismountEnabledAttributeKey, !isEnabled);
-            CarrySystem.ClientChannel.SendPacket(new ToggleDoubleTapDismountMessage(!isEnabled));
+
+            CarrySystem.ClientChannel.SendPacket(new PlayerAttributeUpdateMessage(DoubleTapDismountEnabledAttributeKey, !isEnabled, true));
+
             CarrySystem.ClientAPI.ShowChatMessage(Lang.Get(ModId + ":double-tap-dismount-" + (!isEnabled ? "enabled" : "disabled")));
             return true;
         }
@@ -816,11 +858,11 @@ namespace CarryOn.Common
                     return;
                 }
                 var carryableBehavior = sourceItemSlot.Itemstack.Block.GetBehavior<BlockBehaviorCarryable>();
-                
+
                 if (carryableBehavior?.PreventAttaching ?? false)
                 {
                     CarrySystem.ServerAPI.SendIngameError(player, "slot-prevent-attaching", Lang.Get(ModId + ":slot-incompatible-block"));
-                    return;                   
+                    return;
                 }
 
                 var iai = sourceItemSlot.Itemstack.Collectible.GetCollectibleInterface<IAttachedInteractions>();
