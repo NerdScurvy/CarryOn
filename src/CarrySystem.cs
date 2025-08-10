@@ -83,14 +83,8 @@ namespace CarryOn
             _harmony = new Harmony("CarryOn");
             ModConfig.ReadConfig(api);
 
-            // Use ServerConfig only on server side; otherwise, default to true for client or unknown
-            bool patchEnabled = true;
-            if (api.Side == EnumAppSide.Server)
-            {
-                // If config is missing, default to true for backward compatibility
-                patchEnabled = ModConfig.ServerConfig?.HarmonyPatchEnabled ?? true;
-            }
-            // If needed, add a client config key and logic here for client-side patch gating
+             // If config is missing, default to true for backward compatibility
+            var patchEnabled = ModConfig.ServerConfig?.HarmonyPatchEnabled ?? true;
 
             if (patchEnabled)
             {
