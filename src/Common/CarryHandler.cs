@@ -123,9 +123,9 @@ namespace CarryOn.Common
                 }
 
                 return;
-            }   
+            }
 
-            playerEntity.Api.Logger.Warning($"Received PlayerAttributeUpdateMessage with unknown attribute key: {message.AttributeKey}");         
+            playerEntity.Api.Logger.Warning($"Received PlayerAttributeUpdateMessage with unknown attribute key: {message.AttributeKey}");
         }
 
 
@@ -268,7 +268,6 @@ namespace CarryOn.Common
                         handled = EnumHandling.PreventDefault;
                         return true;
                     }
-
                     Interaction.CarryAction = CarryAction.Detach;
                 }
                 // Prevent default action. Don't want to interact with blocks/entities.
@@ -872,8 +871,6 @@ namespace CarryOn.Common
                     return;
                 }
 
-                var ial = sourceItemSlot.Itemstack?.Collectible.GetCollectibleInterface<IAttachedListener>();
-
                 var moved = sourceItemSlot.TryPutInto(targetEntity.World, targetSlot) > 0;
                 if (moved)
                 {
@@ -884,6 +881,9 @@ namespace CarryOn.Common
 
                     // Remove held block from player
                     CarriedBlock.Remove(player.Entity, CarrySlot.Hands);
+
+                    var sound = block?.Sounds.Place ?? new AssetLocation("sounds/player/build");
+                    CarrySystem.Api.World.PlaySoundAt(sound, targetEntity, null, true, 16);
 
                 }
                 else
@@ -986,6 +986,20 @@ namespace CarryOn.Common
                     return;
                 }
 
+                // Prevent pickup/detach if other players have the inventory open
+                var inventoryName = $"mountedbaginv-{message.SlotIndex}-{message.TargetEntityId}";
+                var hasOpenBoatStorage = CarrySystem.Api.World.AllOnlinePlayers
+                    .OfType<IServerPlayer>()
+                    .Where(serverPlayer => serverPlayer.PlayerUID != player.PlayerUID)
+                    .SelectMany(serverPlayer => serverPlayer.InventoryManager.OpenedInventories)
+                    .Any(inv => inv.InventoryID.StartsWith(inventoryName));
+
+                if (hasOpenBoatStorage)
+                {
+                    CarrySystem.ServerAPI.SendIngameError(player, "slot-inventory-open", Lang.Get(ModId + ":slot-inventory-open"));
+                    return;
+                }
+
                 // Player hands must be empty - active/offhand slot and carryon hands slot
                 // If active slot has an item then it will prevent block from being placed
                 var carriedBlock = player?.Entity?.GetCarried(CarrySlot.Hands);
@@ -1020,8 +1034,7 @@ namespace CarryOn.Common
                 carriedBlock.Set(player.Entity, CarrySlot.Hands);
 
                 var sound = block?.Sounds.Place ?? new AssetLocation("sounds/player/build");
-                CarrySystem.Api.World.PlaySoundAt(sound, targetEntity, player, true, 16);
-
+                CarrySystem.Api.World.PlaySoundAt(sound, targetEntity, null, true, 16);
 
                 itemstack?.Collectible.GetCollectibleInterface<IAttachedListener>()?.OnDetached(sourceSlot, message.SlotIndex, targetEntity, player.Entity);
 
