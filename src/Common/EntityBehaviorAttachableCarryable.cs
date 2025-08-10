@@ -112,6 +112,7 @@ namespace CarryOn.Common
 
         public void OnAttachmentToggled(bool isAttached, EntityAgent byEntity, ItemSlot itemslot, int targetSlotIndex)
         {
+            // This will close the containers inventory on detach
             var attachedListener = itemslot?.Itemstack?.Collectible?.GetCollectibleInterface<IAttachedListener>();
             if (attachedListener != null)
             {
@@ -120,8 +121,7 @@ namespace CarryOn.Common
                 else
                     attachedListener.OnDetached(itemslot, targetSlotIndex, entity, byEntity);
             }
-            var sound = itemslot.Itemstack?.Block?.Sounds.Place ?? new AssetLocation("sounds/player/build");
-            Api.World.PlaySoundAt(sound, entity, (byEntity as EntityPlayer)?.Player, true, 16);
+            
             entity.MarkShapeModified();
             // Tell server to save this chunk to disk again
             entity.World.BlockAccessor.GetChunkAtBlockPos(entity.ServerPos.AsBlockPos).MarkModified();

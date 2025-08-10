@@ -1,45 +1,74 @@
+using CarryOn.Common.Network;
 using HarmonyLib;
 using Vintagestory.API.Common;
 using Vintagestory.GameContent;
+using static CarryOn.CarrySystem;
 
 namespace CarryOn.Patches
 {
 
-    public static class DoubleTapSneakState
-    {
-        public static readonly string LastSneakTapMsKey = "carryon-lastsneaktapms";
-        public static readonly int DoubleTapThresholdMs = 300;
-    }
-
     [HarmonyPatch(typeof(EntitySeat), "onControls")]
     public class Patch_EntitySeat_onControls
     {
+
         [HarmonyPrefix]
         public static bool Prefix(EntitySeat __instance, EnumEntityAction action, bool on, ref EnumHandling handled)
         {
             var entityAgent = __instance.Passenger as EntityAgent;
             if (entityAgent == null) return true;
 
-            // Only check for Sneak key down
-            if (action == EnumEntityAction.Sneak && on)
+            if (!entityAgent.WatchedAttributes.GetBool(DoubleTapDismountEnabledAttributeKey, false))
             {
-                long nowMs = entityAgent.World.ElapsedMilliseconds;
-                long lastTapMs = entityAgent.Attributes.GetLong(DoubleTapSneakState.LastSneakTapMsKey, 0);
+                return true; // Skip if double tap dismount is not enabled
+            }
 
-                // Check last tap was in the past. If in the future then the server time has been reset.
-                if (lastTapMs < nowMs)
+            bool doubleTapped = false;
+
+            if (entityAgent.Api.Side == EnumAppSide.Server && entityAgent.Attributes.GetBool(DoubleTappedAttributeKey, false))
+            {
+                doubleTapped = true;
+            }
+
+            if (entityAgent.Api.Side == EnumAppSide.Client)
+            {
+                if (action == EnumEntityAction.Sneak && on)
                 {
-                    if (nowMs - lastTapMs < DoubleTapSneakState.DoubleTapThresholdMs)
+                    long nowMs = entityAgent.World.ElapsedMilliseconds;
+                    long lastTapMs = entityAgent.Attributes.GetLong(LastSneakTapMsKey, 0);
+
+                    // Check last tap was in the past. If in the future then the server time has been reset.
+                    if (lastTapMs < nowMs)
                     {
-                        // Double tap detected
-                        entityAgent.Attributes.SetLong(DoubleTapSneakState.LastSneakTapMsKey, nowMs); // Reset
-                        entityAgent.TryUnmount();
-                        __instance.controls.StopAllMovement();
+                        if (nowMs - lastTapMs < DoubleTapThresholdMs)
+                        {
+                            // Double tap detected
+                            doubleTapped = true;
+                            var carrySystem = entityAgent.Api.ModLoader.GetModSystem<CarrySystem>();
+                            if (carrySystem?.ClientChannel == null)
+                            {
+                                entityAgent.Api.Logger.Error("CarrySystem ClientChannel is null");
+                                return false;
+                            }
+                            carrySystem.ClientChannel.SendPacket(new PlayerAttributeUpdateMessage(DoubleTappedAttributeKey, true, false));
+                        }
                     }
+
+                    entityAgent.Attributes.SetLong(LastSneakTapMsKey, nowMs);
+                }
+            }
+
+            if (doubleTapped)
+            {
+                // If double tapped, stop all movement and prevent further processing
+                if (entityAgent.Api.Side == EnumAppSide.Server)
+                {
+                    entityAgent.Attributes.RemoveAttribute(DoubleTappedAttributeKey);
                 }
 
-                entityAgent.Attributes.SetLong(DoubleTapSneakState.LastSneakTapMsKey, nowMs);
+                entityAgent.TryUnmount();
+                __instance.controls.StopAllMovement();
             }
+
             return false; // Skips original method execution
         }
     }

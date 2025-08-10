@@ -15,9 +15,9 @@ using Vintagestory.API.Server;
 using Vintagestory.API.Util;
 using Vintagestory.GameContent;
 
-[assembly: ModInfo("Carry On", 
+[assembly: ModInfo("Carry On",
     modID: "carryon",
-    Version = "1.9.3",
+    Version = "1.9.6",
     Description = "Adds the capability to carry various things",
     Website = "https://github.com/NerdScurvy/CarryOn",
     Authors = new[] { "copygirl", "NerdScurvy" })]
@@ -39,10 +39,23 @@ namespace CarryOn
         public static GlKeys PickupKeyDefault = GlKeys.ShiftLeft;
         public static string SwapBackModifierKeyCode = "carryonswapbackmodifierkey";
         public static GlKeys SwapBackModifierDefault = GlKeys.ControlLeft;
-        public static string ToggleKeyCode = "carryontogglekey";        
+        public static string ToggleKeyCode = "carryontogglekey";
         public static GlKeys ToggleDefault = GlKeys.K;
         public static string QuickDropKeyCode = "carryonquickdropkey";
+
+        // Combine with Alt + Ctrl to drop carried block        
         public static GlKeys QuickDropDefault = GlKeys.K;
+
+        // Combine with Ctrl to toggle double tap dismount
+        public static GlKeys ToggleDoubleTapDismountDefault = GlKeys.K;
+        public static string ToggleDoubleTapDismountKeyCode = "carryontoggledoubletapdismountkey";
+
+        public static readonly string DoubleTapDismountEnabledAttributeKey = ModId + ":DoubleTapDismountEnabled";
+
+        public static readonly string DoubleTappedAttributeKey = ModId + ":DoubleTapped";
+
+        public static readonly string LastSneakTapMsKey = ModId + ":LastSneakTapMs";
+        public static readonly int DoubleTapThresholdMs = 500;
 
         public ICoreAPI Api { get { return ClientAPI ?? ServerAPI as ICoreAPI; } }
 
@@ -69,7 +82,28 @@ namespace CarryOn
             base.StartPre(api);
             _harmony = new Harmony("CarryOn");
             ModConfig.ReadConfig(api);
-            _harmony.PatchAll();
+
+             // If config is missing, default to true for backward compatibility
+            var patchEnabled = ModConfig.ServerConfig?.HarmonyPatchEnabled ?? true;
+
+            if (patchEnabled)
+            {
+                try
+                {
+                    _harmony.PatchAll();
+                    api.World.Logger.Notification("CarryOn: Harmony patches enabled.");
+                }
+                catch (Exception ex)
+                {
+                    api.World.Logger.Error($"CarryOn: Exception during Harmony patching: {ex}");
+                }
+            }
+            else
+            {
+                api.World.Logger.Notification("CarryOn: Harmony patches are disabled by config.");
+                // If runtime config changes are supported, call _harmony.UnpatchAll("CarryOn") here
+            }
+
             api.World.Logger.Event("started 'CarryOn' mod");
         }
 
@@ -100,7 +134,8 @@ namespace CarryOn
                 .RegisterMessageType<DetachMessage>()
                 .RegisterMessageType<PutMessage>()
                 .RegisterMessageType<TakeMessage>()                
-                .RegisterMessageType<QuickDropMessage>();
+                .RegisterMessageType<QuickDropMessage>()
+                .RegisterMessageType<PlayerAttributeUpdateMessage>();
 
             EntityCarryRenderer = new EntityCarryRenderer(api);
             HudOverlayRenderer = new HudOverlayRenderer(api);
@@ -123,7 +158,8 @@ namespace CarryOn
                 .RegisterMessageType<DetachMessage>()
                 .RegisterMessageType<PutMessage>()
                 .RegisterMessageType<TakeMessage>()                  
-                .RegisterMessageType<QuickDropMessage>();
+                .RegisterMessageType<QuickDropMessage>()
+                .RegisterMessageType<PlayerAttributeUpdateMessage>();
 
             DeathHandler = new DeathHandler(api);
             CarryHandler.InitServer();
@@ -132,7 +168,8 @@ namespace CarryOn
 
         public override void AssetsFinalize(ICoreAPI api)
         {
-            if (api.Side == EnumAppSide.Server){
+            if (api.Side == EnumAppSide.Server)
+            {
                 ResolveMultipleCarryableBehaviors(api);
                 AutoMapSimilarCarryables(api);
                 AutoMapSimilarCarryableInteract(api);
@@ -142,22 +179,27 @@ namespace CarryOn
             base.AssetsFinalize(api);
         }
 
-        private void RemoveExcludedCarryableBehaviours(ICoreAPI api){
+        private void RemoveExcludedCarryableBehaviours(ICoreAPI api)
+        {
             var loggingEnabled = ModConfig.ServerConfig.LoggingEnabled;
             var removeArray = ModConfig.ServerConfig.RemoveCarryableBehaviour;
-            if(removeArray == null || removeArray.Length == 0){
+            if (removeArray == null || removeArray.Length == 0)
+            {
                 return;
             }
 
             foreach (var block in api.World.Blocks.Where(b => b.Code != null))
             {
-                foreach(var remove in removeArray){
-                    if(block.Code.ToString().StartsWith(remove)){
+                foreach (var remove in removeArray)
+                {
+                    if (block.Code.ToString().StartsWith(remove))
+                    {
                         var count = block.BlockBehaviors.Length;
                         block.BlockBehaviors = RemoveCarryableBehaviours(block.BlockBehaviors.OfType<CollectibleBehavior>().ToArray()).OfType<BlockBehavior>().ToArray();
                         block.CollectibleBehaviors = RemoveCarryableBehaviours(block.CollectibleBehaviors);
 
-                        if(count != block.BlockBehaviors.Length && loggingEnabled){
+                        if (count != block.BlockBehaviors.Length && loggingEnabled)
+                        {
                             api.Logger.Debug($"CarryOn Removed Carryable Behaviour: {block.Code}");
                         }
                     }
@@ -171,8 +213,10 @@ namespace CarryOn
             {
                 bool removeBaseBehavior = false;
                 if (block.Code == null || block.Id == 0) continue;
-                foreach(var match in ModConfig.ServerConfig.RemoveBaseCarryableBehaviour){
-                    if(block.Code.ToString().StartsWith(match)){
+                foreach (var match in ModConfig.ServerConfig.RemoveBaseCarryableBehaviour)
+                {
+                    if (block.Code.ToString().StartsWith(match))
+                    {
                         removeBaseBehavior = true;
                         break;
                     }
@@ -191,12 +235,15 @@ namespace CarryOn
                 var priorityCarryable = carryableList.First(p => p.PatchPriority == carryableList.Max(m => m.PatchPriority));
                 if (priorityCarryable != null)
                 {
-                    if (!(removeBaseBehavior && priorityCarryable.PatchPriority == 0)){
+                    if (!(removeBaseBehavior && priorityCarryable.PatchPriority == 0))
+                    {
                         carryableList.Remove(priorityCarryable);
                     }
                     behaviourList.RemoveAll(r => carryableList.Contains(r));
                 }
-            }else if(removeBaseBehavior && carryableList.Count == 1 && carryableList[0].PatchPriority == 0){
+            }
+            else if (removeBaseBehavior && carryableList.Count == 1 && carryableList[0].PatchPriority == 0)
+            {
                 // Remove base behavior
                 behaviourList.RemoveAll(r => carryableList.Contains(r));
             }
@@ -215,10 +262,13 @@ namespace CarryOn
             return behaviourList.ToArray();
         }
 
-        private List<BlockBehaviorCarryable> FindCarryables<T>(List<T> behaviors){
+        private List<BlockBehaviorCarryable> FindCarryables<T>(List<T> behaviors)
+        {
             var carryables = new List<BlockBehaviorCarryable>();
-            foreach(var behavior in behaviors){
-                if(behavior is BlockBehaviorCarryable carryable){
+            foreach (var behavior in behaviors)
+            {
+                if (behavior is BlockBehaviorCarryable carryable)
+                {
                     carryables.Add(carryable);
                 }
             }
