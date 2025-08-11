@@ -79,30 +79,22 @@ namespace CarryOn.Common
 
             // Ensure correct type
             var moldRack = blockEntity as BlockEntityMoldRack;
-            if (moldRack == null )
-            {
-                failureCode = "invalid-blockentity";
-                return false;
-            }
+            var sourceSlot = moldRack?.Inventory?[index];
 
-            if (index < 0 || index >= moldRack.Inventory.Count)
+            // Check if the moldRack is valid and the slot is not empty
+            if (moldRack == null || index < 0 || index >= moldRack.Inventory.Count || sourceSlot?.Empty == true)
             {
-                failureCode = "invalid-index";
-                return false;
-            }
-
-            var sourceSlot = moldRack.Inventory[index];
-            if (sourceSlot.Empty)
-            {
-                failureCode = "slot-not-empty";
+                // Nothing to take - tell the caller to continue to the next interaction (pickup the rack if carryable)
+                failureCode = "continue";
                 return false;
             }
 
             if (!HasBehavior(sourceSlot.Itemstack.Block, "BlockBehaviorCarryable"))
             {
-                failureCode = "block-not-carryable";
-                // Could use localisation or leave null and let CarryOn handle the error message
-                onScreenErrorMessage = $"Cannot take {sourceSlot?.Itemstack?.GetName()??"item"} in hands";
+                // Item in slot is not carryable 
+                // Returning false will stop the carryon interactions and actions will flow to the block entity interaction
+                // In this case it is likely a shield - player will pick it up normally.
+                
                 return false;
             }            
             return true;
@@ -150,6 +142,7 @@ namespace CarryOn.Common
             if (player.Entity.Api.Side == EnumAppSide.Client)
             {
                 // Prevent transfer on client side but tell to continue server side
+                // TODO: Map out the process behavior and what specific failure codes are handled or treated as control codes
                 failureCode = "continue";
                 return false;
             }
