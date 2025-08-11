@@ -50,8 +50,13 @@ namespace CarryOn
         public string[] RemoveCarryableBehaviour = new [] {"game:banner"};
 
         public bool LoggingEnabled { get; set; }
-
+    
         public bool HarmonyPatchEnabled = true;
+
+        public bool AllowSprintWhileCarrying = false;
+        public bool IgnoreCarrySpeedPenalty = false;
+        public bool RemoveInteractDelayWhileCarrying = false;
+        public float InteractSpeedMultiplier = 1.0f;
 
         public CarryOnConfig()
         {
@@ -104,6 +109,11 @@ namespace CarryOn
 
             LoggingEnabled = previousConfig.LoggingEnabled;
             HarmonyPatchEnabled = previousConfig.HarmonyPatchEnabled;
+
+            AllowSprintWhileCarrying = previousConfig.AllowSprintWhileCarrying;
+            IgnoreCarrySpeedPenalty = previousConfig.IgnoreCarrySpeedPenalty;
+            RemoveInteractDelayWhileCarrying = previousConfig.RemoveInteractDelayWhileCarrying;
+            InteractSpeedMultiplier = previousConfig.InteractSpeedMultiplier > 0 ? previousConfig.InteractSpeedMultiplier : 1.0f;
         }
     }
 }

@@ -1,6 +1,6 @@
 [
   {
-    "file": "game:blocktypes/reed/stationarybasket",
+    "file": "game:blocktypes/reed/reedchest",
     "side": "Server",
     "op": "add",
     "path": "/behaviors/-",
