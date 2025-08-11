@@ -123,7 +123,7 @@ namespace CarryOn.Common
 
             sinkSlot.MarkDirty();
             moldRack.MarkDirty(true);
-            world.PlaySoundAt(new AssetLocation("sounds/player/build"), player, player);
+            world.PlaySoundAt(new AssetLocation("sounds/player/build"), player);
             AssetLocation code = itemstack?.Collectible.Code;
             world.Logger.Audit($"{player.PlayerName} Put 1x{code} into Rack at {blockEntity.Pos}.");
             return true;

@@ -907,7 +907,7 @@ namespace CarryOn.Common
                     CarrySystem.ClientChannel.SendPacket(putMessage);
                     break;
                 case CarryAction.Take:
-
+//TODO: TryTakeCarryable call on client side first.
                     CarrySystem.ClientChannel.SendPacket(new TakeMessage()
                     {
                         BlockPos = Interaction.SelectedBlockPos,
@@ -1458,20 +1458,20 @@ namespace CarryOn.Common
 
             if (message.BlockPos == null)
             {
-                CarrySystem.Api.Logger.Error("OnTakeMessage: No block selected");
+                CarrySystem.Api.Logger.Error("TryTakeCarryable: No block selected");
                 return false;
             }
 
             var block = CarrySystem.Api.World.BlockAccessor.GetBlock(message.BlockPos);
             if (block == null)
             {
-                CarrySystem.Api.Logger.Error("OnTakeMessage: No block found at position");
+                CarrySystem.Api.Logger.Error("TryTakeCarryable: No block found at position");
                 return false;
             }
             var carryableBehavior = block?.GetBehavior<BlockBehaviorCarryable>();
             if (carryableBehavior == null)
             {
-                CarrySystem.Api.Logger.Error("OnTakeMessage: No Carryable behavior found");
+                CarrySystem.Api.Logger.Error("TryTakeCarryable: No Carryable behavior found");
                 return false;
             }
 
@@ -1484,7 +1484,7 @@ namespace CarryOn.Common
             var blockEntity = CarrySystem.Api.World.BlockAccessor.GetBlockEntity(message.BlockPos);
             if (blockEntity == null)
             {
-                CarrySystem.Api.Logger.Error("OnTakeMessage: No block entity found at position");
+                CarrySystem.Api.Logger.Error("TryTakeCarryable: No block entity found at position");
                 return false;
             }
             
