@@ -215,8 +215,8 @@ namespace CarryOn.Common
             bool entityHasAttachable = carryAttachBehavior != null;
             bool carryKeyHeld = player.Entity.IsCarryKeyHeld();
 
-            bool shouldBlockInteraction = (isLookingAtEntity && !entityHasAttachable) || (entityHasAttachable && !carryKeyHeld);
-            if (shouldBlockInteraction) return true;
+            bool shouldPreventInteraction = (isLookingAtEntity && !entityHasAttachable) || (entityHasAttachable && !carryKeyHeld);
+            if (shouldPreventInteraction) return true;
 
             if (entityHasAttachable)
             {
@@ -673,8 +673,12 @@ namespace CarryOn.Common
                     isInteract = true; break;
                 // Other actions, which are prevented while holding something.
                 case EnumEntityAction.InWorldLeftMouseDown:
+                    isInteract = false;
+                    break;                
                 case EnumEntityAction.Sprint:
-                    isInteract = false; break;
+                    if (ModConfig.ServerConfig.AllowSprintWhileCarrying) return;
+                    isInteract = false;
+                    break;
                 default: return;
             }
 
@@ -682,8 +686,19 @@ namespace CarryOn.Common
             if (Interaction.CarryAction != CarryAction.None)
             { handled = EnumHandling.PreventDefault; return; }
 
+            var world = CarrySystem.ClientAPI.World;
+            var player = world.Player;
+
+            // Check if player has item in active active or offhand slot
+            if (!player.Entity.CanDoCarryAction(requireEmptyHanded: true))
+            {
+                // Prevent further carry interaction checks
+                return;
+            }
+
             if (isInteract)
             {
+
                 if (BeginEntityCarryableInteraction(ref handled)) return;
 
                 if (BeginSwapBackInteraction(ref handled)) return;
@@ -695,8 +710,7 @@ namespace CarryOn.Common
                 if (BeginBlockCarryableInteraction(ref handled)) return;
             }
 
-            var world = CarrySystem.ClientAPI.World;
-            var player = world.Player;
+
             var carriedHands = player.Entity.GetCarried(CarrySlot.Hands);
 
             // If something is being carried in-hand, prevent RMB, LMB and sprint.
@@ -798,7 +812,8 @@ namespace CarryOn.Common
             float requiredTime;
             if (Interaction.CarryAction == CarryAction.Interact)
             {
-                requiredTime = interactBehavior?.InteractDelay ?? InteractSpeedDefault;
+                if (ModConfig.ServerConfig.RemoveInteractDelayWhileCarrying) requiredTime = 0;
+                else requiredTime = interactBehavior?.InteractDelay ?? InteractSpeedDefault;
             }
             else
             {
@@ -810,6 +825,8 @@ namespace CarryOn.Common
                 }
             }
 
+            requiredTime /= ModConfig.ServerConfig.InteractSpeedMultiplier > 0 ? ModConfig.ServerConfig.InteractSpeedMultiplier : 1.0f;
+            
             Interaction.TimeHeld += deltaTime;
             var progress = Interaction.TimeHeld / requiredTime;
             CarrySystem.HudOverlayRenderer.CircleProgress = progress;

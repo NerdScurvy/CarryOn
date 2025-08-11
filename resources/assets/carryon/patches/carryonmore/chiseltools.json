@@ -33,7 +33,29 @@
         "modid": "chiseltools"
       }
     ]  
-  },  
+  }, 
+  
+  {
+    "file": "chiseltools:blocktypes/chiseledchest*",
+    "side": "Server",
+    "op": "add",
+    "path": "/behaviors/-",
+    "value": {
+      "name": "CarryableInteract"
+    },
+    "condition": {
+      "when": "carryon:InteractStorageEnabled",
+      "isValue": "true"
+    },
+    "dependsOn": [
+      {
+        "modid": "chiseltools"
+      }
+    ]  
+  }, 
+    
+
+
   {
     "file": "chiseltools:blocktypes/chiseledbarrel",
     "side": "Server",
