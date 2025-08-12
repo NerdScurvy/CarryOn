@@ -84,7 +84,7 @@ namespace CarryOn.API.Common
             if (entity is EntityAgent agent)
             {
                 var speed = slotSettings?.WalkSpeedModifier ?? 0.0F;
-                if (speed != 0.0F && !ModConfig.ServerConfig.AllowSprintWhileCarrying)
+                if (speed != 0.0F && !ModConfig.AllowSprintWhileCarrying)
                 {
                     agent.Stats.Set("walkspeed",
                     $"{CarrySystem.ModId}:{slot}", speed, false);

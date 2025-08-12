@@ -17,7 +17,7 @@ using Vintagestory.GameContent;
 
 [assembly: ModInfo("Carry On",
     modID: "carryon",
-    Version = "1.9.7",
+    Version = "1.9.8",
     Description = "Adds the capability to carry various things",
     Website = "https://github.com/NerdScurvy/CarryOn",
     Authors = new[] { "copygirl", "NerdScurvy" })]
@@ -83,10 +83,7 @@ namespace CarryOn
             _harmony = new Harmony("CarryOn");
             ModConfig.ReadConfig(api);
 
-             // If config is missing, default to true for backward compatibility
-            var patchEnabled = ModConfig.ServerConfig?.HarmonyPatchEnabled ?? true;
-
-            if (patchEnabled)
+            if (ModConfig.HarmonyPatchEnabled)
             {
                 try
                 {

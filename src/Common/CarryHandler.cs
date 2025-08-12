@@ -452,7 +452,7 @@ namespace CarryOn.Common
                     isInteract = false;
                     break;                
                 case EnumEntityAction.Sprint:
-                    if (ModConfig.ServerConfig.AllowSprintWhileCarrying) return;
+                    if (ModConfig.AllowSprintWhileCarrying) return;
                     isInteract = false;
                     break;
                 default: return;
@@ -582,7 +582,7 @@ namespace CarryOn.Common
             float requiredTime;
             if (Interaction.CarryAction == CarryAction.Interact)
             {
-                if (ModConfig.ServerConfig.RemoveInteractDelayWhileCarrying) requiredTime = 0;
+                if (ModConfig.RemoveInteractDelayWhileCarrying) requiredTime = 0;
                 else requiredTime = interactBehavior?.InteractDelay ?? InteractSpeedDefault;
             }
             else
@@ -595,7 +595,7 @@ namespace CarryOn.Common
                 }
             }
 
-            requiredTime /= ModConfig.ServerConfig.InteractSpeedMultiplier > 0 ? ModConfig.ServerConfig.InteractSpeedMultiplier : 1.0f;
+            requiredTime /= ModConfig.InteractSpeedMultiplier > 0 ? ModConfig.InteractSpeedMultiplier : 1.0f;
             
             Interaction.TimeHeld += deltaTime;
             var progress = Interaction.TimeHeld / requiredTime;
