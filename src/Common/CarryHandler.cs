@@ -25,9 +25,9 @@ namespace CarryOn.Common
 
         public bool IsCarryOnEnabled { get; set; } = true;
 
-        private KeyCombination CarryKeyCombination { get; set; }
+        private KeyCombination CarryKeyCombination { get { return CarrySystem.ClientAPI.Input.HotKeys[PickupKeyCode]?.CurrentMapping; } }
 
-        private KeyCombination CarrySwapKeyCombination { get; set; }
+        private KeyCombination CarrySwapKeyCombination { get { return CarrySystem.ClientAPI.Input.HotKeys[SwapBackModifierKeyCode]?.CurrentMapping; } }
 
         private CarrySystem CarrySystem { get; }
 
@@ -60,9 +60,6 @@ namespace CarryOn.Common
 
             cApi.Event.BeforeActiveSlotChanged +=
                 (_) => OnBeforeActiveSlotChanged(CarrySystem.ClientAPI.World.Player.Entity);
-
-            CarryKeyCombination = input.HotKeys[PickupKeyCode]?.CurrentMapping;
-            CarrySwapKeyCombination = input.HotKeys[SwapBackModifierKeyCode]?.CurrentMapping;
         }
 
 
@@ -80,6 +77,7 @@ namespace CarryOn.Common
                 .SetMessageHandler<AttachMessage>(OnAttachMessage)
                 .SetMessageHandler<DetachMessage>(OnDetachMessage)
                 .SetMessageHandler<QuickDropMessage>(OnQuickDropMessage)
+                .SetMessageHandler<DismountMessage>(OnDismountMessage)
                 .SetMessageHandler<PlayerAttributeUpdateMessage>(OnPlayerAttributeUpdateMessage);
 
             CarrySystem.ServerAPI.Event.OnEntitySpawn += OnServerEntitySpawn;
@@ -87,6 +85,18 @@ namespace CarryOn.Common
 
             CarrySystem.ServerAPI.Event.BeforeActiveSlotChanged +=
                 (player, _) => OnBeforeActiveSlotChanged(player.Entity);
+        }
+
+        private void OnDismountMessage(IServerPlayer player, DismountMessage message)
+        {
+
+            player.Entity.TryUnmount();
+
+            player.Entity.World.GetEntityById(message.EntityId)?
+                .GetBehavior<EntityBehaviorCreatureCarrier>()?
+                .Seats?.FirstOrDefault(s => s.SeatId == message.SeatId)?
+                .Controls?.StopAllMovement();
+
         }
 
         private void OnPlayerAttributeUpdateMessage(IServerPlayer player, PlayerAttributeUpdateMessage message)
@@ -106,20 +116,6 @@ namespace CarryOn.Common
                 else
                 {
                     playerEntity.WatchedAttributes.RemoveAttribute(message.AttributeKey);
-                }
-
-                return;
-            }
-
-            if (message.AttributeKey == DoubleTappedAttributeKey && !message.IsWatchedAttribute)
-            {
-                if (message.BoolValue.HasValue)
-                {
-                    playerEntity.Attributes.SetBool(message.AttributeKey, message.BoolValue.Value);
-                }
-                else
-                {
-                    playerEntity.Attributes.RemoveAttribute(message.AttributeKey);
                 }
 
                 return;

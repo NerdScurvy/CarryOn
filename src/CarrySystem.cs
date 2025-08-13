@@ -17,7 +17,7 @@ using Vintagestory.GameContent;
 
 [assembly: ModInfo("Carry On",
     modID: "carryon",
-    Version = "1.9.8",
+    Version = "1.9.9",
     Description = "Adds the capability to carry various things",
     Website = "https://github.com/NerdScurvy/CarryOn",
     Authors = new[] { "copygirl", "NerdScurvy" })]
@@ -51,8 +51,6 @@ namespace CarryOn
         public static string ToggleDoubleTapDismountKeyCode = "carryontoggledoubletapdismountkey";
 
         public static readonly string DoubleTapDismountEnabledAttributeKey = ModId + ":DoubleTapDismountEnabled";
-
-        public static readonly string DoubleTappedAttributeKey = ModId + ":DoubleTapped";
 
         public static readonly string LastSneakTapMsKey = ModId + ":LastSneakTapMs";
         public static readonly int DoubleTapThresholdMs = 500;
@@ -129,6 +127,7 @@ namespace CarryOn
                 .RegisterMessageType<AttachMessage>()
                 .RegisterMessageType<DetachMessage>()
                 .RegisterMessageType<QuickDropMessage>()
+                .RegisterMessageType<DismountMessage>()
                 .RegisterMessageType<PlayerAttributeUpdateMessage>();
 
             EntityCarryRenderer = new EntityCarryRenderer(api);
@@ -151,6 +150,7 @@ namespace CarryOn
                 .RegisterMessageType<AttachMessage>()
                 .RegisterMessageType<DetachMessage>()
                 .RegisterMessageType<QuickDropMessage>()
+                .RegisterMessageType<DismountMessage>()
                 .RegisterMessageType<PlayerAttributeUpdateMessage>();
 
             DeathHandler = new DeathHandler(api);
@@ -213,12 +213,12 @@ namespace CarryOn
                         break;
                     }
                 }
-                block.BlockBehaviors = RemoveOveriddenCarryableBehaviours(block.BlockBehaviors.OfType<CollectibleBehavior>().ToArray(), removeBaseBehavior).OfType<BlockBehavior>().ToArray();
-                block.CollectibleBehaviors = RemoveOveriddenCarryableBehaviours(block.CollectibleBehaviors, removeBaseBehavior);
+                block.BlockBehaviors = RemoveOverriddenCarryableBehaviours(block.BlockBehaviors.OfType<CollectibleBehavior>().ToArray(), removeBaseBehavior).OfType<BlockBehavior>().ToArray();
+                block.CollectibleBehaviors = RemoveOverriddenCarryableBehaviours(block.CollectibleBehaviors, removeBaseBehavior);
             }
         }
 
-        private CollectibleBehavior[] RemoveOveriddenCarryableBehaviours(CollectibleBehavior[] behaviours, bool removeBaseBehavior = false)
+        private CollectibleBehavior[] RemoveOverriddenCarryableBehaviours(CollectibleBehavior[] behaviours, bool removeBaseBehavior = false)
         {
             var behaviourList = behaviours.ToList();
             var carryableList = FindCarryables(behaviourList);
