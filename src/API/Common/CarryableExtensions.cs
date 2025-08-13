@@ -170,8 +170,9 @@ namespace CarryOn.API.Common
             bool Drop(BlockPos pos, CarriedBlock block)
             {
                 if (!CanPlaceMultiblock(pos, block)) return false;
+                string failureCode = null;
 
-                if (!block.PlaceDown(world, new BlockSelection { Position = pos }, player.Entity, true)) return false;
+                if (!block.PlaceDown(ref failureCode, world, new BlockSelection { Position = pos }, player.Entity, true)) return false;
                 CarriedBlock.Remove(entity, block.Slot);
                 return true;
             }
@@ -369,15 +370,16 @@ namespace CarryOn.API.Common
             return true;
         }
 
-        public static bool IsCarryKeyHeld(this Entity entity){
-            return entity.WatchedAttributes.GetBool("carryKeyHeld");
+        public static bool IsCarryKeyHeld(this Entity entity)
+        {
+            return entity.Attributes.GetBool("carryKeyHeld");
         }
 
-        public static void SetCarryKeyHeld(this Entity entity, bool isHeld){
+        public static void SetCarryKeyHeld(this Entity entity, bool isHeld)
+        {
             if (entity.IsCarryKeyHeld() != isHeld)
             {
-                entity.WatchedAttributes.SetBool("carryKeyHeld", isHeld);
-                entity.WatchedAttributes.MarkPathDirty("carryKeyHeld");
+                entity.Attributes.SetBool("carryKeyHeld", isHeld);
             }
         }
 
@@ -409,7 +411,7 @@ namespace CarryOn.API.Common
         ///   selection, returning whether it was successful.
         /// </summary>
         /// <exception cref="ArgumentNullException"> Thrown if player or selection is null. </exception>
-        public static bool PlaceCarried(this IPlayer player, BlockSelection selection, CarrySlot slot)
+        public static bool PlaceCarried(this IPlayer player, BlockSelection selection, CarrySlot slot, ref string failureCode)
         {
             if (player == null) throw new ArgumentNullException(nameof(player));
             if (selection == null) throw new ArgumentNullException(nameof(selection));
@@ -423,7 +425,7 @@ namespace CarryOn.API.Common
             var carried = CarriedBlock.Get(player.Entity, slot);
             if (carried == null) return false;
 
-            return carried.PlaceDown(player.Entity.World, selection, player.Entity);
+            return carried.PlaceDown(ref failureCode, player.Entity.World, selection, player.Entity);
         }
 
         /* ------------------------------ */
@@ -435,6 +437,6 @@ namespace CarryOn.API.Common
 
         public static CarryEvents GetCarryEvents(this IWorldAccessor world)
             => world.GetCarrySystem().CarryEvents;
-        
+
     }
 }

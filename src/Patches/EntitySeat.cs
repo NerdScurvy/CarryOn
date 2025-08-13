@@ -1,51 +1,74 @@
+using CarryOn.Common.Network;
 using HarmonyLib;
 using Vintagestory.API.Common;
+using Vintagestory.GameContent;
+using static CarryOn.CarrySystem;
 
 namespace CarryOn.Patches
 {
 
-    public static class DoubleTapSneakState
-    {
-        public static readonly string LastSneakTapMsKey = "carryon-lastsneaktapms";
-        public static readonly int DoubleTapThresholdMs = 300;
-    }
-
-    [HarmonyPatch(typeof(Vintagestory.GameContent.EntitySeat), "onControls")]
+    [HarmonyPatch(typeof(EntitySeat), "onControls")]
     public class Patch_EntitySeat_onControls
     {
+
         [HarmonyPrefix]
-        public static bool Prefix(Vintagestory.GameContent.EntitySeat __instance, EnumEntityAction action, bool on, ref EnumHandling handled)
+        public static bool Prefix(EntitySeat __instance, EnumEntityAction action, bool on, ref EnumHandling handled)
         {
             var entityAgent = __instance.Passenger as EntityAgent;
             if (entityAgent == null) return true;
 
+            if (!entityAgent.WatchedAttributes.GetBool(DoubleTapDismountEnabledAttributeKey, false))
+            {
+                return true; // Skip if double tap dismount is not enabled
+            }
+
+            bool doubleTapped = false;
+
+            if (entityAgent.Api.Side == EnumAppSide.Server && entityAgent.Attributes.GetBool(DoubleTappedAttributeKey, false))
+            {
+                doubleTapped = true;
+            }
+
             if (entityAgent.Api.Side == EnumAppSide.Client)
             {
-                return false;
+                if (action == EnumEntityAction.Sneak && on)
+                {
+                    long nowMs = entityAgent.World.ElapsedMilliseconds;
+                    long lastTapMs = entityAgent.Attributes.GetLong(LastSneakTapMsKey, 0);
+
+                    // Check last tap was in the past. If in the future then the server time has been reset.
+                    if (lastTapMs < nowMs)
+                    {
+                        if (nowMs - lastTapMs < DoubleTapThresholdMs)
+                        {
+                            // Double tap detected
+                            doubleTapped = true;
+                            var carrySystem = entityAgent.Api.ModLoader.GetModSystem<CarrySystem>();
+                            if (carrySystem?.ClientChannel == null)
+                            {
+                                entityAgent.Api.Logger.Error("CarrySystem ClientChannel is null");
+                                return false;
+                            }
+                            carrySystem.ClientChannel.SendPacket(new PlayerAttributeUpdateMessage(DoubleTappedAttributeKey, true, false));
+                        }
+                    }
+
+                    entityAgent.Attributes.SetLong(LastSneakTapMsKey, nowMs);
+                }
             }
 
-            // Only check for Sneak key down
-            if (action == EnumEntityAction.Sneak && on)
+            if (doubleTapped)
             {
-                long nowMs = entityAgent.World.ElapsedMilliseconds;
-                long lastTapMs = entityAgent.Attributes.GetLong(DoubleTapSneakState.LastSneakTapMsKey, 0);
-
-                // Check last tap was in the past. If in the future then the server time has been reset.
-                if (lastTapMs < nowMs)
+                // If double tapped, stop all movement and prevent further processing
+                if (entityAgent.Api.Side == EnumAppSide.Server)
                 {
-                    if (nowMs - lastTapMs < DoubleTapSneakState.DoubleTapThresholdMs)
-                    {
-                        // Double tap detected
-                        entityAgent.Api.Logger.Debug($"Double tap detected for seat interaction {nowMs - lastTapMs}");
-                        entityAgent.Attributes.SetLong(DoubleTapSneakState.LastSneakTapMsKey, nowMs); // Reset
-                        //handled = EnumHandling.PassThrough;
-                        entityAgent.TryUnmount();
-                        __instance.controls.StopAllMovement();
-                    }
+                    entityAgent.Attributes.RemoveAttribute(DoubleTappedAttributeKey);
                 }
 
-                entityAgent.Attributes.SetLong(DoubleTapSneakState.LastSneakTapMsKey, nowMs);
+                entityAgent.TryUnmount();
+                __instance.controls.StopAllMovement();
             }
+
             return false; // Skips original method execution
         }
     }

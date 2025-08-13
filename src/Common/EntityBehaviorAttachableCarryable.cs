@@ -6,61 +6,36 @@ using Vintagestory.API.MathTools;
 using Vintagestory.API.Util;
 using Vintagestory.GameContent;
 using CarryOn.API.Common;
-using CarryOn.Common.Network;
-using System.Diagnostics;
 
 namespace CarryOn.Common
 {
 
-    public class AttachCarryInteraction
-    {
-        public float TimeHeld { get; set; }
-        public bool IsHeld { get; set; }
-        public bool WasReleased { get; set; }
-
-        public int SlotIndex { get; set; }
-        public ItemSlot Slot { get; set; }
-
-        public EntityAgent ByEntity { get; set; }
-
-    }
-
     public class EntityBehaviorAttachableCarryable : EntityBehavior, ICustomInteractionHelpPositioning
     {
 
-        private ICoreAPI Api;
+        public readonly ICoreAPI Api;
 
-        private CarrySystem CarrySystem { get; }
-
-        private AttachCarryInteraction Interaction { get; }
 
         public EntityBehaviorAttachableCarryable(Entity entity) : base(entity)
         {
             Api = entity.World.Api;
-            CarrySystem = Api.ModLoader.GetModSystem<CarrySystem>();
-            Interaction = new AttachCarryInteraction
-            {
-                TimeHeld = 0.0F,
-                IsHeld = false,
-                WasReleased = true
-            };
         }
 
         private EntityBehaviorAttachable _behaviorAttachable;
 
-        private int GetSlotIndex(int selBoxIndex)
+        public int GetSlotIndex(int selBoxIndex)
         {
             if (selBoxIndex <= 0) return 0;
             _behaviorAttachable ??= entity.GetBehavior<EntityBehaviorAttachable>();
             return _behaviorAttachable.GetSlotIndexFromSelectionBoxIndex(selBoxIndex - 1);
         }
 
-        private ItemSlot GetItemSlot(int slotIndex)
+        public ItemSlot GetItemSlot(int slotIndex)
         {
             return (slotIndex >= 0 && slotIndex < _behaviorAttachable?.Inventory.Count) ? _behaviorAttachable?.Inventory[slotIndex] : null;
         }
 
-        private bool IsItemSlotEmpty(ItemSlot itemSlot)
+        public bool IsItemSlotEmpty(ItemSlot itemSlot)
         {
             if (itemSlot != null)
             {
@@ -69,144 +44,6 @@ namespace CarryOn.Common
             return false;
         }
 
-        public override void OnInteract(EntityAgent byEntity, ItemSlot itemslot, Vec3d hitPosition, EnumInteractMode mode, ref EnumHandling handled)
-        {
-            // Fall back to default interaction only when CarryOn is disabled
-            if (!CarrySystem.CarryHandler.IsCarryOnEnabled)
-            {
-                base.OnInteract(byEntity, itemslot, hitPosition, mode, ref handled);
-                return;
-            }
-
-            //TODO: prevent spinner if player cannot pickup or putdown block
-
-            var byPlayer = byEntity as EntityPlayer;
-            if (byPlayer == null) return;
-            int selBoxIndex = byPlayer?.EntitySelection?.SelectionBoxIndex ?? -1;
-            int slotIndex = GetSlotIndex(selBoxIndex);
-            var slot = GetItemSlot(slotIndex);
-
-            if (Api.Side == EnumAppSide.Server)
-            {
-                if (IsItemSlotEmpty(slot) && byEntity.GetCarried(CarrySlot.Hands) == null) return;
-                if (byEntity.IsCarryKeyHeld()) handled = EnumHandling.PreventSubsequent;
-                return;
-            }
-
-            if (!CarrySystem.CarryHandler.IsCarryKeyPressed(true))
-            {
-                Interaction.WasReleased = true;
-            }
-
-            // Exit here and allow OnGameTick to handle the pickup interaction
-            if (!Interaction.WasReleased)
-            {
-                handled = EnumHandling.PreventSubsequent;
-                return;
-            }
-
-            // If the slot is empty and the player is not carrying anything, or not ready to do carry action then exit early
-            if ((IsItemSlotEmpty(slot) && byEntity.GetCarried(CarrySlot.Hands) == null) || !byEntity.CanDoCarryAction(true)) return;
-            handled = EnumHandling.PreventSubsequent;
-            if (mode == EnumInteractMode.Interact && CarrySystem.CarryHandler.IsCarryKeyPressed())
-            {
-                var entityPlayer = byEntity as EntityPlayer;
-                var inventory = entityPlayer.Player.InventoryManager.OpenedInventories.Find(f => f.InventoryID == $"mountedbaginv-{slotIndex}-{entity.EntityId}");
-                if (inventory != null) entityPlayer.Player.InventoryManager.CloseInventory(inventory);
-
-                var carried = entityPlayer.GetCarried(CarrySlot.Hands);
-
-                if (slot == null) return;
-
-                if ((slot.Empty && carried == null) || (!slot.Empty && carried != null))
-                {
-                    return;
-                }
-
-                Interaction.SlotIndex = slotIndex;
-                Interaction.Slot = slot;
-                Interaction.ByEntity = byEntity;
-                Interaction.TimeHeld = 0.0F;
-                Interaction.IsHeld = true;
-                Interaction.WasReleased = false;
-                return;
-            }
-            else
-            {
-                Interaction.WasReleased = true;
-                handled = EnumHandling.PassThrough;
-
-            }
-            if (mode == EnumInteractMode.Interact && CarrySystem.ClientAPI.Input.IsHotKeyPressed("sneak"))
-            {
-
-                handled = EnumHandling.PreventDefault;
-            }
-            base.OnInteract(byEntity, itemslot, hitPosition, mode, ref handled);
-        }
-
-        public override void OnGameTick(float deltaTime)
-        {
-
-            if (Api.Side == EnumAppSide.Server || !CarrySystem.CarryHandler.IsCarryOnEnabled) return;
-
-            if (!Interaction.WasReleased)
-            {
-
-                var interactHeld = CarrySystem.CarryHandler.IsCarryKeyPressed(true);
-
-                if (!interactHeld)
-                {
-                    Interaction.WasReleased = true;
-                    CancelInteraction(true);
-                    return;
-                }
-
-            }
-            if (Interaction.Slot == null || !Interaction.IsHeld) return;
-
-            Interaction.TimeHeld += deltaTime;
-            var progress = Interaction.TimeHeld / CarrySystem.InteractSpeedDefault;
-
-            CarrySystem.HudOverlayRenderer.CircleProgress = progress;
-
-            if (progress <= 1.0F) return;
-
-            var attachedListener = Interaction.Slot?.Itemstack?.Collectible?.GetCollectibleInterface<IAttachedListener>();
-
-            if (Interaction.Slot.Empty)
-            {
-                // Try to place block on boat
-                CarrySystem.ClientChannel.SendPacket(new AttachMessage(entity.EntityId, Interaction.SlotIndex));
-                attachedListener?.OnAttached(Interaction.Slot, Interaction.SlotIndex, entity, Interaction.ByEntity);
-                OnAttachmentToggled(Interaction.ByEntity, Interaction.Slot);
-            }
-            else
-            {
-                // Try to pickup block from boat
-                CarrySystem.ClientChannel.SendPacket(new DetachMessage(entity.EntityId, Interaction.SlotIndex));
-                attachedListener?.OnDetached(Interaction.Slot, Interaction.SlotIndex, entity, Interaction.ByEntity);
-                OnAttachmentToggled(Interaction.ByEntity, Interaction.Slot);
-
-                // Clear cached inventory
-                // TODO: Does this need to be updated on other players?
-                ClearCachedSlotStorage(Api, Interaction.SlotIndex, Interaction.Slot, entity);
-            }
-
-            CancelInteraction();
-        }
-
-
-        public void CancelInteraction(bool resetTimeHeld = false)
-        {
-            if (Api.Side == EnumAppSide.Client)
-            {
-                CarrySystem.HudOverlayRenderer.CircleVisible = false;
-            }
-            Interaction.IsHeld = false;
-            Interaction.Slot = null;
-            if (resetTimeHeld) Interaction.TimeHeld = 0.0F;
-        }
 
         public static string Name { get; }
             = $"{CarrySystem.ModId}:attachablecarryable";
@@ -214,8 +51,6 @@ namespace CarryOn.Common
         public override string PropertyName() => Name;
 
         public bool TransparentCenter => false;
-
-
 
         public override WorldInteraction[] GetInteractionHelp(IClientWorldAccessor world, EntitySelection es, IClientPlayer player, ref EnumHandling handled)
         {
@@ -252,9 +87,6 @@ namespace CarryOn.Common
                 langCode = CarrySystem.ModId + ":blockhelp-attach";
             }
 
-
-            //  List<ItemStack> stacks = new List<ItemStack>();
-
             if (langCode == null) return null;
 
             return [ new WorldInteraction()
@@ -278,13 +110,25 @@ namespace CarryOn.Common
             return entity.GetBehavior<EntityBehaviorSelectionBoxes>().GetCenterPosOfBox(selebox)?.Add(0, 0.5, 0);
         }
 
-        private void OnAttachmentToggled(EntityAgent byEntity, ItemSlot itemslot)
+        public void OnAttachmentToggled(bool isAttached, EntityAgent byEntity, ItemSlot itemslot, int targetSlotIndex)
         {
-            var sound = itemslot.Itemstack?.Block?.Sounds.Place ?? new AssetLocation("sounds/player/build");
-            Api.World.PlaySoundAt(sound, entity, (byEntity as EntityPlayer).Player, true, 16);
+            // This will close the containers inventory on detach
+            var attachedListener = itemslot?.Itemstack?.Collectible?.GetCollectibleInterface<IAttachedListener>();
+            if (attachedListener != null)
+            {
+                if (isAttached)
+                    attachedListener.OnAttached(itemslot, targetSlotIndex, entity, byEntity);
+                else
+                    attachedListener.OnDetached(itemslot, targetSlotIndex, entity, byEntity);
+            }
+            
             entity.MarkShapeModified();
             // Tell server to save this chunk to disk again
             entity.World.BlockAccessor.GetChunkAtBlockPos(entity.ServerPos.AsBlockPos).MarkModified();
+            if (!isAttached)
+            {
+                ClearCachedSlotStorage(Api, targetSlotIndex, itemslot, entity);
+            }
         }
 
         public static void ClearCachedSlotStorage(ICoreAPI api, int slotIndex, ItemSlot slot, Entity targetEntity)
