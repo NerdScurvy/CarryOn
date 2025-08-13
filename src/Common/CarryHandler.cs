@@ -25,9 +25,9 @@ namespace CarryOn.Common
 
         public bool IsCarryOnEnabled { get; set; } = true;
 
-        private KeyCombination CarryKeyCombination { get; set; }
+        private KeyCombination CarryKeyCombination { get { return CarrySystem.ClientAPI.Input.HotKeys[PickupKeyCode]?.CurrentMapping; } }
 
-        private KeyCombination CarrySwapKeyCombination { get; set; }
+        private KeyCombination CarrySwapKeyCombination { get { return CarrySystem.ClientAPI.Input.HotKeys[SwapBackModifierKeyCode]?.CurrentMapping; } }
 
         private CarrySystem CarrySystem { get; }
 
@@ -60,9 +60,6 @@ namespace CarryOn.Common
 
             cApi.Event.BeforeActiveSlotChanged +=
                 (_) => OnBeforeActiveSlotChanged(CarrySystem.ClientAPI.World.Player.Entity);
-
-            CarryKeyCombination = input.HotKeys[PickupKeyCode]?.CurrentMapping;
-            CarrySwapKeyCombination = input.HotKeys[SwapBackModifierKeyCode]?.CurrentMapping;
         }
 
 

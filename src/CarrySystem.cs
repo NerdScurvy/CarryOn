@@ -9,7 +9,6 @@ using CarryOn.Common.Network;
 using CarryOn.Server;
 using CarryOn.Utility;
 using HarmonyLib;
-using HarmonyLib;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Server;
@@ -18,11 +17,11 @@ using Vintagestory.GameContent;
 
 [assembly: ModInfo("Carry On",
     modID: "carryon",
-    Version = "1.10.0-rc.1",
+    Version = "1.10.0-rc.2",
     Description = "Adds the capability to carry various things",
     Website = "https://github.com/NerdScurvy/CarryOn",
     Authors = new[] { "copygirl", "NerdScurvy" })]
-[assembly: ModDependency("game", "1.21.0-rc.1")]
+[assembly: ModDependency("game", "1.21.0-rc.4")]
 
 namespace CarryOn
 {
@@ -214,12 +213,12 @@ namespace CarryOn
                         break;
                     }
                 }
-                block.BlockBehaviors = RemoveOveriddenCarryableBehaviours(block.BlockBehaviors.OfType<CollectibleBehavior>().ToArray(), removeBaseBehavior).OfType<BlockBehavior>().ToArray();
-                block.CollectibleBehaviors = RemoveOveriddenCarryableBehaviours(block.CollectibleBehaviors, removeBaseBehavior);
+                block.BlockBehaviors = RemoveOverriddenCarryableBehaviours(block.BlockBehaviors.OfType<CollectibleBehavior>().ToArray(), removeBaseBehavior).OfType<BlockBehavior>().ToArray();
+                block.CollectibleBehaviors = RemoveOverriddenCarryableBehaviours(block.CollectibleBehaviors, removeBaseBehavior);
             }
         }
 
-        private CollectibleBehavior[] RemoveOveriddenCarryableBehaviours(CollectibleBehavior[] behaviours, bool removeBaseBehavior = false)
+        private CollectibleBehavior[] RemoveOverriddenCarryableBehaviours(CollectibleBehavior[] behaviours, bool removeBaseBehavior = false)
         {
             var behaviourList = behaviours.ToList();
             var carryableList = FindCarryables(behaviourList);
