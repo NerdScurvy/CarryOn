@@ -77,6 +77,7 @@ namespace CarryOn.Common
                 .SetMessageHandler<AttachMessage>(OnAttachMessage)
                 .SetMessageHandler<DetachMessage>(OnDetachMessage)
                 .SetMessageHandler<QuickDropMessage>(OnQuickDropMessage)
+                .SetMessageHandler<DismountMessage>(OnDismountMessage)
                 .SetMessageHandler<PlayerAttributeUpdateMessage>(OnPlayerAttributeUpdateMessage);
 
             CarrySystem.ServerAPI.Event.OnEntitySpawn += OnServerEntitySpawn;
@@ -84,6 +85,18 @@ namespace CarryOn.Common
 
             CarrySystem.ServerAPI.Event.BeforeActiveSlotChanged +=
                 (player, _) => OnBeforeActiveSlotChanged(player.Entity);
+        }
+
+        private void OnDismountMessage(IServerPlayer player, DismountMessage message)
+        {
+
+            player.Entity.TryUnmount();
+
+            player.Entity.World.GetEntityById(message.EntityId)?
+                .GetBehavior<EntityBehaviorCreatureCarrier>()?
+                .Seats?.FirstOrDefault(s => s.SeatId == message.SeatId)?
+                .Controls?.StopAllMovement();
+
         }
 
         private void OnPlayerAttributeUpdateMessage(IServerPlayer player, PlayerAttributeUpdateMessage message)
@@ -103,20 +116,6 @@ namespace CarryOn.Common
                 else
                 {
                     playerEntity.WatchedAttributes.RemoveAttribute(message.AttributeKey);
-                }
-
-                return;
-            }
-
-            if (message.AttributeKey == DoubleTappedAttributeKey && !message.IsWatchedAttribute)
-            {
-                if (message.BoolValue.HasValue)
-                {
-                    playerEntity.Attributes.SetBool(message.AttributeKey, message.BoolValue.Value);
-                }
-                else
-                {
-                    playerEntity.Attributes.RemoveAttribute(message.AttributeKey);
                 }
 
                 return;

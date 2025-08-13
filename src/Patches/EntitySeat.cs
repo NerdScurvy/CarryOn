@@ -19,14 +19,7 @@ namespace CarryOn.Patches
 
             if (!entityAgent.WatchedAttributes.GetBool(DoubleTapDismountEnabledAttributeKey, false))
             {
-                return true; // Skip if double tap dismount is not enabled
-            }
-
-            bool doubleTapped = false;
-
-            if (entityAgent.Api.Side == EnumAppSide.Server && entityAgent.Attributes.GetBool(DoubleTappedAttributeKey, false))
-            {
-                doubleTapped = true;
+                return true; // return to normal behavior
             }
 
             if (entityAgent.Api.Side == EnumAppSide.Client)
@@ -39,34 +32,36 @@ namespace CarryOn.Patches
                     // Check last tap was in the past. If in the future then the server time has been reset.
                     if (lastTapMs < nowMs)
                     {
-                        if (nowMs - lastTapMs < DoubleTapThresholdMs)
+                        if (nowMs - lastTapMs < DoubleTapThresholdMs && nowMs - lastTapMs > 50)
                         {
                             // Double tap detected
-                            doubleTapped = true;
                             var carrySystem = entityAgent.Api.ModLoader.GetModSystem<CarrySystem>();
                             if (carrySystem?.ClientChannel == null)
                             {
                                 entityAgent.Api.Logger.Error("CarrySystem ClientChannel is null");
                                 return false;
                             }
-                            carrySystem.ClientChannel.SendPacket(new PlayerAttributeUpdateMessage(DoubleTappedAttributeKey, true, false));
+                            var entityId = __instance.Entity.EntityId;
+                            var seatId = __instance.SeatId;
+                            
+                            entityAgent.TryUnmount();
+                            __instance.controls.StopAllMovement();
+                                                        
+                            carrySystem.ClientChannel.SendPacket(new DismountMessage() { EntityId = entityId, SeatId = seatId });
+
+                            // Log the dismount action
+                            entityAgent.Api.Logger.Debug($"Entity {entityAgent.GetName()} double-tapped to dismount from seat {seatId} on entity {entityId}.");
+                        }
+                        else
+                        {
+                            // Single tap, just update the last tap time
+                            entityAgent.Attributes.SetLong(LastSneakTapMsKey, nowMs);
+
                         }
                     }
 
                     entityAgent.Attributes.SetLong(LastSneakTapMsKey, nowMs);
                 }
-            }
-
-            if (doubleTapped)
-            {
-                // If double tapped, stop all movement and prevent further processing
-                if (entityAgent.Api.Side == EnumAppSide.Server)
-                {
-                    entityAgent.Attributes.RemoveAttribute(DoubleTappedAttributeKey);
-                }
-
-                entityAgent.TryUnmount();
-                __instance.controls.StopAllMovement();
             }
 
             return false; // Skips original method execution

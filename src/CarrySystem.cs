@@ -52,8 +52,6 @@ namespace CarryOn
 
         public static readonly string DoubleTapDismountEnabledAttributeKey = ModId + ":DoubleTapDismountEnabled";
 
-        public static readonly string DoubleTappedAttributeKey = ModId + ":DoubleTapped";
-
         public static readonly string LastSneakTapMsKey = ModId + ":LastSneakTapMs";
         public static readonly int DoubleTapThresholdMs = 500;
 
@@ -129,6 +127,7 @@ namespace CarryOn
                 .RegisterMessageType<AttachMessage>()
                 .RegisterMessageType<DetachMessage>()
                 .RegisterMessageType<QuickDropMessage>()
+                .RegisterMessageType<DismountMessage>()
                 .RegisterMessageType<PlayerAttributeUpdateMessage>();
 
             EntityCarryRenderer = new EntityCarryRenderer(api);
@@ -151,6 +150,7 @@ namespace CarryOn
                 .RegisterMessageType<AttachMessage>()
                 .RegisterMessageType<DetachMessage>()
                 .RegisterMessageType<QuickDropMessage>()
+                .RegisterMessageType<DismountMessage>()
                 .RegisterMessageType<PlayerAttributeUpdateMessage>();
 
             DeathHandler = new DeathHandler(api);
