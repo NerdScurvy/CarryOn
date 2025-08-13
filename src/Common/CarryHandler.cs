@@ -482,7 +482,7 @@ namespace CarryOn.Common
 
                             failureCode = parameters[failureCodeParam] as string;
                             onScreenErrorMessage = parameters[onScreenErrorMessageParam] as string;
-                                                
+
                         }
                         catch (Exception e)
                         {
@@ -491,10 +491,7 @@ namespace CarryOn.Common
                             onScreenErrorMessage = Lang.Get(CarrySystem.ModId + ":unknown-error");
                             return false;
                         }
-                        if (result)
-                        {
-                            return true;
-                        }
+                        return result;
 
                     }
                 }
@@ -530,7 +527,7 @@ namespace CarryOn.Common
                     onScreenErrorMessage = Lang.Get(CarrySystem.ModId + ":unknown-error");
                     return false;
                 }
-                else                
+                else
                 {
                     var transferBehavior = blockEntity.Block?.BlockBehaviors.FirstOrDefault(b => b.GetType().Name == carryableBehavior.TransferHandlerBehavior);
 
@@ -564,10 +561,7 @@ namespace CarryOn.Common
                         onScreenErrorMessage = Lang.Get(CarrySystem.ModId + ":unknown-error");
                         return false;
                     }
-                    if (result)
-                    {
-                        return true;
-                    }
+                    return result;
                 }
 
             }
@@ -608,18 +602,47 @@ namespace CarryOn.Common
             {
                 if (!CanTakeCarryable(player, blockEntity, selection.SelectionBoxIndex, out failureCode, out onScreenErrorMessage))
                 {
-                    if (failureCode is "continue")
-                    {
-                        // Allow next level of carry behavior interaction
-                        return false;
-                    }
                     if (onScreenErrorMessage != null)
                     {
-                        CarrySystem.ClientAPI.TriggerIngameError("carryon", failureCode, onScreenErrorMessage);
+                        // If error message then send to display then stop all other actions
+                        CarrySystem.ClientAPI.TriggerIngameError(ModId, failureCode, onScreenErrorMessage);
+                        CompleteInteraction();
+                        handled = EnumHandling.PreventDefault;
+                        return true;
                     }
+
+                    // Skip further CarryOn interactions and perform default handling
+                    if (failureCode is "__default__")
+                    {
+                        CompleteInteraction();
+                        return true;
+                    }
+
+                    if (failureCode is "__stop__")
+                    {
+                        // Skip further CarryOn interactions and prevent default handling
+                        handled = EnumHandling.PreventDefault;
+                        CompleteInteraction();
+                        return true;
+                    }
+
+                    // Allow next level of carry behavior interaction
+                    return false;
+                }
+
+                if (failureCode is "__default__")
+                {
                     CompleteInteraction();
                     return true;
                 }
+
+                if (failureCode is "__stop__")
+                {
+                    CompleteInteraction();
+                    handled = EnumHandling.PreventDefault;
+                    return true;
+                }
+
                 CarrySystem.Api.Logger.Debug($"CanTakeCarryable returned true");
                 Interaction.CarryAction = CarryAction.Take;
                 Interaction.SelectedBlockPos = selection.Position;
@@ -631,18 +654,47 @@ namespace CarryOn.Common
             {
                 if (!CanPutCarryable(player, blockEntity, selection.SelectionBoxIndex, out failureCode, out onScreenErrorMessage))
                 {
-                    if (failureCode is "continue")
-                    {
-                        // Allow next level of carry behavior interaction
-                        return false;
-                    }
                     if (onScreenErrorMessage != null)
                     {
-                        CarrySystem.ClientAPI.TriggerIngameError("carryon", failureCode, onScreenErrorMessage);
-                    }                                        
+                        // If error message then send to display then stop all other actions
+                        CarrySystem.ClientAPI.TriggerIngameError(ModId, failureCode, onScreenErrorMessage);
+                        CompleteInteraction();
+                        handled = EnumHandling.PreventDefault;
+                        return true;
+                    }
+
+                    // Skip further CarryOn interactions and perform default handling
+                    if (failureCode is "__default__")
+                    {
+                        CompleteInteraction();
+                        return true;
+                    }
+
+                    if (failureCode is "__stop__")
+                    {
+                        // Skip further CarryOn interactions and prevent default handling
+                        handled = EnumHandling.PreventDefault;
+                        CompleteInteraction();
+                        return true;
+                    }
+
+                    // Allow next level of carry behavior interaction
+                    return false;
+                }
+
+                if (failureCode is "__default__")
+                {
                     CompleteInteraction();
                     return true;
                 }
+
+                if (failureCode is "__stop__")
+                {
+                    CompleteInteraction();
+                    handled = EnumHandling.PreventDefault;
+                    return true;
+                }
+
                 CarrySystem.Api.Logger.Debug($"CanPutCarryable returned true");
                 Interaction.CarryAction = CarryAction.Put;
                 Interaction.SelectedBlockPos = selection.Position;
@@ -674,7 +726,7 @@ namespace CarryOn.Common
                 // Other actions, which are prevented while holding something.
                 case EnumEntityAction.InWorldLeftMouseDown:
                     isInteract = false;
-                    break;                
+                    break;
                 case EnumEntityAction.Sprint:
                     if (ModConfig.AllowSprintWhileCarrying) return;
                     isInteract = false;
@@ -826,7 +878,7 @@ namespace CarryOn.Common
             }
 
             requiredTime /= ModConfig.InteractSpeedMultiplier > 0 ? ModConfig.InteractSpeedMultiplier : 1.0f;
-            
+
             Interaction.TimeHeld += deltaTime;
             var progress = Interaction.TimeHeld / requiredTime;
             CarrySystem.HudOverlayRenderer.CircleProgress = progress;
@@ -889,30 +941,50 @@ namespace CarryOn.Common
                         Index = Interaction?.TargetSlotIndex
                     };
 
+                    // Call Client side
                     if (!TryPutCarryable(player, putMessage, out failureCode, out onScreenErrorMessage))
                     {
-                        if (failureCode != "continue")
+                        if (failureCode != "__continue__")
                         {
                             if (onScreenErrorMessage != null)
                             {
-                                CarrySystem.ClientAPI.TriggerIngameError(CarrySystem.ModId, failureCode, onScreenErrorMessage);
+                                CarrySystem.ClientAPI.TriggerIngameError(ModId, failureCode, onScreenErrorMessage);
                             }
                             CarrySystem.Api.Logger.Debug($"Failed client side: {failureCode} : {onScreenErrorMessage}");
-
                             break;
                         }
-
                     }
 
+                    if (failureCode == "__stop__") break;
+                    // Call Server side
                     CarrySystem.ClientChannel.SendPacket(putMessage);
                     break;
+
                 case CarryAction.Take:
-//TODO: TryTakeCarryable call on client side first.
-                    CarrySystem.ClientChannel.SendPacket(new TakeMessage()
+                    var takeMessage = new TakeMessage()
                     {
                         BlockPos = Interaction.SelectedBlockPos,
                         Index = Interaction?.TargetSlotIndex
-                    });
+                    };
+
+                    // Call Client side
+                    if (!TryTakeCarryable(player, takeMessage, out failureCode, out onScreenErrorMessage))
+                    {
+                        if (failureCode != "__continue__")
+                        {
+                            if (onScreenErrorMessage != null)
+                            {
+                                CarrySystem.ClientAPI.TriggerIngameError(ModId, failureCode, onScreenErrorMessage);
+                            }
+                                
+                            CarrySystem.Api.Logger.Debug($"Failed client side: {failureCode} : {onScreenErrorMessage}");
+                            break;
+                        }
+                    }
+
+                    if (failureCode == "__stop__") break;
+                    // Call Server side
+                    CarrySystem.ClientChannel.SendPacket(takeMessage);
                     break;
             }
 
@@ -1423,7 +1495,6 @@ namespace CarryOn.Common
                 CarriedBlock.Remove(player.Entity, CarrySlot.Hands);
 
                 return true;
-
             }
             return false;
         }
@@ -1487,7 +1558,7 @@ namespace CarryOn.Common
                 CarrySystem.Api.Logger.Error("TryTakeCarryable: No block entity found at position");
                 return false;
             }
-            
+
             ItemStack itemStack = null;
             ITreeAttribute blockEntityData = null;
 

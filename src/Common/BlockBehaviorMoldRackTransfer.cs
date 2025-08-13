@@ -14,38 +14,48 @@ namespace CarryOn.Common
         {
         }
 
+        /// <summary>
+        /// Checks if an item can be put into the mold rack.
+        /// </summary>
+        /// <param name="player"></param>
+        /// <param name="blockEntity"></param>
+        /// <param name="index">Index of the slot in the rack</param>
+        /// <param name="itemStack">Item stack to put into the mold rack</param>
+        /// <param name="blockEntityData">Block Entity Data for the carried itemStack</param>
+        /// <param name="failureCode">
+        ///     Used to define error codes or control codes for the interaction.
+        ///         __stop__ - Stop all further CarryOn interactions and default handling
+        ///         __default__ - Stop all further CarryOn interactions and continue with default handling
+        /// </param>
+        /// <param name="onScreenErrorMessage"></param>
+        /// <returns>
+        ///     True if the item can be put into the mold rack. Interaction Spinner will start and default handling will be prevented.
+        ///     False if not. CarryOn will display an error message if OnScreenErrorMessage is set. 
+        ///         Error message will stop further processing similar to the __stop__ code.
+        ///         CarryOn can be directed to stop all further interactions if failureCode is set to "__stop__". 
+        ///         Otherwise will continue checking CarryOn interactions.
+        /// </returns>
         public bool CanPutCarryable(IPlayer player, BlockEntity blockEntity, int index, ItemStack itemStack, TreeAttribute blockEntityData, out string failureCode, out string onScreenErrorMessage)
         {
             failureCode = null;
-            onScreenErrorMessage = null;  
+            onScreenErrorMessage = null;
 
             var moldRack = blockEntity as BlockEntityMoldRack;
-            if (moldRack == null )
+            if (moldRack == null || index < 0 || index >= moldRack.Inventory.Count || moldRack?.Inventory?[index]?.Empty == true)
             {
-                failureCode = "invalid-blockentity";
+                // Nothing to take - tell the caller to continue to the next interaction 
                 return false;
             }
-
-            if (index < 0 || index >= moldRack.Inventory.Count)
-            {
-                failureCode = "invalid-index";
-                return false;
-            }
-
-            var sinkSlot = moldRack.Inventory[index];
-            if (!sinkSlot.Empty)
-            {
-                failureCode = "slot-not-empty";
-                return false;
-            }         
 
             var world = player.Entity.Api.World;
 
             var blockName = block.GetPlacedBlockName(world, blockEntity.Pos);
-            var collAtrib = itemStack?.Collectible?.Attributes;
-            var moldRackable = collAtrib?["moldrackable"]?.AsBool() ?? false;
-            if(!moldRackable){
-                failureCode = "put-block-incompatible";                
+
+            var moldRackable = itemStack?.Collectible?.Attributes?["moldrackable"]?.AsBool() ?? false;
+
+            if (!moldRackable)
+            {
+                failureCode = "put-block-incompatible";
                 onScreenErrorMessage = $"Cannot put carried block in {blockName}";
                 return false;
             }
@@ -72,6 +82,21 @@ namespace CarryOn.Common
             return true;
         }
 
+        /// <summary>
+        /// Checks if an item can be taken from the mold rack.
+        /// </summary>
+        /// <param name="player"></param>
+        /// <param name="blockEntity"></param>
+        /// <param name="index"></param>
+        /// <param name="failureCode"></param>
+        /// <param name="onScreenErrorMessage"></param>
+        /// <returns>
+        ///     True if the item can be taken from the mold rack. Interaction Spinner will start and default handling will be prevented.
+        ///     False if not. CarryOn will display an error message if OnScreenErrorMessage is set.
+        ///         Error message will stop further processing similar to the __stop__ code.
+        ///         CarryOn can be directed to stop all further interactions if failureCode is set to "__stop__". 
+        ///         Otherwise will continue checking CarryOn interactions.
+        /// </returns>
         public bool CanTakeCarryable(IPlayer player, BlockEntity blockEntity, int index, out string failureCode, out string onScreenErrorMessage)
         {
             failureCode = null;
@@ -85,32 +110,44 @@ namespace CarryOn.Common
             if (moldRack == null || index < 0 || index >= moldRack.Inventory.Count || sourceSlot?.Empty == true)
             {
                 // Nothing to take - tell the caller to continue to the next interaction (pickup the rack if carryable)
-                failureCode = "continue";
                 return false;
             }
 
             if (!HasBehavior(sourceSlot.Itemstack.Block, "BlockBehaviorCarryable"))
             {
-                // Item in slot is not carryable 
-                // Returning false will stop the carryon interactions and actions will flow to the block entity interaction
-                // In this case it is likely a shield - player will pick it up normally.
-                
+                // Item in slot is not carryable - skip further CarryOn interactions and allow default handling
+                // If the item in the slot is a shield then pick it up normally
+                failureCode = "__default__";
+
                 return false;
-            }            
+            }
             return true;
         }
 
+
+        /// <summary>
+        /// Try to put carried item into the mold rack.
+        /// </summary>
+        /// <param name="player"></param>
+        /// <param name="blockEntity"></param>
+        /// <param name="index"></param>
+        /// <param name="itemstack"></param>
+        /// <param name="blockEntityData"></param>
+        /// <param name="failureCode"></param>
+        /// <param name="onScreenErrorMessage"></param>
+        /// <returns></returns>
         public bool TryPutCarryable(IPlayer player, BlockEntity blockEntity, int index, ItemStack itemstack, TreeAttribute blockEntityData, out string failureCode, out string onScreenErrorMessage)
         {
 
-            if (!CanPutCarryable(player, blockEntity, index, itemstack, blockEntityData, out failureCode, out onScreenErrorMessage)) {
-                return false;    
+            if (!CanPutCarryable(player, blockEntity, index, itemstack, blockEntityData, out failureCode, out onScreenErrorMessage))
+            {
+                return false;
             }
 
             if (player.Entity.Api.Side == EnumAppSide.Client)
             {
                 // Prevent transfer on client side but tell to continue server side
-                failureCode = "continue";
+                failureCode = "__continue__";
                 return false;
             }
 
@@ -129,21 +166,31 @@ namespace CarryOn.Common
             return true;
         }
 
+        /// <summary>
+        /// Try to take item from the mold rack to be carried.
+        /// </summary>
+        /// <param name="player"></param>
+        /// <param name="blockEntity"></param>
+        /// <param name="index"></param>
+        /// <param name="itemstack"></param>
+        /// <param name="blockEntityData"></param>
+        /// <param name="failureCode"></param>
+        /// <param name="onScreenErrorMessage"></param>
+        /// <returns></returns>
         public bool TryTakeCarryable(IPlayer player, BlockEntity blockEntity, int index, out ItemStack itemstack, out TreeAttribute blockEntityData, out string failureCode, out string onScreenErrorMessage)
         {
             itemstack = null;
             blockEntityData = null;
-            
+
             if (!CanTakeCarryable(player, blockEntity, index, out failureCode, out onScreenErrorMessage))
             {
                 return false;
-            }            
+            }
 
             if (player.Entity.Api.Side == EnumAppSide.Client)
             {
                 // Prevent transfer on client side but tell to continue server side
-                // TODO: Map out the process behavior and what specific failure codes are handled or treated as control codes
-                failureCode = "continue";
+                failureCode = "__continue__";
                 return false;
             }
 
@@ -165,7 +212,7 @@ namespace CarryOn.Common
 
         private bool HasBehavior(Block block, string behaviorClassName)
         {
-            return block?.BlockBehaviors.Any(b => b.GetType().Name == behaviorClassName) ?? false;
+            return block?.BlockBehaviors?.Any(b => b.GetType().Name == behaviorClassName) ?? false;
         }
     }
 }
