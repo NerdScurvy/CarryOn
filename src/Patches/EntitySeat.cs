@@ -22,6 +22,8 @@ namespace CarryOn.Patches
                 return true; // return to normal behavior
             }
 
+            if (action != EnumEntityAction.Sneak) return true; 
+
             if (entityAgent.Api.Side == EnumAppSide.Client)
             {
                 if (action == EnumEntityAction.Sneak && on)
@@ -43,10 +45,10 @@ namespace CarryOn.Patches
                             }
                             var entityId = __instance.Entity.EntityId;
                             var seatId = __instance.SeatId;
-                            
+
                             entityAgent.TryUnmount();
                             __instance.controls.StopAllMovement();
-                                                        
+
                             carrySystem.ClientChannel.SendPacket(new DismountMessage() { EntityId = entityId, SeatId = seatId });
 
                             // Log the dismount action
