@@ -61,6 +61,8 @@ namespace CarryOn.Common
 
         public bool PreventAttaching { get; private set; } = false;
 
+        public string TransferHandlerBehavior { get; private set; } = null;
+
         public BlockBehaviorCarryable(Block block)
             : base(block) { }
 
@@ -78,8 +80,12 @@ namespace CarryOn.Common
 
             if (JsonHelper.TryGetBool(properties, "preventAttaching", out var a)) PreventAttaching = a;
 
+            if (JsonHelper.TryGetString(properties, "TransferHandlerBehavior", out var c)) TransferHandlerBehavior = c;
+ 
             DefaultTransform = JsonHelper.GetTransform(properties, DefaultBlockTransform);
             Slots.Initialize(properties["slots"], DefaultTransform);
+            
+
         }
 
         public override WorldInteraction[] GetPlacedBlockInteractionHelp(

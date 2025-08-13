@@ -110,6 +110,7 @@ namespace CarryOn
             api.Register<BlockBehaviorCarryable>();
             api.Register<BlockBehaviorCarryableInteract>();
             api.Register<EntityBehaviorAttachableCarryable>();
+            api.Register<BlockBehaviorMoldRackTransfer>();
 
             CarryHandler = new CarryHandler(this);
             CarryEvents = new CarryEvents();
@@ -126,6 +127,8 @@ namespace CarryOn
                 .RegisterMessageType<SwapSlotsMessage>()
                 .RegisterMessageType<AttachMessage>()
                 .RegisterMessageType<DetachMessage>()
+                .RegisterMessageType<PutMessage>()
+                .RegisterMessageType<TakeMessage>()                
                 .RegisterMessageType<QuickDropMessage>()
                 .RegisterMessageType<DismountMessage>()
                 .RegisterMessageType<PlayerAttributeUpdateMessage>();
@@ -149,6 +152,8 @@ namespace CarryOn
                 .RegisterMessageType<SwapSlotsMessage>()
                 .RegisterMessageType<AttachMessage>()
                 .RegisterMessageType<DetachMessage>()
+                .RegisterMessageType<PutMessage>()
+                .RegisterMessageType<TakeMessage>()                  
                 .RegisterMessageType<QuickDropMessage>()
                 .RegisterMessageType<DismountMessage>()
                 .RegisterMessageType<PlayerAttributeUpdateMessage>();

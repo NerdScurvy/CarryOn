@@ -17,6 +17,16 @@ namespace CarryOn.Utility
             return true;
         }
 
+        public static bool TryGetString(JsonObject json, string key, out string result)
+        {
+            if (!json.KeyExists(key))
+            {
+                result = null;
+                return false;
+            }
+            result = json[key].AsString();
+            return result != null;
+        }        
         public static bool TryGetInt(JsonObject json, string key, out int result)
         {
             if (!json.KeyExists(key))

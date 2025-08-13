@@ -102,6 +102,12 @@ namespace CarryOn.API.Common
         public void Set(Entity entity, CarrySlot slot)
             => Set(entity, slot, ItemStack, BlockEntityData);
 
+        /// <summary> Stores this <see cref="CarriedBlock"/> as the
+        ///           specified entity's carried block in that slot. </summary>
+        /// <exception cref="ArgumentNullException"> Thrown if entity is null. </exception>
+        public void Set(Entity entity)
+            => Set(entity, Slot, ItemStack, BlockEntityData);
+
         /// <summary> Removes the <see cref="CarriedBlock"/>
         ///           carried by the specified entity in that slot. </summary>
         /// <exception cref="ArgumentNullException"> Thrown if entity is null. </exception>
