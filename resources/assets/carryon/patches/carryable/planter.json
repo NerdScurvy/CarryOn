@@ -1,9 +1,9 @@
 [
   {
-    "file": "game:blocktypes/clay/planter",
+    "file": "game:blocktypes/clay/fired/planter",
     "side": "Server",
     "op": "add",
-    "path": "/behaviorsByType/*/-",
+    "path": "/behaviors/-",
     "value": {
       "name": "Carryable",
       "properties": {

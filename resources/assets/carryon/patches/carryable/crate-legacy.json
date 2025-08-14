@@ -24,7 +24,7 @@
       }
     ],
     "condition": {
-      "when": "carryon:CrateLegacyEnabled",
+      "when": "carryon:CrateEnabled",
       "isValue": "true"
     }
   }

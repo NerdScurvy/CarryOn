@@ -1,6 +1,6 @@
 [
   {
-    "file": "game:blocktypes/metal/torchholder.json",
+    "file": "game:blocktypes/metal/torchholder",
     "side": "Server",
     "op": "add",
     "path": "/behaviors/-",

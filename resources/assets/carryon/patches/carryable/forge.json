@@ -1,6 +1,6 @@
 [
   {
-    "file": "game:blocktypes/stone/generic/forge.json",
+    "file": "game:blocktypes/stone/generic/forge",
     "side": "Server",
     "op": "add",
     "path": "/behaviors/-",

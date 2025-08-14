@@ -1,6 +1,6 @@
 [
   {
-    "file": "game:blocktypes/wood/shelf.json",
+    "file": "game:blocktypes/wood/shelf",
     "side": "Server",
     "op": "add",
     "path": "/behaviors/-",
