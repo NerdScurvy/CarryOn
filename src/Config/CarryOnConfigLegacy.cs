@@ -166,7 +166,6 @@ namespace CarryOn.Config
             // Interactables
             newConfig.Interactables.Door = InteractDoorEnabled;
             newConfig.Interactables.Storage = InteractStorageEnabled;
-            newConfig.Interactables.Barrel = BarrelEnabled;
 
             // Carry Options
             newConfig.CarryOptions.AllowChestTrunksOnBack = AllowChestTrunksOnBack;
