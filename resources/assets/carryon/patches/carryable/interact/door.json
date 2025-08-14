@@ -42,7 +42,7 @@
     } 
   },
   {
-    "file": "game:blocktypes/metal/cokeovendoor",
+    "file": "game:blocktypes/clay/door-kiln",
     "side": "Server",
     "op": "add",
     "path": "/behaviors/-",

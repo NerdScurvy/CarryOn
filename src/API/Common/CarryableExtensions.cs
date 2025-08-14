@@ -4,9 +4,8 @@ using System.Collections.Generic;
 using System.Linq;
 using CarryOn.API.Event;
 using CarryOn.Common;
-using CarryOn.Server;
+using CarryOn.Config;
 using CarryOn.Utility;
-using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
 using Vintagestory.API.Datastructures;
@@ -143,6 +142,7 @@ namespace CarryOn.API.Common
             var api = entity.Api;
             var world = entity.World;
             var blockAccessor = world.BlockAccessor;
+            var nonGroundBlockClasses = ModConfig.ServerConfig?.DroppedBlockOptions?.NonGroundBlockClasses ?? [];
 
             // TODO: Handle multiblocks properly
 
@@ -186,7 +186,7 @@ namespace CarryOn.API.Common
             {
                 var testBlock = blockAccessor.GetBlock(blockBelow);
                 // Check if block is air or defined set of non-ground blocks
-                if (testBlock.BlockId == 0 || ModConfig.ServerConfig.NonGroundBlockClasses.Contains(testBlock.Class))
+                if (testBlock.BlockId == 0 || (nonGroundBlockClasses?.Contains(testBlock.Class) ?? false))
                 {
                     centerBlock = blockBelow;
                     blockBelow = blockBelow.DownCopy();
@@ -222,7 +222,7 @@ namespace CarryOn.API.Common
                 }
             }
 
-            nearbyBlocks = nearbyBlocks.OrderBy(b => b.DistanceTo(centerBlock)).ToList();
+            nearbyBlocks = [.. nearbyBlocks.OrderBy(b => b.DistanceTo(centerBlock))];
 
             var blockIndex = 0;
             var distance = 0;
@@ -301,7 +301,7 @@ namespace CarryOn.API.Common
                     var sign = Math.Sign(pos.Y - centerBlock.Y);
                     var testBlock = blockAccessor.GetBlock(pos);
                     // Record known air blocks and non ground blocks
-                    if (testBlock.BlockId == 0 || ModConfig.ServerConfig.NonGroundBlockClasses.Contains(testBlock.Class))
+                    if (testBlock.BlockId == 0 || (nonGroundBlockClasses?.Contains(testBlock.Class) ?? false))
                     {
                         airBlocks.Add(pos.Copy());
                     }

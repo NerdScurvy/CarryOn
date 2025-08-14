@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using CarryOn.API.Common;
 using CarryOn.Common.Network;
+using CarryOn.Config;
 using CarryOn.Utility;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
@@ -399,9 +400,10 @@ namespace CarryOn.Common
                         handled = EnumHandling.PreventDefault;
                         return true;
                     }
-                    Interaction.TargetBlockPos = GetPlacedPosition(world, selection, carriedHands.Block);
-                    if (Interaction.TargetBlockPos == null) return true;
+                    var blockPos = GetPlacedPosition(world, selection, carriedHands.Block);
+                    if (blockPos == null) return true;
 
+                    Interaction.TargetBlockPos = blockPos;
                     Interaction.CarryAction = CarryAction.PlaceDown;
                     Interaction.CarrySlot = carriedHands.Slot;
                     handled = EnumHandling.PreventDefault;
@@ -412,14 +414,13 @@ namespace CarryOn.Common
             else if (CanInteract(player.Entity, true))
             {
                 if (selection != null) selection = GetMultiblockOriginSelection(selection);
-                // ..and aiming at carryable block, try to pick it up.
                 if ((selection?.Block != null) && (Interaction.CarrySlot = FindActionSlot(slot => selection.Block.IsCarryable(slot))) != null)
                 {
                     Interaction.CarryAction = CarryAction.PickUp;
-                    Interaction.TargetBlockPos = selection.Position;
+                    Interaction.TargetBlockPos = selection.Position?.Copy();
                     handled = EnumHandling.PreventDefault;
                     return true;
-                }
+                }                
 
             }
             return false;

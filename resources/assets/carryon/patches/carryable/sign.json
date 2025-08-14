@@ -1,6 +1,6 @@
 [
   {
-    "file": "game:blocktypes/wood/sign.json",
+    "file": "game:blocktypes/wood/sign",
     "side": "Server",
     "op": "add",
     "path": "/behaviors",

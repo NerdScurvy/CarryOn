@@ -1,6 +1,6 @@
 [
   {
-    "file": "game:blocktypes/wood/toolrack.json",
+    "file": "game:blocktypes/wood/toolrack",
     "side": "Server",
     "op": "add",
     "path": "/behaviors/-",

@@ -9,7 +9,7 @@
     }
   },
   {
-    "file": "game:entities/nonliving/boat=*",
+    "file": "game:entities/nonliving/boat-*",    
     "side": "Server",
     "op": "add",
     "path": "/server/behaviors/-",

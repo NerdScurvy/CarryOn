@@ -1,3 +1,4 @@
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -6,6 +7,7 @@ using CarryOn.API.Event;
 using CarryOn.Client;
 using CarryOn.Common;
 using CarryOn.Common.Network;
+using CarryOn.Config;
 using CarryOn.Server;
 using CarryOn.Utility;
 using HarmonyLib;
@@ -165,6 +167,7 @@ namespace CarryOn
             {
                 ManuallyAddCarryableBehaviors(api);
                 ResolveMultipleCarryableBehaviors(api);
+
                 AutoMapSimilarCarryables(api);
                 AutoMapSimilarCarryableInteract(api);
                 RemoveExcludedCarryableBehaviours(api);
@@ -173,28 +176,35 @@ namespace CarryOn
             base.AssetsFinalize(api);
         }
 
+        // Helper to create, initialize, and append BlockBehaviorCarryable to a collection
+        private void AddCarryableBehavior(Block block, ref BlockBehavior[] blockBehaviors, ref CollectibleBehavior[] collectibleBehaviors, JsonObject properties)
+        {
+            var blockBehavior = new BlockBehaviorCarryable(block);
+            blockBehaviors = blockBehaviors.Append(blockBehavior);
+            blockBehavior.Initialize(properties);
+
+            collectibleBehaviors = collectibleBehaviors.Append(blockBehavior);
+        }
         private void ManuallyAddCarryableBehaviors(ICoreAPI api)
         {
             if (ModConfig.HenboxEnabled)
             {
                 var block = api.World.BlockAccessor.GetBlock("henbox");
-
-                var properties = JsonObject.FromJson("{slots:{Hands:{}}}");
-
-                var newBehavior = new BlockBehaviorCarryable(block);
-                block.BlockBehaviors = block.BlockBehaviors.Append(newBehavior);
-                newBehavior.Initialize(properties);
-
-                newBehavior = new BlockBehaviorCarryable(block);
-                block.CollectibleBehaviors = block.CollectibleBehaviors.Append(newBehavior);
-                newBehavior.Initialize(properties);
+                if (block != null)
+                {
+                    // Only allow default hand slot 
+                    var properties = JsonObject.FromJson("{slots:{Hands:{}}}");
+                    AddCarryableBehavior(block, ref block.BlockBehaviors, ref block.CollectibleBehaviors, properties);
+                }
             }
         }
 
         private void RemoveExcludedCarryableBehaviours(ICoreAPI api)
         {
-            var loggingEnabled = ModConfig.ServerConfig.LoggingEnabled;
-            var removeArray = ModConfig.ServerConfig.RemoveCarryableBehaviour;
+            var loggingEnabled = ModConfig.ServerConfig.DebuggingOptions.LoggingEnabled;
+            var filters = ModConfig.ServerConfig.CarryablesFilters;
+
+            var removeArray = filters.RemoveCarryableBehaviour;
             if (removeArray == null || removeArray.Length == 0)
             {
                 return;
@@ -221,11 +231,13 @@ namespace CarryOn
 
         private void ResolveMultipleCarryableBehaviors(ICoreAPI api)
         {
+            var filters = ModConfig.ServerConfig.CarryablesFilters;
+            
             foreach (var block in api.World.Blocks)
             {
                 bool removeBaseBehavior = false;
                 if (block.Code == null || block.Id == 0) continue;
-                foreach (var match in ModConfig.ServerConfig.RemoveBaseCarryableBehaviour)
+                foreach (var match in filters.RemoveBaseCarryableBehaviour)
                 {
                     if (block.Code.ToString().StartsWith(match))
                     {
@@ -289,7 +301,10 @@ namespace CarryOn
 
         private void AutoMapSimilarCarryableInteract(ICoreAPI api)
         {
-            var loggingEnabled = ModConfig.ServerConfig.LoggingEnabled;
+            var loggingEnabled = ModConfig.ServerConfig.DebuggingOptions.LoggingEnabled;
+            var filters = ModConfig.ServerConfig.CarryablesFilters;
+
+            if (!filters.AutoMapSimilar) return;
 
             var matchKeys = new List<string>();
             foreach (var interactBlock in api.World.Blocks.Where(b => b.IsCarryableInteract()))
@@ -304,7 +319,7 @@ namespace CarryOn
 
             foreach (var block in api.World.Blocks.Where(w => !w.IsCarryableInteract()
                 && matchKeys.Contains(w.EntityClass)
-                && !ModConfig.ServerConfig.AutoMatchIgnoreMods.Contains(w?.Code?.Domain)))
+                && !filters.AutoMatchIgnoreMods.Contains(w?.Code?.Domain)))
             {
                 block.BlockBehaviors = block.BlockBehaviors.Append(new BlockBehaviorCarryableInteract(block));
                 block.CollectibleBehaviors = block.CollectibleBehaviors.Append(new BlockBehaviorCarryableInteract(block));
@@ -314,7 +329,11 @@ namespace CarryOn
 
         private void AutoMapSimilarCarryables(ICoreAPI api)
         {
-            var loggingEnabled = ModConfig.ServerConfig.LoggingEnabled;
+            var loggingEnabled = ModConfig.ServerConfig.DebuggingOptions.LoggingEnabled;
+
+            var filters = ModConfig.ServerConfig.CarryablesFilters;
+
+            if (!filters.AutoMapSimilar) return;
 
             var matchBehaviors = new Dictionary<string, BlockBehaviorCarryable>();
             foreach (var carryableBlock in api.World.Blocks.Where(b => b.IsCarryable() && b.Code.Domain == "game"))
@@ -366,8 +385,8 @@ namespace CarryOn
                             if (loggingEnabled) api.Logger.Debug($"CarryOn matchBehavior: {key} carryableBlock: {carryableBlock.Code}");
                         }
                     }
-
-                    if (ModConfig.ServerConfig.AllowedShapeOnlyMatches.Contains(shapePath) && !matchBehaviors.ContainsKey(shapeKey))
+                        
+                    if (filters.AllowedShapeOnlyMatches.Contains(shapePath) && !matchBehaviors.ContainsKey(shapeKey))
                     {
                         matchBehaviors[shapeKey] = carryableBlock.GetBehavior<BlockBehaviorCarryable>();
 
@@ -376,7 +395,7 @@ namespace CarryOn
                 }
             }
 
-            foreach (var block in api.World.Blocks.Where(w => !w.IsCarryable() && !ModConfig.ServerConfig.AutoMatchIgnoreMods.Contains(w?.Code?.Domain)))
+            foreach (var block in api.World.Blocks.Where(w => !w.IsCarryable() && !filters.AutoMatchIgnoreMods.Contains(w?.Code?.Domain)))
             {
                 if (block.EntityClass == null) continue;
                 string key = null;
