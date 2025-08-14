@@ -73,7 +73,7 @@ namespace CarryOn.Config
 
                 if (value < 0.01f) value = 0.01f;
                 else if (value > 20f) value = 20f;
-                World?.Config?.SetFloat(interactSpeedMultiplierKey, value);
+                World.Config.SetFloat(interactSpeedMultiplierKey, value);
             }
         }
         public static bool HarmonyPatchEnabled
