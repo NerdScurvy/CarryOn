@@ -1,6 +1,6 @@
 [
   {
-    "file": "game:blocktypes/wood/trapdoor",
+    "file": "game:blocktypes/wood/woodtyped/trapdoor",
     "side": "Server",
     "op": "add",
     "path": "/behaviors/-",
@@ -11,5 +11,18 @@
       "when": "carryon:InteractDoorEnabled",
       "isValue": "true"
     }  
-  }
+  },
+  {
+    "file": "game:blocktypes/metal/trapdoor",
+    "side": "Server",
+    "op": "add",
+    "path": "/behaviors/-",
+    "value": {
+      "name": "CarryableInteract"
+    },
+    "condition": {
+      "when": "carryon:InteractDoorEnabled",
+      "isValue": "true"
+    }  
+  }  
 ]

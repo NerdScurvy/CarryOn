@@ -1,6 +1,6 @@
 [
   {
-    "file": "game:blocktypes/clay/storagevessel",
+    "file": "game:blocktypes/clay/storagevessel*",
     "side": "Server",
     "op": "add",
     "path": "/behaviorsByType/*/-",

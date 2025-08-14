@@ -11,13 +11,14 @@ using CarryOn.Utility;
 using HarmonyLib;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
+using Vintagestory.API.Datastructures;
 using Vintagestory.API.Server;
 using Vintagestory.API.Util;
 using Vintagestory.GameContent;
 
 [assembly: ModInfo("Carry On",
     modID: "carryon",
-    Version = "1.10.0-rc.2",
+    Version = "1.10.0-rc.3",
     Description = "Adds the capability to carry various things",
     Website = "https://github.com/NerdScurvy/CarryOn",
     Authors = new[] { "copygirl", "NerdScurvy" })]
@@ -162,6 +163,7 @@ namespace CarryOn
         {
             if (api.Side == EnumAppSide.Server)
             {
+                ManuallyAddCarryableBehaviors(api);
                 ResolveMultipleCarryableBehaviors(api);
                 AutoMapSimilarCarryables(api);
                 AutoMapSimilarCarryableInteract(api);
@@ -169,6 +171,24 @@ namespace CarryOn
             }
 
             base.AssetsFinalize(api);
+        }
+
+        private void ManuallyAddCarryableBehaviors(ICoreAPI api)
+        {
+            if (ModConfig.HenboxEnabled)
+            {
+                var block = api.World.BlockAccessor.GetBlock("henbox");
+
+                var properties = JsonObject.FromJson("{slots:{Hands:{}}}");
+
+                var newBehavior = new BlockBehaviorCarryable(block);
+                block.BlockBehaviors = block.BlockBehaviors.Append(newBehavior);
+                newBehavior.Initialize(properties);
+
+                newBehavior = new BlockBehaviorCarryable(block);
+                block.CollectibleBehaviors = block.CollectibleBehaviors.Append(newBehavior);
+                newBehavior.Initialize(properties);
+            }
         }
 
         private void RemoveExcludedCarryableBehaviours(ICoreAPI api)

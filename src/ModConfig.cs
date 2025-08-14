@@ -17,6 +17,7 @@ namespace CarryOn
         static private readonly string interactSpeedMultiplierKey = ModId + ":InteractSpeedMultiplier";
         static private readonly string harmonyPatchEnabledKey = ModId + ":HarmonyPatchEnabled";
         static private readonly string backSlotEnabledKey = ModId + ":BackSlotEnabled";
+        static private readonly string henboxEnabledKey = ModId + ":HenboxEnabled";
 
         public static bool AllowSprintWhileCarrying
         {
@@ -97,6 +98,20 @@ namespace CarryOn
             }
         }
 
+        public static bool HenboxEnabled
+        {
+            get
+            {
+                return World?.Config?.GetBool(henboxEnabledKey, true) ?? true;
+            }
+            set
+            {
+                if (World?.Config == null)
+                    throw new InvalidOperationException("World or World.Config is null. Cannot set HenboxEnabled.");
+                World.Config.SetBool(henboxEnabledKey, value);
+            }
+        }        
+
         private const string ConfigFile = "CarryOnConfig.json";
         private const string ClientConfigFile = "CarryOnClientConfig.json";
 
@@ -149,7 +164,6 @@ namespace CarryOn
                 worldConfig.SetBool(ModId + ":DisplayCaseEnabled", ServerConfig.DisplayCaseEnabled);
                 worldConfig.SetBool(ModId + ":FlowerpotEnabled", ServerConfig.FlowerpotEnabled);
                 worldConfig.SetBool(ModId + ":ForgeEnabled", ServerConfig.ForgeEnabled);
-                worldConfig.SetBool(ModId + ":HenboxEnabled", ServerConfig.HenboxEnabled);
                 worldConfig.SetBool(ModId + ":LogWithResinEnabled", ServerConfig.LogWithResinEnabled);
                 worldConfig.SetBool(ModId + ":MoldRackEnabled", ServerConfig.MoldRackEnabled);
                 worldConfig.SetBool(ModId + ":MoldsEnabled", ServerConfig.MoldsEnabled);
@@ -180,6 +194,7 @@ namespace CarryOn
                 InteractSpeedMultiplier = ServerConfig.InteractSpeedMultiplier;
                 HarmonyPatchEnabled = ServerConfig.HarmonyPatchEnabled;
                 BackSlotEnabled = ServerConfig.BackSlotEnabled;
+                HenboxEnabled = ServerConfig.HenboxEnabled;
 
             }
             else

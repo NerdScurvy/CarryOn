@@ -1,9 +1,9 @@
 [
   {
-    "file": "game:blocktypes/clay/mold/ingotmold.json",
+    "file": "game:blocktypes/clay/fired/ingotmold",
     "side": "Server",
     "op": "add",
-    "path": "/behaviorsByType/*/-",
+    "path": "/behaviors/-",
     "value": {
       "name": "Carryable",
       "properties": {

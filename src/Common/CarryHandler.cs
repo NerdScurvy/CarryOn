@@ -360,7 +360,7 @@ namespace CarryOn.Common
                     if (interactBehavior.CanInteract(player))
                     {
                         Interaction.CarryAction = CarryAction.Interact;
-                        Interaction.SelectedBlock = selection.Position;
+                        Interaction.TargetBlockPos = selection.Position;
                         handled = EnumHandling.PreventDefault;
                         return true;
                     }
@@ -399,8 +399,8 @@ namespace CarryOn.Common
                         handled = EnumHandling.PreventDefault;
                         return true;
                     }
-                    Interaction.SelectedBlock = GetPlacedPosition(world, selection, carriedHands.Block);
-                    if (Interaction.SelectedBlock == null) return true;
+                    Interaction.TargetBlockPos = GetPlacedPosition(world, selection, carriedHands.Block);
+                    if (Interaction.TargetBlockPos == null) return true;
 
                     Interaction.CarryAction = CarryAction.PlaceDown;
                     Interaction.CarrySlot = carriedHands.Slot;
@@ -416,7 +416,7 @@ namespace CarryOn.Common
                 if ((selection?.Block != null) && (Interaction.CarrySlot = FindActionSlot(slot => selection.Block.IsCarryable(slot))) != null)
                 {
                     Interaction.CarryAction = CarryAction.PickUp;
-                    Interaction.SelectedBlock = selection.Position;
+                    Interaction.TargetBlockPos = selection.Position;
                     handled = EnumHandling.PreventDefault;
                     return true;
                 }
@@ -536,7 +536,7 @@ namespace CarryOn.Common
                         : selection?.Position;
 
                     // Make sure the player is still looking at the same block.
-                    if (Interaction.SelectedBlock != position)
+                    if (Interaction.TargetBlockPos != position)
                     { CancelInteraction(); return; }
 
                     if (Interaction.CarryAction == CarryAction.Interact)
