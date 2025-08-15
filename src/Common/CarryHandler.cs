@@ -1450,7 +1450,7 @@ namespace CarryOn.Common
             catch (Exception e)
             {
                 CarrySystem.Api.Logger.Error($"Call to {transferMethod} failed", e);
-                failureCode = "__failure__";
+                failureCode = InternalFailureCode;
                 return false;
             }
 
