@@ -1,6 +1,6 @@
 [
   {
-    "file": "game:blocktypes/metal/plaque.json",
+    "file": "game:blocktypes/metal/plaque",
     "side": "Server",
     "op": "add",
     "path": "/behaviors",

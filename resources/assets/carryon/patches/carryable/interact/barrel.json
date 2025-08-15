@@ -1,6 +1,6 @@
 [
   {
-    "file": "game:blocktypes/clay/storagevessel*",
+    "file": "game:blocktypes/wood/barrel",
     "side": "Server",
     "op": "add",
     "path": "/behaviors/-",
@@ -8,8 +8,8 @@
       "name": "CarryableInteract"
     },
     "condition": {
-      "when": "carryon:InteractStorageEnabled",
+      "when": "carryon:InteractBarrelEnabled",
       "isValue": "true"
-    }  
+    }
   }
 ]

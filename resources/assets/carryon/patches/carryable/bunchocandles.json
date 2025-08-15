@@ -1,6 +1,6 @@
 [
   {
-    "file": "game:blocktypes/wax/bunchocandles.json",
+    "file": "game:blocktypes/wax/bunchocandles",
     "side": "Server",
     "op": "add",
     "path": "/behaviors/-",

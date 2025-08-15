@@ -21,7 +21,7 @@ namespace CarryOn.Common
 
         // Selected block position for the interaction
         // This is used for interactions like placing down blocks
-        public BlockPos SelectedBlockPos { get; set; }
+        public BlockPos TargetBlockPos { get; set; }
 
         // Selected slot on target entity
         public ItemSlot Slot { get; set; }
@@ -42,7 +42,7 @@ namespace CarryOn.Common
             CarrySlot = null;
             TargetSlotIndex = null;
             TargetEntity = null;
-            SelectedBlockPos = null;
+            TargetBlockPos = null;
 
             if (resetTimeHeld)
             {

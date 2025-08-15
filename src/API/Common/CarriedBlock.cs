@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using CarryOn.API.Event;
 using CarryOn.Common;
+using CarryOn.Config;
 using CarryOn.Utility;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;

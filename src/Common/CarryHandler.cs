@@ -4,6 +4,7 @@ using System.Reflection.Metadata.Ecma335;
 using System.Runtime.InteropServices;
 using CarryOn.API.Common;
 using CarryOn.Common.Network;
+using CarryOn.Config;
 using CarryOn.Utility;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
@@ -364,7 +365,7 @@ namespace CarryOn.Common
                     if (interactBehavior.CanInteract(player))
                     {
                         Interaction.CarryAction = CarryAction.Interact;
-                        Interaction.SelectedBlockPos = selection.Position;
+                        Interaction.TargetBlockPos = selection.Position;
                         handled = EnumHandling.PreventDefault;
                         return true;
                     }
@@ -403,9 +404,10 @@ namespace CarryOn.Common
                         handled = EnumHandling.PreventDefault;
                         return true;
                     }
-                    Interaction.SelectedBlockPos = GetPlacedPosition(world, selection, carriedHands.Block);
-                    if (Interaction.SelectedBlockPos == null) return true;
+                    var blockPos = GetPlacedPosition(world, selection, carriedHands.Block);
+                    if (blockPos == null) return true;
 
+                    Interaction.TargetBlockPos = blockPos;
                     Interaction.CarryAction = CarryAction.PlaceDown;
                     Interaction.CarrySlot = carriedHands.Slot;
                     handled = EnumHandling.PreventDefault;
@@ -416,14 +418,13 @@ namespace CarryOn.Common
             else if (CanInteract(player.Entity, true))
             {
                 if (selection != null) selection = GetMultiblockOriginSelection(selection);
-                // ..and aiming at carryable block, try to pick it up.
                 if ((selection?.Block != null) && (Interaction.CarrySlot = FindActionSlot(slot => selection.Block.IsCarryable(slot))) != null)
                 {
                     Interaction.CarryAction = CarryAction.PickUp;
-                    Interaction.SelectedBlockPos = selection.Position;
+                    Interaction.TargetBlockPos = selection.Position?.Copy();
                     handled = EnumHandling.PreventDefault;
                     return true;
-                }
+                }                
 
             }
             return false;
@@ -814,7 +815,7 @@ namespace CarryOn.Common
                         : selection?.Position;
 
                     // Make sure the player is still looking at the same block.
-                    if (Interaction.SelectedBlockPos != position)
+                    if (Interaction.TargetBlockPos != position)
                     { CancelInteraction(); return; }
 
                     if (Interaction.CarryAction == CarryAction.Interact)
