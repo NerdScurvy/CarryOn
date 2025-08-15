@@ -933,7 +933,7 @@ namespace CarryOn.Common
                         }
                     }
 
-                    if (failureCode == "__stop__") break;
+                    if (failureCode == StopFailureCode) break;
                     // Call Server side
                     CarrySystem.ClientChannel.SendPacket(takeMessage);
                     break;
