@@ -192,16 +192,22 @@ namespace CarryOn
         }
         private void ManuallyAddCarryableBehaviors(ICoreAPI api)
         {
-            if (ModConfig.HenboxEnabled)
+            try
             {
-                var block = api.World.BlockAccessor.GetBlock("henbox");
-                if (block != null)
+                if (ModConfig.HenboxEnabled)
                 {
-                    // Only allow default hand slot 
-                    var properties = JsonObject.FromJson("{slots:{Hands:{}}}");
-                    AddCarryableBehavior(block, ref block.BlockBehaviors, ref block.CollectibleBehaviors, properties);
+                    var block = api.World.BlockAccessor.GetBlock("henbox");
+                    if (block != null)
+                    {
+                        // Only allow default hand slot 
+                        var properties = JsonObject.FromJson("{slots:{Hands:{}}}");
+                        AddCarryableBehavior(block, ref block.BlockBehaviors, ref block.CollectibleBehaviors, properties);
+                    }
                 }
-            }
+            }catch(Exception e)
+            {
+                api.Logger.Error($"Error in ManuallyAddCarryableBehaviors: {e.Message}");
+            }   
         }
 
         private void RemoveExcludedCarryableBehaviours(ICoreAPI api)

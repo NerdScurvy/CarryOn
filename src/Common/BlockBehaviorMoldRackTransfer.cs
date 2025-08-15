@@ -14,6 +14,11 @@ namespace CarryOn.Common
         {
         }
 
+        public bool IsTransferEnabled(ICoreAPI api)
+        {
+            return api?.World?.Config?.GetBool("carryon:TransferMoldRackEnabled") ?? false;
+        }
+
         /// <summary>
         /// Checks if an item can be put into the mold rack.
         /// </summary>
@@ -41,9 +46,16 @@ namespace CarryOn.Common
             onScreenErrorMessage = null;
 
             var moldRack = blockEntity as BlockEntityMoldRack;
-            if (moldRack == null || index < 0 || index >= moldRack.Inventory.Count || moldRack?.Inventory?[index]?.Empty == true)
+            if (moldRack == null || index < 0 || index >= moldRack.Inventory.Count)
             {
-                // Nothing to take - tell the caller to continue to the next interaction 
+                // Invalid slot - tell caller to continue to next interaction
+                return false;
+            }
+
+            if(moldRack.Inventory[index]?.Empty == false)
+            {
+                failureCode = "__stop__";
+                onScreenErrorMessage = $"Target slot is occupied";
                 return false;
             }
 

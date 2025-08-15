@@ -194,10 +194,14 @@ namespace CarryOn.Config
                 worldConfig.SetBool(GetConfigKey("InteractBarrelEnabled"), ServerConfig.Interactables.Barrel);
                 worldConfig.SetBool(GetConfigKey("InteractStorageEnabled"), ServerConfig.Interactables.Storage);
 
+                // Transferables
+                worldConfig.SetBool(GetConfigKey("MoldRackTransferEnabled"), ServerConfig.Transferables.MoldRack);
+
                 // CarryOptions
                 worldConfig.SetBool(GetConfigKey("AllowChestTrunksOnBack"), ServerConfig.CarryOptions.AllowChestTrunksOnBack);
                 worldConfig.SetBool(GetConfigKey("AllowLargeChestsOnBack"), ServerConfig.CarryOptions.AllowLargeChestsOnBack);
                 worldConfig.SetBool(GetConfigKey("AllowCratesOnBack"), ServerConfig.CarryOptions.AllowCratesOnBack);
+
 
                 AllowSprintWhileCarrying = ServerConfig.CarryOptions.AllowSprintWhileCarrying;
                 IgnoreCarrySpeedPenalty = ServerConfig.CarryOptions.IgnoreCarrySpeedPenalty;
@@ -249,6 +253,11 @@ namespace CarryOn.Config
         {
             api.StoreModConfig(new CarryOnConfig(previousConfig), ConfigFile);
         }
+
+        public static string[] CloneArray(string[] source)
+        {
+            return source != null ? (string[])source.Clone() : [];
+        }        
 
     }
 }
