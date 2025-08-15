@@ -508,7 +508,7 @@ namespace CarryOn.Common
                     catch (Exception e)
                     {
                         api.Logger.Error($"Call to {transferMethod} failed", e);
-                        failureCode = "__failure__";
+                        failureCode = InternalFailureCode;
                         onScreenErrorMessage = Lang.Get(ModId + ":unknown-error");
                         return false;
                     }
