@@ -8,6 +8,11 @@ namespace CarryOn.Common
     public class BlockBehaviorMoldRackTransfer : BlockBehavior
     {
 
+        private const string ContinueFailureCode = "__continue__";
+        private const string StopFailureCode = "__stop__";
+        private const string DefaultFailureCode = "__default__";
+        private const string InternalFailureCode = "__failure__"; 
+
         public static string Name { get; } = "MoldRackTransfer";
 
         public BlockBehaviorMoldRackTransfer(Block block) : base(block)
@@ -52,23 +57,25 @@ namespace CarryOn.Common
                 return false;
             }
 
-            if(moldRack.Inventory[index]?.Empty == false)
-            {
-                failureCode = "__stop__";
-                onScreenErrorMessage = $"Target slot is occupied";
-                return false;
-            }
-
             var world = player.Entity.Api.World;
 
             var blockName = block.GetPlacedBlockName(world, blockEntity.Pos);
+
+            if(moldRack.Inventory[index]?.Empty == false)
+            {
+                failureCode = StopFailureCode;
+                onScreenErrorMessage = Lang.Get("mold-rack-transfer-occupied", blockName);
+                return false;
+            }
+
+
 
             var moldRackable = itemStack?.Collectible?.Attributes?["moldrackable"]?.AsBool() ?? false;
 
             if (!moldRackable)
             {
-                failureCode = "put-block-incompatible";
-                onScreenErrorMessage = $"Cannot put carried block in {blockName}";
+                failureCode = "mold-rack-transfer-incompatible";
+                onScreenErrorMessage = Lang.Get(failureCode, blockName);
                 return false;
             }
 
@@ -78,16 +85,16 @@ namespace CarryOn.Common
 
                 if (blockEntityData.GetAsBool("shattered", false))
                 {
-                    failureCode = "put-block-state-incompatible";
-                    onScreenErrorMessage = $"Cannot put shattered mold in {blockName}";
+                    failureCode = "mold-rack-transfer-shattered";
+                    onScreenErrorMessage = Lang.Get(failureCode, blockName);
                     return false;
                 }
 
 
                 if (blockEntityData.GetAsInt("fillLevel", -1) > 0)
                 {
-                    failureCode = "put-block-state-incompatible";
-                    onScreenErrorMessage = $"Cannot put non-empty mold in {blockName}";
+                    failureCode = "mold-rack-transfer-nonempty";
+                    onScreenErrorMessage = Lang.Get(failureCode, blockName);
                     return false;
                 }
             }
@@ -129,7 +136,7 @@ namespace CarryOn.Common
             {
                 // Item in slot is not carryable - skip further CarryOn interactions and allow default handling
                 // If the item in the slot is a shield then pick it up normally
-                failureCode = "__default__";
+                failureCode = DefaultFailureCode;
 
                 return false;
             }
@@ -159,7 +166,7 @@ namespace CarryOn.Common
             if (player.Entity.Api.Side == EnumAppSide.Client)
             {
                 // Prevent transfer on client side but tell to continue server side
-                failureCode = "__continue__";
+                failureCode = ContinueFailureCode;
                 return false;
             }
 
@@ -202,7 +209,7 @@ namespace CarryOn.Common
             if (player.Entity.Api.Side == EnumAppSide.Client)
             {
                 // Prevent transfer on client side but tell to continue server side
-                failureCode = "__continue__";
+                failureCode = ContinueFailureCode;
                 return false;
             }
 

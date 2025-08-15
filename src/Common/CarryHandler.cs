@@ -37,6 +37,11 @@ namespace CarryOn.Common
 
         public int MaxInteractionDistance { get; set; }
 
+        private const string ContinueFailureCode = "__continue__";
+        private const string StopFailureCode = "__stop__";
+        private const string DefaultFailureCode = "__default__";
+        private const string InternalFailureCode = "__failure__";        
+
         public void InitClient()
         {
             var cApi = CarrySystem.ClientAPI;
@@ -194,6 +199,33 @@ namespace CarryOn.Common
             if (func(CarrySlot.Hands)) return CarrySlot.Hands;
             if (func(CarrySlot.Shoulder)) return CarrySlot.Shoulder;
             return null;
+        }
+
+        // Helper for transfer interaction error handling
+        private bool HandleTransferFailure(string failureCode, string onScreenErrorMessage, ref EnumHandling handled)
+        {
+            if (onScreenErrorMessage != null)
+            {
+                CarrySystem.ClientAPI.TriggerIngameError(ModId, failureCode, onScreenErrorMessage);
+                CompleteInteraction();
+                handled = EnumHandling.PreventDefault;
+                return true;
+            }
+
+            if (failureCode == DefaultFailureCode)
+            {
+                CompleteInteraction();
+                return true;
+            }
+
+            if (failureCode == StopFailureCode)
+            {
+                handled = EnumHandling.PreventDefault;
+                CompleteInteraction();
+                return true;
+            }
+
+            return false;
         }
 
         /// Begins interaction with entity to attach or detach a carried block if conditions are met.
@@ -587,46 +619,13 @@ namespace CarryOn.Common
             {
                 if (!CanTakeCarryable(player, blockEntity, selection.SelectionBoxIndex, out failureCode, out onScreenErrorMessage))
                 {
-                    if (onScreenErrorMessage != null)
-                    {
-                        // If error message then send to display then stop all other actions
-                        CarrySystem.ClientAPI.TriggerIngameError(ModId, failureCode, onScreenErrorMessage);
-                        CompleteInteraction();
-                        handled = EnumHandling.PreventDefault;
+                    if (HandleTransferFailure(failureCode, onScreenErrorMessage, ref handled))
                         return true;
-                    }
-
-                    // Skip further CarryOn interactions and perform default handling
-                    if (failureCode is "__default__")
-                    {
-                        CompleteInteraction();
-                        return true;
-                    }
-
-                    if (failureCode is "__stop__")
-                    {
-                        // Skip further CarryOn interactions and prevent default handling
-                        handled = EnumHandling.PreventDefault;
-                        CompleteInteraction();
-                        return true;
-                    }
-
-                    // Allow next level of carry behavior interaction
                     return false;
                 }
 
-                if (failureCode is "__default__")
-                {
-                    CompleteInteraction();
+                if (HandleTransferFailure(failureCode, null, ref handled))
                     return true;
-                }
-
-                if (failureCode is "__stop__")
-                {
-                    CompleteInteraction();
-                    handled = EnumHandling.PreventDefault;
-                    return true;
-                }
 
                 CarrySystem.Api.Logger.Debug($"CanTakeCarryable returned true");
                 Interaction.CarryAction = CarryAction.Take;
@@ -639,46 +638,13 @@ namespace CarryOn.Common
             {
                 if (!CanPutCarryable(player, blockEntity, selection.SelectionBoxIndex, out failureCode, out onScreenErrorMessage))
                 {
-                    if (onScreenErrorMessage != null)
-                    {
-                        // If error message then send to display then stop all other actions
-                        CarrySystem.ClientAPI.TriggerIngameError(ModId, failureCode, onScreenErrorMessage);
-                        CompleteInteraction();
-                        handled = EnumHandling.PreventDefault;
+                    if (HandleTransferFailure(failureCode, onScreenErrorMessage, ref handled))
                         return true;
-                    }
-
-                    // Skip further CarryOn interactions and perform default handling
-                    if (failureCode is "__default__")
-                    {
-                        CompleteInteraction();
-                        return true;
-                    }
-
-                    if (failureCode is "__stop__")
-                    {
-                        // Skip further CarryOn interactions and prevent default handling
-                        handled = EnumHandling.PreventDefault;
-                        CompleteInteraction();
-                        return true;
-                    }
-
-                    // Allow next level of carry behavior interaction
                     return false;
                 }
 
-                if (failureCode is "__default__")
-                {
-                    CompleteInteraction();
+                if (HandleTransferFailure(failureCode, null, ref handled))
                     return true;
-                }
-
-                if (failureCode is "__stop__")
-                {
-                    CompleteInteraction();
-                    handled = EnumHandling.PreventDefault;
-                    return true;
-                }
 
                 CarrySystem.Api.Logger.Debug($"CanPutCarryable returned true");
                 Interaction.CarryAction = CarryAction.Put;
