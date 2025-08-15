@@ -921,7 +921,7 @@ namespace CarryOn.Common
                     // Call Client side
                     if (!TryTakeCarryable(player, takeMessage, out failureCode, out onScreenErrorMessage))
                     {
-                        if (failureCode != "__continue__")
+                        if (failureCode != ContinueFailureCode)
                         {
                             if (onScreenErrorMessage != null)
                             {
