@@ -225,7 +225,7 @@ namespace CarryOn.Common
             moldRack.MarkDirty(true);
             world.PlaySoundAt(new AssetLocation("sounds/player/build"), player);
             AssetLocation code = itemstack?.Collectible.Code;
-            world.Logger.Audit($"{player.PlayerName} Took 1x{code} into Rack at {blockEntity.Pos}.");
+            world.Logger.Audit($"{player.PlayerName} Took 1x{code} from Rack at {blockEntity.Pos}.");
             return true;
         }
 
