@@ -11,6 +11,6 @@ namespace CarryOn.Common.Network
 
         // Optional, not required on the wire; omit when null
         [ProtoMember(2, IsRequired = false)]
-        public int? Index { get; set; }
-    }    
+        public int Index { get; set; } = -1;
+    }
 }

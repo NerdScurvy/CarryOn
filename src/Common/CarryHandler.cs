@@ -647,7 +647,7 @@ namespace CarryOn.Common
         /// <summary>
         /// Checks if the player can put a carryable item into the specified block entity.
         /// </summary>
-        private bool CanPutCarryable(IPlayer player, BlockEntity blockEntity, int? index, out string failureCode, out string onScreenErrorMessage)
+        private bool CanPutCarryable(IPlayer player, BlockEntity blockEntity, int index, out string failureCode, out string onScreenErrorMessage)
         {
             // parameter indices for CanPutCarryable
             const int failureCodeParam = 5;
@@ -683,7 +683,7 @@ namespace CarryOn.Common
         /// <summary>
         /// Checks if the player can take a carryable item from the specified block entity.
         /// </summary>
-        private bool CanTakeCarryable(IPlayer player, BlockEntity blockEntity, int? index, out string failureCode, out string onScreenErrorMessage)
+        private bool CanTakeCarryable(IPlayer player, BlockEntity blockEntity, int index, out string failureCode, out string onScreenErrorMessage)
         {
             // parameter indices for CanTakeCarryable
             const int failureCodeParam = 3;
@@ -959,7 +959,7 @@ namespace CarryOn.Common
                     var putMessage = new PutMessage()
                     {
                         BlockPos = Interaction.TargetBlockPos,
-                        Index = Interaction?.TargetSlotIndex
+                        Index = Interaction?.TargetSlotIndex ?? -1
                     };
 
                     // Call Client side
@@ -985,7 +985,7 @@ namespace CarryOn.Common
                     var takeMessage = new TakeMessage()
                     {
                         BlockPos = Interaction.TargetBlockPos,
-                        Index = Interaction?.TargetSlotIndex
+                        Index = Interaction?.TargetSlotIndex ?? -1
                     };
 
                     // Call Client side
@@ -1672,7 +1672,7 @@ namespace CarryOn.Common
             Type[] parameterTypes = [
                 typeof(IPlayer),
                 typeof(BlockEntity),
-                typeof(int?),
+                typeof(int),
                 itemStackType,
                 treeAttributeType,
                 typeof(string).MakeByRefType(),
@@ -1682,6 +1682,13 @@ namespace CarryOn.Common
             try
             {
                 var transferResult = InvokeMethod(transferBehavior, methodName, parameters, parameterTypes);
+
+                if (transferResult == null)
+                {
+                    api.Logger.Error($"{methodName}: Transfer method was not found");
+                    failureCode = InternalFailureCode;
+                    return false;
+                }
 
                 if (transferResult is not bool result)
                 {
