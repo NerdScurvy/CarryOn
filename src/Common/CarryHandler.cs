@@ -470,6 +470,7 @@ namespace CarryOn.Common
                 return false;
             }
 
+            // parameter indices for CanTakeCarryable
             const int failureCodeParam = 3;
             const int onScreenErrorMessageParam = 4;
 
@@ -528,6 +529,7 @@ namespace CarryOn.Common
                 return false;
             }
 
+            // parameter indices for CanPutCarryable
             const int failureCodeParam = 5;
             const int onScreenErrorMessageParam = 6;
 
@@ -1382,8 +1384,7 @@ namespace CarryOn.Common
             if (message == null)
             {
                 CarrySystem.Api.Logger.Error("TryPutCarryable: Received null message");
-                failureCode = "__failure__";
-                
+                failureCode = InternalFailureCode;
                 return false;
             }
 

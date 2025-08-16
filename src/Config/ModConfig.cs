@@ -154,6 +154,12 @@ namespace CarryOn.Config
                     return;
                 }
 
+                if (ServerConfig == null)
+                {
+                    api.Logger.Error("CarryOn: ServerConfig did not load correctly. CarryOn features may not work correctly.");
+                    return;
+                }
+
                 // Sections below save the value to the world config so it is available for both server and client
 
                 // Carryables

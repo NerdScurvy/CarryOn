@@ -94,6 +94,11 @@ namespace CarryOn.Common
             TransferEnabled = !string.IsNullOrEmpty(TransferHandler);
         }
 
+        /// <summary>
+        /// Gets the transfer handler behavior for this block.
+        /// </summary>
+        /// <param name="api"></param>
+        /// <returns>Returns null if the transfer handler is not enabled or the behavior is not found.</returns>
         public CollectibleBehavior GetTransferHandlerBehavior(ICoreAPI api)
         {
             if (!TransferEnabled) return null;
@@ -101,12 +106,7 @@ namespace CarryOn.Common
             if (TransferHandlerBehavior == null)
             {
                 TransferHandlerBehavior = block?.GetBehavior(api.ClassRegistry.GetBlockBehaviorClass(TransferHandler));
-
-                if (TransferHandlerBehavior != null)
-                {
-                    CheckTransferEnabledAndWorking(api);
-                    if (!TransferEnabled) return null;
-                }
+                CheckTransferEnabledAndWorking(api);
             }
 
             return TransferHandlerBehavior;
@@ -114,7 +114,16 @@ namespace CarryOn.Common
 
         public void CheckTransferEnabledAndWorking(ICoreAPI api)
         {
-            var method = TransferHandlerBehavior.GetType().GetMethod("IsTransferEnabled", [typeof(ICoreAPI)]);
+            if (TransferHandlerBehavior == null)
+            {
+                api.Logger.Warning("TransferHandlerBehavior is null. Disabling transfer.");
+                TransferEnabled = false;
+                return;
+            }
+
+            var method = TransferHandlerBehavior
+                .GetType()
+                .GetMethod("IsTransferEnabled", [typeof(ICoreAPI)]);
             if (method == null)
             {
                 api.Logger.Warning(
@@ -151,7 +160,7 @@ namespace CarryOn.Common
             }
         }
         public override WorldInteraction[] GetPlacedBlockInteractionHelp(
-            IWorldAccessor world, BlockSelection selection, IPlayer forPlayer, ref EnumHandling handled)
+                    IWorldAccessor world, BlockSelection selection, IPlayer forPlayer, ref EnumHandling handled)
         {
             if (Slots == null || Slots.Count == 0)
             {
