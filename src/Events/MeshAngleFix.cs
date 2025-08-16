@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using CarryOn.API.Common;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
@@ -16,23 +17,32 @@ namespace CarryOn.Events
 
         public void OnRestoreEntityBlockData(BlockEntity blockEntity, ITreeAttribute blockEntityData, bool dropped)
         {
-            if (blockEntity is BlockEntitySign blockEntitySign)
+            switch (blockEntity?.Block?.Class)
             {
-                blockEntityData.SetFloat("meshAngle", blockEntitySign.MeshAngleRad);
-            }
-            else if (blockEntity is BlockEntityBookshelf blockEntityBookshelf)
-            {
-                blockEntityData.SetFloat("meshAngleRad", blockEntityBookshelf.MeshAngleRad);
-            }
-            else if (blockEntity is BlockEntityGeneric blockEntityGeneric)
-            {
-                if(blockEntity?.Block?.Class == "BlockClutterBookshelf"){
-                    var behavior = blockEntityGeneric.GetBehavior<BEBehaviorClutterBookshelf>();
-                    blockEntityData.SetFloat("meshAngle", behavior.rotateY);
-                }else if(blockEntity?.Block?.Class == "BlockClutter"){
-                    var behavior = blockEntityGeneric.GetBehavior<BEBehaviorShapeFromAttributes>();
-                    blockEntityData.SetFloat("meshAngle", behavior.rotateY);
-                }
+                case "BlockSign":
+                    if (blockEntity is BlockEntitySign sign)
+                        blockEntityData.SetFloat("meshAngle", sign.MeshAngleRad);
+                    return;
+
+                case "BlockToolMold":
+                    if (blockEntity is BlockEntityToolMold toolMold)
+                        blockEntityData.SetFloat("meshAngle", toolMold.MeshAngle);
+                    return;
+
+                case "BlockBookshelf":
+                    if (blockEntity is BlockEntityBookshelf bookshelf)
+                        blockEntityData.SetFloat("meshAngleRad", bookshelf.MeshAngleRad);
+                    return;
+
+                case "BlockClutterBookshelf":
+                    if (blockEntity is BlockEntityGeneric clutterBookshelf)
+                        blockEntityData.SetFloat("meshAngle", clutterBookshelf.GetBehavior<BEBehaviorClutterBookshelf>().rotateY);
+                    return;
+
+                case "BlockClutter":
+                    if (blockEntity is BlockEntityGeneric clutter)
+                        blockEntityData.SetFloat("meshAngle", clutter.GetBehavior<BEBehaviorShapeFromAttributes>().rotateY);
+                    return;
             }
         }
     }

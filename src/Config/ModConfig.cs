@@ -10,7 +10,7 @@ namespace CarryOn.Config
         public static CarryOnConfig ServerConfig { get; private set; }
         public static IWorldAccessor World { get; private set; }
 
-        private static string GetConfigKey(string key) => $"{ModId}:{key}";
+        public static string GetConfigKey(string key) => $"{ModId}:{key}";
 
         private static readonly string allowSprintKey = GetConfigKey("AllowSprintWhileCarrying");
         private static readonly string ignoreSpeedPenaltyKey = GetConfigKey("IgnoreCarrySpeedPenalty");

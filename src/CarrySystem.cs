@@ -13,6 +13,7 @@ using CarryOn.Utility;
 using HarmonyLib;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
+using Vintagestory.API.Config;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.Server;
 using Vintagestory.API.Util;
@@ -77,6 +78,8 @@ namespace CarryOn
         public CarryEvents CarryEvents { get; private set; }
 
         private Harmony _harmony;
+
+        public static string GetLang(string key) => Lang.Get(ModConfig.GetConfigKey(key)) ?? key;
 
         public override void StartPre(ICoreAPI api)
         {
@@ -204,7 +207,8 @@ namespace CarryOn
                         AddCarryableBehavior(block, ref block.BlockBehaviors, ref block.CollectibleBehaviors, properties);
                     }
                 }
-            }catch(Exception e)
+            }
+            catch(Exception e)
             {
                 api.Logger.Error($"Error in ManuallyAddCarryableBehaviors: {e.Message}");
             }   

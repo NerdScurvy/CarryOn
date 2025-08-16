@@ -1,5 +1,6 @@
 using System.Linq;
 using Vintagestory.API.Common;
+using Vintagestory.API.Config;
 using Vintagestory.API.Datastructures;
 using Vintagestory.GameContent;
 
@@ -64,7 +65,7 @@ namespace CarryOn.Common
             if(moldRack.Inventory[index]?.Empty == false)
             {
                 failureCode = StopFailureCode;
-                onScreenErrorMessage = Lang.Get("mold-rack-transfer-occupied", blockName);
+                onScreenErrorMessage = Lang.Get("carryon:mold-rack-transfer-occupied", blockName);
                 return false;
             }
 
@@ -75,7 +76,7 @@ namespace CarryOn.Common
             if (!moldRackable)
             {
                 failureCode = "mold-rack-transfer-incompatible";
-                onScreenErrorMessage = Lang.Get(failureCode, blockName);
+                onScreenErrorMessage = Lang.Get($"carryon:{failureCode}", blockName);
                 return false;
             }
 
@@ -86,7 +87,7 @@ namespace CarryOn.Common
                 if (blockEntityData.GetAsBool("shattered", false))
                 {
                     failureCode = "mold-rack-transfer-shattered";
-                    onScreenErrorMessage = Lang.Get(failureCode, blockName);
+                    onScreenErrorMessage = Lang.Get($"carryon:{failureCode}", blockName);
                     return false;
                 }
 
@@ -94,7 +95,7 @@ namespace CarryOn.Common
                 if (blockEntityData.GetAsInt("fillLevel", -1) > 0)
                 {
                     failureCode = "mold-rack-transfer-nonempty";
-                    onScreenErrorMessage = Lang.Get(failureCode, blockName);
+                    onScreenErrorMessage = Lang.Get($"carryon:{failureCode}", blockName);
                     return false;
                 }
             }
