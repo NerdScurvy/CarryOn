@@ -1439,7 +1439,7 @@ namespace CarryOn.Common
                 return false;
             }
 
-           if (message.BlockPos == null)
+            if (message.BlockPos == null)
             {
                 api.Logger.Error($"{methodName}: No BlockPos in message");
                 failureCode = InternalFailureCode;
