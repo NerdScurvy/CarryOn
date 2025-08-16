@@ -43,7 +43,7 @@ namespace CarryOn.Utility
             if (backpack == null || backpack.Count == 0) return blockInventory; // graceful fallback
 
             var backpackSlots = backpack.GetTreeAttribute("slots");
-            var count = backpackSlots.Count();
+            var count = backpackSlots.Count;
 
             blockInventory.SetInt("qslots", count);
             var slotsAttribute = new TreeAttribute();
