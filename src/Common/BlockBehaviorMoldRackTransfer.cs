@@ -69,10 +69,8 @@ namespace CarryOn.Common
                 return false;
             }
 
-
-
+            // Check if the itemStack is mold rack compatible
             var moldRackable = itemStack?.Collectible?.Attributes?["moldrackable"]?.AsBool() ?? false;
-
             if (!moldRackable)
             {
                 failureCode = "mold-rack-transfer-incompatible";

@@ -222,7 +222,7 @@ namespace CarryOn.API.Common
                 }
             }
 
-            nearbyBlocks = [.. nearbyBlocks.OrderBy(b => b.DistanceTo(centerBlock))];
+            nearbyBlocks.Sort((a, b) => a.DistanceTo(centerBlock).CompareTo(b.DistanceTo(centerBlock)));
 
             var blockIndex = 0;
             var distance = 0;
