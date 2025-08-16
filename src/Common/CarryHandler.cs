@@ -448,7 +448,7 @@ namespace CarryOn.Common
                         handled = EnumHandling.PreventDefault;
                         return true;
                     }
-                    var blockPos = GetPlacedPosition(world, selection, carriedHands?.Block);
+                    var blockPos = GetPlacedPosition(world, selection, carriedHands.Block);
                     if (blockPos == null) return true;
 
                     Interaction.TargetBlockPos = blockPos;
