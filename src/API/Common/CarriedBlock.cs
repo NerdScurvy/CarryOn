@@ -99,13 +99,19 @@ namespace CarryOn.API.Common
 
         /// <summary> Stores this <see cref="CarriedBlock"/> as the
         ///           specified entity's carried block in that slot. </summary>
-        /// <exception cref="ArgumentNullException"> Thrown if entity is null. </exception>
+        /// <exception cref="ArgumentNullException"> Thrown if <paramref name="entity"/> is null. </exception>
         public void Set(Entity entity, CarrySlot slot)
             => Set(entity, slot, ItemStack, BlockEntityData);
 
+        /// <summary> Stores this <see cref="CarriedBlock"/> as the
+        ///           specified entity's carried block in that slot. </summary>
+        /// <exception cref="ArgumentNullException"> Thrown if <paramref name="entity"/> is null. </exception>
+        public void Set(Entity entity)
+            => Set(entity, Slot, ItemStack, BlockEntityData);
+
         /// <summary> Removes the <see cref="CarriedBlock"/>
         ///           carried by the specified entity in that slot. </summary>
-        /// <exception cref="ArgumentNullException"> Thrown if entity is null. </exception>
+        /// <exception cref="ArgumentNullException"> Thrown if <paramref name="entity"/> is null. </exception>
         public static void Remove(Entity entity, CarrySlot slot)
         {
             if (entity == null) throw new ArgumentNullException(nameof(entity));
@@ -129,7 +135,7 @@ namespace CarryOn.API.Common
 
         /// <summary> Creates a <see cref="CarriedBlock"/> from the specified world
         ///           and position, but doesn't remove it. Returns null if unsuccessful. </summary>
-        /// <exception cref="ArgumentNullException"> Thrown if world or pos is null. </exception>
+        /// <exception cref="ArgumentNullException"> Thrown if <paramref name="world"/> or <paramref name="pos"/> is null. </exception>
         public static CarriedBlock CreateFromBlockPos(IWorldAccessor world, BlockPos pos, CarrySlot slot)
         {
             if (world == null) throw new ArgumentNullException(nameof(world));
@@ -163,7 +169,7 @@ namespace CarryOn.API.Common
 
         /// <summary> Attempts to pick up a <see cref="CarriedBlock"/> from the specified
         ///           world and position, removing it. Returns null if unsuccessful. </summary>
-        /// <exception cref="ArgumentNullException"> Thrown if world or pos is null. </exception>
+        /// <exception cref="ArgumentNullException"> Thrown if <paramref name="world"/> or <paramref name="pos"/> is null. </exception>
         public static CarriedBlock PickUp(IWorldAccessor world, BlockPos pos,
                                           CarrySlot slot, bool checkIsCarryable = false)
         {
@@ -181,7 +187,7 @@ namespace CarryOn.API.Common
         /// <summary> Attempts to place down a <see cref="CarriedBlock"/> at the specified world,
         ///           selection and by the entity (if any), returning whether it was successful.
         ///           </summary>
-        /// <exception cref="ArgumentNullException"> Thrown if world or pos is null. </exception>
+        /// <exception cref="ArgumentNullException"> Thrown if <paramref name="world"/> or <paramref name="pos"/> is null. </exception>
         public bool PlaceDown(ref string failureCode, IWorldAccessor world, BlockSelection selection, Entity entity, bool dropped = false, bool playSound = true)
         {
             if (world == null) throw new ArgumentNullException(nameof(world));

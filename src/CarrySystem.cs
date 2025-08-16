@@ -13,6 +13,7 @@ using CarryOn.Utility;
 using HarmonyLib;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
+using Vintagestory.API.Config;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.Server;
 using Vintagestory.API.Util;
@@ -78,6 +79,8 @@ namespace CarryOn
 
         private Harmony _harmony;
 
+        public static string GetLang(string key) => Lang.Get(ModConfig.GetConfigKey(key)) ?? key;
+
         public override void StartPre(ICoreAPI api)
         {
             base.StartPre(api);
@@ -113,6 +116,7 @@ namespace CarryOn
             api.Register<BlockBehaviorCarryable>();
             api.Register<BlockBehaviorCarryableInteract>();
             api.Register<EntityBehaviorAttachableCarryable>();
+            api.Register<BlockBehaviorMoldRackTransfer>();
 
             CarryHandler = new CarryHandler(this);
             CarryEvents = new CarryEvents();
@@ -129,6 +133,8 @@ namespace CarryOn
                 .RegisterMessageType<SwapSlotsMessage>()
                 .RegisterMessageType<AttachMessage>()
                 .RegisterMessageType<DetachMessage>()
+                .RegisterMessageType<PutMessage>()
+                .RegisterMessageType<TakeMessage>()                
                 .RegisterMessageType<QuickDropMessage>()
                 .RegisterMessageType<DismountMessage>()
                 .RegisterMessageType<PlayerAttributeUpdateMessage>();
@@ -152,6 +158,8 @@ namespace CarryOn
                 .RegisterMessageType<SwapSlotsMessage>()
                 .RegisterMessageType<AttachMessage>()
                 .RegisterMessageType<DetachMessage>()
+                .RegisterMessageType<PutMessage>()
+                .RegisterMessageType<TakeMessage>()                  
                 .RegisterMessageType<QuickDropMessage>()
                 .RegisterMessageType<DismountMessage>()
                 .RegisterMessageType<PlayerAttributeUpdateMessage>();
@@ -187,16 +195,23 @@ namespace CarryOn
         }
         private void ManuallyAddCarryableBehaviors(ICoreAPI api)
         {
-            if (ModConfig.HenboxEnabled)
+            try
             {
-                var block = api.World.BlockAccessor.GetBlock("henbox");
-                if (block != null)
+                if (ModConfig.HenboxEnabled)
                 {
-                    // Only allow default hand slot 
-                    var properties = JsonObject.FromJson("{slots:{Hands:{}}}");
-                    AddCarryableBehavior(block, ref block.BlockBehaviors, ref block.CollectibleBehaviors, properties);
+                    var block = api.World.BlockAccessor.GetBlock("henbox");
+                    if (block != null)
+                    {
+                        // Only allow default hand slot 
+                        var properties = JsonObject.FromJson("{slots:{Hands:{}}}");
+                        AddCarryableBehavior(block, ref block.BlockBehaviors, ref block.CollectibleBehaviors, properties);
+                    }
                 }
             }
+            catch(Exception e)
+            {
+                api.Logger.Error($"Error in ManuallyAddCarryableBehaviors: {e.Message}");
+            }   
         }
 
         private void RemoveExcludedCarryableBehaviours(ICoreAPI api)

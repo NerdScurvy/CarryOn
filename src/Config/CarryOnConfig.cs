@@ -1,5 +1,3 @@
-using System.Text.Json.Serialization;
-using ProtoBuf;
 namespace CarryOn.Config
 {
     public class CarryablesConfig
@@ -39,6 +37,11 @@ namespace CarryOn.Config
         public bool Door { get; set; } = true;
         public bool Barrel { get; set; } = true;
         public bool Storage { get; set; } = true;
+    }
+
+    public class TransferablesConfig
+    {
+        public bool MoldRack { get; set; } = false;
     }
 
     public class CarryablesFiltersConfig
@@ -88,6 +91,8 @@ namespace CarryOn.Config
         public InteractablesConfig Interactables { get; set; } = new InteractablesConfig();
 
         public CarryOptionsConfig CarryOptions { get; set; } = new CarryOptionsConfig();
+
+        public TransferablesConfig Transferables { get; set; } = new TransferablesConfig();
 
         public CarryablesFiltersConfig CarryablesFilters { get; set; } = new CarryablesFiltersConfig();
 
@@ -161,30 +166,27 @@ namespace CarryOn.Config
                 CarryOptions.AllowCratesOnBack = previousConfig.CarryOptions.AllowCratesOnBack;
             }
 
+            // Transferables
+            if (previousConfig.Transferables != null)
+            {
+                Transferables.MoldRack = previousConfig.Transferables.MoldRack;
+            }
+
             // CarryablesFilters
             if (previousConfig.CarryablesFilters != null)
             {
                 CarryablesFilters.AutoMapSimilar = previousConfig.CarryablesFilters.AutoMapSimilar;
-                CarryablesFilters.AutoMatchIgnoreMods = previousConfig.CarryablesFilters.AutoMatchIgnoreMods != null
-                    ? (string[])previousConfig.CarryablesFilters.AutoMatchIgnoreMods.Clone()
-                    : [];
-                CarryablesFilters.AllowedShapeOnlyMatches = previousConfig.CarryablesFilters.AllowedShapeOnlyMatches != null
-                    ? (string[])previousConfig.CarryablesFilters.AllowedShapeOnlyMatches.Clone()
-                    : [];
-                CarryablesFilters.RemoveBaseCarryableBehaviour = previousConfig.CarryablesFilters.RemoveBaseCarryableBehaviour != null
-                    ? (string[])previousConfig.CarryablesFilters.RemoveBaseCarryableBehaviour.Clone()
-                    : [];
-                CarryablesFilters.RemoveCarryableBehaviour = previousConfig.CarryablesFilters.RemoveCarryableBehaviour != null
-                    ? (string[])previousConfig.CarryablesFilters.RemoveCarryableBehaviour.Clone()
-                    : [];
+                CarryablesFilters.AutoMatchIgnoreMods = ModConfig.CloneArray(previousConfig.CarryablesFilters.AutoMatchIgnoreMods);
+                CarryablesFilters.AllowedShapeOnlyMatches = ModConfig.CloneArray(previousConfig.CarryablesFilters.AllowedShapeOnlyMatches);
+                CarryablesFilters.RemoveBaseCarryableBehaviour = ModConfig.CloneArray(previousConfig.CarryablesFilters.RemoveBaseCarryableBehaviour);
+                CarryablesFilters.RemoveCarryableBehaviour = ModConfig.CloneArray(previousConfig.CarryablesFilters.RemoveCarryableBehaviour);
+   
             }
 
             // Dropped Block Options
             if (previousConfig.DroppedBlockOptions != null)
             {
-                DroppedBlockOptions.NonGroundBlockClasses = previousConfig.DroppedBlockOptions.NonGroundBlockClasses != null
-                    ? (string[])previousConfig.DroppedBlockOptions.NonGroundBlockClasses.Clone()
-                    : [];
+                DroppedBlockOptions.NonGroundBlockClasses = ModConfig.CloneArray(previousConfig.DroppedBlockOptions.NonGroundBlockClasses);
             }
 
             // Debugging Options

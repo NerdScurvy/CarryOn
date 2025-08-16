@@ -115,13 +115,13 @@ namespace CarryOn.Config
             InteractSpeedMultiplier = previousConfig.InteractSpeedMultiplier > 0 ? previousConfig.InteractSpeedMultiplier : 1.0f;
 
             // Carryables Filters
-            AutoMatchIgnoreMods = previousConfig.AutoMatchIgnoreMods != null ? (string[])previousConfig.AutoMatchIgnoreMods.Clone() : [];
-            AllowedShapeOnlyMatches = previousConfig.AllowedShapeOnlyMatches != null ? (string[])previousConfig.AllowedShapeOnlyMatches.Clone() : [];
-            RemoveBaseCarryableBehaviour = previousConfig.RemoveBaseCarryableBehaviour != null ? (string[])previousConfig.RemoveBaseCarryableBehaviour.Clone() : [];
-            RemoveCarryableBehaviour = previousConfig.RemoveCarryableBehaviour != null ? (string[])previousConfig.RemoveCarryableBehaviour.Clone() : [];
+            AutoMatchIgnoreMods = ModConfig.CloneArray(previousConfig.AutoMatchIgnoreMods);
+            AllowedShapeOnlyMatches = ModConfig.CloneArray(previousConfig.AllowedShapeOnlyMatches);
+            RemoveBaseCarryableBehaviour = ModConfig.CloneArray(previousConfig.RemoveBaseCarryableBehaviour);
+            RemoveCarryableBehaviour = ModConfig.CloneArray(previousConfig.RemoveCarryableBehaviour);
 
             // Dropped Block Options
-            NonGroundBlockClasses = previousConfig.NonGroundBlockClasses != null ? (string[])previousConfig.NonGroundBlockClasses.Clone() : [];
+            NonGroundBlockClasses = ModConfig.CloneArray(previousConfig.NonGroundBlockClasses);
 
             // Debugging Options
             LoggingEnabled = previousConfig.LoggingEnabled;
@@ -182,13 +182,13 @@ namespace CarryOn.Config
             newConfig.DebuggingOptions.LoggingEnabled = LoggingEnabled;
 
             // Dropped Block Options
-            newConfig.DroppedBlockOptions.NonGroundBlockClasses = NonGroundBlockClasses != null ? (string[])NonGroundBlockClasses.Clone() : [];
+            newConfig.DroppedBlockOptions.NonGroundBlockClasses = ModConfig.CloneArray(NonGroundBlockClasses);
 
             // Carryables filters
-            newConfig.CarryablesFilters.AutoMatchIgnoreMods = AutoMatchIgnoreMods != null ? (string[])AutoMatchIgnoreMods.Clone() : [];
-            newConfig.CarryablesFilters.AllowedShapeOnlyMatches = AllowedShapeOnlyMatches != null ? (string[])AllowedShapeOnlyMatches.Clone() : [];
-            newConfig.CarryablesFilters.RemoveBaseCarryableBehaviour = RemoveBaseCarryableBehaviour != null ? (string[])RemoveBaseCarryableBehaviour.Clone() : [];
-            newConfig.CarryablesFilters.RemoveCarryableBehaviour = RemoveCarryableBehaviour != null ? (string[])RemoveCarryableBehaviour.Clone() : [];
+            newConfig.CarryablesFilters.AutoMatchIgnoreMods = ModConfig.CloneArray(AutoMatchIgnoreMods);
+            newConfig.CarryablesFilters.AllowedShapeOnlyMatches = ModConfig.CloneArray(AllowedShapeOnlyMatches);
+            newConfig.CarryablesFilters.RemoveBaseCarryableBehaviour = ModConfig.CloneArray(RemoveBaseCarryableBehaviour);
+            newConfig.CarryablesFilters.RemoveCarryableBehaviour = ModConfig.CloneArray(RemoveCarryableBehaviour);
 
             return newConfig;
         }

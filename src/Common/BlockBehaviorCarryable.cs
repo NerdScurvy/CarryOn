@@ -56,11 +56,18 @@ namespace CarryOn.Common
 
         public SlotStorage Slots { get; } = new SlotStorage();
 
-        public Vec3i MultiblockOffset {get; private set;} = null;
+        public Vec3i MultiblockOffset { get; private set; } = null;
 
-        public int PatchPriority { get; private set;} = 0;
+        public int PatchPriority { get; private set; } = 0;
 
         public bool PreventAttaching { get; private set; } = false;
+
+        public bool TransferEnabled { get; private set; } = false;
+
+        public string TransferHandler { get; private set; } = null;
+
+        private CollectibleBehavior TransferHandlerBehavior { get; set; } = null;
+
 
         public BlockBehaviorCarryable(Block block)
             : base(block) { }
@@ -79,13 +86,88 @@ namespace CarryOn.Common
 
             if (JsonHelper.TryGetBool(properties, "preventAttaching", out var a)) PreventAttaching = a;
 
+            if (JsonHelper.TryGetString(properties, "TransferHandler", out var c)) TransferHandler = c;
+
             DefaultTransform = JsonHelper.GetTransform(properties, DefaultBlockTransform);
             Slots.Initialize(properties["slots"], DefaultTransform);
+
+            TransferEnabled = !string.IsNullOrEmpty(TransferHandler);
         }
 
+        /// <summary>
+        /// Gets the transfer handler behavior for this block.
+        /// </summary>
+        /// <param name="api"></param>
+        /// <returns>Returns null if the transfer handler is not enabled or the behavior is not found.</returns>
+        public CollectibleBehavior GetTransferHandlerBehavior(ICoreAPI api)
+        {
+            if (!TransferEnabled) return null;
+
+            if (TransferHandlerBehavior == null)
+            {
+                TransferHandlerBehavior = block?.GetBehavior(api.ClassRegistry.GetBlockBehaviorClass(TransferHandler));
+                CheckTransferEnabledAndWorking(api);
+            }
+
+            return TransferHandlerBehavior;
+        }
+
+        public void CheckTransferEnabledAndWorking(ICoreAPI api)
+        {
+            if (TransferHandlerBehavior == null)
+            {
+                api.Logger.Warning("TransferHandlerBehavior is null. Disabling transfer.");
+                TransferEnabled = false;
+                return;
+            }
+
+            var method = TransferHandlerBehavior
+                .GetType()
+                .GetMethod("IsTransferEnabled", [typeof(ICoreAPI)]);
+            if (method == null)
+            {
+                api.Logger.Warning(
+                    $"IsTransferEnabled(ICoreAPI) method not found on {TransferHandlerBehavior.GetType().Name}"
+                );
+                TransferEnabled = false;
+                return;
+            }
+
+            if (method.ReturnType != typeof(bool))
+            {
+                api.Logger.Warning(
+                    $"IsTransferEnabled method on {TransferHandlerBehavior.GetType().Name} does not return bool"
+                );
+                TransferEnabled = false;
+                return;
+            }
+
+            try
+            {
+                var result = method.Invoke(
+                    TransferHandlerBehavior,
+                    [api]
+                ) as bool? ?? false;
+
+                TransferEnabled = result;
+            }
+            catch (Exception e)
+            {
+                api.Logger.Error(
+                    $"IsTransferEnabled method failed to execute on {TransferHandlerBehavior.GetType().Name}: {e.Message}"
+                );
+                TransferEnabled = false;
+            }
+        }
         public override WorldInteraction[] GetPlacedBlockInteractionHelp(
-            IWorldAccessor world, BlockSelection selection, IPlayer forPlayer, ref EnumHandling handled)
-                => Interactions;
+                    IWorldAccessor world, BlockSelection selection, IPlayer forPlayer, ref EnumHandling handled)
+        {
+            if (Slots == null || Slots.Count == 0)
+            {
+                return null;
+            }
+            return Interactions;
+        }
 
         public override void OnBlockRemoved(IWorldAccessor world, BlockPos pos, ref EnumHandling handling)
         {
@@ -111,6 +193,8 @@ namespace CarryOn.Common
 
             public SlotSettings this[CarrySlot slot]
                 => _dict.TryGetValue(slot, out var settings) ? settings : null;
+
+            public int Count => _dict.Count;
 
             public void Initialize(JsonObject properties, ModelTransform defaultTansform)
             {
