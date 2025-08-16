@@ -36,8 +36,8 @@ namespace CarryOn.Events
             if(isReinforced) return;
 
             var world = playerEntity.Api.World;
-            var loggingEnabled = ModConfig.ServerConfig.DebuggingOptions.LoggingEnabled;
-
+            var loggingEnabled = ModConfig.ServerConfig?.DebuggingOptions?.LoggingEnabled == true;
+            
             // Check if block was dropped by a player
             var droppedBlock = DroppedBlockInfo.Get(pos, playerEntity.Player);
             if (droppedBlock != null)
