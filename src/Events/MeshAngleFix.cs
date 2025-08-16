@@ -1,4 +1,3 @@
-using System.Threading.Tasks;
 using CarryOn.API.Common;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;

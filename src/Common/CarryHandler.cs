@@ -1457,7 +1457,6 @@ namespace CarryOn.Common
 
             if (result)
             {
-                CarrySystem.Api.Logger.Debug($"{transferMethod} returned true");
                 CarriedBlock.Remove(player.Entity, CarrySlot.Hands);
 
                 return true;
@@ -1566,7 +1565,6 @@ namespace CarryOn.Common
 
             if (result)
             {
-                CarrySystem.Api.Logger.Debug($"{transferMethod} returned true");
                 var carriedBlock = new CarriedBlock(CarrySlot.Hands, itemStack, blockEntityData);
                 carriedBlock.Set(player.Entity);
 
