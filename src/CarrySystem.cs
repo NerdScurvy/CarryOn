@@ -13,6 +13,7 @@ using CarryOn.Utility;
 using HarmonyLib;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
+using Vintagestory.API.Config;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.Server;
 using Vintagestory.API.Util;
@@ -36,6 +37,9 @@ namespace CarryOn
         public static float PlaceSpeedDefault = 0.75f;
         public static float SwapSpeedDefault = 1.5f;
         public static float PickUpSpeedDefault = 0.8f;
+
+        public static float TransferSpeedDefault = 0.8f;
+
         public static float InteractSpeedDefault = 0.8f;
 
         public static string PickupKeyCode = "carryonpickupkey";
@@ -77,6 +81,8 @@ namespace CarryOn
         public CarryEvents CarryEvents { get; private set; }
 
         private Harmony _harmony;
+
+        public static string GetLang(string key) => Lang.Get(ModConfig.GetConfigKey(key)) ?? key;
 
         public override void StartPre(ICoreAPI api)
         {
@@ -129,6 +135,8 @@ namespace CarryOn
                 .RegisterMessageType<SwapSlotsMessage>()
                 .RegisterMessageType<AttachMessage>()
                 .RegisterMessageType<DetachMessage>()
+                .RegisterMessageType<PutMessage>()
+                .RegisterMessageType<TakeMessage>()                
                 .RegisterMessageType<QuickDropMessage>()
                 .RegisterMessageType<DismountMessage>()
                 .RegisterMessageType<PlayerAttributeUpdateMessage>();
@@ -152,6 +160,8 @@ namespace CarryOn
                 .RegisterMessageType<SwapSlotsMessage>()
                 .RegisterMessageType<AttachMessage>()
                 .RegisterMessageType<DetachMessage>()
+                .RegisterMessageType<PutMessage>()
+                .RegisterMessageType<TakeMessage>()                  
                 .RegisterMessageType<QuickDropMessage>()
                 .RegisterMessageType<DismountMessage>()
                 .RegisterMessageType<PlayerAttributeUpdateMessage>();
@@ -187,15 +197,22 @@ namespace CarryOn
         }
         private void ManuallyAddCarryableBehaviors(ICoreAPI api)
         {
-            if (ModConfig.HenboxEnabled)
+            try
             {
-                var block = api.World.BlockAccessor.GetBlock("henbox");
-                if (block != null)
+                if (ModConfig.HenboxEnabled)
                 {
-                    // Only allow default hand slot 
-                    var properties = JsonObject.FromJson("{slots:{Hands:{}}}");
-                    AddCarryableBehavior(block, ref block.BlockBehaviors, ref block.CollectibleBehaviors, properties);
+                    var block = api.World.BlockAccessor.GetBlock("henbox");
+                    if (block != null)
+                    {
+                        // Only allow default hand slot 
+                        var properties = JsonObject.FromJson("{slots:{Hands:{}}}");
+                        AddCarryableBehavior(block, ref block.BlockBehaviors, ref block.CollectibleBehaviors, properties);
+                    }
                 }
+            }
+            catch (Exception e)
+            {
+                api.Logger.Error($"Error in ManuallyAddCarryableBehaviors: {e.Message}");
             }
         }
 
@@ -438,6 +455,9 @@ namespace CarryOn
             }
         }
 
+    
+
+        // TODO: Consider renaming since it also contains TransferHandlerType init 
         private void InitEvents()
         {
             var ignoreMods = new[] { "game", "creative", "survival" };
@@ -462,6 +482,19 @@ namespace CarryOn
                         Api.Logger.Error(e.Message);
                     }
                 }
+
+                foreach (Type type in assembly.GetTypes().Where(t => t.GetInterfaces().Contains(typeof(ICarryableTransfer))))
+                {
+                    foreach (var block in Api.World.Blocks.Where(b => b.IsCarryable()))
+                    {
+                        if (block.HasBehavior(type))
+                        {
+                            block.GetBehavior<BlockBehaviorCarryable>().TransferHandlerType = type;
+
+                        }
+                    }
+                }
+
             }
         }
     }

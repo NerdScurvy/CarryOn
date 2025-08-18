@@ -29,6 +29,7 @@
     }
   },
   {
+    "file": "game:blocktypes/wood/woodtyped/log-withresin",
     "op": "add",
     "path": "/behaviorsByType/log-resinharvested-*/-",
     "value": {
@@ -49,8 +50,7 @@
           "Back": {}
         }
       }
-    },
-    "file": "game:blocktypes/wood/woodtyped/log-withresin.json",
+    },   
     "condition": {
       "when": "carryon:LogWithResinEnabled",
       "isValue": "true"

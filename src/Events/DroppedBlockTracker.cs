@@ -9,8 +9,11 @@ namespace CarryOn.Events
 {
     public class DroppedBlockTracker : ICarryEvent
     {
-        public void Init(CarrySystem carrySystem)
+        public void Init(ModSystem modSystem)
         {
+            if (modSystem is not CarrySystem carrySystem) return;
+            
+            // TODO: Use CarryOnLib API to get CarryEvents
             var events = carrySystem.CarryEvents;
 
             if (carrySystem.Api.Side == EnumAppSide.Client) {
@@ -36,8 +39,8 @@ namespace CarryOn.Events
             if(isReinforced) return;
 
             var world = playerEntity.Api.World;
-            var loggingEnabled = ModConfig.ServerConfig.DebuggingOptions.LoggingEnabled;
-
+            var loggingEnabled = ModConfig.ServerConfig?.DebuggingOptions?.LoggingEnabled == true;
+            
             // Check if block was dropped by a player
             var droppedBlock = DroppedBlockInfo.Get(pos, playerEntity.Player);
             if (droppedBlock != null)

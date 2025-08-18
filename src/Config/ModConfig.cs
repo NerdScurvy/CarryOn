@@ -10,7 +10,7 @@ namespace CarryOn.Config
         public static CarryOnConfig ServerConfig { get; private set; }
         public static IWorldAccessor World { get; private set; }
 
-        private static string GetConfigKey(string key) => $"{ModId}:{key}";
+        public static string GetConfigKey(string key) => $"{ModId}:{key}";
 
         private static readonly string allowSprintKey = GetConfigKey("AllowSprintWhileCarrying");
         private static readonly string ignoreSpeedPenaltyKey = GetConfigKey("IgnoreCarrySpeedPenalty");
@@ -154,6 +154,12 @@ namespace CarryOn.Config
                     return;
                 }
 
+                if (ServerConfig == null)
+                {
+                    api.Logger.Error("CarryOn: ServerConfig did not load correctly. CarryOn features may not work correctly.");
+                    return;
+                }
+
                 // Sections below save the value to the world config so it is available for both server and client
 
                 // Carryables
@@ -194,10 +200,14 @@ namespace CarryOn.Config
                 worldConfig.SetBool(GetConfigKey("InteractBarrelEnabled"), ServerConfig.Interactables.Barrel);
                 worldConfig.SetBool(GetConfigKey("InteractStorageEnabled"), ServerConfig.Interactables.Storage);
 
+                // Transferables
+                worldConfig.SetBool(GetConfigKey("MoldRackTransferEnabled"), ServerConfig.Transferables.MoldRack);
+
                 // CarryOptions
                 worldConfig.SetBool(GetConfigKey("AllowChestTrunksOnBack"), ServerConfig.CarryOptions.AllowChestTrunksOnBack);
                 worldConfig.SetBool(GetConfigKey("AllowLargeChestsOnBack"), ServerConfig.CarryOptions.AllowLargeChestsOnBack);
                 worldConfig.SetBool(GetConfigKey("AllowCratesOnBack"), ServerConfig.CarryOptions.AllowCratesOnBack);
+
 
                 AllowSprintWhileCarrying = ServerConfig.CarryOptions.AllowSprintWhileCarrying;
                 IgnoreCarrySpeedPenalty = ServerConfig.CarryOptions.IgnoreCarrySpeedPenalty;
@@ -249,6 +259,11 @@ namespace CarryOn.Config
         {
             api.StoreModConfig(new CarryOnConfig(previousConfig), ConfigFile);
         }
+
+        public static string[] CloneArray(string[] source)
+        {
+            return source != null ? (string[])source.Clone() : [];
+        }        
 
     }
 }

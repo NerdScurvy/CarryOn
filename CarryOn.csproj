@@ -32,8 +32,12 @@
 		</Reference>	
         <Reference Include="0Harmony">
             <HintPath>$(VINTAGE_STORY)/Lib/0Harmony.dll</HintPath>
-            <Private>False</Private>
-        </Reference>		
+            <Private>false</Private>
+        </Reference>
+		<Reference Include="CarryOnLib">
+			<HintPath>..\CarryOnLib\bin\Debug\net8.0\CarryOnLib.dll</HintPath>
+			<Private>false</Private>
+		</Reference>				
 	</ItemGroup>
 	
 	<ItemGroup Condition="'$(Configuration)' == 'Release'">
@@ -46,5 +50,6 @@
 	
 	<Target Name="Package" AfterTargets="PostBuildEvent" Condition="'$(Configuration)' == 'Release'">
 		<ZipDirectory DestinationFile="bin/$(TargetName).zip" SourceDirectory="$(TargetDir)" Overwrite="true" />
+		<ZipDirectory DestinationFile="C:/VintageStoryData/1.21.0-rc.5-dev/CarryOnDev/Mods/$(TargetName).zip" SourceDirectory="$(TargetDir)" Overwrite="true" />
 	</Target>
 </Project>
