@@ -37,6 +37,9 @@ namespace CarryOn
         public static float PlaceSpeedDefault = 0.75f;
         public static float SwapSpeedDefault = 1.5f;
         public static float PickUpSpeedDefault = 0.8f;
+
+        public static float TransferSpeedDefault = 0.8f;
+
         public static float InteractSpeedDefault = 0.8f;
 
         public static string PickupKeyCode = "carryonpickupkey";
@@ -116,7 +119,6 @@ namespace CarryOn
             api.Register<BlockBehaviorCarryable>();
             api.Register<BlockBehaviorCarryableInteract>();
             api.Register<EntityBehaviorAttachableCarryable>();
-            api.Register<BlockBehaviorMoldRackTransfer>();
 
             CarryHandler = new CarryHandler(this);
             CarryEvents = new CarryEvents();
@@ -208,10 +210,20 @@ namespace CarryOn
                     }
                 }
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 api.Logger.Error($"Error in ManuallyAddCarryableBehaviors: {e.Message}");
-            }   
+            }
+
+            foreach (var block in api.World.Blocks.Where(b => b.IsCarryable()))
+            {
+                if (block.Class == "BlockMoldRack")
+                {
+                    api.Logger.Error($"Not an error {block.Code}");
+                }
+            }
+
+
         }
 
         private void RemoveExcludedCarryableBehaviours(ICoreAPI api)
@@ -453,6 +465,8 @@ namespace CarryOn
             }
         }
 
+    
+
         private void InitEvents()
         {
             var ignoreMods = new[] { "game", "creative", "survival" };
@@ -477,6 +491,19 @@ namespace CarryOn
                         Api.Logger.Error(e.Message);
                     }
                 }
+
+                foreach (Type type in assembly.GetTypes().Where(t => t.GetInterfaces().Contains(typeof(ICarryableTransfer))))
+                {
+                    foreach (var block in Api.World.Blocks.Where(b => b.IsCarryable()))
+                    {
+                        if (block.HasBehavior(type))
+                        {
+                            block.GetBehavior<BlockBehaviorCarryable>().TransferHandlerType = type;
+
+                        }
+                    }
+                }
+
             }
         }
     }

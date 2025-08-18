@@ -9,8 +9,11 @@ namespace CarryOn.Events
 {
     public class DroppedBlockTracker : ICarryEvent
     {
-        public void Init(CarrySystem carrySystem)
+        public void Init(ModSystem modSystem)
         {
+            if (modSystem is not CarrySystem carrySystem) return;
+            
+            // TODO: Use CarryOnLib API to get CarryEvents
             var events = carrySystem.CarryEvents;
 
             if (carrySystem.Api.Side == EnumAppSide.Client) {

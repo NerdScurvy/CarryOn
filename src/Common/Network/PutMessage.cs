@@ -9,8 +9,7 @@ namespace CarryOn.Common.Network
         [ProtoMember(1)]
         public BlockPos BlockPos { get; set; }
 
-        // Optional, not required on the wire; omit when null
-        [ProtoMember(2, IsRequired = false)]
-        public int Index { get; set; } = -1;
+        [ProtoMember(2)]
+        public int Index { get; set; }
     }
 }

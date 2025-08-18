@@ -7,7 +7,6 @@
     "value": {
       "name": "Carryable",
       "properties": {
-        "TransferHandler": "MoldRackTransfer",
         "translation": [
           0.0625,
           0,
@@ -21,46 +20,12 @@
         "slots": {
           "Hands": {},
           "Back": {}
-        },
-        "patchPriority": 1
+        }
       }
     },
     "condition": {
       "when": "carryon:MoldRackEnabled",
       "isValue": "true"
     }
-  },
-  {
-    "file": "game:blocktypes/wood/moldrack",
-    "side": "Server",
-    "op": "add",
-    "path": "/behaviors/-",
-    "value": {
-      "name": "Carryable",
-      "properties": {
-        "TransferHandler": "MoldRackTransfer",
-        "slots": {}
-      }
-    },
-    "condition": {
-      "when": "carryon:MoldRackTransferEnabled",
-      "isValue": "true"
-    }
-  },  
-  {
-    "file": "game:blocktypes/wood/moldrack.json",
-    "side": "Server",
-    "op": "add",
-    "path": "/behaviors/-",
-    "value": {
-      "name": "MoldRackTransfer",
-      "properties": {
-       
-      }
-    },
-    "condition": {
-      "when": "carryon:MoldRackTransferEnabled",
-      "isValue": "true"
-    }
-  }  
+  }
 ]

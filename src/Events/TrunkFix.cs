@@ -7,8 +7,9 @@ namespace CarryOn.Events
 {
     public class TrunkFix : ICarryEvent
     {
-        public void Init(CarrySystem carrySystem)
+        public void Init(ModSystem modSystem)
         {
+            if (modSystem is not CarrySystem carrySystem) return;
             if (carrySystem.Api.Side != EnumAppSide.Server) return;
 
             carrySystem.CarryEvents.OnRestoreEntityBlockData += OnRestoreEntityBlockData;

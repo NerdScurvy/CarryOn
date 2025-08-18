@@ -28,6 +28,7 @@ namespace CarryOn.Common
 
         // Entity performing the interaction (might be redundant if this interaction is client-side only)
         public Entity TargetEntity { get; set; }
+        public float? TransferDelay { get; internal set; }
 
         public void Complete()
         {
@@ -43,6 +44,7 @@ namespace CarryOn.Common
             TargetSlotIndex = null;
             TargetEntity = null;
             TargetBlockPos = null;
+            TransferDelay = null;
 
             if (resetTimeHeld)
             {

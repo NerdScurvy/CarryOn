@@ -8,8 +8,9 @@ namespace CarryOn.Events
 {
     public class MessageOnBlockDropped : ICarryEvent
     {
-        public void Init(CarrySystem carrySystem)
+        public void Init(ModSystem modSystem)
         {
+            if (modSystem is not CarrySystem carrySystem) return;
             if (carrySystem.Api.Side != EnumAppSide.Server) return;
 
             carrySystem.CarryEvents.BlockDropped += OnCarriedBlockDropped;

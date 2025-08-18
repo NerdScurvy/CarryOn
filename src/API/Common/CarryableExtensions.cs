@@ -25,12 +25,12 @@ namespace CarryOn.API.Common
         ///           Checks if <see cref="BlockBehaviorCarryable"/> is present.</summary>
         public static bool IsCarryable(this Block block)
         {
-            return block.GetBehavior<BlockBehaviorCarryable>() != null;
+            return block.HasBehavior<BlockBehaviorCarryable>();
         }
 
         public static bool IsCarryableInteract(this Block block)
         {
-            return block.GetBehavior<BlockBehaviorCarryableInteract>() != null;
+            return block.HasBehavior<BlockBehaviorCarryableInteract>();
         }
 
         /// <summary> Returns whether the specified block can be carried in the specified slot.
