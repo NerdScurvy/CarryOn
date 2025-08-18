@@ -35,7 +35,7 @@
             <Private>false</Private>
         </Reference>
 		<Reference Include="CarryOnLib">
-			<HintPath>G:/git/github/Nerdscurvy/CarryOnLib/bin/Debug/net8.0/CarryOnLib.dll</HintPath>
+			<HintPath>..\CarryOnLib\bin\Debug\net8.0\CarryOnLib.dll</HintPath>
 			<Private>false</Private>
 		</Reference>				
 	</ItemGroup>

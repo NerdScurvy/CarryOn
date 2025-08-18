@@ -1500,6 +1500,7 @@ namespace CarryOn.Common
                     // If the transfer was successful, we can put the block in the player's hands.
                     var carriedBlock = new CarriedBlock(CarrySlot.Hands, itemStack, blockEntityData);
                     carriedBlock.Set(player.Entity);
+                    return true;
                 }
 
             }

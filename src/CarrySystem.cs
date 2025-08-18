@@ -214,16 +214,6 @@ namespace CarryOn
             {
                 api.Logger.Error($"Error in ManuallyAddCarryableBehaviors: {e.Message}");
             }
-
-            foreach (var block in api.World.Blocks.Where(b => b.IsCarryable()))
-            {
-                if (block.Class == "BlockMoldRack")
-                {
-                    api.Logger.Error($"Not an error {block.Code}");
-                }
-            }
-
-
         }
 
         private void RemoveExcludedCarryableBehaviours(ICoreAPI api)
@@ -467,6 +457,7 @@ namespace CarryOn
 
     
 
+        // TODO: Consider renaming since it also contains TransferHandlerType init 
         private void InitEvents()
         {
             var ignoreMods = new[] { "game", "creative", "survival" };
