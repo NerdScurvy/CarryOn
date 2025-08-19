@@ -47,12 +47,12 @@ namespace CarryOn.API.Common
         /// <summary> Returns the <see cref="CarriedBlock"/> this entity
         ///           is carrying in the specified slot, or null of none. </summary>
         /// <exception cref="ArgumentNullException"> Thrown if entity or pos is null. </exception>
-        public static CarriedBlock GetCarried(this Entity entity, CarrySlot slot)
-            => CarriedBlock.Get(entity, slot);
+        public static CarriedBlockExtended GetCarried(this Entity entity, CarrySlot slot)
+            => CarriedBlockExtended.Get(entity, slot);
 
         /// <summary> Returns all the <see cref="CarriedBlock"/>s this entity is carrying. </summary>
         /// <exception cref="ArgumentNullException"> Thrown if entity or pos is null. </exception>
-        public static IEnumerable<CarriedBlock> GetCarried(this Entity entity)
+        public static IEnumerable<CarriedBlockExtended> GetCarried(this Entity entity)
         {
             foreach (var slot in Enum.GetValues(typeof(CarrySlot)).Cast<CarrySlot>())
             {
@@ -71,10 +71,10 @@ namespace CarryOn.API.Common
                                  CarrySlot slot, bool checkIsCarryable = true, bool playSound = true)
         {
             if (!HasPermissionToCarry(entity, pos)) return false;
-            if (CarriedBlock.Get(entity, slot) != null) return false;
-            var carried = CarriedBlock.PickUp(entity.World, pos, slot, checkIsCarryable);
+            if (CarriedBlockExtended.Get(entity, slot) != null) return false;
+            var carried = CarriedBlockExtended.PickUp(entity.World, pos, slot, checkIsCarryable);
             if (carried == null) return false;
-
+      
             carried.Set(entity, slot);
             if (playSound) carried.PlaySound(pos, entity.World, entity as EntityPlayer);
             return true;
@@ -147,12 +147,12 @@ namespace CarryOn.API.Common
             // TODO: Handle multiblocks properly
 
             // Sort remaining to drop multiblock last
-            var remaining = new HashSet<CarriedBlock>(
+            var remaining = new HashSet<CarriedBlockExtended>(
                 slots.Select(s => entity.GetCarried(s))
                      .Where(c => c != null).OrderBy(t => t?.Behavior?.MultiblockOffset));
             if (remaining.Count == 0) return;
 
-            bool CanPlaceMultiblock(BlockPos position, CarriedBlock carriedBlock)
+            bool CanPlaceMultiblock(BlockPos position, CarriedBlockExtended carriedBlock)
             {
                 // Dirty fix to test second block of multiblock. e.g. trunk
                 if (carriedBlock?.Behavior?.MultiblockOffset != null)
@@ -167,13 +167,13 @@ namespace CarryOn.API.Common
                 return true;
             }
 
-            bool Drop(BlockPos pos, CarriedBlock block)
+            bool Drop(BlockPos pos, CarriedBlockExtended block)
             {
                 if (!CanPlaceMultiblock(pos, block)) return false;
                 string failureCode = null;
 
                 if (!block.PlaceDown(ref failureCode, world, new BlockSelection { Position = pos }, player.Entity, true)) return false;
-                CarriedBlock.Remove(entity, block.Slot);
+                CarriedBlockExtended.Remove(entity, block.Slot);
                 return true;
             }
 
@@ -206,7 +206,7 @@ namespace CarryOn.API.Common
 
             var airBlocks = new List<BlockPos>();
 
-            void TryDrop(BlockPos pos, CarriedBlock block)
+            void TryDrop(BlockPos pos, CarriedBlockExtended block)
             {
                 if (block != null)
                 {
@@ -288,7 +288,7 @@ namespace CarryOn.API.Common
                             var breakSound = carriedBlock.Block.Sounds.GetBreakSound(player) ?? new AssetLocation("game:sounds/block/planks");
 
                             world.PlaySoundAt(breakSound, (double)centerBlock.X, (double)centerBlock.Y, (double)centerBlock.Z);
-                            CarriedBlock.Remove(entity, carriedBlock.Slot);
+                            CarriedBlockExtended.Remove(entity, carriedBlock.Slot);
 
                             world.GetCarryEvents()?.TriggerBlockDropped(world, centerBlock, entity, carriedBlock, blockDestroyed, hadContents);
                         }
@@ -357,12 +357,12 @@ namespace CarryOn.API.Common
         {
             if (first == second) throw new ArgumentException("Slots can't be the same");
 
-            var carriedFirst = CarriedBlock.Get(entity, first);
-            var carriedSecond = CarriedBlock.Get(entity, second);
+            var carriedFirst = CarriedBlockExtended.Get(entity, first);
+            var carriedSecond = CarriedBlockExtended.Get(entity, second);
             if ((carriedFirst == null) && (carriedSecond == null)) return false;
 
-            CarriedBlock.Remove(entity, first);
-            CarriedBlock.Remove(entity, second);
+            CarriedBlockExtended.Remove(entity, first);
+            CarriedBlockExtended.Remove(entity, second);
 
             carriedFirst?.Set(entity, second);
             carriedSecond?.Set(entity, first);
@@ -422,7 +422,7 @@ namespace CarryOn.API.Common
                 return false;
             }
 
-            var carried = CarriedBlock.Get(player.Entity, slot);
+            var carried = CarriedBlockExtended.Get(player.Entity, slot);
             if (carried == null) return false;
 
             return carried.PlaceDown(ref failureCode, player.Entity.World, selection, player.Entity);

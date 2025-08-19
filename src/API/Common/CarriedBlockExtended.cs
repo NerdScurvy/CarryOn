@@ -12,33 +12,21 @@ using Vintagestory.GameContent;
 
 namespace CarryOn.API.Common
 {
-    public class CarriedBlock
+    public class CarriedBlockExtended:CarriedBlock
     {
         /// <summary> Root tree attribute on an entity which stores carried data. </summary>
-        public static string AttributeId { get; }
-            = $"{CarrySystem.ModId}:Carried";
-
-        public CarrySlot Slot { get; }
-
-        public ItemStack ItemStack { get; }
-        public Block Block => ItemStack.Block;
-
-        public ITreeAttribute BlockEntityData { get; }
-
-        public CarriedBlock(CarrySlot slot, ItemStack stack, ITreeAttribute blockEntityData)
+        public CarriedBlockExtended(CarrySlot slot, ItemStack stack, ITreeAttribute blockEntityData)
+            : base(slot, stack, blockEntityData)
         {
-            Slot = slot;
-            ItemStack = stack ?? throw new ArgumentNullException(nameof(stack));
-            BlockEntityData = blockEntityData;
         }
- 
+
         public BlockBehaviorCarryable Behavior
             => Block.GetBehaviorOrDefault(BlockBehaviorCarryable.Default);
 
         /// <summary> Gets the <see cref="CarriedBlock"/> currently
         ///           carried by the specified entity, or null if none. </summary>
         /// <exception cref="ArgumentNullException"> Thrown if entity is null. </exception>
-        public static CarriedBlock Get(Entity entity, CarrySlot slot)
+        public static CarriedBlockExtended Get(Entity entity, CarrySlot slot)
         {
             if (entity == null) throw new ArgumentNullException(nameof(entity));
 
@@ -60,7 +48,7 @@ namespace CarryOn.API.Common
                 ? entity.Attributes.TryGet<ITreeAttribute>(AttributeId, slot.ToString(), "Data")
                 : null;
 
-            return new CarriedBlock(slot, stack, blockEntityData);
+            return new CarriedBlockExtended(slot, stack, blockEntityData);
         }
 
         /// <summary> Stores the specified stack and blockEntityData (may be null)
@@ -136,7 +124,7 @@ namespace CarryOn.API.Common
         /// <summary> Creates a <see cref="CarriedBlock"/> from the specified world
         ///           and position, but doesn't remove it. Returns null if unsuccessful. </summary>
         /// <exception cref="ArgumentNullException"> Thrown if <paramref name="world"/> or <paramref name="pos"/> is null. </exception>
-        public static CarriedBlock CreateFromBlockPos(IWorldAccessor world, BlockPos pos, CarrySlot slot)
+        public static CarriedBlockExtended CreateFromBlockPos(IWorldAccessor world, BlockPos pos, CarrySlot slot)
         {
             if (world == null) throw new ArgumentNullException(nameof(world));
             if (pos == null) throw new ArgumentNullException(nameof(pos));
@@ -164,13 +152,13 @@ namespace CarryOn.API.Common
                 }
             }
 
-            return new CarriedBlock(slot, stack, blockEntityData);
+            return new CarriedBlockExtended(slot, stack, blockEntityData);
         }
 
         /// <summary> Attempts to pick up a <see cref="CarriedBlock"/> from the specified
         ///           world and position, removing it. Returns null if unsuccessful. </summary>
         /// <exception cref="ArgumentNullException"> Thrown if <paramref name="world"/> or <paramref name="pos"/> is null. </exception>
-        public static CarriedBlock PickUp(IWorldAccessor world, BlockPos pos,
+        public static CarriedBlockExtended PickUp(IWorldAccessor world, BlockPos pos,
                                           CarrySlot slot, bool checkIsCarryable = false)
         {
             var carried = CreateFromBlockPos(world, pos, slot);

@@ -854,6 +854,11 @@ namespace CarryOn.Common
                 case CarryAction.PickUp:
                     if (player.Entity.Carry(selection.Position, Interaction.CarrySlot.Value))
                         CarrySystem.ClientChannel.SendPacket(new PickUpMessage(selection.Position, Interaction.CarrySlot.Value));
+                    else
+                    {
+                        // Show in-game error if picking up failed.
+                        CarrySystem.ClientAPI.TriggerIngameError("carryon", "pick-up-failed", GetLang("pick-up-failed"));
+                    }
                     break;
 
                 case CarryAction.PlaceDown:
@@ -1197,7 +1202,7 @@ namespace CarryOn.Common
                     targetEntity.World.BlockAccessor.GetChunkAtBlockPos(targetEntity.ServerPos.AsBlockPos).MarkModified();
 
                     // Remove held block from player
-                    CarriedBlock.Remove(player.Entity, CarrySlot.Hands);
+                    CarriedBlockExtended.Remove(player.Entity, CarrySlot.Hands);
 
                     var sound = block?.Sounds.Place ?? new AssetLocation("sounds/player/build");
                     CarrySystem.Api.World.PlaySoundAt(sound, targetEntity, null, true, 16);
@@ -1301,7 +1306,7 @@ namespace CarryOn.Common
                 var itemstackCopy = itemstack.Clone();
                 itemstackCopy.Attributes.Remove("backpack");
 
-                carriedBlock = new CarriedBlock(CarrySlot.Hands, itemstackCopy, blockEntityData);
+                carriedBlock = new CarriedBlockExtended(CarrySlot.Hands, itemstackCopy, blockEntityData);
                 carriedBlock.Set(player.Entity, CarrySlot.Hands);
 
                 var sound = block?.Sounds.Place ?? new AssetLocation("sounds/player/build");
@@ -1410,7 +1415,7 @@ namespace CarryOn.Common
                 if (success)
                 {
                     // If the transfer was successful, we can remove the carried block from the player's hands.
-                    CarriedBlock.Remove(player.Entity, CarrySlot.Hands);
+                    CarriedBlockExtended.Remove(player.Entity, CarrySlot.Hands);
                     return true;
                 }
 
@@ -1498,7 +1503,7 @@ namespace CarryOn.Common
                 if (success)
                 {
                     // If the transfer was successful, we can put the block in the player's hands.
-                    var carriedBlock = new CarriedBlock(CarrySlot.Hands, itemStack, blockEntityData);
+                    var carriedBlock = new CarriedBlockExtended(CarrySlot.Hands, itemStack, blockEntityData);
                     carriedBlock.Set(player.Entity);
                     return true;
                 }

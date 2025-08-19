@@ -21,11 +21,11 @@ using Vintagestory.GameContent;
 
 [assembly: ModInfo("Carry On",
     modID: "carryon",
-    Version = "1.10.0-rc.3",
+    Version = "2.0.0-pre.1",
     Description = "Adds the capability to carry various things",
     Website = "https://github.com/NerdScurvy/CarryOn",
     Authors = new[] { "copygirl", "NerdScurvy" })]
-[assembly: ModDependency("game", "1.21.0-rc.4")]
+[assembly: ModDependency("game", "1.21.0-rc.6")]
 
 namespace CarryOn
 {
@@ -80,6 +80,8 @@ namespace CarryOn
 
         public CarryEvents CarryEvents { get; private set; }
 
+        public CarryOnLib.Core CarryOnLib { get; private set; }
+
         private Harmony _harmony;
 
         public static string GetLang(string key) => Lang.Get(ModConfig.GetConfigKey(key)) ?? key;
@@ -122,6 +124,10 @@ namespace CarryOn
 
             CarryHandler = new CarryHandler(this);
             CarryEvents = new CarryEvents();
+
+            CarryOnLib = api.ModLoader.GetModSystem<CarryOnLib.Core>();
+
+            CarryOnLib.CarryManager = new CarryManager(this);
         }
 
         public override void StartClientSide(ICoreClientAPI api)

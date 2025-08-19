@@ -3,7 +3,7 @@
 		
 		<AssemblyTitle>Carry On</AssemblyTitle>
 		<Authors>copygirl,NerdScurvy</Authors>
-		<Version>1.10.0-rc.3</Version>
+		<Version>2.0.0-pre.1</Version>
 		
 		<Description>Vintage Story mod which adds the capability to carry various things</Description>
 		<RepositoryUrl>https://github.com/NerdScurvy/CarryOn</RepositoryUrl>
@@ -50,6 +50,6 @@
 	
 	<Target Name="Package" AfterTargets="PostBuildEvent" Condition="'$(Configuration)' == 'Release'">
 		<ZipDirectory DestinationFile="bin/$(TargetName).zip" SourceDirectory="$(TargetDir)" Overwrite="true" />
-		<ZipDirectory DestinationFile="C:/VintageStoryData/1.21.0-rc.5-dev/CarryOnDev/Mods/$(TargetName).zip" SourceDirectory="$(TargetDir)" Overwrite="true" />
+		<ZipDirectory DestinationFile="C:/VintageStoryData/1.21.0-rc.6-dev/CarryOnDev/Mods/$(TargetName).zip" SourceDirectory="$(TargetDir)" Overwrite="true" />
 	</Target>
 </Project>
