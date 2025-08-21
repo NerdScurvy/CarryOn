@@ -82,6 +82,8 @@ namespace CarryOn
 
         public CarryOnLib.Core CarryOnLib { get; private set; }
 
+        public ICarryManager CarryManager => CarryOnLib?.CarryManager;
+
         private Harmony _harmony;
 
         public static string GetLang(string key) => Lang.Get(ModConfig.GetConfigKey(key)) ?? key;
@@ -481,7 +483,7 @@ namespace CarryOn
                 {
                     try
                     {
-                        (Activator.CreateInstance(type) as ICarryEvent)?.Init(this);
+                        (Activator.CreateInstance(type) as ICarryEvent)?.Init(CarryOnLib.CarryManager);
                     }
                     catch (Exception e)
                     {

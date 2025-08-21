@@ -161,60 +161,60 @@ namespace CarryOn.Common
         }
 
         public class SlotSettings
-    {
-        public ModelTransform Transform { get; set; }
-
-        public string Animation { get; set; }
-
-        public float WalkSpeedModifier { get; set; } = 0.0F;
-    }
-
-    public class SlotStorage
-    {
-        private readonly Dictionary<CarrySlot, SlotSettings> _dict = new();
-
-        public SlotSettings this[CarrySlot slot]
-            => _dict.TryGetValue(slot, out var settings) ? settings : null;
-
-        public int Count => _dict.Count;
-
-        public void Initialize(JsonObject properties, ModelTransform defaultTansform)
         {
-            _dict.Clear();
-            if (properties?.Exists != true)
+            public ModelTransform Transform { get; set; }
+
+            public string Animation { get; set; }
+
+            public float WalkSpeedModifier { get; set; } = 0.0F;
+        }
+
+        public class SlotStorage
+        {
+            private readonly Dictionary<CarrySlot, SlotSettings> _dict = new();
+
+            public SlotSettings this[CarrySlot slot]
+                => _dict.TryGetValue(slot, out var settings) ? settings : null;
+
+            public int Count => _dict.Count;
+
+            public void Initialize(JsonObject properties, ModelTransform defaultTansform)
             {
-                if (!DefaultAnimation.TryGetValue(CarrySlot.Hands, out var anim)) anim = null;
-                _dict.Add(CarrySlot.Hands, new SlotSettings { Animation = anim });
-            }
-            else
-            {
-                foreach (var slot in Enum.GetValues(typeof(CarrySlot)).Cast<CarrySlot>())
+                _dict.Clear();
+                if (properties?.Exists != true)
                 {
-                    var slotProperties = properties[slot.ToString()];
-                    if (slotProperties?.Exists != true) continue;
-
-                    // If world config is false then do not include the shot settings
-                    var jsonObjProperty = slotProperties["keepWhenTrue"];
-                    if (ModConfig.World?.Config != null && jsonObjProperty.Exists
-                        && !ModConfig.World.Config.GetBool(jsonObjProperty.AsString(), true))
+                    if (!DefaultAnimation.TryGetValue(CarrySlot.Hands, out var anim)) anim = null;
+                    _dict.Add(CarrySlot.Hands, new SlotSettings { Animation = anim });
+                }
+                else
+                {
+                    foreach (var slot in Enum.GetValues(typeof(CarrySlot)).Cast<CarrySlot>())
                     {
-                        continue;
+                        var slotProperties = properties[slot.ToString()];
+                        if (slotProperties?.Exists != true) continue;
+
+                        // If world config is false then do not include the shot settings
+                        var jsonObjProperty = slotProperties["keepWhenTrue"];
+                        if (ModConfig.World?.Config != null && jsonObjProperty.Exists
+                            && !ModConfig.World.Config.GetBool(jsonObjProperty.AsString(), true))
+                        {
+                            continue;
+                        }
+
+                        if (!_dict.TryGetValue(slot, out var settings))
+                        {
+                            if (!DefaultAnimation.TryGetValue(slot, out var anim)) anim = null;
+                            _dict.Add(slot, settings = new SlotSettings { Animation = anim });
+                        }
+
+                        settings.Transform = JsonHelper.GetTransform(slotProperties, defaultTansform);
+                        settings.Animation = slotProperties["animation"].AsString(settings.Animation);
+
+                        if (!DefaultWalkSpeed.TryGetValue(slot, out var speed)) speed = 0.0F;
+                        settings.WalkSpeedModifier = slotProperties["walkSpeedModifier"].AsFloat(speed);
                     }
-
-                    if (!_dict.TryGetValue(slot, out var settings))
-                    {
-                        if (!DefaultAnimation.TryGetValue(slot, out var anim)) anim = null;
-                        _dict.Add(slot, settings = new SlotSettings { Animation = anim });
-                    }
-
-                    settings.Transform = JsonHelper.GetTransform(slotProperties, defaultTansform);
-                    settings.Animation = slotProperties["animation"].AsString(settings.Animation);
-
-                    if (!DefaultWalkSpeed.TryGetValue(slot, out var speed)) speed = 0.0F;
-                    settings.WalkSpeedModifier = slotProperties["walkSpeedModifier"].AsFloat(speed);
                 }
             }
         }
     }
-}
 }

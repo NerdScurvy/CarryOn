@@ -32,6 +32,8 @@ namespace CarryOn.Common
 
         private CarrySystem CarrySystem { get; }
 
+        private ICarryManager CarryManager => CarrySystem.CarryOnLib.CarryManager;
+
         public CarryHandler(CarrySystem carrySystem)
             => CarrySystem = carrySystem;
 
@@ -1415,7 +1417,7 @@ namespace CarryOn.Common
                 if (success)
                 {
                     // If the transfer was successful, we can remove the carried block from the player's hands.
-                    CarriedBlockExtended.Remove(player.Entity, CarrySlot.Hands);
+                    CarryManager.RemoveCarriedBlock(player?.Entity, CarrySlot.Hands);
                     return true;
                 }
 
@@ -1503,6 +1505,7 @@ namespace CarryOn.Common
                 if (success)
                 {
                     // If the transfer was successful, we can put the block in the player's hands.
+                    CarryManager.SetCarriedBlock(player?.Entity, new CarriedBlock(CarrySlot.Hands, itemStack, blockEntityData));
                     var carriedBlock = new CarriedBlockExtended(CarrySlot.Hands, itemStack, blockEntityData);
                     carriedBlock.Set(player.Entity);
                     return true;

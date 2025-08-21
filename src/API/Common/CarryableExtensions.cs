@@ -12,6 +12,7 @@ using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Server;
 using Vintagestory.GameContent;
+using Vintagestory.ServerMods.NoObf;
 
 namespace CarryOn.API.Common
 {
@@ -74,7 +75,7 @@ namespace CarryOn.API.Common
             if (CarriedBlockExtended.Get(entity, slot) != null) return false;
             var carried = CarriedBlockExtended.PickUp(entity.World, pos, slot, checkIsCarryable);
             if (carried == null) return false;
-      
+
             carried.Set(entity, slot);
             if (playSound) carried.PlaySound(pos, entity.World, entity as EntityPlayer);
             return true;
@@ -132,213 +133,176 @@ namespace CarryOn.API.Common
             if (slots == null) throw new ArgumentNullException(nameof(slots));
             if (hSize < 0) throw new ArgumentOutOfRangeException(nameof(hSize));
             if (vSize < 0) throw new ArgumentOutOfRangeException(nameof(vSize));
-            IServerPlayer player = null;
 
-            if (entity is EntityPlayer entityPlayer)
-            {
-                player = (IServerPlayer)entityPlayer.Player;
-            }
 
+            IServerPlayer player = (entity is EntityPlayer entityPlayer) ? (IServerPlayer)entityPlayer.Player : null;
             var api = entity.Api;
             var world = entity.World;
             var blockAccessor = world.BlockAccessor;
             var nonGroundBlockClasses = ModConfig.ServerConfig?.DroppedBlockOptions?.NonGroundBlockClasses ?? [];
 
-            // TODO: Handle multiblocks properly
-
-            // Sort remaining to drop multiblock last
             var remaining = new HashSet<CarriedBlockExtended>(
                 slots.Select(s => entity.GetCarried(s))
                      .Where(c => c != null).OrderBy(t => t?.Behavior?.MultiblockOffset));
             if (remaining.Count == 0) return;
 
-            bool CanPlaceMultiblock(BlockPos position, CarriedBlockExtended carriedBlock)
+
+
+            // TODO: Avoid potential infinite loop if there is no bedrock for some reason.
+            var centerBlock = FindGround(entity.Pos.AsBlockPos, blockAccessor, nonGroundBlockClasses);
+
+            var blockPlacer = new BlockPlacer(entity.Api);
+            var blockSelection = blockPlacer.FindBlockPlacement(remaining.First().Block, centerBlock, 2, 3);
+
+            if (blockSelection == null)
             {
-                // Dirty fix to test second block of multiblock. e.g. trunk
-                if (carriedBlock?.Behavior?.MultiblockOffset != null)
+                // No valid placement found, drop all blocks as items
+                foreach (var carriedBlock in remaining)
                 {
-                    var multiPos = position.AddCopy(carriedBlock.Behavior.MultiblockOffset);
-                    var testBlock = blockAccessor.GetBlock(multiPos);
-                    if (!testBlock.IsReplacableBy(carriedBlock.Block))
+                    DropBlockAsItem(world, carriedBlock, centerBlock, player, entity);
+                }
+                return;
+            }
+
+            var carryManager = world.GetCarrySystem()?.CarryManager;
+            if (carryManager != null && carryManager.TryPlaceDown(player?.Entity, remaining.First(), blockSelection, true))
+            {
+                carryManager.RemoveCarriedBlock(player?.Entity, remaining.First().Slot);
+                //remaining.Remove(block);
+                // TODO: Implement logic to handle remaining blocks and remove inaccessible code below
+                return;
+            }
+
+
+            var nearbyBlocks = GetNearbyBlocks(centerBlock, hSize);
+            var airBlocks = new HashSet<BlockPos>();
+
+            // Record air blocks
+            foreach (var pos in nearbyBlocks)
+            {
+                var testBlock = blockAccessor.GetBlock(pos);
+                if (testBlock.BlockId == 0 || nonGroundBlockClasses.Contains(testBlock.Class))
+                    airBlocks.Add(pos.Copy());
+            }
+
+            // Try to place each carried block
+            foreach (var block in remaining.ToList())
+            {
+                bool placed = false;
+                foreach (var pos in nearbyBlocks)
+                {
+                    if (CanPlaceMultiblock(pos, block, blockAccessor) && blockAccessor.GetBlock(pos).IsReplacableBy(block.Block))
                     {
-                        return false;
+                        carryManager = world.GetCarrySystem()?.CarryManager;
+                        if (carryManager != null && carryManager.TryPlaceDown(player?.Entity, block, new BlockSelection { Position = pos }, true))
+                        {
+                            carryManager.RemoveCarriedBlock(player?.Entity, block.Slot);
+                            remaining.Remove(block);
+                            placed = true;
+                            break;
+                        }
                     }
                 }
-                return true;
+                if (!placed)
+                {
+                    DropBlockAsItem(world, block, centerBlock, player, entity);
+                    remaining.Remove(block);
+                }
             }
+        }
 
-            bool Drop(BlockPos pos, CarriedBlockExtended block)
-            {
-                if (!CanPlaceMultiblock(pos, block)) return false;
-                string failureCode = null;
-
-                if (!block.PlaceDown(ref failureCode, world, new BlockSelection { Position = pos }, player.Entity, true)) return false;
-                CarriedBlockExtended.Remove(entity, block.Slot);
-                return true;
-            }
-
-            var centerBlock = entity.Pos.AsBlockPos;
-
-            // Look for ground 
-            var blockBelow = centerBlock.DownCopy();
-            bool foundGround = false;
-            while (!foundGround)
+        // Helper: Find the ground position below a block
+        private static BlockPos FindGround(BlockPos start, IBlockAccessor blockAccessor, string[] nonGroundBlockClasses)
+        {
+            var pos = start.Copy();
+            var blockBelow = pos.DownCopy();
+            while (true)
             {
                 var testBlock = blockAccessor.GetBlock(blockBelow);
-                // Check if block is air or defined set of non-ground blocks
                 if (testBlock.BlockId == 0 || (nonGroundBlockClasses?.Contains(testBlock.Class) ?? false))
                 {
-                    centerBlock = blockBelow;
+                    pos = blockBelow;
                     blockBelow = blockBelow.DownCopy();
                 }
                 else
                 {
-                    foundGround = true;
+                    return pos;
                 }
             }
+        }
 
-            var nearbyBlocks = new List<BlockPos>(((hSize * 2) + 1) * ((hSize * 2) + 1));
+        // Helper: Get all nearby blocks in a square area
+        private static List<BlockPos> GetNearbyBlocks(BlockPos center, int hSize)
+        {
+            var blocks = new List<BlockPos>();
             for (int x = -hSize; x <= hSize; x++)
             {
                 for (int z = -hSize; z <= hSize; z++)
-                    nearbyBlocks.Add(centerBlock.AddCopy(x, 0, z));
+                {
+                    blocks.Add(center.AddCopy(x, 0, z));
+                }
             }
+            blocks.Sort((a, b) => a.DistanceTo(center).CompareTo(b.DistanceTo(center)));
+            return blocks;
+        }
 
-            var airBlocks = new List<BlockPos>();
-
-            void TryDrop(BlockPos pos, CarriedBlockExtended block)
+        // Helper: Can place multiblock
+        private static bool CanPlaceMultiblock(BlockPos position, CarriedBlockExtended carriedBlock, IBlockAccessor blockAccessor)
+        {
+            if (carriedBlock?.Behavior?.MultiblockOffset != null)
             {
-                if (block != null)
+                var multiPos = position.AddCopy(carriedBlock.Behavior.MultiblockOffset);
+                var testBlock = blockAccessor.GetBlock(multiPos);
+                if (!testBlock.IsReplacableBy(carriedBlock.Block))
                 {
-                    if (Drop(pos, block))
-                    {
-                        remaining.Remove(block);
-                        airBlocks.Remove(pos);
-                    }
-                    else
-                    {
-                        airBlocks.Remove(pos);
-                    }
+                    return false;
                 }
             }
+            return true;
+        }
 
-            nearbyBlocks.Sort((a, b) => a.DistanceTo(centerBlock).CompareTo(b.DistanceTo(centerBlock)));
+        // Helper: Drop block as item
+        private static void DropBlockAsItem(IWorldAccessor world, CarriedBlockExtended carriedBlock, BlockPos centerBlock, IServerPlayer player, Entity entity)
+        {
+            var api = world.Api;
+            var blockDestroyed = false;
+            var hadContents = false;
+            var dropVec3d = new Vec3d(centerBlock.X + 0.5, centerBlock.Y + 0.5, centerBlock.Z + 0.5);
 
-            var blockIndex = 0;
-            var distance = 0;
-            while (remaining.Count > 0)
+            if (carriedBlock.BlockEntityData?["inventory"] is TreeAttribute inventory && inventory["slots"] is TreeAttribute invSlots)
             {
-                if (blockIndex >= nearbyBlocks.Count)
+                foreach (var item in invSlots.Values.Cast<ItemstackAttribute>())
                 {
-                    while (remaining.Count > 0)
-                    {
-                        // Try to place blocks in known air
-                        var placeable = remaining.FirstOrDefault();
-                        var airPos = airBlocks.FirstOrDefault();
-
-                        if (airPos == null) break;
-
-                        TryDrop(airPos, placeable);
-                    }
-                    if (remaining.Count > 0)
-                    {
-                        api.Logger.Warning($"Entity {entity.GetName()} could not drop carryable on or near {centerBlock}");
-
-                        var blockDestroyed = false;
-                        var hadContents = false;
-
-                        var dropVec3d = new Vec3d(centerBlock.X + 0.5, centerBlock.Y + 0.5, centerBlock.Z + 0.5);
-
-                        foreach (var carriedBlock in remaining)
-                        {
-                            if (carriedBlock.BlockEntityData?["inventory"] is TreeAttribute inventory && inventory["slots"] is TreeAttribute invSlots)
-                            {
-                                foreach (var item in invSlots.Values.Cast<ItemstackAttribute>())
-                                {
-                                    var itemStack = (ItemStack)item.GetValue();
-                                    world.SpawnItemEntity(itemStack, dropVec3d);
-                                    hadContents = true;
-                                }
-                                var carriedItemStack = carriedBlock.ItemStack.Clone();
-
-                                // Remove barrel contents (TODO: check for other attributes)
-                                carriedItemStack.Attributes.Remove("contents");
-                                world.SpawnItemEntity(carriedItemStack, dropVec3d);
-                            }
-                            else
-                            {
-                                var itemStacks = carriedBlock.Block.GetDrops(world, centerBlock, player);
-                                // Check if drops self
-                                if (itemStacks.Length == 1 && itemStacks[0].Id == carriedBlock.ItemStack.Id)
-                                {
-                                    // Spawn configured itemStack which preserves the variant attributes
-                                    world.SpawnItemEntity(carriedBlock.ItemStack, dropVec3d);
-                                }
-                                else
-                                {
-                                    blockDestroyed = true;
-                                    foreach (var itemStack in itemStacks)
-                                    {
-                                        world.SpawnItemEntity(itemStack, dropVec3d);
-                                        hadContents = true;
-                                    }
-                                }
-                            }
-
-                            var breakSound = carriedBlock.Block.Sounds.GetBreakSound(player) ?? new AssetLocation("game:sounds/block/planks");
-
-                            world.PlaySoundAt(breakSound, (double)centerBlock.X, (double)centerBlock.Y, (double)centerBlock.Z);
-                            CarriedBlockExtended.Remove(entity, carriedBlock.Slot);
-
-                            world.GetCarryEvents()?.TriggerBlockDropped(world, centerBlock, entity, carriedBlock, blockDestroyed, hadContents);
-                        }
-                    }
-                    break;
+                    var itemStack = (ItemStack)item.GetValue();
+                    world.SpawnItemEntity(itemStack, dropVec3d);
+                    hadContents = true;
                 }
-                var pos = nearbyBlocks[blockIndex];
-                if (Math.Abs(pos.Y - centerBlock.Y) <= vSize)
+                var carriedItemStack = carriedBlock.ItemStack.Clone();
+                carriedItemStack.Attributes.Remove("contents");
+                world.SpawnItemEntity(carriedItemStack, dropVec3d);
+            }
+            else
+            {
+                var itemStacks = carriedBlock.Block.GetDrops(world, centerBlock, player);
+                if (itemStacks.Length == 1 && itemStacks[0].Id == carriedBlock.ItemStack.Id)
                 {
-                    var sign = Math.Sign(pos.Y - centerBlock.Y);
-                    var testBlock = blockAccessor.GetBlock(pos);
-                    // Record known air blocks and non ground blocks
-                    if (testBlock.BlockId == 0 || (nonGroundBlockClasses?.Contains(testBlock.Class) ?? false))
-                    {
-                        airBlocks.Add(pos.Copy());
-                    }
-                    var placeable = remaining.FirstOrDefault(c => testBlock.IsReplacableBy(c.Block));
-                    if (sign == 0)
-                    {
-                        sign = (placeable != null) ? -1 : 1;
-                    }
-                    else if (sign > 0)
-                    {
-                        TryDrop(pos, placeable);
-                    }
-                    else if (placeable == null)
-                    {
-                        var above = pos.UpCopy();
-
-                        testBlock = blockAccessor.GetBlock(above);
-                        placeable = remaining.FirstOrDefault(c => testBlock.IsReplacableBy(c.Block));
-
-                        TryDrop(above, placeable);
-                    }
-                    pos.Add(0, sign, 0);
+                    world.SpawnItemEntity(carriedBlock.ItemStack, dropVec3d);
                 }
-
-                if (++distance > 3)
+                else
                 {
-                    distance = 0;
-                    blockIndex++;
-                    if (blockIndex % 4 == 4)
+                    blockDestroyed = true;
+                    foreach (var itemStack in itemStacks)
                     {
-                        if (++blockIndex >= nearbyBlocks.Count)
-                            blockIndex = 0;
+                        world.SpawnItemEntity(itemStack, dropVec3d);
+                        hadContents = true;
                     }
                 }
             }
-            // FIXME: Drop container contents if blocks could not be placed.
-            //        Right now, the player just gets to keep them equipped.
+
+            var breakSound = carriedBlock.Block.Sounds.GetBreakSound(player) ?? new AssetLocation("game:sounds/block/planks");
+            world.PlaySoundAt(breakSound, (double)centerBlock.X, (double)centerBlock.Y, (double)centerBlock.Z);
+            CarriedBlockExtended.Remove(entity, carriedBlock.Slot);
+            world.GetCarryEvents()?.TriggerBlockDropped(world, centerBlock, entity, carriedBlock, blockDestroyed, hadContents);
         }
 
         /// <summary> Attempts to make this entity drop all of its carried
@@ -416,16 +380,21 @@ namespace CarryOn.API.Common
             if (player == null) throw new ArgumentNullException(nameof(player));
             if (selection == null) throw new ArgumentNullException(nameof(selection));
 
-            if (!player.Entity.World.Claims.TryAccess(
+            var world = player?.Entity?.World;
+
+            if (!world.Claims.TryAccess(
                 player, selection.Position, EnumBlockAccessFlags.BuildOrBreak))
             {
                 return false;
             }
 
+            var carryManager = world.GetCarrySystem()?.CarryManager;
+
             var carried = CarriedBlockExtended.Get(player.Entity, slot);
             if (carried == null) return false;
 
-            return carried.PlaceDown(ref failureCode, player.Entity.World, selection, player.Entity);
+            return carryManager.TryPlaceDown(player.Entity, carried, selection);
+
         }
 
         /* ------------------------------ */

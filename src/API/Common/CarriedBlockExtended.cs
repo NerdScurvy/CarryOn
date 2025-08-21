@@ -172,7 +172,7 @@ namespace CarryOn.API.Common
             return carried;
         }
 
-        /// <summary> Attempts to place down a <see cref="CarriedBlock"/> at the specified world,
+/*         /// <summary> Attempts to place down a <see cref="CarriedBlock"/> at the specified world,
         ///           selection and by the entity (if any), returning whether it was successful.
         ///           </summary>
         /// <exception cref="ArgumentNullException"> Thrown if <paramref name="world"/> or <paramref name="pos"/> is null. </exception>
@@ -221,7 +221,7 @@ namespace CarryOn.API.Common
             }
 
             return true;
-        }
+        } */
 
         /// <summary>
         /// <para>

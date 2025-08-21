@@ -6,14 +6,16 @@ using Vintagestory.API.Server;
 
 namespace CarryOn.Events
 {
+    /// <summary>
+    /// Sends a message to the player when a block is dropped.
+    /// </summary>
     public class MessageOnBlockDropped : ICarryEvent
     {
-        public void Init(ModSystem modSystem)
+        public void Init(ICarryManager carryManager)
         {
-            if (modSystem is not CarrySystem carrySystem) return;
-            if (carrySystem.Api.Side != EnumAppSide.Server) return;
+            if (carryManager.Api.Side != EnumAppSide.Server) return;
 
-            carrySystem.CarryEvents.BlockDropped += OnCarriedBlockDropped;
+            carryManager.CarryEvents.BlockDropped += OnCarriedBlockDropped;
         }
 
         public void OnCarriedBlockDropped(object sender, BlockDroppedEventArgs e)
@@ -29,7 +31,7 @@ namespace CarryOn.Events
             var name = e.CarriedBlock.ItemStack?.GetName()?.ToLower();
             var slot = Lang.Get($"{CarrySystem.ModId}:slot-{e.CarriedBlock.Slot.ToString().ToLower()}");
 
-            player.SendMessage(GlobalConstants.GeneralChatGroup,Lang.Get(messageKey, name, slot), EnumChatType.Notification);
+            player.SendMessage(GlobalConstants.GeneralChatGroup, Lang.Get(messageKey, name, slot), EnumChatType.Notification);
         }
     }
 }
