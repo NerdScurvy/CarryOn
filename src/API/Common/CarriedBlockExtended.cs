@@ -104,7 +104,7 @@ namespace CarryOn.API.Common
         {
             if (entity == null) throw new ArgumentNullException(nameof(entity));
 
-            var animation = entity.GetCarried(slot)?.Behavior?.Slots?[slot]?.Animation;
+            var animation = entity.GetCarried(slot)?.GetCarryableBehavior()?.Slots?[slot]?.Animation;
             if (animation != null) entity.StopAnimation(animation);
 
             if (entity is EntityAgent agent)
@@ -170,102 +170,6 @@ namespace CarryOn.API.Common
             world.Api.ModLoader.GetModSystem<ModSystemBlockReinforcement>()?.ClearReinforcement(pos);
             world.BlockAccessor.TriggerNeighbourBlockUpdate(pos);
             return carried;
-        }
-
-/*         /// <summary> Attempts to place down a <see cref="CarriedBlock"/> at the specified world,
-        ///           selection and by the entity (if any), returning whether it was successful.
-        ///           </summary>
-        /// <exception cref="ArgumentNullException"> Thrown if <paramref name="world"/> or <paramref name="pos"/> is null. </exception>
-        public bool PlaceDown(ref string failureCode, IWorldAccessor world, BlockSelection selection, Entity entity, bool dropped = false, bool playSound = true)
-        {
-            if (world == null) throw new ArgumentNullException(nameof(world));
-            if (selection == null) throw new ArgumentNullException(nameof(selection));
-            if (!world.BlockAccessor.IsValidPos(selection.Position)) return false;
-
-            if (entity is EntityPlayer playerEntity && !dropped)
-            {
-                failureCode ??= "__ignore__";
-
-                var player = world.PlayerByUid(playerEntity.PlayerUID);
-                try{
-                    // Add phantom Item to player's active slot so any related block placement code can fire. (Workaround for creature container)
-                    player.InventoryManager.ActiveHotbarSlot.Itemstack = ItemStack;
-                    if (!Block.TryPlaceBlock(world, player, ItemStack, selection, ref failureCode)) {
-                        // Remove phantom item from active slot if failed to place
-                        player.InventoryManager.ActiveHotbarSlot.Itemstack = null;
-                        return false;
-                    }
-                }catch(NullReferenceException ex){
-                    world.Logger.Error("Error occured while trying to place a carried block: " + ex.Message);
-                    // Workaround was for null ref with reed chest - Leaving here in case of other issues
-                    world.BlockAccessor.SetBlock(Block.Id, selection.Position, ItemStack);
-                }
-            }
-            else
-            {
-                world.BlockAccessor.SetBlock(Block.Id, selection.Position, ItemStack);
-
-                // TODO: Handle type attribute.
-
-            }
-
-            RestoreBlockEntityData(world, selection.Position, dropped);
-            world.BlockAccessor.MarkBlockDirty(selection.Position);
-            world.BlockAccessor.TriggerNeighbourBlockUpdate(selection.Position);
-            if (entity != null) Remove(entity, Slot);
-            if (playSound) PlaySound(selection.Position, world, dropped ? null : entity as EntityPlayer);
-
-            if (dropped)
-            {
-                world.GetCarryEvents()?.TriggerBlockDropped(world, selection.Position, entity, this);
-            }
-
-            return true;
-        } */
-
-        /// <summary>
-        /// <para>
-        ///   Restores the carriedBlock.BlockEntityData to the
-        ///   block entity at the specified world and position.
-        /// </para>
-        /// <para>
-        ///   Does nothing if executed on client side,
-        ///   <see cref="carriedBlock"/> is null, or there's
-        ///   no entity at the specified location.
-        /// </para>
-        /// </summary>
-        public void RestoreBlockEntityData(IWorldAccessor world, BlockPos pos, bool dropped = false)
-        {
-            if ((world.Side != EnumAppSide.Server) || (BlockEntityData == null)) return;
-
-            var blockEntityData = BlockEntityData;
-            // Set the block entity's position to the new position.
-            // Without this, we get some funny behavior.
-            blockEntityData.SetInt("posx", pos.X);
-            blockEntityData.SetInt("posy", pos.Y);
-            blockEntityData.SetInt("posz", pos.Z);
-
-            var blockEntity = world.BlockAccessor.GetBlockEntity(pos);
-
-            var delegates = world.GetCarryEvents()?.OnRestoreEntityBlockData?.GetInvocationList();
-
-            // Handle OnRestoreBlockEntityData events
-            if (delegates != null)
-            {
-                foreach (var blockEntityDataDelegate in delegates.Cast<BlockEntityDataDelegate>())
-                {
-                    try
-                    {
-                        blockEntityDataDelegate(blockEntity, blockEntityData, dropped);
-                    }
-                    catch (Exception e)
-                    {
-                        world.Logger.Error(e.Message);
-                    }
-                }
-            }
-
-            blockEntity?.FromTreeAttributes(blockEntityData, world);
         }
 
         internal void PlaySound(BlockPos pos, IWorldAccessor world,

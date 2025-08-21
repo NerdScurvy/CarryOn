@@ -22,6 +22,22 @@ namespace CarryOn.API.Common
         /* Block extensions               */
         /* ------------------------------ */
 
+        private static ICarryManager _clientCarryManager = null;
+        private static ICarryManager _serverCarryManager = null;
+
+        public static ICarryManager GetCarryManager(ICoreAPI api)
+        {
+            if(api.Side == EnumAppSide.Server)
+            {
+                _serverCarryManager ??= api.ModLoader.GetModSystem<CarrySystem>()?.CarryManager;
+                return _serverCarryManager;
+            }
+            _clientCarryManager ??= api.ModLoader.GetModSystem<CarrySystem>()?.CarryManager;
+            return _clientCarryManager;
+        }
+
+
+
         /// <summary> Returns whether the specified block can be carried.
         ///           Checks if <see cref="BlockBehaviorCarryable"/> is present.</summary>
         public static bool IsCarryable(this Block block)
@@ -48,19 +64,27 @@ namespace CarryOn.API.Common
         /// <summary> Returns the <see cref="CarriedBlock"/> this entity
         ///           is carrying in the specified slot, or null of none. </summary>
         /// <exception cref="ArgumentNullException"> Thrown if entity or pos is null. </exception>
-        public static CarriedBlockExtended GetCarried(this Entity entity, CarrySlot slot)
-            => CarriedBlockExtended.Get(entity, slot);
+        public static CarriedBlock GetCarried(this Entity entity, CarrySlot slot)
+            => GetCarryManager(entity.Api).GetCarried(entity, slot);
 
         /// <summary> Returns all the <see cref="CarriedBlock"/>s this entity is carrying. </summary>
         /// <exception cref="ArgumentNullException"> Thrown if entity or pos is null. </exception>
-        public static IEnumerable<CarriedBlockExtended> GetCarried(this Entity entity)
+        public static IEnumerable<CarriedBlock> GetCarried(this Entity entity)
         {
             foreach (var slot in Enum.GetValues(typeof(CarrySlot)).Cast<CarrySlot>())
             {
-                var carried = entity.GetCarried(slot);
+                var carried = GetCarryManager(entity.Api).GetCarried(entity, slot);
                 if (carried != null) yield return carried;
             }
         }
+
+
+        public static bool Carry(this Entity entity, BlockPos pos,
+                                 CarrySlot slot, bool checkIsCarryable = true, bool playSound = true)
+        {
+            return GetCarryManager(entity.Api)?.TryPickUp(entity, pos, slot, checkIsCarryable, playSound) ?? false;
+        }
+
 
         /// <summary>
         ///   Attempts to get this entity to pick up the block the
@@ -68,7 +92,7 @@ namespace CarryOn.API.Common
         ///   returning whether it was successful.
         /// </summary>
         /// <exception cref="ArgumentNullException"> Thrown if entity or pos is null. </exception>
-        public static bool Carry(this Entity entity, BlockPos pos,
+        public static bool Carry2(this Entity entity, BlockPos pos,
                                  CarrySlot slot, bool checkIsCarryable = true, bool playSound = true)
         {
             if (!HasPermissionToCarry(entity, pos)) return false;
@@ -141,9 +165,9 @@ namespace CarryOn.API.Common
             var blockAccessor = world.BlockAccessor;
             var nonGroundBlockClasses = ModConfig.ServerConfig?.DroppedBlockOptions?.NonGroundBlockClasses ?? [];
 
-            var remaining = new HashSet<CarriedBlockExtended>(
+            var remaining = new HashSet<CarriedBlock>(
                 slots.Select(s => entity.GetCarried(s))
-                     .Where(c => c != null).OrderBy(t => t?.Behavior?.MultiblockOffset));
+                     .Where(c => c != null).OrderBy(t => t?.GetCarryableBehavior()?.MultiblockOffset));
             if (remaining.Count == 0) return;
 
 
@@ -168,7 +192,7 @@ namespace CarryOn.API.Common
             var carryManager = world.GetCarrySystem()?.CarryManager;
             if (carryManager != null && carryManager.TryPlaceDown(player?.Entity, remaining.First(), blockSelection, true))
             {
-                carryManager.RemoveCarriedBlock(player?.Entity, remaining.First().Slot);
+                carryManager.RemoveCarried(player?.Entity, remaining.First().Slot);
                 //remaining.Remove(block);
                 // TODO: Implement logic to handle remaining blocks and remove inaccessible code below
                 return;
@@ -197,7 +221,7 @@ namespace CarryOn.API.Common
                         carryManager = world.GetCarrySystem()?.CarryManager;
                         if (carryManager != null && carryManager.TryPlaceDown(player?.Entity, block, new BlockSelection { Position = pos }, true))
                         {
-                            carryManager.RemoveCarriedBlock(player?.Entity, block.Slot);
+                            carryManager.RemoveCarried(player?.Entity, block.Slot);
                             remaining.Remove(block);
                             placed = true;
                             break;
@@ -248,11 +272,11 @@ namespace CarryOn.API.Common
         }
 
         // Helper: Can place multiblock
-        private static bool CanPlaceMultiblock(BlockPos position, CarriedBlockExtended carriedBlock, IBlockAccessor blockAccessor)
+        private static bool CanPlaceMultiblock(BlockPos position, CarriedBlock carriedBlock, IBlockAccessor blockAccessor)
         {
-            if (carriedBlock?.Behavior?.MultiblockOffset != null)
+            if (carriedBlock?.GetCarryableBehavior()?.MultiblockOffset != null)
             {
-                var multiPos = position.AddCopy(carriedBlock.Behavior.MultiblockOffset);
+                var multiPos = position.AddCopy(carriedBlock.GetCarryableBehavior().MultiblockOffset);
                 var testBlock = blockAccessor.GetBlock(multiPos);
                 if (!testBlock.IsReplacableBy(carriedBlock.Block))
                 {
@@ -263,7 +287,7 @@ namespace CarryOn.API.Common
         }
 
         // Helper: Drop block as item
-        private static void DropBlockAsItem(IWorldAccessor world, CarriedBlockExtended carriedBlock, BlockPos centerBlock, IServerPlayer player, Entity entity)
+        private static void DropBlockAsItem(IWorldAccessor world, CarriedBlock carriedBlock, BlockPos centerBlock, IServerPlayer player, Entity entity)
         {
             var api = world.Api;
             var blockDestroyed = false;
@@ -408,5 +432,15 @@ namespace CarryOn.API.Common
         public static CarryEvents GetCarryEvents(this IWorldAccessor world)
             => world.GetCarrySystem().CarryEvents;
 
+        /// <summary>
+        /// Gets the carryable behavior of the block or default.
+        /// </summary>
+        /// <param name="block"></param>
+        /// <returns></returns>
+        public static BlockBehaviorCarryable GetCarryableBehavior(this CarriedBlock carriedBlock)
+            => carriedBlock.Block.GetBehaviorOrDefault(BlockBehaviorCarryable.Default);
+
+        public static void Set(this CarriedBlock carriedBlock, Entity entity, CarrySlot slot)
+            => GetCarryManager(entity.Api).SetCarried(entity, slot, carriedBlock.ItemStack, carriedBlock.BlockEntityData);
     }
 }

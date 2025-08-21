@@ -42,7 +42,7 @@ namespace CarryOn.Client
         // We don't have any unmanaged resources to dispose.
         public void Dispose() { }
 
-        private ItemRenderInfo GetRenderInfo(CarriedBlockExtended carried)
+        private ItemRenderInfo GetRenderInfo(CarriedBlock carried)
         {
             // Alternative: Cache API.TesselatorManager.GetDefaultBlockMesh manually.
 
@@ -50,7 +50,7 @@ namespace CarryOn.Client
 
             var renderInfo = Api.Render.GetItemStackRenderInfo(slot, EnumItemRenderTarget.Ground, 0);
 
-            renderInfo.Transform = carried.Behavior.Slots[carried.Slot]?.Transform ?? carried.Behavior.DefaultTransform;
+            renderInfo.Transform = carried.GetCarryableBehavior().Slots[carried.Slot]?.Transform ?? carried.GetCarryableBehavior().DefaultTransform;
             return renderInfo;
         }
 
@@ -114,7 +114,7 @@ namespace CarryOn.Client
         }
 
         /// <summary> Renders the specified carried block on the specified entity. </summary>
-        private void RenderCarried(EntityAgent entity, CarriedBlockExtended carried, float deltaTime,
+        private void RenderCarried(EntityAgent entity, CarriedBlock carried, float deltaTime,
                                    bool isFirstPerson, bool isImmersiveFirstPerson, bool isShadowPass,
                                    EntityShapeRenderer renderer, IAnimator animator)
         {

@@ -22,6 +22,7 @@ namespace CarryOn.Common
     /// </summary>
     public class CarryHandler
     {
+
         public CarryInteraction Interaction { get; set; } = new CarryInteraction();
 
         public bool IsCarryOnEnabled { get; set; } = true;
@@ -350,7 +351,7 @@ namespace CarryOn.Common
 
                 if (carriedHands != null)
                 {
-                    if (carriedHands.Behavior.Slots[CarrySlot.Back] == null)
+                    if (carriedHands.GetCarryableBehavior().Slots[CarrySlot.Back] == null)
                     {
                         CarrySystem.ClientAPI.TriggerIngameError("carryon", "cannot-swap-back", GetLang("cannot-swap-back"));
                         CompleteInteraction();
@@ -779,7 +780,7 @@ namespace CarryOn.Common
                     // to be picked up or the currently carried block.
                     carryBehavior = (Interaction.CarryAction == CarryAction.PickUp)
                         ? selection?.Block?.GetBehaviorOrDefault(BlockBehaviorCarryable.Default)
-                        : carriedTarget?.Behavior;
+                        : carriedTarget?.GetCarryableBehavior();
                     break;
 
                 case CarryAction.SwapBack:
@@ -787,7 +788,7 @@ namespace CarryOn.Common
 
                     var carriedBack = player.Entity.GetCarried(CarrySlot.Back);
                     // Get the carry behavior from from hands slot unless null, then from back slot.
-                    carryBehavior = (carriedTarget != null) ? carriedTarget?.Behavior : carriedBack?.Behavior;
+                    carryBehavior = (carriedTarget != null) ? carriedTarget?.GetCarryableBehavior() : carriedBack?.GetCarryableBehavior();
                     if (carryBehavior == null)
                     {
                         CarrySystem.Api.Logger.Debug("Nothing carried. Player may have dropped the block from being damaged");
@@ -1417,7 +1418,7 @@ namespace CarryOn.Common
                 if (success)
                 {
                     // If the transfer was successful, we can remove the carried block from the player's hands.
-                    CarryManager.RemoveCarriedBlock(player?.Entity, CarrySlot.Hands);
+                    CarryManager.RemoveCarried(player?.Entity, CarrySlot.Hands);
                     return true;
                 }
 
@@ -1505,7 +1506,7 @@ namespace CarryOn.Common
                 if (success)
                 {
                     // If the transfer was successful, we can put the block in the player's hands.
-                    CarryManager.SetCarriedBlock(player?.Entity, new CarriedBlock(CarrySlot.Hands, itemStack, blockEntityData));
+                    CarryManager.SetCarried(player?.Entity, new CarriedBlock(CarrySlot.Hands, itemStack, blockEntityData));
                     var carriedBlock = new CarriedBlockExtended(CarrySlot.Hands, itemStack, blockEntityData);
                     carriedBlock.Set(player.Entity);
                     return true;
