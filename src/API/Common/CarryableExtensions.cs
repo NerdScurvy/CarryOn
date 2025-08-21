@@ -149,7 +149,8 @@ namespace CarryOn.API.Common
 
 
             // TODO: Avoid potential infinite loop if there is no bedrock for some reason.
-            var centerBlock = FindGround(entity.Pos.AsBlockPos, blockAccessor, nonGroundBlockClasses);
+            //var centerBlock = FindGround(entity.Pos.AsBlockPos, blockAccessor, nonGroundBlockClasses);
+            var centerBlock = entity.Pos.AsBlockPos;
 
             var blockPlacer = new BlockPlacer(entity.Api);
             var blockSelection = blockPlacer.FindBlockPlacement(remaining.First().Block, centerBlock, 2, 3);

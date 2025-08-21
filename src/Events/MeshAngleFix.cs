@@ -41,14 +41,25 @@ namespace CarryOn.Events
 
                 case "BlockClutterBookshelf":
                     if (blockEntity is BlockEntityGeneric clutterBookshelf)
-                        blockEntityData.SetFloat("meshAngle", clutterBookshelf.GetBehavior<BEBehaviorClutterBookshelf>().rotateY);
+                    {
+                        var beh = clutterBookshelf.GetBehavior<BEBehaviorClutterBookshelf>();
+                        if (beh != null)
+                        {
+                            blockEntityData.SetFloat("meshAngle", beh.rotateY);
+                        }
+                    }
                     return;
 
                 case "BlockClutter":
                     if (blockEntity is BlockEntityGeneric clutter)
-                        blockEntityData.SetFloat("meshAngle", clutter.GetBehavior<BEBehaviorShapeFromAttributes>().rotateY);
-                    return;
-            }
+                    {
+                        var beh = clutter.GetBehavior<BEBehaviorShapeFromAttributes>();
+                        if (beh != null)
+                        {
+                            blockEntityData.SetFloat("meshAngle", beh.rotateY);
+                        }
+                    }
+                    return;            }
         }
     }
 }

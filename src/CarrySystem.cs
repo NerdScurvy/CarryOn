@@ -128,8 +128,14 @@ namespace CarryOn
             CarryEvents = new CarryEvents();
 
             CarryOnLib = api.ModLoader.GetModSystem<CarryOnLib.Core>();
-
-            CarryOnLib.CarryManager = new CarryManager(this);
+            if (CarryOnLib != null)
+            {
+                CarryOnLib.CarryManager = new CarryManager(this);
+            }
+            else
+            {
+                api.World.Logger.Error("CarryOn: Failed to load CarryOnLib mod system");
+            }
         }
 
         public override void StartClientSide(ICoreClientAPI api)
@@ -144,7 +150,7 @@ namespace CarryOn
                 .RegisterMessageType<AttachMessage>()
                 .RegisterMessageType<DetachMessage>()
                 .RegisterMessageType<PutMessage>()
-                .RegisterMessageType<TakeMessage>()                
+                .RegisterMessageType<TakeMessage>()
                 .RegisterMessageType<QuickDropMessage>()
                 .RegisterMessageType<DismountMessage>()
                 .RegisterMessageType<PlayerAttributeUpdateMessage>();
@@ -169,7 +175,7 @@ namespace CarryOn
                 .RegisterMessageType<AttachMessage>()
                 .RegisterMessageType<DetachMessage>()
                 .RegisterMessageType<PutMessage>()
-                .RegisterMessageType<TakeMessage>()                  
+                .RegisterMessageType<TakeMessage>()
                 .RegisterMessageType<QuickDropMessage>()
                 .RegisterMessageType<DismountMessage>()
                 .RegisterMessageType<PlayerAttributeUpdateMessage>();
@@ -257,7 +263,7 @@ namespace CarryOn
         private void ResolveMultipleCarryableBehaviors(ICoreAPI api)
         {
             var filters = ModConfig.ServerConfig.CarryablesFilters;
-            
+
             foreach (var block in api.World.Blocks)
             {
                 bool removeBaseBehavior = false;
@@ -410,7 +416,7 @@ namespace CarryOn
                             if (loggingEnabled) api.Logger.Debug($"CarryOn matchBehavior: {key} carryableBlock: {carryableBlock.Code}");
                         }
                     }
-                        
+
                     if (filters.AllowedShapeOnlyMatches.Contains(shapePath) && !matchBehaviors.ContainsKey(shapeKey))
                     {
                         matchBehaviors[shapeKey] = carryableBlock.GetBehavior<BlockBehaviorCarryable>();
@@ -463,7 +469,7 @@ namespace CarryOn
             }
         }
 
-    
+
 
         // TODO: Consider renaming since it also contains TransferHandlerType init 
         private void InitEvents()
@@ -497,13 +503,23 @@ namespace CarryOn
                     {
                         if (block.HasBehavior(type))
                         {
-                            block.GetBehavior<BlockBehaviorCarryable>().TransferHandlerType = type;
-
+                            try
+                            {
+                                var carryableBehavior = block.GetBehavior<BlockBehaviorCarryable>();
+                                if (carryableBehavior != null)
+                                {
+                                    carryableBehavior.TransferHandlerType = type;
+                                }
+                            }
+                            catch (Exception e)
+                            {
+                                Api.Logger.Error($"CarryOn: Failed to set TransferHandlerType for block {block.Code}: {e.Message}");
+                            }
                         }
                     }
                 }
-
             }
         }
+        
     }
 }

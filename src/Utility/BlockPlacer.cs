@@ -14,12 +14,15 @@ namespace CarryOn.Utility
 
         private ICoreAPI Api { get; }
 
+        private Random Rand { get; } = new Random();
+
         private IBlockAccessor BlockAccessor => Api?.World?.BlockAccessor;
 
         public BlockPlacer(ICoreAPI api)
         {
             Api = api ?? throw new ArgumentNullException(nameof(api));
         }
+
 
 
         public class BlockPlacementX
@@ -169,15 +172,35 @@ namespace CarryOn.Utility
             return dx * dx + dy * dy + dz * dz;
         }
 
+        /// <summary>
+        /// Get the neighboring block positions around a given block position and return in a random order.
+        /// </summary>
         private IEnumerable<BlockPos> GetNeighbors(BlockPos blockPos, bool onlyHorizontal = false)
         {
-            yield return blockPos.NorthCopy();
-            yield return blockPos.SouthCopy();
-            yield return blockPos.EastCopy();
-            yield return blockPos.WestCopy();
-            if (onlyHorizontal) yield break;
-            yield return blockPos.UpCopy();
-            yield return blockPos.DownCopy();
+            var neighbors = new List<BlockPos>
+            {
+                blockPos.NorthCopy(),
+                blockPos.SouthCopy(),
+                blockPos.EastCopy(),
+                blockPos.WestCopy()
+            };
+            if (!onlyHorizontal)
+            {
+                neighbors.Add(blockPos.UpCopy());
+                neighbors.Add(blockPos.DownCopy());
+            }
+
+
+            for (int i = neighbors.Count - 1; i > 0; i--)
+            {
+                int j = Rand.Next(i + 1);
+                var temp = neighbors[i];
+                neighbors[i] = neighbors[j];
+                neighbors[j] = temp;
+            }
+
+            foreach (var neighbor in neighbors)
+                yield return neighbor;
         }
 
         BlockSelection CheckCanPlaceBlock(Block droppedBlock, BlockPos position)
@@ -188,6 +211,9 @@ namespace CarryOn.Utility
             var offset = behavior?.MultiblockOffset;
             if (offset != null)
             {
+
+                var hole = new List<BlockPos>();
+
                 foreach (var neighbor in GetNeighbors(position, onlyHorizontal: true))
                 {
                     // Check if neighbor is a valid placement position
@@ -202,11 +228,12 @@ namespace CarryOn.Utility
                     if (!hasSupport && !HasSupport(droppedBlock, neighbor))
                     {
                         Api.Logger.Warning("No support for {0} at {1} or neighbor {2}", droppedBlock.Code, position, neighbor);
+                        hole.Add(neighbor.Copy());
                         continue;
                     }
 
 
-                    var blockFacing = GetFacing(position, neighbor);
+                    var blockFacing = GetFacingForMultiblock(position, neighbor);
                     Api.Logger.Debug("Using offset {0} for placement at {1} with facing {2}", offset, position, blockFacing);
                     return new BlockSelection
                     {
@@ -267,7 +294,8 @@ namespace CarryOn.Utility
             return true;
         }
 
-        private BlockFacing GetFacing(BlockPos mainPos, BlockPos neighborPos)
+
+        private BlockFacing GetFacingForMultiblock(BlockPos mainPos, BlockPos neighborPos)
         {
             int dx = neighborPos.X - mainPos.X;
             int dz = neighborPos.Z - mainPos.Z;
@@ -286,7 +314,7 @@ namespace CarryOn.Utility
         {
             // Get a random horizontal direction
             var directions = new[] { "north", "east", "south", "west" };
-            var randomIndex = new Random().Next(directions.Length);
+            var randomIndex = Rand.Next(directions.Length);
             return BlockFacing.FromCode(directions[randomIndex]);
         }
 

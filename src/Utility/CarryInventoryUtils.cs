@@ -14,8 +14,8 @@ namespace CarryOn.Utility
         {
             var backpack = new TreeAttribute();
             if (blockInventory == null) return backpack; // graceful fallback
-            
-            var slotCount = blockInventory.GetAsInt("qslots");
+
+            var slotCount = blockInventory.GetInt("qslots");
             var slots = blockInventory.GetTreeAttribute("slots");
 
             // create backpack slots and copy items
@@ -24,10 +24,13 @@ namespace CarryOn.Utility
             {
                 var slotKey = $"slot-{i}";
 
+                // This will populate the slot even if null
                 var itemstack = slots?.GetItemstack(i.ToString())?.Clone();
                 backpackSlots.SetItemstack(slotKey, itemstack);
             }
 
+            // Store backpack slots
+            // Note: backpack does not have "qslots"
             backpack.SetAttribute("slots", backpackSlots);
             return backpack;
         }

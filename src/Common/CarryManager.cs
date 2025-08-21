@@ -120,7 +120,7 @@ namespace CarryOn.API.Common
             return true;
         }
 
-        float GetMeshAngle(BlockFacing facing)
+        private float GetMeshAngle(BlockFacing facing)
         {
             switch (facing.Code)
             {

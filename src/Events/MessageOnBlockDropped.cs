@@ -31,7 +31,7 @@ namespace CarryOn.Events
             var name = e.CarriedBlock.ItemStack?.GetName()?.ToLower();
             var slot = Lang.Get($"{CarrySystem.ModId}:slot-{e.CarriedBlock.Slot.ToString().ToLower()}");
 
-            player.SendMessage(GlobalConstants.GeneralChatGroup, Lang.Get(messageKey, name, slot), EnumChatType.Notification);
+            player?.SendMessage(GlobalConstants.GeneralChatGroup, Lang.Get(messageKey, name, slot), EnumChatType.Notification);
         }
     }
 }
