@@ -325,7 +325,8 @@ namespace CarryOn.API.Common
 
                 // Set mesh angle to match the block facing
                 // TODO: add fix for multiblock support
-                carriedBlock.BlockEntityData.SetFloat("meshAngle", GetMeshAngle(meshFacing));
+                
+                carriedBlock.BlockEntityData?.SetFloat("meshAngle", GetMeshAngle(meshFacing));                
 
             }
 

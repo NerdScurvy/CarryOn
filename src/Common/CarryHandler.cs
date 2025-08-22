@@ -919,7 +919,8 @@ namespace CarryOn.Common
                         CarrySystem.ClientChannel.SendPacket(new PickUpMessage(selection.Position, Interaction.CarrySlot.Value));
                     else
                     {
-                        // Show in-game error if picking up failed.
+                        // This else block executes when the attempt to pick up the item fails.
+                        // Showing an error message here informs the player that the pick-up action was unsuccessful.
                         CarrySystem.ClientAPI.TriggerIngameError("carryon", "pick-up-failed", GetLang("pick-up-failed"));
                     }
                     break;

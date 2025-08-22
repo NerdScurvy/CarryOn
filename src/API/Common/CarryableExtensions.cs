@@ -145,7 +145,6 @@ namespace CarryOn.API.Common
                 {
                     if (CanPlaceMultiblock(pos, block, blockAccessor) && blockAccessor.GetBlock(pos).IsReplacableBy(block.Block))
                     {
-                        carryManager = world.GetCarrySystem()?.CarryManager;
                         if (carryManager != null && carryManager.TryPlaceDown(player?.Entity, block, new BlockSelection { Position = pos }, true))
                         {
                             carryManager.RemoveCarried(player?.Entity, block.Slot);

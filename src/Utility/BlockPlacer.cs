@@ -14,7 +14,7 @@ namespace CarryOn.Utility
 
         private ICoreAPI Api { get; }
 
-        private Random Rand { get; } = new Random();
+        private static Random Rand { get; } = Random.Shared;
 
         private IBlockAccessor BlockAccessor => Api?.World?.BlockAccessor;
 
