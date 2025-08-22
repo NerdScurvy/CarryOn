@@ -36,8 +36,6 @@ namespace CarryOn.API.Common
             return _clientCarryManager;
         }
 
-
-
         /// <summary> Returns whether the specified block can be carried.
         ///           Checks if <see cref="BlockBehaviorCarryable"/> is present.</summary>
         public static bool IsCarryable(this Block block)
@@ -273,66 +271,6 @@ namespace CarryOn.API.Common
         /// <exception cref="ArgumentNullException"> Thrown if entity is null. </exception>
         public static bool SwapCarried(this Entity entity, CarrySlot first, CarrySlot second)
             => GetCarryManager(entity.Api).SwapCarried(entity, first, second);
-
-
-        public static bool IsCarryKeyHeld(this Entity entity)
-            => entity.Attributes.GetBool("carryKeyHeld");
-        
-
-        public static void SetCarryKeyHeld(this Entity entity, bool isHeld)
-        {
-            if (entity.IsCarryKeyHeld() != isHeld)
-            {
-                entity.Attributes.SetBool("carryKeyHeld", isHeld);
-            }
-        }
-
-        /* ------------------------------ */
-        /* EntityAgent Extensions         */
-        /* ------------------------------ */
-
-
-        /// <summary>
-        /// Checks if entity can begin interaction with carryable item that is in the world or in hand slot
-        /// Their left and right hands be empty.
-        /// </summary>
-        /// <param name="entityAgent"></param>
-        /// <param name="requireEmptyHanded"></param>
-        /// <returns></returns>
-        public static bool CanDoCarryAction(this EntityAgent entityAgent, bool requireEmptyHanded)
-            => GetCarryManager(entityAgent.Api).CanDoCarryAction(entityAgent, requireEmptyHanded);
-
-        /* ------------------------------ */
-        /* IPlayer extensions             */
-        /* ------------------------------ */
-
-        /// <summary>
-        ///   Attempts to get this player to place down its
-        ///   <see cref="CarriedBlock"/> (if any) at the specified
-        ///   selection, returning whether it was successful.
-        /// </summary>
-        /// <exception cref="ArgumentNullException"> Thrown if player or selection is null. </exception>
-        public static bool PlaceCarried(this IPlayer player, BlockSelection selection, CarrySlot slot, ref string failureCode)
-        {
-            if (player == null) throw new ArgumentNullException(nameof(player));
-            if (selection == null) throw new ArgumentNullException(nameof(selection));
-
-            var world = player?.Entity?.World;
-
-            if (!world.Claims.TryAccess(
-                player, selection.Position, EnumBlockAccessFlags.BuildOrBreak))
-            {
-                return false;
-            }
-
-            var carryManager = GetCarryManager(player.Entity.Api);
-
-            var carried = carryManager.GetCarried(player.Entity, slot);
-            if (carried == null) return false;
-
-            return carryManager.TryPlaceDown(player.Entity, carried, selection, ref failureCode);
-
-        }
 
         /* ------------------------------ */
         /* IWorldAccessor Extensions      */

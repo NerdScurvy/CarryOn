@@ -3,12 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using CarryOn.API.Event;
 using CarryOn.Common;
+using CarryOn.Common.Network;
 using CarryOn.Config;
 using CarryOn.Utility;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
+using Vintagestory.API.Server;
 using Vintagestory.GameContent;
 
 namespace CarryOn.API.Common
@@ -16,7 +18,7 @@ namespace CarryOn.API.Common
     public class CarryManager : ICarryManager
     {
 
-        public static string CarryAttributeKey { get; } = $"{CarrySystem.ModId}:Carried";
+        public static string CarryAttributeKey { get; } = ModConfig.GetConfigKey("Carried");
 
         public ICoreAPI Api => CarrySystem?.Api;
 
@@ -29,23 +31,7 @@ namespace CarryOn.API.Common
             CarrySystem = carrySystem ?? throw new ArgumentNullException(nameof(carrySystem));
         }
 
-        /// <summary>
-        /// Checks if entity can begin interaction with carryable item that is in the world or carried in hands slot
-        /// </summary>
-        /// <param name="entityAgent"></param>
-        /// <param name="requireEmptyHanded">if true, requires the entity agent to have both left and right hands empty</param>
-        /// <returns></returns>
-        public bool CanDoCarryAction(EntityAgent entityAgent, bool requireEmptyHanded)
-        {
-            var isEmptyHanded = entityAgent.RightHandItemSlot.Empty && entityAgent.LeftHandItemSlot.Empty;
-            if (!isEmptyHanded && requireEmptyHanded) return false;
 
-            if (entityAgent is not EntityPlayer entityPlayer) return true;
-
-            // Active slot must be main hotbar (This excludes the backpack slots)
-            var activeHotbarSlot = entityPlayer.Player.InventoryManager.ActiveHotbarSlotNumber;
-            return (activeHotbarSlot >= 0) && (activeHotbarSlot < 10);
-        }
 
         /// <summary>
         /// Gets all carried blocks for the specified entity.
@@ -91,7 +77,7 @@ namespace CarryOn.API.Common
                 : null;
 
             return new CarriedBlock(slot, stack, blockEntityData);
-        }        
+        }
 
 
         /// <summary>
@@ -134,12 +120,12 @@ namespace CarryOn.API.Common
                 if (speed != 0.0F && !ModConfig.AllowSprintWhileCarrying)
                 {
                     agent.Stats.Set("walkspeed",
-                    $"{CarrySystem.ModId}:{slot}", speed, false);
+                       ModConfig.GetConfigKey(slot.ToString()), speed, false);
                 }
 
                 if (slot == CarrySlot.Hands) LockedItemSlot.Lock(agent.RightHandItemSlot);
                 if (slot != CarrySlot.Back) LockedItemSlot.Lock(agent.LeftHandItemSlot);
-                CarryHandler.SendLockSlotsMessage(agent as EntityPlayer);
+                SendLockSlotsMessage(agent as EntityPlayer);
             }
         }
 
@@ -158,11 +144,11 @@ namespace CarryOn.API.Common
 
             if (entity is EntityAgent agent)
             {
-                agent.Stats.Remove("walkspeed", $"{CarrySystem.ModId}:{slot}");
+                agent.Stats.Remove("walkspeed",  ModConfig.GetConfigKey(slot.ToString()));
 
                 if (slot == CarrySlot.Hands) LockedItemSlot.Restore(agent.RightHandItemSlot);
                 if (slot != CarrySlot.Back) LockedItemSlot.Restore(agent.LeftHandItemSlot);
-                CarryHandler.SendLockSlotsMessage(agent as EntityPlayer);
+                SendLockSlotsMessage(agent as EntityPlayer);
             }
 
             entity.WatchedAttributes.Remove(CarryAttributeKey, slot.ToString());
@@ -193,7 +179,7 @@ namespace CarryOn.API.Common
             carriedSecond?.Set(entity, first);
 
             return true;
-        }        
+        }
 
         /// <summary>
         /// Gets a CarriedBlock from the world at the specified position and slot.
@@ -242,7 +228,7 @@ namespace CarryOn.API.Common
                                  CarrySlot slot, bool checkIsCarryable = true, bool playSound = true)
         {
 
-            if(entity.Api.Side == EnumAppSide.Server)
+            if (entity.Api.Side == EnumAppSide.Server)
             {
                 if (!HasPermissionToCarry(entity, pos)) return false;
             }
@@ -451,7 +437,7 @@ namespace CarryOn.API.Common
             }
 
             blockEntity?.FromTreeAttributes(blockEntityData, world);
-        } 
+        }
 
         /// <summary>
         /// Creates a CarriedBlock from the specified position in the world.
@@ -539,9 +525,9 @@ namespace CarryOn.API.Common
             {
                 return !isReinforced; // If not a player entity, can pick up if not reinforced.
             }
-        }        
+        }
 
-        internal void PlaySound(Block block, BlockPos pos, 
+        internal void PlaySound(Block block, BlockPos pos,
                         EntityPlayer entityPlayer = null)
         {
             const float SOUND_RANGE = 16.0F;
@@ -556,6 +542,28 @@ namespace CarryOn.API.Common
             world.PlaySoundAt(block.Sounds.Place,
                 pos.X + 0.5, pos.Y + 0.25, pos.Z + 0.5, player,
                 range: SOUND_RANGE, volume: SOUND_VOLUME);
-        }               
+        }   
+
+        /// <summary>
+        /// Sends a message to the player to lock the hotbar slots.
+        /// </summary>
+        /// <param name="player"></param>
+        public void LockHotbarSlots(IServerPlayer player)
+        {
+            var hotbar = player.InventoryManager.GetHotbarInventory();
+            var slots = Enumerable.Range(0, hotbar.Count).Where(i => hotbar[i] is LockedItemSlot).ToList();
+            CarrySystem.ServerChannel.SendPacket(new LockSlotsMessage(slots), player);
+        }
+
+        /// <summary>
+        /// Sends a message to the player to lock the hotbar slots.
+        /// </summary>
+        /// <param name="player"></param>
+        internal void SendLockSlotsMessage(EntityPlayer player)
+        {
+            if ((player == null) || (player.World.PlayerByUid(player.PlayerUID) is not IServerPlayer serverPlayer)) return;
+            LockHotbarSlots(serverPlayer);
+        }        
+
     }
 }

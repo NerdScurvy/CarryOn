@@ -13,6 +13,7 @@ using Vintagestory.API.Server;
 using Vintagestory.GameContent;
 using static CarryOn.CarrySystem;
 using static CarryOn.Utility.CarryInventoryUtils;
+using static CarryOn.Utility.CarryHelper;
 
 namespace CarryOn.Common
 {
@@ -27,16 +28,17 @@ namespace CarryOn.Common
 
         public bool IsCarryOnEnabled { get; set; } = true;
 
-        private KeyCombination CarryKeyCombination { get { return CarrySystem.ClientAPI.Input.HotKeys[PickupKeyCode]?.CurrentMapping; } }
-
-        private KeyCombination CarrySwapKeyCombination { get { return CarrySystem.ClientAPI.Input.HotKeys[SwapBackModifierKeyCode]?.CurrentMapping; } }
-
         private CarrySystem CarrySystem { get; }
 
         private ICarryManager CarryManager => CarrySystem.CarryOnLib.CarryManager;
 
         public CarryHandler(CarrySystem carrySystem)
             => CarrySystem = carrySystem;
+
+        private KeyCombination CarryKeyCombination { get { return CarrySystem.ClientAPI.Input.HotKeys[PickupKeyCode]?.CurrentMapping; } }
+
+        private KeyCombination CarrySwapKeyCombination { get { return CarrySystem.ClientAPI.Input.HotKeys[SwapBackModifierKeyCode]?.CurrentMapping; } }
+
 
         public int MaxInteractionDistance { get; set; }
 
@@ -71,8 +73,6 @@ namespace CarryOn.Common
                 (_) => OnBeforeActiveSlotChanged(CarrySystem.ClientAPI.World.Player.Entity);
         }
 
-
-
         public void InitServer()
         {
             // TODO: Change this to a config value.
@@ -97,6 +97,72 @@ namespace CarryOn.Common
             CarrySystem.ServerAPI.Event.BeforeActiveSlotChanged +=
                 (player, _) => OnBeforeActiveSlotChanged(player.Entity);
         }
+
+
+        /// <summary>
+        /// Checks if the carry key is currently pressed.
+        /// Always returns false on server.
+        /// </summary>
+        /// <param name="checkMouse"></param>
+        /// <returns></returns>
+        public bool IsCarryKeyPressed(bool checkMouse = false)
+        {
+            if (CarrySystem.Api.Side != EnumAppSide.Client) return false;
+
+            var input = CarrySystem.ClientAPI.Input;
+            if (checkMouse && !input.InWorldMouseButton.Right) return false;
+
+            return input.KeyboardKeyState[CarryKeyCombination.KeyCode];
+        }
+
+        /// <summary>
+        /// Checks if the carry swap key is currently pressed.
+        /// Always returns false on server.
+        /// </summary>
+        /// <returns></returns>
+        public bool IsCarrySwapKeyPressed()
+        {
+            if (CarrySystem.Api.Side != EnumAppSide.Client) return false;
+            return CarrySystem.ClientAPI.Input.KeyboardKeyState[CarrySwapKeyCombination.KeyCode];
+        }
+
+
+        /// <summary>
+        /// Checks if entity can begin interaction with carryable item that is in the world or carried in hands slot
+        /// </summary>
+        /// <param name="entityAgent"></param>
+        /// <param name="requireEmptyHanded">if true, requires the entity agent to have both left and right hands empty</param>
+        /// <returns></returns>
+        public bool CanDoCarryAction(EntityAgent entityAgent, bool requireEmptyHanded)
+        {
+            var isEmptyHanded = entityAgent.RightHandItemSlot.Empty && entityAgent.LeftHandItemSlot.Empty;
+            if (!isEmptyHanded && requireEmptyHanded) return false;
+
+            if (entityAgent is not EntityPlayer entityPlayer) return true;
+
+            // Active slot must be main hotbar (This excludes the backpack slots)
+            var activeHotbarSlot = entityPlayer.Player.InventoryManager.ActiveHotbarSlotNumber;
+            return (activeHotbarSlot >= 0) && (activeHotbarSlot < 10);
+        }
+
+        /// <summary>
+        /// Checks if the entity can interact with a carryable item.
+        /// </summary>
+        /// <param name="entityAgent"></param>
+        /// <param name="requireEmptyHanded"></param>
+        /// <returns></returns>
+        public bool CanInteract(EntityAgent entityAgent, bool requireEmptyHanded)
+        {
+            if (entityAgent.Api.Side == EnumAppSide.Client)
+            {
+                if (!IsCarryKeyPressed(true))
+                {
+                    return false;
+                }
+            }
+            return CanDoCarryAction(entityAgent, requireEmptyHanded);
+        }
+
 
         /// <summary>
         /// Handles the dismount action for a player.
@@ -189,19 +255,6 @@ namespace CarryOn.Common
             return true;
         }
 
-        public bool IsCarryKeyPressed(bool checkMouse = false)
-        {
-            var input = CarrySystem.ClientAPI.Input;
-            if (checkMouse && !input.InWorldMouseButton.Right) return false;
-
-            return input.KeyboardKeyState[CarryKeyCombination.KeyCode];
-        }
-
-        public bool IsCarrySwapKeyPressed()
-        {
-            return CarrySystem.ClientAPI.Input.KeyboardKeyState[CarrySwapKeyCombination.KeyCode];
-        }
-
         public void OnServerEntitySpawn(Entity entity)
         {
             // We handle player "spawning" in OnServerPlayerJoin.
@@ -244,7 +297,7 @@ namespace CarryOn.Common
 
             bool isLookingAtEntity = player.CurrentEntitySelection != null;
             bool entityHasAttachable = carryAttachBehavior != null;
-            bool carryKeyHeld = player.Entity.IsCarryKeyHeld();
+            bool carryKeyHeld = IsCarryKeyPressed();
 
             bool shouldPreventInteraction = (isLookingAtEntity && !entityHasAttachable) || (entityHasAttachable && !carryKeyHeld);
             if (shouldPreventInteraction) return true;
@@ -341,7 +394,7 @@ namespace CarryOn.Common
             // 1. The carry swap key is pressed
             // 2. The player is not targeting a block
             // 3. The player has empty hands but has something in back slot and the target block is not carryable
-            bool carryKeyHeld = player.Entity.IsCarryKeyHeld();
+            bool carryKeyHeld = IsCarryKeyPressed();
             bool swapKeyPressed = IsCarrySwapKeyPressed();
             bool notTargetingBlock = player.CurrentBlockSelection == null;
             bool canSwapBackFromBackSlot = !canCarryTarget && carriedBack != null && carriedHands == null;
@@ -428,7 +481,7 @@ namespace CarryOn.Common
             var player = world.Player;
 
             // Escape early if carry key is not held down.
-            if (!player.Entity.IsCarryKeyHeld())
+            if (!IsCarryKeyPressed())
             {
                 return false;
             }
@@ -497,7 +550,7 @@ namespace CarryOn.Common
             var player = world.Player;
 
             // Escape early if carry key is not held down.
-            if (!player.Entity.IsCarryKeyHeld())
+            if (!IsCarryKeyPressed())
             {
                 return false;
             }
@@ -701,7 +754,7 @@ namespace CarryOn.Common
             var player = world.Player;
 
             // Check if player has item in active active or offhand slot
-            if (!player.Entity.CanDoCarryAction(requireEmptyHanded: true))
+            if (!CanDoCarryAction(player.Entity, requireEmptyHanded: true))
             {
                 // Prevent further carry interaction checks
                 return;
@@ -739,8 +792,6 @@ namespace CarryOn.Common
             var input = CarrySystem.ClientAPI.Input;
 
             if (!input.InWorldMouseButton.Right) { CancelInteraction(resetTimeHeld: true); return; }
-
-            player.Entity.SetCarryKeyHeld(input.IsHotKeyPressed(PickupKeyCode));
 
             if (Interaction.CarryAction == CarryAction.None || Interaction.CarryAction == CarryAction.Done) return;
 
@@ -1000,7 +1051,7 @@ namespace CarryOn.Common
             }
         }
 
-        public void SendLockSlotsMessage(IServerPlayer player)
+/*         public void SendLockSlotsMessage(IServerPlayer player)
         {
             var hotbar = player.InventoryManager.GetHotbarInventory();
             var slots = Enumerable.Range(0, hotbar.Count).Where(i => hotbar[i] is LockedItemSlot).ToList();
@@ -1012,7 +1063,7 @@ namespace CarryOn.Common
             var system = player.World.Api.ModLoader.GetModSystem<CarrySystem>();
             system.CarryHandler.SendLockSlotsMessage(serverPlayer);
         }
-
+ */
         private void OnInteractMessage(IServerPlayer player, InteractMessage message)
         {
             var world = player.Entity.World;
@@ -1551,25 +1602,6 @@ namespace CarryOn.Common
 
         }
 
-
-        /// <summary>
-        ///   Returns whether the specified entity has the required prerequisites
-        ///   to interact using CarryOn: Must be sneaking with an empty hand.
-        ///   Also tests for whether a valid hotbar slot is currently selected.
-        /// </summary>
-        public bool CanInteract(EntityAgent entityAgent, bool requireEmptyHanded)
-        {
-            if (entityAgent.Api.Side == EnumAppSide.Client)
-            {
-                if (!IsCarryKeyPressed(true))
-                {
-                    return false;
-                }
-            }
-
-            return CarryManager.CanDoCarryAction(entityAgent, requireEmptyHanded);
-        }
-
         /// <summary> 
         /// Called when a player picks up or places down an invalid block,
         /// requiring it to get notified about the action being rejected. 
@@ -1579,26 +1611,7 @@ namespace CarryOn.Common
             player.Entity.World.BlockAccessor.MarkBlockDirty(pos);
             player.Entity.WatchedAttributes.MarkPathDirty(CarriedBlock.AttributeId);
             player.Entity.WatchedAttributes.MarkPathDirty("stats/walkspeed");
-            SendLockSlotsMessage(player);
-        }
-
-        /// <summary> 
-        /// Returns the position that the specified block would
-        /// be placed at for the specified block selection.
-        /// </summary>
-        private static BlockPos GetPlacedPosition(
-            IWorldAccessor world, BlockSelection selection, Block block)
-        {
-            if (selection == null) return null;
-            var position = selection.Position.Copy();
-            var clickedBlock = world.BlockAccessor.GetBlock(position);
-            if (!clickedBlock.IsReplacableBy(block))
-            {
-                position.Offset(selection.Face);
-                var replacedBlock = world.BlockAccessor.GetBlock(position);
-                if (!replacedBlock.IsReplacableBy(block)) return null;
-            }
-            return position;
+            CarryManager.LockHotbarSlots(player);
         }
 
         /// <summary>

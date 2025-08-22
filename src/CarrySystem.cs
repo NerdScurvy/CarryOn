@@ -25,7 +25,7 @@ using Vintagestory.GameContent;
     Description = "Adds the capability to carry various things",
     Website = "https://github.com/NerdScurvy/CarryOn",
     Authors = new[] { "copygirl", "NerdScurvy" })]
-[assembly: ModDependency("game", "1.21.0-rc.6")]
+[assembly: ModDependency("game", "1.21.0-rc.7")]
 
 namespace CarryOn
 {
