@@ -1051,19 +1051,6 @@ namespace CarryOn.Common
             }
         }
 
-/*         public void SendLockSlotsMessage(IServerPlayer player)
-        {
-            var hotbar = player.InventoryManager.GetHotbarInventory();
-            var slots = Enumerable.Range(0, hotbar.Count).Where(i => hotbar[i] is LockedItemSlot).ToList();
-            CarrySystem.ServerChannel.SendPacket(new LockSlotsMessage(slots), player);
-        }
-        public static void SendLockSlotsMessage(EntityPlayer player)
-        {
-            if ((player == null) || (player.World.PlayerByUid(player.PlayerUID) is not IServerPlayer serverPlayer)) return;
-            var system = player.World.Api.ModLoader.GetModSystem<CarrySystem>();
-            system.CarryHandler.SendLockSlotsMessage(serverPlayer);
-        }
- */
         private void OnInteractMessage(IServerPlayer player, InteractMessage message)
         {
             var world = player.Entity.World;
