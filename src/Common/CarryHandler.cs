@@ -474,13 +474,6 @@ namespace CarryOn.Common
             {
                 if (selection != null) selection = GetMultiblockOriginSelection(selection);
 
-                if (!player.Entity.HasPermissionToCarry(selection?.Position))
-                {
-                    CarrySystem.ClientAPI.TriggerIngameError("carryon", "pick-up-no-permission", GetLang("pick-up-no-permission"));
-                    handled = EnumHandling.PreventDefault;
-                    return false;
-                }
-                
                 if ((selection?.Block != null) && (Interaction.CarrySlot = FindActionSlot(slot => selection.Block.IsCarryable(slot))) != null)
                 {
                     Interaction.CarryAction = CarryAction.PickUp;

@@ -241,7 +241,12 @@ namespace CarryOn.API.Common
         public bool TryPickUp(Entity entity, BlockPos pos,
                                  CarrySlot slot, bool checkIsCarryable = true, bool playSound = true)
         {
-            if (!HasPermissionToCarry(entity, pos)) return false;
+
+            if(entity.Api.Side == EnumAppSide.Server)
+            {
+                if (!HasPermissionToCarry(entity, pos)) return false;
+            }
+
             if (GetCarried(entity, slot) != null) return false;
             var carried = GetCarriedFromWorld(pos, slot, checkIsCarryable);
             if (carried == null) return false;

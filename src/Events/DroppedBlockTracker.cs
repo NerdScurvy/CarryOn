@@ -16,7 +16,6 @@ namespace CarryOn.Events
         {
             if (carryManager.Api.Side != EnumAppSide.Server) return;
 
-            // TODO: Use CarryOnLib API to get CarryEvents
             var events = carryManager.CarryEvents;
 
             if (carryManager.Api.Side == EnumAppSide.Client)
