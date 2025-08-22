@@ -15,6 +15,9 @@
   "blockhelp-attach": "Attach carried",
   "blockhelp-detach": "Detach and carry",
 
+  "pick-up-no-permission": "You do not have permission to carry this item.",
+  "place-down-no-permission": "You do not have permission to place the carried item here.",
+
   "carryon-enabled": "CarryOn Enabled",
   "carryon-disabled": "CarryOn Disabled",
   "attachable-behavior-not-found": "Attachable behavior not found on entity",

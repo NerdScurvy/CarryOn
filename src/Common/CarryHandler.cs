@@ -454,6 +454,14 @@ namespace CarryOn.Common
                     var blockPos = GetPlacedPosition(world, selection, carriedHands.Block);
                     if (blockPos == null) return true;
 
+                    if (!player.Entity.HasPermissionToCarry(blockPos))
+                    {                  
+                        CarrySystem.ClientAPI.TriggerIngameError("carryon", "place-down-no-permission", GetLang("place-down-no-permission"));
+                        handled = EnumHandling.PreventDefault;
+                        return false;
+                    }
+
+
                     Interaction.TargetBlockPos = blockPos;
                     Interaction.CarryAction = CarryAction.PlaceDown;
                     Interaction.CarrySlot = carriedHands.Slot;
@@ -465,6 +473,14 @@ namespace CarryOn.Common
             else if (CanInteract(player.Entity, true))
             {
                 if (selection != null) selection = GetMultiblockOriginSelection(selection);
+
+                if (!player.Entity.HasPermissionToCarry(selection?.Position))
+                {
+                    CarrySystem.ClientAPI.TriggerIngameError("carryon", "pick-up-no-permission", GetLang("pick-up-no-permission"));
+                    handled = EnumHandling.PreventDefault;
+                    return false;
+                }
+                
                 if ((selection?.Block != null) && (Interaction.CarrySlot = FindActionSlot(slot => selection.Block.IsCarryable(slot))) != null)
                 {
                     Interaction.CarryAction = CarryAction.PickUp;
@@ -866,7 +882,7 @@ namespace CarryOn.Common
 
                 case CarryAction.PlaceDown:
 
-                    if (PlaceDown(player, carriedTarget, selection, out var placedAt, ref failureCode))
+                    if ( CarryManager.TryPlaceDownAt(player, carriedTarget, selection, out var placedAt, ref failureCode))
                         CarrySystem.ClientChannel.SendPacket(new PlaceDownMessage(Interaction.CarrySlot.Value, selection, placedAt));
                     else
                     {
@@ -883,7 +899,7 @@ namespace CarryOn.Common
                     break;
 
                 case CarryAction.SwapBack:
-                    if (player.Entity.Swap(Interaction.CarrySlot.Value, CarrySlot.Back))
+                    if (player.Entity.SwapCarried(Interaction.CarrySlot.Value, CarrySlot.Back))
                         CarrySystem.ClientChannel.SendPacket(new SwapSlotsMessage(CarrySlot.Back, Interaction.CarrySlot.Value));
                     break;
 
@@ -1045,7 +1061,7 @@ namespace CarryOn.Common
             var carried = player.Entity.GetCarried(message.Slot);
             if ((message.Slot == CarrySlot.Back) || (carried == null) ||
                 !CanInteract(player.Entity, message.Slot != CarrySlot.Hands) ||
-                !PlaceDown(player, carried, message.Selection, out var placedAt, ref failureCode))
+                !CarryManager.TryPlaceDownAt(player, carried, message.Selection, out var placedAt, ref failureCode))
             {
                 InvalidCarry(player, message.PlacedAt);
 
@@ -1074,7 +1090,7 @@ namespace CarryOn.Common
             if ((message.First != message.Second) && (message.First == CarrySlot.Back) ||
                 CanInteract(player.Entity, true))
             {
-                if (player.Entity.Swap(message.First, message.Second))
+                if (player.Entity.SwapCarried(message.First, message.Second))
                 {
                     CarrySystem.Api.World.PlaySoundAt(new AssetLocation("sounds/player/throw"), player.Entity);
                     player.Entity.WatchedAttributes.MarkPathDirty(CarriedBlock.AttributeId);
@@ -1205,7 +1221,7 @@ namespace CarryOn.Common
                     targetEntity.World.BlockAccessor.GetChunkAtBlockPos(targetEntity.ServerPos.AsBlockPos).MarkModified();
 
                     // Remove held block from player
-                    CarriedBlockExtended.Remove(player.Entity, CarrySlot.Hands);
+                    CarrySystem.CarryManager.RemoveCarried(player.Entity, CarrySlot.Hands);
 
                     var sound = block?.Sounds.Place ?? new AssetLocation("sounds/player/build");
                     CarrySystem.Api.World.PlaySoundAt(sound, targetEntity, null, true, 16);
@@ -1309,7 +1325,7 @@ namespace CarryOn.Common
                 var itemstackCopy = itemstack.Clone();
                 itemstackCopy.Attributes.Remove("backpack");
 
-                carriedBlock = new CarriedBlockExtended(CarrySlot.Hands, itemstackCopy, blockEntityData);
+                carriedBlock = new CarriedBlock(CarrySlot.Hands, itemstackCopy, blockEntityData);
                 carriedBlock.Set(player.Entity, CarrySlot.Hands);
 
                 var sound = block?.Sounds.Place ?? new AssetLocation("sounds/player/build");
@@ -1445,6 +1461,14 @@ namespace CarryOn.Common
             }
         }
 
+        /// <summary>
+        /// Tries to take a carryable block from the specified block entity slot.
+        /// </summary>
+        /// <param name="player"></param>
+        /// <param name="message"></param>
+        /// <param name="failureCode"></param>
+        /// <param name="onScreenErrorMessage"></param>
+        /// <returns></returns>
         private bool TryTakeCarryable(IPlayer player, TakeMessage message, out string failureCode, out string onScreenErrorMessage)
         {
 
@@ -1507,8 +1531,8 @@ namespace CarryOn.Common
                 {
                     // If the transfer was successful, we can put the block in the player's hands.
                     CarryManager.SetCarried(player?.Entity, new CarriedBlock(CarrySlot.Hands, itemStack, blockEntityData));
-                    var carriedBlock = new CarriedBlockExtended(CarrySlot.Hands, itemStack, blockEntityData);
-                    carriedBlock.Set(player.Entity);
+                    // var carriedBlock = new CarriedBlockExtended(CarrySlot.Hands, itemStack, blockEntityData);
+                    // carriedBlock.Set(player.Entity);
                     return true;
                 }
 
@@ -1517,7 +1541,7 @@ namespace CarryOn.Common
             {
                 api.Logger.Error($"Call to {methodName} failed: {e}");
                 failureCode = InternalFailureCode;
-            }            
+            }
             return false;
         }
 
@@ -1534,24 +1558,6 @@ namespace CarryOn.Common
 
         }
 
-        /// <summary>
-        /// Checks if entity can begin interaction with carryable item that is in the world or in hand slot
-        /// Their left and right hands be empty.
-        /// </summary>
-        /// <param name="entityAgent"></param>
-        /// <param name="requireEmptyHanded"></param>
-        /// <returns></returns>
-        public bool CanDoCarryAction(EntityAgent entityAgent, bool requireEmptyHanded)
-        {
-            var isEmptyHanded = entityAgent.RightHandItemSlot.Empty && entityAgent.LeftHandItemSlot.Empty;
-            if (!isEmptyHanded && requireEmptyHanded) return false;
-
-            if (entityAgent is not EntityPlayer entityPlayer) return true;
-
-            // Active slot must be main hotbar (This excludes the backpack slots)
-            var activeHotbarSlot = entityPlayer.Player.InventoryManager.ActiveHotbarSlotNumber;
-            return (activeHotbarSlot >= 0) && (activeHotbarSlot < 10);
-        }
 
         /// <summary>
         ///   Returns whether the specified entity has the required prerequisites
@@ -1568,34 +1574,7 @@ namespace CarryOn.Common
                 }
             }
 
-            return CanDoCarryAction(entityAgent, requireEmptyHanded);
-        }
-
-        /// <summary>
-        /// Places the carried block at the specified position.
-        /// </summary>
-        public bool PlaceDown(IPlayer player, CarriedBlock carried,
-                                     BlockSelection selection, out BlockPos placedAt, ref string failureCode)
-        {
-            var clickedBlock = player.Entity.World.BlockAccessor.GetBlock(selection.Position);
-
-            // Clone the selection, because we don't
-            // want to affect what is sent to the server.
-            selection = selection.Clone();
-
-            if (clickedBlock.IsReplacableBy(carried.Block))
-            {
-                selection.Face = BlockFacing.UP;
-                selection.HitPosition.Y = 0.5;
-            }
-            else
-            {
-                selection.Position.Offset(selection.Face);
-                selection.DidOffset = true;
-            }
-
-            placedAt = selection.Position;
-            return player.PlaceCarried(selection, carried.Slot, ref failureCode);
+            return CarryManager.CanDoCarryAction(entityAgent, requireEmptyHanded);
         }
 
         /// <summary> 

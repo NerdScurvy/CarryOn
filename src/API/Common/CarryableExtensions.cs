@@ -41,25 +41,23 @@ namespace CarryOn.API.Common
         /// <summary> Returns whether the specified block can be carried.
         ///           Checks if <see cref="BlockBehaviorCarryable"/> is present.</summary>
         public static bool IsCarryable(this Block block)
-        {
-            return block.HasBehavior<BlockBehaviorCarryable>();
-        }
+            => block.HasBehavior<BlockBehaviorCarryable>();
 
         public static bool IsCarryableInteract(this Block block)
-        {
-            return block.HasBehavior<BlockBehaviorCarryableInteract>();
-        }
+            => block.HasBehavior<BlockBehaviorCarryableInteract>();
 
         /// <summary> Returns whether the specified block can be carried in the specified slot.
         ///           Checks if <see cref="BlockBehaviorCarryable"/> is present and has slot enabled. </summary>
         public static bool IsCarryable(this Block block, CarrySlot slot)
-        {
-            return block.GetBehavior<BlockBehaviorCarryable>()?.Slots?[slot] != null;
-        }
+            => block.GetBehavior<BlockBehaviorCarryable>()?.Slots?[slot] != null;
+
 
         /* ------------------------------ */
         /* Entity extensions              */
         /* ------------------------------ */
+
+        public static bool HasPermissionToCarry(this Entity entity, BlockPos pos)
+            => GetCarryManager(entity.Api).HasPermissionToCarry(entity, pos);
 
         /// <summary> Returns the <see cref="CarriedBlock"/> this entity
         ///           is carrying in the specified slot, or null of none. </summary>
@@ -70,81 +68,12 @@ namespace CarryOn.API.Common
         /// <summary> Returns all the <see cref="CarriedBlock"/>s this entity is carrying. </summary>
         /// <exception cref="ArgumentNullException"> Thrown if entity or pos is null. </exception>
         public static IEnumerable<CarriedBlock> GetCarried(this Entity entity)
-        {
-            foreach (var slot in Enum.GetValues(typeof(CarrySlot)).Cast<CarrySlot>())
-            {
-                var carried = GetCarryManager(entity.Api).GetCarried(entity, slot);
-                if (carried != null) yield return carried;
-            }
-        }
-
+            => GetCarryManager(entity.Api).GetAllCarried(entity);
 
         public static bool Carry(this Entity entity, BlockPos pos,
                                  CarrySlot slot, bool checkIsCarryable = true, bool playSound = true)
-        {
-            return GetCarryManager(entity.Api)?.TryPickUp(entity, pos, slot, checkIsCarryable, playSound) ?? false;
-        }
-
-
-        /// <summary>
-        ///   Attempts to get this entity to pick up the block the
-        ///   specified position as a <see cref="CarriedBlock"/>,
-        ///   returning whether it was successful.
-        /// </summary>
-        /// <exception cref="ArgumentNullException"> Thrown if entity or pos is null. </exception>
-        public static bool Carry2(this Entity entity, BlockPos pos,
-                                 CarrySlot slot, bool checkIsCarryable = true, bool playSound = true)
-        {
-            if (!HasPermissionToCarry(entity, pos)) return false;
-            if (CarriedBlockExtended.Get(entity, slot) != null) return false;
-            var carried = CarriedBlockExtended.PickUp(entity.World, pos, slot, checkIsCarryable);
-            if (carried == null) return false;
-
-            carried.Set(entity, slot);
-            if (playSound) carried.PlaySound(pos, entity.World, entity as EntityPlayer);
-            return true;
-        }
-
-        private static bool HasPermissionToCarry(Entity entity, BlockPos pos)
-        {
-            var isReinforced = entity.Api.ModLoader.GetModSystem<ModSystemBlockReinforcement>()?.IsReinforced(pos) ?? false;
-            if (entity is EntityPlayer playerEntity)
-            {
-                var delegates = entity.World.GetCarryEvents()?.OnCheckPermissionToCarry?.GetInvocationList();
-
-                // Handle OnRestoreBlockEntityData events
-                if (delegates != null)
-                {
-                    foreach (var checkPermissionToCarryDelegate in delegates.Cast<CheckPermissionToCarryDelegate>())
-                    {
-                        try
-                        {
-                            checkPermissionToCarryDelegate(playerEntity, pos, isReinforced, out bool? hasPermission);
-
-                            if (hasPermission != null)
-                            {
-                                return hasPermission.Value;
-                            }
-                        }
-                        catch (Exception e)
-                        {
-                            entity.World.Logger.Error(e.Message);
-                        }
-                    }
-                }
-
-                var isCreative = playerEntity.Player.WorldData.CurrentGameMode == EnumGameMode.Creative;
-
-                if (!isCreative && isReinforced) return false; // Can't pick up when reinforced unless in creative mode.
-                // Can pick up if has access to any claims that might be present.
-                return entity.World.Claims.TryAccess(playerEntity.Player, pos, EnumBlockAccessFlags.BuildOrBreak);
-            }
-            else
-            {
-                return !isReinforced; // If not a player entity, can pick up if not reinforced.
-            }
-        }
-
+           => GetCarryManager(entity.Api)?.TryPickUp(entity, pos, slot, checkIsCarryable, playSound) ?? false;
+        
 
         /// <summary> Attempts to make this entity drop its carried blocks from the
         ///           specified slots around its current position in the specified area. </summary>
@@ -189,7 +118,7 @@ namespace CarryOn.API.Common
                 return;
             }
 
-            var carryManager = world.GetCarrySystem()?.CarryManager;
+            var carryManager = GetCarryManager(api);
             if (carryManager != null && carryManager.TryPlaceDown(player?.Entity, remaining.First(), blockSelection, true))
             {
                 carryManager.RemoveCarried(player?.Entity, remaining.First().Slot);
@@ -326,7 +255,7 @@ namespace CarryOn.API.Common
 
             var breakSound = carriedBlock.Block.Sounds.GetBreakSound(player) ?? new AssetLocation("game:sounds/block/planks");
             world.PlaySoundAt(breakSound, (double)centerBlock.X, (double)centerBlock.Y, (double)centerBlock.Z);
-            CarriedBlockExtended.Remove(entity, carriedBlock.Slot);
+            GetCarryManager(api).RemoveCarried(entity, carriedBlock.Slot);
             world.GetCarryEvents()?.TriggerBlockDropped(world, centerBlock, entity, carriedBlock, blockDestroyed, hadContents);
         }
 
@@ -342,27 +271,13 @@ namespace CarryOn.API.Common
         ///   entity's <paramref name="first"/> and <paramref name="second"/> slots.
         /// </summary>
         /// <exception cref="ArgumentNullException"> Thrown if entity is null. </exception>
-        public static bool Swap(this Entity entity, CarrySlot first, CarrySlot second)
-        {
-            if (first == second) throw new ArgumentException("Slots can't be the same");
+        public static bool SwapCarried(this Entity entity, CarrySlot first, CarrySlot second)
+            => GetCarryManager(entity.Api).SwapCarried(entity, first, second);
 
-            var carriedFirst = CarriedBlockExtended.Get(entity, first);
-            var carriedSecond = CarriedBlockExtended.Get(entity, second);
-            if ((carriedFirst == null) && (carriedSecond == null)) return false;
-
-            CarriedBlockExtended.Remove(entity, first);
-            CarriedBlockExtended.Remove(entity, second);
-
-            carriedFirst?.Set(entity, second);
-            carriedSecond?.Set(entity, first);
-
-            return true;
-        }
 
         public static bool IsCarryKeyHeld(this Entity entity)
-        {
-            return entity.Attributes.GetBool("carryKeyHeld");
-        }
+            => entity.Attributes.GetBool("carryKeyHeld");
+        
 
         public static void SetCarryKeyHeld(this Entity entity, bool isHeld)
         {
@@ -385,10 +300,7 @@ namespace CarryOn.API.Common
         /// <param name="requireEmptyHanded"></param>
         /// <returns></returns>
         public static bool CanDoCarryAction(this EntityAgent entityAgent, bool requireEmptyHanded)
-        {
-            var system = entityAgent.World.GetCarrySystem();
-            return system.CarryHandler.CanDoCarryAction(entityAgent, requireEmptyHanded);
-        }
+            => GetCarryManager(entityAgent.Api).CanDoCarryAction(entityAgent, requireEmptyHanded);
 
         /* ------------------------------ */
         /* IPlayer extensions             */
@@ -413,12 +325,12 @@ namespace CarryOn.API.Common
                 return false;
             }
 
-            var carryManager = world.GetCarrySystem()?.CarryManager;
+            var carryManager = GetCarryManager(player.Entity.Api);
 
-            var carried = CarriedBlockExtended.Get(player.Entity, slot);
+            var carried = carryManager.GetCarried(player.Entity, slot);
             if (carried == null) return false;
 
-            return carryManager.TryPlaceDown(player.Entity, carried, selection);
+            return carryManager.TryPlaceDown(player.Entity, carried, selection, ref failureCode);
 
         }
 

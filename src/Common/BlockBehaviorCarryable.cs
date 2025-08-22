@@ -143,6 +143,7 @@ namespace CarryOn.Common
                 return null;
             }
 
+
             if (!TransferBlockCarryAllowed(forPlayer, selection))
             {
                 return null;
