@@ -50,6 +50,6 @@
 	
 	<Target Name="Package" AfterTargets="PostBuildEvent" Condition="'$(Configuration)' == 'Release'">
 		<ZipDirectory DestinationFile="bin/$(TargetName).zip" SourceDirectory="$(TargetDir)" Overwrite="true" />
-		<ZipDirectory DestinationFile="C:/VintageStoryData/1.21.0-rc.6-dev/CarryOnDev/Mods/$(TargetName).zip" SourceDirectory="$(TargetDir)" Overwrite="true" />
+		<Copy DestinationFolder="$(VINTAGE_STORY_DATA)/CarryOnDev/Mods/" SourceFiles="bin/$(TargetName).zip" />
 	</Target>
 </Project>
