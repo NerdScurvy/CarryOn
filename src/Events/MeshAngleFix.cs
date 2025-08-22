@@ -59,7 +59,8 @@ namespace CarryOn.Events
                             blockEntityData.SetFloat("meshAngle", beh.rotateY);
                         }
                     }
-                    return;            }
+                    return;
+            }
         }
     }
 }
