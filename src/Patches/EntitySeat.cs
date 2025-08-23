@@ -2,6 +2,7 @@ using CarryOn.Common.Network;
 using HarmonyLib;
 using Vintagestory.API.Common;
 using Vintagestory.GameContent;
+using static CarryOn.API.Common.CarryCode;
 using static CarryOn.CarrySystem;
 
 namespace CarryOn.Patches
@@ -17,7 +18,7 @@ namespace CarryOn.Patches
             var entityAgent = __instance.Passenger as EntityAgent;
             if (entityAgent == null) return true;
 
-            if (!entityAgent.WatchedAttributes.GetBool(DoubleTapDismountEnabledAttributeKey, false))
+            if (!entityAgent.WatchedAttributes.GetBool(AttributeKey.Watched.EntityDoubleTapDismountEnabled, false))
             {
                 return true; // return to normal behavior
             }
@@ -29,7 +30,7 @@ namespace CarryOn.Patches
                 if (action == EnumEntityAction.Sneak && on)
                 {
                     long nowMs = entityAgent.World.ElapsedMilliseconds;
-                    long lastTapMs = entityAgent.Attributes.GetLong(LastSneakTapMsKey, 0);
+                    long lastTapMs = entityAgent.Attributes.GetLong(AttributeKey.EntityLastSneakTap, 0);
 
                     // Check last tap was in the past. If in the future then the server time has been reset.
                     if (lastTapMs < nowMs)
@@ -57,12 +58,12 @@ namespace CarryOn.Patches
                         else
                         {
                             // Single tap, just update the last tap time
-                            entityAgent.Attributes.SetLong(LastSneakTapMsKey, nowMs);
+                            entityAgent.Attributes.SetLong(AttributeKey.EntityLastSneakTap, nowMs);
 
                         }
                     }
 
-                    entityAgent.Attributes.SetLong(LastSneakTapMsKey, nowMs);
+                    entityAgent.Attributes.SetLong(AttributeKey.EntityLastSneakTap, nowMs);
                 }
             }
 

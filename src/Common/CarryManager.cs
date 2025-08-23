@@ -12,13 +12,14 @@ using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Server;
 using Vintagestory.GameContent;
+using static CarryOn.API.Common.CarryCode;
 
 namespace CarryOn.API.Common
 {
     public class CarryManager : ICarryManager
     {
 
-        public static string CarryAttributeKey { get; } = ModConfig.GetConfigKey("Carried");
+        public static string CarryAttributeKey { get; } = CarryOnCode("Carried");
 
         public ICoreAPI Api => CarrySystem?.Api;
 
@@ -120,7 +121,7 @@ namespace CarryOn.API.Common
                 if (speed != 0.0F && !ModConfig.AllowSprintWhileCarrying)
                 {
                     agent.Stats.Set("walkspeed",
-                       ModConfig.GetConfigKey(slot.ToString()), speed, false);
+                       CarryOnCode(slot.ToString()), speed, false);
                 }
 
                 if (slot == CarrySlot.Hands) LockedItemSlot.Lock(agent.RightHandItemSlot);
@@ -144,7 +145,7 @@ namespace CarryOn.API.Common
 
             if (entity is EntityAgent agent)
             {
-                agent.Stats.Remove("walkspeed",  ModConfig.GetConfigKey(slot.ToString()));
+                agent.Stats.Remove("walkspeed",  CarryOnCode(slot.ToString()));
 
                 if (slot == CarrySlot.Hands) LockedItemSlot.Restore(agent.RightHandItemSlot);
                 if (slot != CarrySlot.Back) LockedItemSlot.Restore(agent.LeftHandItemSlot);

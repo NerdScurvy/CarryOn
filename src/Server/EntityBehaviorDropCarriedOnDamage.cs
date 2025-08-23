@@ -1,16 +1,17 @@
 using CarryOn.API.Common;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
+using static CarryOn.API.Common.CarryCode;
 
 namespace CarryOn.Server
 {
     public class EntityBehaviorDropCarriedOnDamage : EntityBehavior
     {
         public static string Name { get; }
-            = $"{CarrySystem.ModId}:dropondamage";
+            = CarryOnCode("dropondamage");
 
         private static readonly CarrySlot[] DropFrom
-            = new[] { CarrySlot.Hands, CarrySlot.Shoulder };
+            = [CarrySlot.Hands, CarrySlot.Shoulder];
 
         public override string PropertyName() => Name;
 

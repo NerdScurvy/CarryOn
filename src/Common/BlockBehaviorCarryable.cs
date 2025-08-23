@@ -9,6 +9,7 @@ using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
+using static CarryOn.API.Common.CarryCode;
 
 namespace CarryOn.Common
 {
@@ -20,8 +21,8 @@ namespace CarryOn.Common
 
         public static WorldInteraction[] Interactions { get; }
             = { new WorldInteraction {
-                ActionLangCode  = CarrySystem.ModId + ":blockhelp-pickup",
-                HotKeyCode      = "carryonpickupkey",
+                ActionLangCode  = CarryOnCode("blockhelp-pickup"),
+                HotKeyCode      = HotKeyCode.Pickup,
                 MouseButton     = EnumMouseButton.Right,
                 RequireFreeHand = true,
             } };
@@ -46,8 +47,8 @@ namespace CarryOn.Common
 
         public static readonly IReadOnlyDictionary<CarrySlot, string> DefaultAnimation
             = new Dictionary<CarrySlot, string> {
-                { CarrySlot.Hands    , $"{ CarrySystem.ModId }:holdheavy" },
-                { CarrySlot.Shoulder , $"{ CarrySystem.ModId }:shoulder"  },
+                { CarrySlot.Hands    , CarryOnCode("holdheavy") },
+                { CarrySlot.Shoulder , CarryOnCode("shoulder")  }
             };
 
         public float InteractDelay { get; private set; } = CarrySystem.PickUpSpeedDefault;
@@ -143,6 +144,10 @@ namespace CarryOn.Common
                 return null;
             }
 
+            if (forPlayer.Entity.GetCarried(CarrySlot.Hands) != null)
+            {
+                return null; // Don't show interaction help if player is already carrying something
+            }
 
             if (!TransferBlockCarryAllowed(forPlayer, selection))
             {

@@ -18,6 +18,7 @@ using Vintagestory.API.Datastructures;
 using Vintagestory.API.Server;
 using Vintagestory.API.Util;
 using Vintagestory.GameContent;
+using static CarryOn.API.Common.CarryCode;
 
 [assembly: ModInfo("Carry On",
     modID: "carryon",
@@ -33,7 +34,6 @@ namespace CarryOn
     ///           blocks such as chests to be picked up and carried around. </summary>
     public class CarrySystem : ModSystem
     {
-        public static string ModId = "carryon";
         public static float PlaceSpeedDefault = 0.75f;
         public static float SwapSpeedDefault = 1.5f;
         public static float PickUpSpeedDefault = 0.8f;
@@ -42,24 +42,17 @@ namespace CarryOn
 
         public static float InteractSpeedDefault = 0.8f;
 
-        public static string PickupKeyCode = "carryonpickupkey";
         public static GlKeys PickupKeyDefault = GlKeys.ShiftLeft;
-        public static string SwapBackModifierKeyCode = "carryonswapbackmodifierkey";
         public static GlKeys SwapBackModifierDefault = GlKeys.ControlLeft;
-        public static string ToggleKeyCode = "carryontogglekey";
         public static GlKeys ToggleDefault = GlKeys.K;
-        public static string QuickDropKeyCode = "carryonquickdropkey";
+
 
         // Combine with Alt + Ctrl to drop carried block        
         public static GlKeys QuickDropDefault = GlKeys.K;
 
         // Combine with Ctrl to toggle double tap dismount
         public static GlKeys ToggleDoubleTapDismountDefault = GlKeys.K;
-        public static string ToggleDoubleTapDismountKeyCode = "carryontoggledoubletapdismountkey";
-
-        public static readonly string DoubleTapDismountEnabledAttributeKey = ModId + ":DoubleTapDismountEnabled";
-
-        public static readonly string LastSneakTapMsKey = ModId + ":LastSneakTapMs";
+        
         public static readonly int DoubleTapThresholdMs = 500;
 
         public ICoreAPI Api { get { return ClientAPI ?? ServerAPI as ICoreAPI; } }
@@ -86,7 +79,7 @@ namespace CarryOn
 
         private Harmony _harmony;
 
-        public static string GetLang(string key) => Lang.Get(ModConfig.GetConfigKey(key)) ?? key;
+        public static string GetLang(string key) => Lang.Get(CarryOnCode(key)) ?? key;
 
         public override void StartPre(ICoreAPI api)
         {
@@ -141,7 +134,7 @@ namespace CarryOn
         public override void StartClientSide(ICoreClientAPI api)
         {
             ClientAPI = api;
-            ClientChannel = api.Network.RegisterChannel(ModId)
+            ClientChannel = api.Network.RegisterChannel(ModId.CarryOn)
                 .RegisterMessageType<InteractMessage>()
                 .RegisterMessageType<LockSlotsMessage>()
                 .RegisterMessageType<PickUpMessage>()
@@ -166,7 +159,7 @@ namespace CarryOn
             api.Register<EntityBehaviorDropCarriedOnDamage>();
 
             ServerAPI = api;
-            ServerChannel = api.Network.RegisterChannel(ModId)
+            ServerChannel = api.Network.RegisterChannel(ModId.CarryOn)
                 .RegisterMessageType<InteractMessage>()
                 .RegisterMessageType<LockSlotsMessage>()
                 .RegisterMessageType<PickUpMessage>()

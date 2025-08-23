@@ -1,6 +1,6 @@
 using System;
 using Vintagestory.API.Common;
-using static CarryOn.CarrySystem;
+using static CarryOn.API.Common.CarryCode;
 
 namespace CarryOn.Config
 {
@@ -10,15 +10,13 @@ namespace CarryOn.Config
         public static CarryOnConfig ServerConfig { get; private set; }
         public static IWorldAccessor World { get; private set; }
 
-        public static string GetConfigKey(string key) => $"{ModId}:{key}";
-
-        private static readonly string allowSprintKey = GetConfigKey("AllowSprintWhileCarrying");
-        private static readonly string ignoreSpeedPenaltyKey = GetConfigKey("IgnoreCarrySpeedPenalty");
-        private static readonly string removeInteractDelayKey = GetConfigKey("RemoveInteractDelayWhileCarrying");
-        private static readonly string interactSpeedMultiplierKey = GetConfigKey("InteractSpeedMultiplier");
-        private static readonly string harmonyPatchEnabledKey = GetConfigKey("HarmonyPatchEnabled");
-        private static readonly string backSlotEnabledKey = GetConfigKey("BackSlotEnabled");
-        private static readonly string henboxEnabledKey = GetConfigKey("HenboxEnabled");
+        private static readonly string allowSprintKey = CarryOnCode("AllowSprintWhileCarrying");
+        private static readonly string ignoreSpeedPenaltyKey = CarryOnCode("IgnoreCarrySpeedPenalty");
+        private static readonly string removeInteractDelayKey = CarryOnCode("RemoveInteractDelayWhileCarrying");
+        private static readonly string interactSpeedMultiplierKey = CarryOnCode("InteractSpeedMultiplier");
+        private static readonly string harmonyPatchEnabledKey = CarryOnCode("HarmonyPatchEnabled");
+        private static readonly string backSlotEnabledKey = CarryOnCode("BackSlotEnabled");
+        private static readonly string henboxEnabledKey = CarryOnCode("HenboxEnabled");
 
         public static bool AllowSprintWhileCarrying
         {
@@ -163,50 +161,50 @@ namespace CarryOn.Config
                 // Sections below save the value to the world config so it is available for both server and client
 
                 // Carryables
-                worldConfig.SetBool(GetConfigKey("AnvilEnabled"), ServerConfig.Carryables.Anvil);
-                worldConfig.SetBool(GetConfigKey("BarrelEnabled"), ServerConfig.Carryables.Barrel);
-                worldConfig.SetBool(GetConfigKey("BookshelfEnabled"), ServerConfig.Carryables.Bookshelf);
-                worldConfig.SetBool(GetConfigKey("BunchOCandlesEnabled"), ServerConfig.Carryables.BunchOCandles);
-                worldConfig.SetBool(GetConfigKey("ChandelierEnabled"), ServerConfig.Carryables.Chandelier);
-                worldConfig.SetBool(GetConfigKey("ChestLabeledEnabled"), ServerConfig.Carryables.ChestLabeled);
-                worldConfig.SetBool(GetConfigKey("ChestTrunkEnabled"), ServerConfig.Carryables.ChestTrunk);
-                worldConfig.SetBool(GetConfigKey("ChestEnabled"), ServerConfig.Carryables.Chest);
-                worldConfig.SetBool(GetConfigKey("ClutterEnabled"), ServerConfig.Carryables.Clutter);
-                worldConfig.SetBool(GetConfigKey("CrateEnabled"), ServerConfig.Carryables.Crate);
-                worldConfig.SetBool(GetConfigKey("DisplayCaseEnabled"), ServerConfig.Carryables.DisplayCase);
-                worldConfig.SetBool(GetConfigKey("FlowerpotEnabled"), ServerConfig.Carryables.Flowerpot);
-                worldConfig.SetBool(GetConfigKey("ForgeEnabled"), ServerConfig.Carryables.Forge);
-                worldConfig.SetBool(GetConfigKey("LogWithResinEnabled"), ServerConfig.Carryables.LogWithResin);
-                worldConfig.SetBool(GetConfigKey("MoldRackEnabled"), ServerConfig.Carryables.MoldRack);
-                worldConfig.SetBool(GetConfigKey("MoldsEnabled"), ServerConfig.Carryables.Molds);
-                worldConfig.SetBool(GetConfigKey("LootVesselEnabled"), ServerConfig.Carryables.LootVessel);
-                worldConfig.SetBool(GetConfigKey("OvenEnabled"), ServerConfig.Carryables.Oven);
-                worldConfig.SetBool(GetConfigKey("PlanterEnabled"), ServerConfig.Carryables.Planter);
-                worldConfig.SetBool(GetConfigKey("QuernEnabled"), ServerConfig.Carryables.Quern);
-                worldConfig.SetBool(GetConfigKey("ReedBasketEnabled"), ServerConfig.Carryables.ReedBasket);
-                worldConfig.SetBool(GetConfigKey("ResonatorEnabled"), ServerConfig.Carryables.Resonator);
-                worldConfig.SetBool(GetConfigKey("ShelfEnabled"), ServerConfig.Carryables.Shelf);
-                worldConfig.SetBool(GetConfigKey("SignEnabled"), ServerConfig.Carryables.Sign);
-                worldConfig.SetBool(GetConfigKey("StorageVesselEnabled"), ServerConfig.Carryables.StorageVessel);
-                worldConfig.SetBool(GetConfigKey("ToolRackEnabled"), ServerConfig.Carryables.ToolRack);
-                worldConfig.SetBool(GetConfigKey("TorchHolderEnabled"), ServerConfig.Carryables.TorchHolder);
+                worldConfig.SetBool(CarryOnCode("AnvilEnabled"), ServerConfig.Carryables.Anvil);
+                worldConfig.SetBool(CarryOnCode("BarrelEnabled"), ServerConfig.Carryables.Barrel);
+                worldConfig.SetBool(CarryOnCode("BookshelfEnabled"), ServerConfig.Carryables.Bookshelf);
+                worldConfig.SetBool(CarryOnCode("BunchOCandlesEnabled"), ServerConfig.Carryables.BunchOCandles);
+                worldConfig.SetBool(CarryOnCode("ChandelierEnabled"), ServerConfig.Carryables.Chandelier);
+                worldConfig.SetBool(CarryOnCode("ChestLabeledEnabled"), ServerConfig.Carryables.ChestLabeled);
+                worldConfig.SetBool(CarryOnCode("ChestTrunkEnabled"), ServerConfig.Carryables.ChestTrunk);
+                worldConfig.SetBool(CarryOnCode("ChestEnabled"), ServerConfig.Carryables.Chest);
+                worldConfig.SetBool(CarryOnCode("ClutterEnabled"), ServerConfig.Carryables.Clutter);
+                worldConfig.SetBool(CarryOnCode("CrateEnabled"), ServerConfig.Carryables.Crate);
+                worldConfig.SetBool(CarryOnCode("DisplayCaseEnabled"), ServerConfig.Carryables.DisplayCase);
+                worldConfig.SetBool(CarryOnCode("FlowerpotEnabled"), ServerConfig.Carryables.Flowerpot);
+                worldConfig.SetBool(CarryOnCode("ForgeEnabled"), ServerConfig.Carryables.Forge);
+                worldConfig.SetBool(CarryOnCode("LogWithResinEnabled"), ServerConfig.Carryables.LogWithResin);
+                worldConfig.SetBool(CarryOnCode("MoldRackEnabled"), ServerConfig.Carryables.MoldRack);
+                worldConfig.SetBool(CarryOnCode("MoldsEnabled"), ServerConfig.Carryables.Molds);
+                worldConfig.SetBool(CarryOnCode("LootVesselEnabled"), ServerConfig.Carryables.LootVessel);
+                worldConfig.SetBool(CarryOnCode("OvenEnabled"), ServerConfig.Carryables.Oven);
+                worldConfig.SetBool(CarryOnCode("PlanterEnabled"), ServerConfig.Carryables.Planter);
+                worldConfig.SetBool(CarryOnCode("QuernEnabled"), ServerConfig.Carryables.Quern);
+                worldConfig.SetBool(CarryOnCode("ReedBasketEnabled"), ServerConfig.Carryables.ReedBasket);
+                worldConfig.SetBool(CarryOnCode("ResonatorEnabled"), ServerConfig.Carryables.Resonator);
+                worldConfig.SetBool(CarryOnCode("ShelfEnabled"), ServerConfig.Carryables.Shelf);
+                worldConfig.SetBool(CarryOnCode("SignEnabled"), ServerConfig.Carryables.Sign);
+                worldConfig.SetBool(CarryOnCode("StorageVesselEnabled"), ServerConfig.Carryables.StorageVessel);
+                worldConfig.SetBool(CarryOnCode("ToolRackEnabled"), ServerConfig.Carryables.ToolRack);
+                worldConfig.SetBool(CarryOnCode("TorchHolderEnabled"), ServerConfig.Carryables.TorchHolder);
 
-                worldConfig.SetBool(GetConfigKey("BookshelfAndClutterEnabled"), ServerConfig.Carryables.Bookshelf && ServerConfig.Carryables.Clutter);
+                worldConfig.SetBool(CarryOnCode("BookshelfAndClutterEnabled"), ServerConfig.Carryables.Bookshelf && ServerConfig.Carryables.Clutter);
                 HenboxEnabled = ServerConfig.Carryables.Henbox;
 
 
                 // Interactables
-                worldConfig.SetBool(GetConfigKey("InteractDoorEnabled"), ServerConfig.Interactables.Door);
-                worldConfig.SetBool(GetConfigKey("InteractBarrelEnabled"), ServerConfig.Interactables.Barrel);
-                worldConfig.SetBool(GetConfigKey("InteractStorageEnabled"), ServerConfig.Interactables.Storage);
+                worldConfig.SetBool(CarryOnCode("InteractDoorEnabled"), ServerConfig.Interactables.Door);
+                worldConfig.SetBool(CarryOnCode("InteractBarrelEnabled"), ServerConfig.Interactables.Barrel);
+                worldConfig.SetBool(CarryOnCode("InteractStorageEnabled"), ServerConfig.Interactables.Storage);
 
                 // Transferables
-                worldConfig.SetBool(GetConfigKey("MoldRackTransferEnabled"), ServerConfig.Transferables.MoldRack);
+                worldConfig.SetBool(CarryOnCode("MoldRackTransferEnabled"), ServerConfig.Transferables.MoldRack);
 
                 // CarryOptions
-                worldConfig.SetBool(GetConfigKey("AllowChestTrunksOnBack"), ServerConfig.CarryOptions.AllowChestTrunksOnBack);
-                worldConfig.SetBool(GetConfigKey("AllowLargeChestsOnBack"), ServerConfig.CarryOptions.AllowLargeChestsOnBack);
-                worldConfig.SetBool(GetConfigKey("AllowCratesOnBack"), ServerConfig.CarryOptions.AllowCratesOnBack);
+                worldConfig.SetBool(CarryOnCode("AllowChestTrunksOnBack"), ServerConfig.CarryOptions.AllowChestTrunksOnBack);
+                worldConfig.SetBool(CarryOnCode("AllowLargeChestsOnBack"), ServerConfig.CarryOptions.AllowLargeChestsOnBack);
+                worldConfig.SetBool(CarryOnCode("AllowCratesOnBack"), ServerConfig.CarryOptions.AllowCratesOnBack);
 
 
                 AllowSprintWhileCarrying = ServerConfig.CarryOptions.AllowSprintWhileCarrying;

@@ -44,10 +44,8 @@
   "place-down-failed-requirehorizontalattachable": "Cannot place carried block here, requires a wall",
   "take-block-not-carryable": "Cannot take block in hands",
 
-  "mold-rack-transfer-shattered": "Cannot put shattered mold in {0}",
-  "mold-rack-transfer-nonempty": "Cannot put non-empty mold in {0}",
-  "mold-rack-transfer-incompatible": "Cannot put carried block in {0}",
-  "mold-rack-transfer-occupied": "Cannot put carried block in {0}, slot is occupied",
+  "blockhelp-put": "Put in carried",
+  "blockhelp-take": "Take out and carry",
 
   "unknown-error": "An unknown error occurred with CarryOn"
 }
