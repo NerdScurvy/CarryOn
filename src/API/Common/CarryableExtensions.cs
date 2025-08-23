@@ -12,6 +12,7 @@ using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Server;
 using Vintagestory.GameContent;
+using Vintagestory.ServerMods.NoObf;
 
 namespace CarryOn.API.Common
 {
@@ -21,105 +22,56 @@ namespace CarryOn.API.Common
         /* Block extensions               */
         /* ------------------------------ */
 
+        private static ICarryManager _clientCarryManager = null;
+        private static ICarryManager _serverCarryManager = null;
+
+        public static ICarryManager GetCarryManager(ICoreAPI api)
+        {
+            if(api.Side == EnumAppSide.Server)
+            {
+                _serverCarryManager ??= api.ModLoader.GetModSystem<CarrySystem>()?.CarryManager;
+                return _serverCarryManager;
+            }
+            _clientCarryManager ??= api.ModLoader.GetModSystem<CarrySystem>()?.CarryManager;
+            return _clientCarryManager;
+        }
+
         /// <summary> Returns whether the specified block can be carried.
         ///           Checks if <see cref="BlockBehaviorCarryable"/> is present.</summary>
         public static bool IsCarryable(this Block block)
-        {
-            return block.HasBehavior<BlockBehaviorCarryable>();
-        }
+            => block.HasBehavior<BlockBehaviorCarryable>();
 
         public static bool IsCarryableInteract(this Block block)
-        {
-            return block.HasBehavior<BlockBehaviorCarryableInteract>();
-        }
+            => block.HasBehavior<BlockBehaviorCarryableInteract>();
 
         /// <summary> Returns whether the specified block can be carried in the specified slot.
         ///           Checks if <see cref="BlockBehaviorCarryable"/> is present and has slot enabled. </summary>
         public static bool IsCarryable(this Block block, CarrySlot slot)
-        {
-            return block.GetBehavior<BlockBehaviorCarryable>()?.Slots?[slot] != null;
-        }
+            => block.GetBehavior<BlockBehaviorCarryable>()?.Slots?[slot] != null;
+
 
         /* ------------------------------ */
         /* Entity extensions              */
         /* ------------------------------ */
 
+        public static bool HasPermissionToCarry(this Entity entity, BlockPos pos)
+            => GetCarryManager(entity.Api)?.HasPermissionToCarry(entity, pos) ?? false;
+
         /// <summary> Returns the <see cref="CarriedBlock"/> this entity
         ///           is carrying in the specified slot, or null of none. </summary>
         /// <exception cref="ArgumentNullException"> Thrown if entity or pos is null. </exception>
         public static CarriedBlock GetCarried(this Entity entity, CarrySlot slot)
-            => CarriedBlock.Get(entity, slot);
+            => GetCarryManager(entity.Api)?.GetCarried(entity, slot);
 
         /// <summary> Returns all the <see cref="CarriedBlock"/>s this entity is carrying. </summary>
         /// <exception cref="ArgumentNullException"> Thrown if entity or pos is null. </exception>
         public static IEnumerable<CarriedBlock> GetCarried(this Entity entity)
-        {
-            foreach (var slot in Enum.GetValues(typeof(CarrySlot)).Cast<CarrySlot>())
-            {
-                var carried = entity.GetCarried(slot);
-                if (carried != null) yield return carried;
-            }
-        }
+            => GetCarryManager(entity.Api)?.GetAllCarried(entity);
 
-        /// <summary>
-        ///   Attempts to get this entity to pick up the block the
-        ///   specified position as a <see cref="CarriedBlock"/>,
-        ///   returning whether it was successful.
-        /// </summary>
-        /// <exception cref="ArgumentNullException"> Thrown if entity or pos is null. </exception>
         public static bool Carry(this Entity entity, BlockPos pos,
                                  CarrySlot slot, bool checkIsCarryable = true, bool playSound = true)
-        {
-            if (!HasPermissionToCarry(entity, pos)) return false;
-            if (CarriedBlock.Get(entity, slot) != null) return false;
-            var carried = CarriedBlock.PickUp(entity.World, pos, slot, checkIsCarryable);
-            if (carried == null) return false;
-
-            carried.Set(entity, slot);
-            if (playSound) carried.PlaySound(pos, entity.World, entity as EntityPlayer);
-            return true;
-        }
-
-        private static bool HasPermissionToCarry(Entity entity, BlockPos pos)
-        {
-            var isReinforced = entity.Api.ModLoader.GetModSystem<ModSystemBlockReinforcement>()?.IsReinforced(pos) ?? false;
-            if (entity is EntityPlayer playerEntity)
-            {
-                var delegates = entity.World.GetCarryEvents()?.OnCheckPermissionToCarry?.GetInvocationList();
-
-                // Handle OnRestoreBlockEntityData events
-                if (delegates != null)
-                {
-                    foreach (var checkPermissionToCarryDelegate in delegates.Cast<CheckPermissionToCarryDelegate>())
-                    {
-                        try
-                        {
-                            checkPermissionToCarryDelegate(playerEntity, pos, isReinforced, out bool? hasPermission);
-
-                            if (hasPermission != null)
-                            {
-                                return hasPermission.Value;
-                            }
-                        }
-                        catch (Exception e)
-                        {
-                            entity.World.Logger.Error(e.Message);
-                        }
-                    }
-                }
-
-                var isCreative = playerEntity.Player.WorldData.CurrentGameMode == EnumGameMode.Creative;
-
-                if (!isCreative && isReinforced) return false; // Can't pick up when reinforced unless in creative mode.
-                // Can pick up if has access to any claims that might be present.
-                return entity.World.Claims.TryAccess(playerEntity.Player, pos, EnumBlockAccessFlags.BuildOrBreak);
-            }
-            else
-            {
-                return !isReinforced; // If not a player entity, can pick up if not reinforced.
-            }
-        }
-
+           => GetCarryManager(entity.Api)?.TryPickUp(entity, pos, slot, checkIsCarryable, playSound) ?? false;
+        
 
         /// <summary> Attempts to make this entity drop its carried blocks from the
         ///           specified slots around its current position in the specified area. </summary>
@@ -132,213 +84,176 @@ namespace CarryOn.API.Common
             if (slots == null) throw new ArgumentNullException(nameof(slots));
             if (hSize < 0) throw new ArgumentOutOfRangeException(nameof(hSize));
             if (vSize < 0) throw new ArgumentOutOfRangeException(nameof(vSize));
-            IServerPlayer player = null;
 
-            if (entity is EntityPlayer entityPlayer)
-            {
-                player = (IServerPlayer)entityPlayer.Player;
-            }
 
+            IServerPlayer player = (entity is EntityPlayer entityPlayer) ? (IServerPlayer)entityPlayer.Player : null;
             var api = entity.Api;
             var world = entity.World;
             var blockAccessor = world.BlockAccessor;
             var nonGroundBlockClasses = ModConfig.ServerConfig?.DroppedBlockOptions?.NonGroundBlockClasses ?? [];
 
-            // TODO: Handle multiblocks properly
-
-            // Sort remaining to drop multiblock last
             var remaining = new HashSet<CarriedBlock>(
                 slots.Select(s => entity.GetCarried(s))
-                     .Where(c => c != null).OrderBy(t => t?.Behavior?.MultiblockOffset));
+                     .Where(c => c != null).OrderBy(t => t?.GetCarryableBehavior()?.MultiblockOffset));
             if (remaining.Count == 0) return;
 
-            bool CanPlaceMultiblock(BlockPos position, CarriedBlock carriedBlock)
-            {
-                // Dirty fix to test second block of multiblock. e.g. trunk
-                if (carriedBlock?.Behavior?.MultiblockOffset != null)
-                {
-                    var multiPos = position.AddCopy(carriedBlock.Behavior.MultiblockOffset);
-                    var testBlock = blockAccessor.GetBlock(multiPos);
-                    if (!testBlock.IsReplacableBy(carriedBlock.Block))
-                    {
-                        return false;
-                    }
-                }
-                return true;
-            }
 
-            bool Drop(BlockPos pos, CarriedBlock block)
-            {
-                if (!CanPlaceMultiblock(pos, block)) return false;
-                string failureCode = null;
 
-                if (!block.PlaceDown(ref failureCode, world, new BlockSelection { Position = pos }, player.Entity, true)) return false;
-                CarriedBlock.Remove(entity, block.Slot);
-                return true;
-            }
-
+            // TODO: Avoid potential infinite loop if there is no bedrock for some reason.
+            //var centerBlock = FindGround(entity.Pos.AsBlockPos, blockAccessor, nonGroundBlockClasses);
             var centerBlock = entity.Pos.AsBlockPos;
 
-            // Look for ground 
-            var blockBelow = centerBlock.DownCopy();
-            bool foundGround = false;
-            while (!foundGround)
+            var blockPlacer = new BlockPlacer(entity.Api);
+            var blockSelection = blockPlacer.FindBlockPlacement(remaining.First().Block, centerBlock, 2, 3);
+
+            if (blockSelection == null)
+            {
+                // No valid placement found, drop all blocks as items
+                foreach (var carriedBlock in remaining)
+                {
+                    DropBlockAsItem(world, carriedBlock, centerBlock, player, entity);
+                }
+                return;
+            }
+
+            var carryManager = GetCarryManager(api);
+            if (carryManager != null && carryManager.TryPlaceDown(player?.Entity, remaining.First(), blockSelection, true))
+            {
+                carryManager.RemoveCarried(player?.Entity, remaining.First().Slot);
+                //remaining.Remove(block);
+                // TODO: Implement logic to handle remaining blocks and remove inaccessible code below
+                return;
+            }
+
+
+            var nearbyBlocks = GetNearbyBlocks(centerBlock, hSize);
+            var airBlocks = new HashSet<BlockPos>();
+
+            // Record air blocks
+            foreach (var pos in nearbyBlocks)
+            {
+                var testBlock = blockAccessor.GetBlock(pos);
+                if (testBlock.BlockId == 0 || nonGroundBlockClasses.Contains(testBlock.Class))
+                    airBlocks.Add(pos.Copy());
+            }
+
+            // Try to place each carried block
+            foreach (var block in remaining.ToList())
+            {
+                bool placed = false;
+                foreach (var pos in nearbyBlocks)
+                {
+                    if (CanPlaceMultiblock(pos, block, blockAccessor) && blockAccessor.GetBlock(pos).IsReplacableBy(block.Block))
+                    {
+                        if (carryManager != null && carryManager.TryPlaceDown(player?.Entity, block, new BlockSelection { Position = pos }, true))
+                        {
+                            carryManager.RemoveCarried(player?.Entity, block.Slot);
+                            remaining.Remove(block);
+                            placed = true;
+                            break;
+                        }
+                    }
+                }
+                if (!placed)
+                {
+                    DropBlockAsItem(world, block, centerBlock, player, entity);
+                    remaining.Remove(block);
+                }
+            }
+        }
+
+        // Helper: Find the ground position below a block
+        private static BlockPos FindGround(BlockPos start, IBlockAccessor blockAccessor, string[] nonGroundBlockClasses)
+        {
+            var pos = start.Copy();
+            var blockBelow = pos.DownCopy();
+            while (true)
             {
                 var testBlock = blockAccessor.GetBlock(blockBelow);
-                // Check if block is air or defined set of non-ground blocks
                 if (testBlock.BlockId == 0 || (nonGroundBlockClasses?.Contains(testBlock.Class) ?? false))
                 {
-                    centerBlock = blockBelow;
+                    pos = blockBelow;
                     blockBelow = blockBelow.DownCopy();
                 }
                 else
                 {
-                    foundGround = true;
+                    return pos;
                 }
             }
+        }
 
-            var nearbyBlocks = new List<BlockPos>(((hSize * 2) + 1) * ((hSize * 2) + 1));
+        // Helper: Get all nearby blocks in a square area
+        private static List<BlockPos> GetNearbyBlocks(BlockPos center, int hSize)
+        {
+            var blocks = new List<BlockPos>();
             for (int x = -hSize; x <= hSize; x++)
             {
                 for (int z = -hSize; z <= hSize; z++)
-                    nearbyBlocks.Add(centerBlock.AddCopy(x, 0, z));
+                {
+                    blocks.Add(center.AddCopy(x, 0, z));
+                }
             }
+            blocks.Sort((a, b) => a.DistanceTo(center).CompareTo(b.DistanceTo(center)));
+            return blocks;
+        }
 
-            var airBlocks = new List<BlockPos>();
-
-            void TryDrop(BlockPos pos, CarriedBlock block)
+        // Helper: Can place multiblock
+        private static bool CanPlaceMultiblock(BlockPos position, CarriedBlock carriedBlock, IBlockAccessor blockAccessor)
+        {
+            if (carriedBlock?.GetCarryableBehavior()?.MultiblockOffset != null)
             {
-                if (block != null)
+                var multiPos = position.AddCopy(carriedBlock.GetCarryableBehavior().MultiblockOffset);
+                var testBlock = blockAccessor.GetBlock(multiPos);
+                if (!testBlock.IsReplacableBy(carriedBlock.Block))
                 {
-                    if (Drop(pos, block))
-                    {
-                        remaining.Remove(block);
-                        airBlocks.Remove(pos);
-                    }
-                    else
-                    {
-                        airBlocks.Remove(pos);
-                    }
+                    return false;
                 }
             }
+            return true;
+        }
 
-            nearbyBlocks.Sort((a, b) => a.DistanceTo(centerBlock).CompareTo(b.DistanceTo(centerBlock)));
+        // Helper: Drop block as item
+        private static void DropBlockAsItem(IWorldAccessor world, CarriedBlock carriedBlock, BlockPos centerBlock, IServerPlayer player, Entity entity)
+        {
+            var api = world.Api;
+            var blockDestroyed = false;
+            var hadContents = false;
+            var dropVec3d = new Vec3d(centerBlock.X + 0.5, centerBlock.Y + 0.5, centerBlock.Z + 0.5);
 
-            var blockIndex = 0;
-            var distance = 0;
-            while (remaining.Count > 0)
+            if (carriedBlock.BlockEntityData?["inventory"] is TreeAttribute inventory && inventory["slots"] is TreeAttribute invSlots)
             {
-                if (blockIndex >= nearbyBlocks.Count)
+                foreach (var item in invSlots.Values.Cast<ItemstackAttribute>())
                 {
-                    while (remaining.Count > 0)
-                    {
-                        // Try to place blocks in known air
-                        var placeable = remaining.FirstOrDefault();
-                        var airPos = airBlocks.FirstOrDefault();
-
-                        if (airPos == null) break;
-
-                        TryDrop(airPos, placeable);
-                    }
-                    if (remaining.Count > 0)
-                    {
-                        api.Logger.Warning($"Entity {entity.GetName()} could not drop carryable on or near {centerBlock}");
-
-                        var blockDestroyed = false;
-                        var hadContents = false;
-
-                        var dropVec3d = new Vec3d(centerBlock.X + 0.5, centerBlock.Y + 0.5, centerBlock.Z + 0.5);
-
-                        foreach (var carriedBlock in remaining)
-                        {
-                            if (carriedBlock.BlockEntityData?["inventory"] is TreeAttribute inventory && inventory["slots"] is TreeAttribute invSlots)
-                            {
-                                foreach (var item in invSlots.Values.Cast<ItemstackAttribute>())
-                                {
-                                    var itemStack = (ItemStack)item.GetValue();
-                                    world.SpawnItemEntity(itemStack, dropVec3d);
-                                    hadContents = true;
-                                }
-                                var carriedItemStack = carriedBlock.ItemStack.Clone();
-
-                                // Remove barrel contents (TODO: check for other attributes)
-                                carriedItemStack.Attributes.Remove("contents");
-                                world.SpawnItemEntity(carriedItemStack, dropVec3d);
-                            }
-                            else
-                            {
-                                var itemStacks = carriedBlock.Block.GetDrops(world, centerBlock, player);
-                                // Check if drops self
-                                if (itemStacks.Length == 1 && itemStacks[0].Id == carriedBlock.ItemStack.Id)
-                                {
-                                    // Spawn configured itemStack which preserves the variant attributes
-                                    world.SpawnItemEntity(carriedBlock.ItemStack, dropVec3d);
-                                }
-                                else
-                                {
-                                    blockDestroyed = true;
-                                    foreach (var itemStack in itemStacks)
-                                    {
-                                        world.SpawnItemEntity(itemStack, dropVec3d);
-                                        hadContents = true;
-                                    }
-                                }
-                            }
-
-                            var breakSound = carriedBlock.Block.Sounds.GetBreakSound(player) ?? new AssetLocation("game:sounds/block/planks");
-
-                            world.PlaySoundAt(breakSound, (double)centerBlock.X, (double)centerBlock.Y, (double)centerBlock.Z);
-                            CarriedBlock.Remove(entity, carriedBlock.Slot);
-
-                            world.GetCarryEvents()?.TriggerBlockDropped(world, centerBlock, entity, carriedBlock, blockDestroyed, hadContents);
-                        }
-                    }
-                    break;
+                    var itemStack = (ItemStack)item.GetValue();
+                    world.SpawnItemEntity(itemStack, dropVec3d);
+                    hadContents = true;
                 }
-                var pos = nearbyBlocks[blockIndex];
-                if (Math.Abs(pos.Y - centerBlock.Y) <= vSize)
+                var carriedItemStack = carriedBlock.ItemStack.Clone();
+                carriedItemStack.Attributes.Remove("contents");
+                world.SpawnItemEntity(carriedItemStack, dropVec3d);
+            }
+            else
+            {
+                var itemStacks = carriedBlock.Block.GetDrops(world, centerBlock, player);
+                if (itemStacks.Length == 1 && itemStacks[0].Id == carriedBlock.ItemStack.Id)
                 {
-                    var sign = Math.Sign(pos.Y - centerBlock.Y);
-                    var testBlock = blockAccessor.GetBlock(pos);
-                    // Record known air blocks and non ground blocks
-                    if (testBlock.BlockId == 0 || (nonGroundBlockClasses?.Contains(testBlock.Class) ?? false))
-                    {
-                        airBlocks.Add(pos.Copy());
-                    }
-                    var placeable = remaining.FirstOrDefault(c => testBlock.IsReplacableBy(c.Block));
-                    if (sign == 0)
-                    {
-                        sign = (placeable != null) ? -1 : 1;
-                    }
-                    else if (sign > 0)
-                    {
-                        TryDrop(pos, placeable);
-                    }
-                    else if (placeable == null)
-                    {
-                        var above = pos.UpCopy();
-
-                        testBlock = blockAccessor.GetBlock(above);
-                        placeable = remaining.FirstOrDefault(c => testBlock.IsReplacableBy(c.Block));
-
-                        TryDrop(above, placeable);
-                    }
-                    pos.Add(0, sign, 0);
+                    world.SpawnItemEntity(carriedBlock.ItemStack, dropVec3d);
                 }
-
-                if (++distance > 3)
+                else
                 {
-                    distance = 0;
-                    blockIndex++;
-                    if (blockIndex % 4 == 4)
+                    blockDestroyed = true;
+                    foreach (var itemStack in itemStacks)
                     {
-                        if (++blockIndex >= nearbyBlocks.Count)
-                            blockIndex = 0;
+                        world.SpawnItemEntity(itemStack, dropVec3d);
+                        hadContents = true;
                     }
                 }
             }
-            // FIXME: Drop container contents if blocks could not be placed.
-            //        Right now, the player just gets to keep them equipped.
+
+            var breakSound = carriedBlock.Block.Sounds.GetBreakSound(player) ?? new AssetLocation("game:sounds/block/planks");
+            world.PlaySoundAt(breakSound, (double)centerBlock.X, (double)centerBlock.Y, (double)centerBlock.Z);
+            GetCarryManager(api).RemoveCarried(entity, carriedBlock.Slot);
+            world.GetCarryEvents()?.TriggerBlockDropped(world, centerBlock, entity, carriedBlock, blockDestroyed, hadContents);
         }
 
         /// <summary> Attempts to make this entity drop all of its carried
@@ -353,80 +268,8 @@ namespace CarryOn.API.Common
         ///   entity's <paramref name="first"/> and <paramref name="second"/> slots.
         /// </summary>
         /// <exception cref="ArgumentNullException"> Thrown if entity is null. </exception>
-        public static bool Swap(this Entity entity, CarrySlot first, CarrySlot second)
-        {
-            if (first == second) throw new ArgumentException("Slots can't be the same");
-
-            var carriedFirst = CarriedBlock.Get(entity, first);
-            var carriedSecond = CarriedBlock.Get(entity, second);
-            if ((carriedFirst == null) && (carriedSecond == null)) return false;
-
-            CarriedBlock.Remove(entity, first);
-            CarriedBlock.Remove(entity, second);
-
-            carriedFirst?.Set(entity, second);
-            carriedSecond?.Set(entity, first);
-
-            return true;
-        }
-
-        public static bool IsCarryKeyHeld(this Entity entity)
-        {
-            return entity.Attributes.GetBool("carryKeyHeld");
-        }
-
-        public static void SetCarryKeyHeld(this Entity entity, bool isHeld)
-        {
-            if (entity.IsCarryKeyHeld() != isHeld)
-            {
-                entity.Attributes.SetBool("carryKeyHeld", isHeld);
-            }
-        }
-
-        /* ------------------------------ */
-        /* EntityAgent Extensions         */
-        /* ------------------------------ */
-
-
-        /// <summary>
-        /// Checks if entity can begin interaction with carryable item that is in the world or in hand slot
-        /// Their left and right hands be empty.
-        /// </summary>
-        /// <param name="entityAgent"></param>
-        /// <param name="requireEmptyHanded"></param>
-        /// <returns></returns>
-        public static bool CanDoCarryAction(this EntityAgent entityAgent, bool requireEmptyHanded)
-        {
-            var system = entityAgent.World.GetCarrySystem();
-            return system.CarryHandler.CanDoCarryAction(entityAgent, requireEmptyHanded);
-        }
-
-        /* ------------------------------ */
-        /* IPlayer extensions             */
-        /* ------------------------------ */
-
-        /// <summary>
-        ///   Attempts to get this player to place down its
-        ///   <see cref="CarriedBlock"/> (if any) at the specified
-        ///   selection, returning whether it was successful.
-        /// </summary>
-        /// <exception cref="ArgumentNullException"> Thrown if player or selection is null. </exception>
-        public static bool PlaceCarried(this IPlayer player, BlockSelection selection, CarrySlot slot, ref string failureCode)
-        {
-            if (player == null) throw new ArgumentNullException(nameof(player));
-            if (selection == null) throw new ArgumentNullException(nameof(selection));
-
-            if (!player.Entity.World.Claims.TryAccess(
-                player, selection.Position, EnumBlockAccessFlags.BuildOrBreak))
-            {
-                return false;
-            }
-
-            var carried = CarriedBlock.Get(player.Entity, slot);
-            if (carried == null) return false;
-
-            return carried.PlaceDown(ref failureCode, player.Entity.World, selection, player.Entity);
-        }
+        public static bool SwapCarried(this Entity entity, CarrySlot first, CarrySlot second)
+            => GetCarryManager(entity.Api).SwapCarried(entity, first, second);
 
         /* ------------------------------ */
         /* IWorldAccessor Extensions      */
@@ -438,5 +281,15 @@ namespace CarryOn.API.Common
         public static CarryEvents GetCarryEvents(this IWorldAccessor world)
             => world.GetCarrySystem().CarryEvents;
 
+        /// <summary>
+        /// Gets the carryable behavior of the block or default.
+        /// </summary>
+        /// <param name="block"></param>
+        /// <returns></returns>
+        public static BlockBehaviorCarryable GetCarryableBehavior(this CarriedBlock carriedBlock)
+            => carriedBlock.Block.GetBehaviorOrDefault(BlockBehaviorCarryable.Default);
+
+        public static void Set(this CarriedBlock carriedBlock, Entity entity, CarrySlot slot)
+            => GetCarryManager(entity.Api).SetCarried(entity, slot, carriedBlock.ItemStack, carriedBlock.BlockEntityData);
     }
 }

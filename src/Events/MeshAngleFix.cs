@@ -5,20 +5,24 @@ using Vintagestory.GameContent;
 
 namespace CarryOn.Events
 {
+
+    /// <summary>
+    /// Fixes the mesh angle of certain block entities when they are placed.
+    /// </summary>
     public class MeshAngleFix : ICarryEvent
     {
-        public void Init(ModSystem modSystem)
+        public void Init(ICarryManager carryManager)
         {
-            if (modSystem is not CarrySystem carrySystem) return;
+            if (carryManager.Api.Side != EnumAppSide.Server) return;
 
-            if (carrySystem.Api.Side != EnumAppSide.Server) return;
-
-            carrySystem.CarryEvents.OnRestoreEntityBlockData += OnRestoreEntityBlockData;
+            carryManager.CarryEvents.OnRestoreEntityBlockData += OnRestoreEntityBlockData;
         }
 
         public void OnRestoreEntityBlockData(BlockEntity blockEntity, ITreeAttribute blockEntityData, bool dropped)
         {
-            switch (blockEntity?.Block?.Class)
+
+            var blockClass = blockEntity?.Block?.Class;
+            switch (blockClass)
             {
                 case "BlockSign":
                     if (blockEntity is BlockEntitySign sign)
@@ -37,12 +41,24 @@ namespace CarryOn.Events
 
                 case "BlockClutterBookshelf":
                     if (blockEntity is BlockEntityGeneric clutterBookshelf)
-                        blockEntityData.SetFloat("meshAngle", clutterBookshelf.GetBehavior<BEBehaviorClutterBookshelf>().rotateY);
+                    {
+                        var beh = clutterBookshelf.GetBehavior<BEBehaviorClutterBookshelf>();
+                        if (beh != null)
+                        {
+                            blockEntityData.SetFloat("meshAngle", beh.rotateY);
+                        }
+                    }
                     return;
 
                 case "BlockClutter":
                     if (blockEntity is BlockEntityGeneric clutter)
-                        blockEntityData.SetFloat("meshAngle", clutter.GetBehavior<BEBehaviorShapeFromAttributes>().rotateY);
+                    {
+                        var beh = clutter.GetBehavior<BEBehaviorShapeFromAttributes>();
+                        if (beh != null)
+                        {
+                            blockEntityData.SetFloat("meshAngle", beh.rotateY);
+                        }
+                    }
                     return;
             }
         }
