@@ -16,8 +16,9 @@ using static CarryOn.Utility.CarryInventoryUtils;
 using static CarryOn.Utility.CarryHelper;
 using static CarryOn.API.Common.CarryCode;
 using Vintagestory.API.Util;
-using Vintagestory.Client.NoObf;
 using HarmonyLib;
+
+
 
 namespace CarryOn.Common
 {
@@ -46,7 +47,7 @@ namespace CarryOn.Common
 
         public int MaxInteractionDistance { get; set; }
 
-        public HudElementInteractionHelp HudHelp { get; set; }
+        public Vintagestory.Client.NoObf.HudElementInteractionHelp HudHelp { get; set; }
 
         public void InitClient()
         {
@@ -643,7 +644,7 @@ namespace CarryOn.Common
         {
             if (onScreenErrorMessage != null)
             {
-                CarrySystem.ClientAPI.TriggerIngameError(CarryCode.ModId.CarryOn, failureCode, onScreenErrorMessage);
+                CarrySystem.ClientAPI.TriggerIngameError(CarryCode.ModId, failureCode, onScreenErrorMessage);
                 CompleteInteraction();
                 handled = EnumHandling.PreventDefault;
                 return true;
@@ -995,7 +996,7 @@ namespace CarryOn.Common
                         {
                             if (onScreenErrorMessage != null)
                             {
-                                CarrySystem.ClientAPI.TriggerIngameError(CarryCode.ModId.CarryOn, failureCode, onScreenErrorMessage);
+                                CarrySystem.ClientAPI.TriggerIngameError(ModId, failureCode, onScreenErrorMessage);
                             }
                             CarrySystem.Api.Logger.Debug($"Failed client side: {failureCode} : {onScreenErrorMessage}");
                             break;
@@ -1021,7 +1022,7 @@ namespace CarryOn.Common
                         {
                             if (onScreenErrorMessage != null)
                             {
-                                CarrySystem.ClientAPI.TriggerIngameError(CarryCode.ModId.CarryOn, failureCode, onScreenErrorMessage);
+                                CarrySystem.ClientAPI.TriggerIngameError(ModId, failureCode, onScreenErrorMessage);
                             }
 
                             CarrySystem.Api.Logger.Debug($"Failed client side: {failureCode} : {onScreenErrorMessage}");
@@ -1615,7 +1616,7 @@ namespace CarryOn.Common
         {
             try
             {
-                var method = AccessTools.Method(typeof(HudElementInteractionHelp), "ComposeBlockWorldInteractionHelp");
+                var method = AccessTools.Method(typeof(Vintagestory.Client.NoObf.HudElementInteractionHelp), "ComposeBlockWorldInteractionHelp");
                 method.Invoke(HudHelp, null);
             }
             catch (Exception e)

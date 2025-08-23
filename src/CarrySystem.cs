@@ -134,7 +134,7 @@ namespace CarryOn
         public override void StartClientSide(ICoreClientAPI api)
         {
             ClientAPI = api;
-            ClientChannel = api.Network.RegisterChannel(ModId.CarryOn)
+            ClientChannel = api.Network.RegisterChannel(ModId)
                 .RegisterMessageType<InteractMessage>()
                 .RegisterMessageType<LockSlotsMessage>()
                 .RegisterMessageType<PickUpMessage>()
@@ -159,7 +159,7 @@ namespace CarryOn
             api.Register<EntityBehaviorDropCarriedOnDamage>();
 
             ServerAPI = api;
-            ServerChannel = api.Network.RegisterChannel(ModId.CarryOn)
+            ServerChannel = api.Network.RegisterChannel(ModId)
                 .RegisterMessageType<InteractMessage>()
                 .RegisterMessageType<LockSlotsMessage>()
                 .RegisterMessageType<PickUpMessage>()

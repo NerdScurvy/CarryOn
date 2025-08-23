@@ -55,18 +55,18 @@ namespace CarryOn.API.Common
         /* ------------------------------ */
 
         public static bool HasPermissionToCarry(this Entity entity, BlockPos pos)
-            => GetCarryManager(entity.Api).HasPermissionToCarry(entity, pos);
+            => GetCarryManager(entity.Api)?.HasPermissionToCarry(entity, pos) ?? false;
 
         /// <summary> Returns the <see cref="CarriedBlock"/> this entity
         ///           is carrying in the specified slot, or null of none. </summary>
         /// <exception cref="ArgumentNullException"> Thrown if entity or pos is null. </exception>
         public static CarriedBlock GetCarried(this Entity entity, CarrySlot slot)
-            => GetCarryManager(entity.Api).GetCarried(entity, slot);
+            => GetCarryManager(entity.Api)?.GetCarried(entity, slot);
 
         /// <summary> Returns all the <see cref="CarriedBlock"/>s this entity is carrying. </summary>
         /// <exception cref="ArgumentNullException"> Thrown if entity or pos is null. </exception>
         public static IEnumerable<CarriedBlock> GetCarried(this Entity entity)
-            => GetCarryManager(entity.Api).GetAllCarried(entity);
+            => GetCarryManager(entity.Api)?.GetAllCarried(entity);
 
         public static bool Carry(this Entity entity, BlockPos pos,
                                  CarrySlot slot, bool checkIsCarryable = true, bool playSound = true)

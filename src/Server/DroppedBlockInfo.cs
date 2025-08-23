@@ -22,7 +22,7 @@ namespace CarryOn.Server
 
         private static string GetFileLocation(BlockPos pos, ICoreAPI api)
         {
-            var localPath = Path.Combine("ModData", api.World.SavegameIdentifier, ModId.CarryOn);
+            var localPath = Path.Combine("ModData", api.World.SavegameIdentifier, ModId);
             var path = api.GetOrCreateDataPath(localPath);
             return Path.Combine(path, $"dropped-{pos.X}.{pos.Y}.{pos.Z}");
         }

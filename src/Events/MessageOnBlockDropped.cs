@@ -22,7 +22,7 @@ namespace CarryOn.Events
         public void OnCarriedBlockDropped(object sender, BlockDroppedEventArgs e)
         {
             var messageKey = string.Format("{0}:drop-notice{1}{2}",
-                    ModId.CarryOn,
+                    ModId,
                     e.Destroyed ? "-destroyed" : null,
                     e.HadContents ? "-spill-contents" : null
                     );
