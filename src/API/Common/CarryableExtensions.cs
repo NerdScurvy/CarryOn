@@ -104,7 +104,7 @@ namespace CarryOn.API.Common
             BlockPos centerBlock = entity.Pos.AsBlockPos.UpCopy();
 
             var blockPlacer = new BlockPlacer(entity.Api);
-            var blockSelection = blockPlacer.FindBlockPlacement(remaining.First().Block, centerBlock, 2, 3);
+            var blockSelection = blockPlacer.FindBlockPlacement(remaining.First().Block, centerBlock, 3);
 
             if (blockSelection == null)
             {

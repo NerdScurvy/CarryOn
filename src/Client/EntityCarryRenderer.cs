@@ -25,27 +25,29 @@ namespace CarryOn.Client
             { AttachmentPoint = attachmentPoint; Offset = new Vec3f(xOffset, yOffset, zOffset); }
         }
 
-        private ICoreClientAPI Api { get; }
+        private ICoreClientAPI api { get; }
         private AnimationFixer AnimationFixer { get; }
 
-        private long _renderTick = 0;
+        private long renderTick = 0;
 
         public EntityCarryRenderer(ICoreClientAPI api)
         {
-            Api = api;
-            Api.Event.RegisterRenderer(this, EnumRenderStage.Opaque);
-            Api.Event.RegisterRenderer(this, EnumRenderStage.ShadowFar);
-            Api.Event.RegisterRenderer(this, EnumRenderStage.ShadowNear);
+            if(api == null) throw new ArgumentNullException(nameof(api));
+
+            this.api = api;
+            this.api.Event.RegisterRenderer(this, EnumRenderStage.Opaque);
+            this.api.Event.RegisterRenderer(this, EnumRenderStage.ShadowFar);
+            this.api.Event.RegisterRenderer(this, EnumRenderStage.ShadowNear);
             AnimationFixer = new AnimationFixer();
         }
 
         // We don't have any unmanaged resources to dispose.
         public void Dispose()
         {
-            Api.Event.UnregisterRenderer(this, EnumRenderStage.Opaque);
-            Api.Event.UnregisterRenderer(this, EnumRenderStage.ShadowFar);
-            Api.Event.UnregisterRenderer(this, EnumRenderStage.ShadowNear);
-   
+            this.api.Event.UnregisterRenderer(this, EnumRenderStage.Opaque);
+            this.api.Event.UnregisterRenderer(this, EnumRenderStage.ShadowFar);
+            this.api.Event.UnregisterRenderer(this, EnumRenderStage.ShadowNear);
+
         }
 
         private ItemRenderInfo GetRenderInfo(CarriedBlock carried)
@@ -54,7 +56,7 @@ namespace CarryOn.Client
 
             var slot = new DummySlot(carried.ItemStack);
 
-            var renderInfo = Api.Render.GetItemStackRenderInfo(slot, EnumItemRenderTarget.Ground, 0);
+            var renderInfo = this.api.Render.GetItemStackRenderInfo(slot, EnumItemRenderTarget.Ground, 0);
 
             renderInfo.Transform = carried.GetCarryableBehavior().Slots[carried.Slot]?.Transform ?? carried.GetCarryableBehavior().DefaultTransform;
             return renderInfo;
@@ -67,13 +69,13 @@ namespace CarryOn.Client
 
         public void OnRenderFrame(float deltaTime, EnumRenderStage stage)
         {
-            foreach (var player in Api.World.AllPlayers)
+            foreach (var player in this.api.World.AllPlayers)
             {
                 // Player entity may be null in some circumstances..?
                 if (player.Entity == null) continue;
 
-                var isLocalPlayer = (player == Api.World.Player);
-                var isShadowPass = (stage != EnumRenderStage.Opaque);
+                var isLocalPlayer = player == this.api.World.Player;
+                var isShadowPass = stage != EnumRenderStage.Opaque;
 
                 // Fix up animations that should/shouldn't be playing.
                 if (isLocalPlayer)
@@ -91,7 +93,7 @@ namespace CarryOn.Client
 
                 RenderAllCarried(player.Entity, deltaTime, isShadowPass);
             }
-            _renderTick++;
+            this.renderTick++;
         }
 
         /// <summary> Renders all carried blocks of the specified entity. </summary>
@@ -100,7 +102,7 @@ namespace CarryOn.Client
             var allCarried = entity.GetCarried().ToList();
             if (allCarried.Count == 0) return; // Entity is not carrying anything.
 
-            var player = Api.World.Player;
+            var player = this.api.World.Player;
             var isLocalPlayer = (entity == player.Entity);
             var isFirstPerson = isLocalPlayer && (player.CameraMode == EnumCameraMode.FirstPerson);
             var isImmersiveFirstPerson = player.ImmersiveFpMode;
@@ -124,7 +126,7 @@ namespace CarryOn.Client
                                    bool isFirstPerson, bool isImmersiveFirstPerson, bool isShadowPass,
                                    EntityShapeRenderer renderer, IAnimator animator)
         {
-            var rapi = Api.Render;
+            var rapi = this.api.Render;
             var inHands = (carried.Slot == CarrySlot.Hands);
             if (!inHands && isFirstPerson && !isShadowPass) return; // Only Hands slot is rendered in first person.
 
@@ -211,13 +213,13 @@ namespace CarryOn.Client
             var modelMat = Mat4f.Invert(Mat4f.Create(), viewMat);
 
             // If the hands haven't been rendered in the last 10 render ticks, reset wobble and such.
-            if (_renderTick - _lastTickHandsRendered > 10)
+            if (this.renderTick - _lastTickHandsRendered > 10)
             {
                 _moveWobble = 0;
                 _lastYaw = entity.Pos.Yaw;
                 _yawDifference = 0;
             }
-            _lastTickHandsRendered = _renderTick;
+            _lastTickHandsRendered = this.renderTick;
 
             if (entity.Controls.TriesToMove)
             {
