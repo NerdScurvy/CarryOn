@@ -7,9 +7,8 @@ using Vintagestory.Client.NoObf;
 
 namespace CarryOn.Patches
 {
-
-    [HarmonyPatch(typeof(ClientMain), "Connect")]
-    public static class ClientMain_Connect_Patch
+    [HarmonyPatch(typeof(ClientMain), "sendRuntimeSettings")]
+    public static class ClientMain_sendRuntimeSettings_Patch
     {
         // Postfix method signature must match the original method's parameters, plus __instance and optionally __result
         public static void Postfix(ClientMain __instance)
@@ -39,4 +38,5 @@ namespace CarryOn.Patches
 
         }
     }
+
 }

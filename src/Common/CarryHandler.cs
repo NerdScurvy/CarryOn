@@ -57,8 +57,11 @@ namespace CarryOn.Common
             this.carrySystem = carrySystem;
         }
 
-        public void InitClient()
+        public void InitClient(ICoreAPI api)
         {
+            this.api = api ?? throw new ArgumentNullException(nameof(api));
+            this.clientApi = api as ICoreClientAPI;
+
             if (ClientApi == null)
             {
                 throw new InvalidOperationException("CarryHandler.InitClient can only be initialized on the client side.");
@@ -92,7 +95,61 @@ namespace CarryOn.Common
 
             ClientApi.Event.PlayerEntitySpawn += OnPlayerEntitySpawn;
 
+            ClientApi.Event.IsPlayerReady += OnPlayerReady;
+
         }
+
+        private bool OnPlayerReady(ref EnumHandling handling)
+        {
+            // Check if the player is ready and the carry system is enabled
+            InitTransferBehaviors(Api);
+
+            return true;
+
+        }
+
+        private void InitTransferBehaviors(ICoreAPI api)
+        {
+            if (IsCarryOnEnabled)
+            {
+
+                var ignoreMods = new[] { "game", "creative", "survival" };
+
+                var assemblies = api.ModLoader.Mods.Where(m => !ignoreMods.Contains(m.Info.ModID))
+                                                   .Select(s => s.Systems)
+                                                   .SelectMany(o => o.ToArray())
+                                                   .Select(t => t.GetType().Assembly)
+                                                   .Distinct();
+
+                foreach (var assembly in assemblies)
+                {
+                    foreach (Type type in assembly.GetTypes().Where(t => t.GetInterfaces().Contains(typeof(ICarryableTransfer))))
+                    {
+                        foreach (var block in api.World.Blocks.Where(b => b.IsCarryable()))
+                        {
+                            if (block.HasBehavior(type))
+                            {
+                                try
+                                {
+                                    var carryableBehavior = block.GetBehavior<BlockBehaviorCarryable>();
+                                    if (carryableBehavior != null)
+                                    {
+                                        carryableBehavior.ConfigureTransferBehavior(type, api);
+
+                                    }
+                                }
+                                catch (Exception e)
+                                {
+                                    api.Logger.Error($"CarryOn: Failed to set TransferHandlerType for block {block.Code}: {e.Message}");
+                                }
+                            }
+                        }
+                    }
+                }
+
+            }            
+        }
+
 
         private void OnPlayerEntitySpawn(IClientPlayer byPlayer)
         {
@@ -106,9 +163,11 @@ namespace CarryOn.Common
             byPlayer.Entity.WatchedAttributes.OnModified.Add(entityCarriedListener);
         }
 
-        public void InitServer()
+        public void InitServer(ICoreServerAPI api)
         {
-            var serverEvent = ServerApi.Event;
+            this.serverApi = api ?? throw new ArgumentNullException(nameof(api));
+            
+            var serverEvent = api.Event;
             // TODO: Change this to a config value.
             MaxInteractionDistance = 6;
 
@@ -130,6 +189,8 @@ namespace CarryOn.Common
 
             serverEvent.BeforeActiveSlotChanged +=
                 (player, _) => OnBeforeActiveSlotChanged(player.Entity);
+
+            InitTransferBehaviors(api);
         }
 
         /// <summary>
@@ -1659,7 +1720,7 @@ namespace CarryOn.Common
 
         public void RefreshPlacedBlockInteractionHelp()
         {
-            if(HudHelp == null) return;
+            if (HudHelp == null) return;
             try
             {
                 var method = AccessTools.Method(typeof(Vintagestory.Client.NoObf.HudElementInteractionHelp), "ComposeBlockWorldInteractionHelp");
@@ -1712,7 +1773,7 @@ namespace CarryOn.Common
                 api.Event.BeforeActiveSlotChanged -=
                     (player, _) => OnBeforeActiveSlotChanged(player.Entity);
             }
-            
+
         }
     }
 }

@@ -97,27 +97,20 @@ namespace CarryOn.Common
 
         }
 
-        public override void OnLoaded(ICoreAPI api)
+        public void ConfigureTransferBehavior(Type type, ICoreAPI api)
         {
-            if (TransferHandlerType != null)
+            TransferHandlerBehavior = block?.GetBehavior(type);
+            if (TransferHandlerBehavior != null && TransferHandlerBehavior is ICarryableTransfer transferHandler)
             {
-                TransferHandlerBehavior = block?.GetBehavior(TransferHandlerType);
-                if (TransferHandlerBehavior != null && TransferHandlerBehavior is ICarryableTransfer transferHandler)
-                {
-                    // Check if the transfer handler is enabled
-                    TransferEnabled = transferHandler.IsTransferEnabled(api);
-                    TransferHandler = transferHandler;
-                }
-                else
-                {
-                    TransferEnabled = false;
-                }
+                TransferEnabled = transferHandler.IsTransferEnabled(api);
+                TransferHandlerType = type;
+                TransferHandler = transferHandler;
             }
             else
             {
                 TransferEnabled = false;
             }
-            base.OnLoaded(api);
+
         }
 
 
