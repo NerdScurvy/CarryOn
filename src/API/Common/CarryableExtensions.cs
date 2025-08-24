@@ -11,8 +11,6 @@ using Vintagestory.API.Common.Entities;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Server;
-using Vintagestory.GameContent;
-using Vintagestory.ServerMods.NoObf;
 
 namespace CarryOn.API.Common
 {
@@ -22,18 +20,25 @@ namespace CarryOn.API.Common
         /* Block extensions               */
         /* ------------------------------ */
 
-        private static ICarryManager _clientCarryManager = null;
-        private static ICarryManager _serverCarryManager = null;
+        private static ICarryManager clientCarryManager = null;
+        private static ICarryManager serverCarryManager = null;
+
+        // This needs to be called when disposing the CarrySystem to avoid stale references
+        public static void ClearCachedCarryManager()
+        {
+            clientCarryManager = null;
+            serverCarryManager = null;
+        }
 
         public static ICarryManager GetCarryManager(ICoreAPI api)
         {
-            if(api.Side == EnumAppSide.Server)
+            if (api.Side == EnumAppSide.Server)
             {
-                _serverCarryManager ??= api.ModLoader.GetModSystem<CarrySystem>()?.CarryManager;
-                return _serverCarryManager;
+                serverCarryManager ??= api.ModLoader.GetModSystem<CarrySystem>()?.CarryManager;
+                return serverCarryManager;
             }
-            _clientCarryManager ??= api.ModLoader.GetModSystem<CarrySystem>()?.CarryManager;
-            return _clientCarryManager;
+            clientCarryManager ??= api.ModLoader.GetModSystem<CarrySystem>()?.CarryManager;
+            return clientCarryManager;
         }
 
         /// <summary> Returns whether the specified block can be carried.
@@ -68,11 +73,6 @@ namespace CarryOn.API.Common
         public static IEnumerable<CarriedBlock> GetCarried(this Entity entity)
             => GetCarryManager(entity.Api)?.GetAllCarried(entity);
 
-        public static bool Carry(this Entity entity, BlockPos pos,
-                                 CarrySlot slot, bool checkIsCarryable = true, bool playSound = true)
-           => GetCarryManager(entity.Api)?.TryPickUp(entity, pos, slot, checkIsCarryable, playSound) ?? false;
-        
-
         /// <summary> Attempts to make this entity drop its carried blocks from the
         ///           specified slots around its current position in the specified area. </summary>
         /// <exception cref="ArgumentNullException"> Thrown if entity or slots is null. </exception>
@@ -101,10 +101,10 @@ namespace CarryOn.API.Common
 
             // TODO: Avoid potential infinite loop if there is no bedrock for some reason.
             //var centerBlock = FindGround(entity.Pos.AsBlockPos, blockAccessor, nonGroundBlockClasses);
-            var centerBlock = entity.Pos.AsBlockPos;
+            BlockPos centerBlock = entity.Pos.AsBlockPos.UpCopy();
 
             var blockPlacer = new BlockPlacer(entity.Api);
-            var blockSelection = blockPlacer.FindBlockPlacement(remaining.First().Block, centerBlock, 2, 3);
+            var blockSelection = blockPlacer.FindBlockPlacement(remaining.First().Block, centerBlock, 3);
 
             if (blockSelection == null)
             {

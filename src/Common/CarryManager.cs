@@ -33,7 +33,6 @@ namespace CarryOn.API.Common
         }
 
 
-
         /// <summary>
         /// Gets all carried blocks for the specified entity.
         /// </summary>
@@ -308,7 +307,7 @@ namespace CarryOn.API.Common
                 Block block = carriedBlock.Block;
                 var meshFacing = selection.Clone().Face;
 
-                // TODO: See if this can be derived from muliblock behavior
+                // Workaround for trunk - may work for other two-wide multiblocks                
                 if (carriedBlock.Block.HasBehavior<BlockBehaviorMultiblock>())
                 {
                     var assetLocation = carriedBlock.Block.Code.Clone();
@@ -544,7 +543,7 @@ namespace CarryOn.API.Common
             world.PlaySoundAt(block.Sounds.Place,
                 pos.X + 0.5, pos.Y + 0.25, pos.Z + 0.5, player,
                 range: SOUND_RANGE, volume: SOUND_VOLUME);
-        }   
+        }
 
         /// <summary>
         /// Sends a message to the player to lock the hotbar slots.

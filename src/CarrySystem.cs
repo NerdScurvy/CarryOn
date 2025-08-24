@@ -56,16 +56,16 @@ namespace CarryOn
         
         public static readonly int DoubleTapThresholdMs = 500;
 
-        public ICoreAPI Api { get { return ClientAPI ?? ServerAPI as ICoreAPI; } }
+        public ICoreAPI Api { get { return ClientApi ?? ServerApi as ICoreAPI; } }
 
         // Client
-        public ICoreClientAPI ClientAPI { get; private set; }
+        public ICoreClientAPI ClientApi { get; private set; }
         public IClientNetworkChannel ClientChannel { get; private set; }
         public EntityCarryRenderer EntityCarryRenderer { get; private set; }
         public HudOverlayRenderer HudOverlayRenderer { get; private set; }
 
         // Server
-        public ICoreServerAPI ServerAPI { get; private set; }
+        public ICoreServerAPI ServerApi { get; private set; }
         public IServerNetworkChannel ServerChannel { get; private set; }
         public DeathHandler DeathHandler { get; private set; }
 
@@ -78,21 +78,21 @@ namespace CarryOn
 
         public ICarryManager CarryManager => CarryOnLib?.CarryManager;
 
-        private Harmony _harmony;
+        private Harmony harmony;
 
         public static string GetLang(string key) => Lang.Get(CarryOnCode(key)) ?? key;
 
         public override void StartPre(ICoreAPI api)
         {
             base.StartPre(api);
-            _harmony = new Harmony("CarryOn");
+            this.harmony = new Harmony("CarryOn");
             ModConfig.ReadConfig(api);
 
             if (ModConfig.HarmonyPatchEnabled)
             {
                 try
                 {
-                    _harmony.PatchAll();
+                    this.harmony.PatchAll();
                     api.World.Logger.Notification("CarryOn: Harmony patches enabled.");
                 }
                 catch (Exception ex)
@@ -103,7 +103,7 @@ namespace CarryOn
             else
             {
                 api.World.Logger.Notification("CarryOn: Harmony patches are disabled by config.");
-                // If runtime config changes are supported, call _harmony.UnpatchAll("CarryOn") here
+                // If runtime config changes are supported, call this.harmony.UnpatchAll("CarryOn") here
             }
 
             api.World.Logger.Event("started 'CarryOn' mod");
@@ -134,7 +134,7 @@ namespace CarryOn
 
         public override void StartClientSide(ICoreClientAPI api)
         {
-            ClientAPI = api;
+            ClientApi = api;
             ClientChannel = api.Network.RegisterChannel(ModId)
                 .RegisterMessageType<InteractMessage>()
                 .RegisterMessageType<LockSlotsMessage>()
@@ -159,7 +159,7 @@ namespace CarryOn
         {
             api.Register<EntityBehaviorDropCarriedOnDamage>();
 
-            ServerAPI = api;
+            ServerApi = api;
             ServerChannel = api.Network.RegisterChannel(ModId)
                 .RegisterMessageType<InteractMessage>()
                 .RegisterMessageType<LockSlotsMessage>()
@@ -192,6 +192,25 @@ namespace CarryOn
             }
 
             base.AssetsFinalize(api);
+        }
+
+        public override void Dispose()
+        {
+            CarryableExtensions.ClearCachedCarryManager();
+            if (this.harmony != null)
+            {
+                this.harmony.UnpatchAll("CarryOn");
+                this.harmony = null;
+            }
+
+            if (ClientApi != null)
+            {
+                EntityCarryRenderer?.Dispose();
+                HudOverlayRenderer?.Dispose();
+
+                CarryHandler?.Dispose();
+            }
+            base.Dispose();
         }
 
         // Helper to create, initialize, and append BlockBehaviorCarryable to a collection

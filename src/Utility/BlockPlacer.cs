@@ -4,55 +4,25 @@ using System.Linq;
 using CarryOn.Common;
 using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
-using Vintagestory.GameContent;
-using Vintagestory.ServerMods.NoObf;
 
 namespace CarryOn.Utility
 {
     public class BlockPlacer
     {
 
-        private ICoreAPI Api { get; }
+        public ICoreAPI Api { get; }
 
-        private static Random Rand { get; } = Random.Shared;
+        public static Random Rand { get; } = Random.Shared;
 
-        private IBlockAccessor BlockAccessor => Api?.World?.BlockAccessor;
+        public IBlockAccessor BlockAccessor => Api?.World?.BlockAccessor;
 
         public BlockPlacer(ICoreAPI api)
         {
             Api = api ?? throw new ArgumentNullException(nameof(api));
         }
 
-
-
-        public class BlockPlacementX
-        {
-            public BlockPos Position { get; set; }
-            public float Rotation { get; set; } = 0;
-        }
-
-        public class BlockPlacement1
-        {
-            public Block Block { get; set; }
-            public BlockPos Position { get; set; }
-
-            public override bool Equals(object obj)
-            {
-                if (obj is BlockPlacement1 other)
-                    return Position.Equals(other.Position);
-                return false;
-            }
-
-            public override int GetHashCode()
-            {
-                return Position.GetHashCode();
-            }
-
-        }
-
-
         /// <summary>
-        /// Finds all connected passable blocks (air, ladders, etc.) within a given radius.
+        /// Finds all connected passable blocks (air, liquids and rain permeable) within a given radius.
         /// Uses BFS flood-fill from startPos.
         /// </summary>
         public HashSet<BlockPos> GetAccessibleArea(BlockPos startPos, int maxDistance)
@@ -82,94 +52,92 @@ namespace CarryOn.Utility
             return visited;
         }
 
-
-        /// <summary>
-        /// Find the closest valid placement for a chest around the player.
-        /// Priority: directly under player, then nearby accessible air blocks (down first, then sides, then up).
-        /// </summary>
-        public BlockSelection FindBlockPlacement(Block droppedBlock, BlockPos centrePos, int searchRadius, int maxUpSearch = 3)
+        // TODO: Keep track of visited positions to prevent redundant checks
+        private BlockSelection GetValidPlacementWithGravity(Block droppedBlock, BlockPos startPos)
         {
-
-            var accessible = GetAccessibleArea(centrePos, searchRadius);
-
-            // Step 1: check downward until solid support
-            for (int y = centrePos.Y; y >= 0; y--)
+            for (int y = startPos.Y; y >= 0; y--)
             {
 
-                var pos = new BlockPos(centrePos.X, y, centrePos.Z);
+                var pos = new BlockPos(startPos.X, y, startPos.Z);
                 var blockAtPos = BlockAccessor.GetBlock(pos);
-                //var placement = new BlockPlacement { Position = pos, Block = blockAtPos };
-                //  if (!accessible.Contains(placement)) continue;
                 if (!IsPassable(blockAtPos)) break; // Stop if we hit a non-passable block
 
                 // Check if we can place the block here
-                Api.Logger.Debug("Checking position {0}", new BlockPos(centrePos.X, y, centrePos.Z));
+                Api.Logger.Debug("Checking position {0}", new BlockPos(startPos.X, y, startPos.Z));
                 var blockSelection = CheckCanPlaceBlock(droppedBlock, pos);
                 if (blockSelection != null)
                 {
                     return blockSelection;
                 }
-
-
             }
 
             return null;
+        }
 
-            /*             // Step 2: search within accessible area, sorted by distance (down bias)
-                        var candidates = new List<BlockPos>();
-                        foreach (var placement in accessible)
-                        {
+        /// <summary>
+        /// Find the closest valid placement for a chest around the player.
+        /// Priority: directly under player, then nearby accessible air blocks (down first, then sides, then up).
+        /// </summary>
+        public BlockSelection FindBlockPlacement(Block droppedBlock, BlockPos centrePos, int searchRadius)
+        {
 
-                            if (IsGasOrLiquid(placement) && HasSupport(droppedBlock, placement.Position))
-                                candidates.Add(placement.Position);
-                        }
+            var accessible = GetAccessibleArea(centrePos, searchRadius);
 
-                        candidates.Sort((a, b) =>
+            List<BlockPos> candidates = accessible.ToList();
+
+            candidates.Sort((a, b) =>
                         {
                             // sort by vertical distance first (favor down)
                             int dy = (a.Y - centrePos.Y).CompareTo(b.Y - centrePos.Y);
                             if (dy != 0) return dy;
-                            return Distance(centrePos, a).CompareTo(Distance(centrePos, b));
+                            return centrePos.DistanceTo(a).CompareTo(centrePos.DistanceTo(b));
                         });
 
-                        if (candidates.Count > 0)
-                            return [candidates[0]];
+            foreach(var candidate in candidates)
+            {
+                var placement = GetValidPlacementWithGravity(droppedBlock, candidate);
+                if (placement != null)
+                {
+                    Api.Logger.Debug("Found valid placement at {0}", candidate);
+                    return placement;
+                }
+            }
 
-                        // Step 3: try upwards a few blocks
-                        for (int up = 1; up <= maxUpSearch; up++)
-                        {
-                            var pos = new BlockPos(centrePos.X, centrePos.Y + up, centrePos.Z);
-                            var blockAtPos = BlockAccessor.GetBlock(pos);
-                            var placement = new BlockPlacement { Position = pos, Block = blockAtPos };
-                            if (accessible.Contains(placement) && IsGasOrLiquid(placement) && HasSupport(droppedBlock, placement.Position))
-                                return [pos];
-                        }
+            return null;
 
-                        // nothing found
-                        return null; */
         }
 
+        /// <summary>
+        /// Check if a block is passable (air, liquid, or non-solid).
+        /// </summary>
+        /// <param name="block"></param>
+        /// <returns></returns>
         private bool IsPassable(Block block)
         {
             return IsGasOrLiquid(block) || IsNonSolid(block);
         }
 
+        /// <summary>
+        /// Check if a block is gas or liquid.
+        /// </summary>
+        /// <param name="block"></param>
+        /// <returns></returns>
         private bool IsGasOrLiquid(Block block)
         {
             return block.MatterState is EnumMatterState.Liquid or EnumMatterState.Gas;
         }
 
+        /// <summary>
+        /// Check if a block is non-solid.
+        ///   Using rain permeability to determine if the block is non-solid. 
+        ///   This may not be the ideal solution.
+        ///   
+        /// </summary>
+        /// <param name="block"></param>
+        /// <returns></returns>
         private bool IsNonSolid(Block block)
         {
-            return !block.SideSolid.All;
-        }
-
-        private float Distance(BlockPos a, BlockPos b)
-        {
-            int dx = a.X - b.X;
-            int dy = a.Y - b.Y;
-            int dz = a.Z - b.Z;
-            return dx * dx + dy * dy + dz * dz;
+            return block.RainPermeable;
         }
 
         /// <summary>
@@ -190,13 +158,10 @@ namespace CarryOn.Utility
                 neighbors.Add(blockPos.DownCopy());
             }
 
-
             for (int i = neighbors.Count - 1; i > 0; i--)
             {
                 int j = Rand.Next(i + 1);
-                var temp = neighbors[i];
-                neighbors[i] = neighbors[j];
-                neighbors[j] = temp;
+                (neighbors[j], neighbors[i]) = (neighbors[i], neighbors[j]);
             }
 
             foreach (var neighbor in neighbors)
@@ -205,6 +170,9 @@ namespace CarryOn.Utility
 
         BlockSelection CheckCanPlaceBlock(Block droppedBlock, BlockPos position)
         {
+            var testBlock = BlockAccessor.GetBlock(position);
+            if (!testBlock.IsReplacableBy(droppedBlock)) return null;
+
             var hasSupport = HasSupport(droppedBlock, position);
 
             var behavior = droppedBlock.GetBehavior<BlockBehaviorCarryable>();
@@ -217,7 +185,7 @@ namespace CarryOn.Utility
                 foreach (var neighbor in GetNeighbors(position, onlyHorizontal: true))
                 {
                     // Check if neighbor is a valid placement position
-                    var testBlock = BlockAccessor.GetBlock(neighbor);
+                    testBlock = BlockAccessor.GetBlock(neighbor);
                     if (!testBlock.IsReplacableBy(droppedBlock))
                     {
                         Api.Logger.Debug("Neighbor {0} at {1} is not replacable by {2}", testBlock.Code, neighbor, droppedBlock.Code);
@@ -242,27 +210,6 @@ namespace CarryOn.Utility
 
                     };
                 }
-                /* 
-                                // Try original offset direction
-                                var multiPos = position.AddCopy(offset);
-                                var testBlock = BlockAccessor.GetBlock(multiPos);
-                                if (testBlock.IsReplacableBy(droppedBlock) && (HasSupport(droppedBlock, position) || HasSupport(droppedBlock, multiPos)))
-                                {
-                                    return position;
-                                }
-
-                                // Try opposite offset direction
-                                var oppositeOffset = new Vec3i(-offset.X, -offset.Y, -offset.Z);
-                                var oppositePos = position.AddCopy(oppositeOffset);
-                                var testBlockOpposite = BlockAccessor.GetBlock(oppositePos);
-                                if (testBlockOpposite.IsReplacableBy(droppedBlock) && (HasSupport(droppedBlock, position) || HasSupport(droppedBlock, oppositePos)))
-                                {
-                                    return new BlockPlacement
-                                    {
-                                        Position = oppositePos,
-                                        Rotation = 0 // TDOD Default rotation
-                                    };
-                                } */
 
                 return null;
             }
@@ -318,25 +265,5 @@ namespace CarryOn.Utility
             return BlockFacing.FromCode(directions[randomIndex]);
         }
 
-        /*         private bool HasSupport(Block block, BlockPlacement placement, BlockPlacement neighborPlacement = null)
-                {
-                    // support = solid below OR solid to any side
-                    var below = placement.Position.DownCopy();
-                    var blockBelow = Api.World.BlockAccessor.GetBlock(below);
-
-                    if (IsGasOrLiquid(blockBelow)) return false;
-                    if (blockBelow.IsReplacableBy(block)) return false;
-
-                    // If checking for trunk/multiblock, also check neighbor
-                    if (neighborPlacement != null)
-                    {
-                        var neighborBelow = neighborPlacement.Position.DownCopy();
-                        var neighborBlockBelow = Api.World.BlockAccessor.GetBlock(neighborBelow);
-                        if (IsGasOrLiquid(neighborBlockBelow)) return false;
-                        if (neighborBlockBelow.IsReplacableBy(block)) return false;
-                    }
-
-                    return true;
-                } */
     }
 }
