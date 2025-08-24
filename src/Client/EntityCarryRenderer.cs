@@ -40,7 +40,13 @@ namespace CarryOn.Client
         }
 
         // We don't have any unmanaged resources to dispose.
-        public void Dispose() { }
+        public void Dispose()
+        {
+            Api.Event.UnregisterRenderer(this, EnumRenderStage.Opaque);
+            Api.Event.UnregisterRenderer(this, EnumRenderStage.ShadowFar);
+            Api.Event.UnregisterRenderer(this, EnumRenderStage.ShadowNear);
+   
+        }
 
         private ItemRenderInfo GetRenderInfo(CarriedBlock carried)
         {
@@ -103,7 +109,7 @@ namespace CarryOn.Client
             var animator = entity.AnimManager.Animator;
 
             // Rendered not ready?
-            if(renderer == null) return;
+            if (renderer == null) return;
 
             foreach (var carried in allCarried)
             {
@@ -180,7 +186,7 @@ namespace CarryOn.Client
         /// <summary> Returns a model view matrix for rendering a carried block on the specified attachment point. </summary>
         private float[] GetAttachmentPointMatrix(EntityShapeRenderer renderer, AttachmentPointAndPose attachPointAndPose)
         {
-            var modelMat = renderer?.ModelMat == null?null:Mat4f.CloneIt(renderer.ModelMat);
+            var modelMat = renderer?.ModelMat == null ? null : Mat4f.CloneIt(renderer.ModelMat);
             var animModelMat = attachPointAndPose.AnimModelMatrix;
             Mat4f.Mul(modelMat, modelMat, animModelMat);
 

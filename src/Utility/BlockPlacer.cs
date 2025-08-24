@@ -25,30 +25,30 @@ namespace CarryOn.Utility
 
 
 
-        public class BlockPlacementX
-        {
-            public BlockPos Position { get; set; }
-            public float Rotation { get; set; } = 0;
-        }
+        /*         public class BlockPlacementX
+                {
+                    public BlockPos Position { get; set; }
+                    public float Rotation { get; set; } = 0;
+                }
 
-        public class BlockPlacement1
-        {
-            public Block Block { get; set; }
-            public BlockPos Position { get; set; }
+                public class BlockPlacement1
+                {
+                    public Block Block { get; set; }
+                    public BlockPos Position { get; set; }
 
-            public override bool Equals(object obj)
-            {
-                if (obj is BlockPlacement1 other)
-                    return Position.Equals(other.Position);
-                return false;
-            }
+                    public override bool Equals(object obj)
+                    {
+                        if (obj is BlockPlacement1 other)
+                            return Position.Equals(other.Position);
+                        return false;
+                    }
 
-            public override int GetHashCode()
-            {
-                return Position.GetHashCode();
-            }
+                    public override int GetHashCode()
+                    {
+                        return Position.GetHashCode();
+                    }
 
-        }
+                } */
 
 
         /// <summary>
@@ -82,6 +82,27 @@ namespace CarryOn.Utility
             return visited;
         }
 
+        // TODO: Keep track of visited positions to prevent redundant checks
+        private BlockSelection GetValidPlacementWithGravity(Block droppedBlock, BlockPos startPos)
+        {
+            for (int y = startPos.Y; y >= 0; y--)
+            {
+
+                var pos = new BlockPos(startPos.X, y, startPos.Z);
+                var blockAtPos = BlockAccessor.GetBlock(pos);
+                if (!IsPassable(blockAtPos)) break; // Stop if we hit a non-passable block
+
+                // Check if we can place the block here
+                Api.Logger.Debug("Checking position {0}", new BlockPos(startPos.X, y, startPos.Z));
+                var blockSelection = CheckCanPlaceBlock(droppedBlock, pos);
+                if (blockSelection != null)
+                {
+                    return blockSelection;
+                }
+            }
+
+            return null;
+        }
 
         /// <summary>
         /// Find the closest valid placement for a chest around the player.
@@ -92,25 +113,24 @@ namespace CarryOn.Utility
 
             var accessible = GetAccessibleArea(centrePos, searchRadius);
 
-            // Step 1: check downward until solid support
-            for (int y = centrePos.Y; y >= 0; y--)
+            List<BlockPos> candidates = accessible.ToList();
+
+            candidates.Sort((a, b) =>
+                        {
+                            // sort by vertical distance first (favor down)
+                            int dy = (a.Y - centrePos.Y).CompareTo(b.Y - centrePos.Y);
+                            if (dy != 0) return dy;
+                            return Distance(centrePos, a).CompareTo(Distance(centrePos, b));
+                        });
+
+            foreach(var candidate in candidates)
             {
-
-                var pos = new BlockPos(centrePos.X, y, centrePos.Z);
-                var blockAtPos = BlockAccessor.GetBlock(pos);
-                //var placement = new BlockPlacement { Position = pos, Block = blockAtPos };
-                //  if (!accessible.Contains(placement)) continue;
-                if (!IsPassable(blockAtPos)) break; // Stop if we hit a non-passable block
-
-                // Check if we can place the block here
-                Api.Logger.Debug("Checking position {0}", new BlockPos(centrePos.X, y, centrePos.Z));
-                var blockSelection = CheckCanPlaceBlock(droppedBlock, pos);
-                if (blockSelection != null)
+                var placement = GetValidPlacementWithGravity(droppedBlock, candidate);
+                if (placement != null)
                 {
-                    return blockSelection;
+                    Api.Logger.Debug("Found valid placement at {0}", candidate);
+                    return placement;
                 }
-
-
             }
 
             return null;
@@ -161,7 +181,7 @@ namespace CarryOn.Utility
 
         private bool IsNonSolid(Block block)
         {
-            return !block.SideSolid.All;
+            return block.RainPermeable;
         }
 
         private float Distance(BlockPos a, BlockPos b)
@@ -205,6 +225,9 @@ namespace CarryOn.Utility
 
         BlockSelection CheckCanPlaceBlock(Block droppedBlock, BlockPos position)
         {
+            var testBlock = BlockAccessor.GetBlock(position);
+            if (!testBlock.IsReplacableBy(droppedBlock)) return null;
+
             var hasSupport = HasSupport(droppedBlock, position);
 
             var behavior = droppedBlock.GetBehavior<BlockBehaviorCarryable>();
@@ -217,7 +240,7 @@ namespace CarryOn.Utility
                 foreach (var neighbor in GetNeighbors(position, onlyHorizontal: true))
                 {
                     // Check if neighbor is a valid placement position
-                    var testBlock = BlockAccessor.GetBlock(neighbor);
+                    testBlock = BlockAccessor.GetBlock(neighbor);
                     if (!testBlock.IsReplacableBy(droppedBlock))
                     {
                         Api.Logger.Debug("Neighbor {0} at {1} is not replacable by {2}", testBlock.Code, neighbor, droppedBlock.Code);
