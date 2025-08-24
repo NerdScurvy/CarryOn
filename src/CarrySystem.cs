@@ -151,8 +151,8 @@ namespace CarryOn
 
             EntityCarryRenderer = new EntityCarryRenderer(api);
             HudOverlayRenderer = new HudOverlayRenderer(api);
-            CarryHandler.InitClient();
-            InitEvents();
+            CarryHandler.InitClient(api);
+            InitEvents(api);
         }
 
         public override void StartServerSide(ICoreServerAPI api)
@@ -175,8 +175,8 @@ namespace CarryOn
                 .RegisterMessageType<PlayerAttributeUpdateMessage>();
 
             DeathHandler = new DeathHandler(api);
-            CarryHandler.InitServer();
-            InitEvents();
+            CarryHandler.InitServer(api);
+            InitEvents(api);
         }
 
         public override void AssetsFinalize(ICoreAPI api)
@@ -196,7 +196,6 @@ namespace CarryOn
 
         public override void Dispose()
         {
-            CarryableExtensions.ClearCachedCarryManager();
             if (this.harmony != null)
             {
                 this.harmony.UnpatchAll("CarryOn");
@@ -485,11 +484,11 @@ namespace CarryOn
 
 
         // TODO: Consider renaming since it also contains TransferHandlerType init 
-        private void InitEvents()
+        private void InitEvents(ICoreAPI api)
         {
             var ignoreMods = new[] { "game", "creative", "survival" };
 
-            var assemblies = Api.ModLoader.Mods.Where(m => !ignoreMods.Contains(m.Info.ModID))
+            var assemblies = api.ModLoader.Mods.Where(m => !ignoreMods.Contains(m.Info.ModID))
                                                .Select(s => s.Systems)
                                                .SelectMany(o => o.ToArray())
                                                .Select(t => t.GetType().Assembly)
@@ -506,29 +505,7 @@ namespace CarryOn
                     }
                     catch (Exception e)
                     {
-                        Api.Logger.Error(e.Message);
-                    }
-                }
-
-                foreach (Type type in assembly.GetTypes().Where(t => t.GetInterfaces().Contains(typeof(ICarryableTransfer))))
-                {
-                    foreach (var block in Api.World.Blocks.Where(b => b.IsCarryable()))
-                    {
-                        if (block.HasBehavior(type))
-                        {
-                            try
-                            {
-                                var carryableBehavior = block.GetBehavior<BlockBehaviorCarryable>();
-                                if (carryableBehavior != null)
-                                {
-                                    carryableBehavior.TransferHandlerType = type;
-                                }
-                            }
-                            catch (Exception e)
-                            {
-                                Api.Logger.Error($"CarryOn: Failed to set TransferHandlerType for block {block.Code}: {e.Message}");
-                            }
-                        }
+                        api.Logger.Error(e.Message);
                     }
                 }
             }

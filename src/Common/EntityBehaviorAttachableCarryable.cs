@@ -5,8 +5,8 @@ using Vintagestory.API.Common.Entities;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Util;
 using Vintagestory.GameContent;
-using CarryOn.API.Common;
 using static CarryOn.API.Common.CarryCode;
+using CarryOn.Utility;
 
 namespace CarryOn.Common
 {

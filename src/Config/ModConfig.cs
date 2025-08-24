@@ -192,20 +192,15 @@ namespace CarryOn.Config
                 worldConfig.SetBool(CarryOnCode("BookshelfAndClutterEnabled"), ServerConfig.Carryables.Bookshelf && ServerConfig.Carryables.Clutter);
                 HenboxEnabled = ServerConfig.Carryables.Henbox;
 
-
                 // Interactables
                 worldConfig.SetBool(CarryOnCode("InteractDoorEnabled"), ServerConfig.Interactables.Door);
                 worldConfig.SetBool(CarryOnCode("InteractBarrelEnabled"), ServerConfig.Interactables.Barrel);
                 worldConfig.SetBool(CarryOnCode("InteractStorageEnabled"), ServerConfig.Interactables.Storage);
 
-                // Transferables
-                worldConfig.SetBool(CarryOnCode("MoldRackTransferEnabled"), ServerConfig.Transferables.MoldRack);
-
                 // CarryOptions
                 worldConfig.SetBool(CarryOnCode("AllowChestTrunksOnBack"), ServerConfig.CarryOptions.AllowChestTrunksOnBack);
                 worldConfig.SetBool(CarryOnCode("AllowLargeChestsOnBack"), ServerConfig.CarryOptions.AllowLargeChestsOnBack);
                 worldConfig.SetBool(CarryOnCode("AllowCratesOnBack"), ServerConfig.CarryOptions.AllowCratesOnBack);
-
 
                 AllowSprintWhileCarrying = ServerConfig.CarryOptions.AllowSprintWhileCarrying;
                 IgnoreCarrySpeedPenalty = ServerConfig.CarryOptions.IgnoreCarrySpeedPenalty;

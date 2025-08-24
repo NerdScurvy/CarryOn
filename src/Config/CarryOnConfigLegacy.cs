@@ -181,9 +181,6 @@ namespace CarryOn.Config
             newConfig.DebuggingOptions.DisableHarmonyPatch = !HarmonyPatchEnabled;
             newConfig.DebuggingOptions.LoggingEnabled = LoggingEnabled;
 
-            // Dropped Block Options
-            newConfig.DroppedBlockOptions.NonGroundBlockClasses = ModConfig.CloneArray(NonGroundBlockClasses);
-
             // Carryables filters
             newConfig.CarryablesFilters.AutoMatchIgnoreMods = ModConfig.CloneArray(AutoMatchIgnoreMods);
             newConfig.CarryablesFilters.AllowedShapeOnlyMatches = ModConfig.CloneArray(AllowedShapeOnlyMatches);
