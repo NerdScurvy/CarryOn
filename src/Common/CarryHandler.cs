@@ -1653,7 +1653,7 @@ namespace CarryOn.Common
         {
             CarrySlot[] fromHands = [CarrySlot.Hands, CarrySlot.Shoulder];
 
-            player.Entity.DropCarried(fromHands, 1, 2);
+            CarryManager.DropCarried(player.Entity, fromHands, 2);
 
         }
 

@@ -39,11 +39,6 @@ namespace CarryOn.Config
         public bool Storage { get; set; } = true;
     }
 
-    public class TransferablesConfig
-    {
-        public bool MoldRack { get; set; } = false;
-    }
-
     public class CarryablesFiltersConfig
     {
         public bool AutoMapSimilar { get; set; } = true;
@@ -71,11 +66,6 @@ namespace CarryOn.Config
 
     }
 
-    public class DroppedBlockOptionsConfig
-    {
-        public string[] NonGroundBlockClasses { get; set; } = ["BlockWater", "BlockLava"];
-    }
-
     public class DebuggingOptionsConfig
     {
         public bool LoggingEnabled { get; set; } = false;
@@ -92,11 +82,7 @@ namespace CarryOn.Config
 
         public CarryOptionsConfig CarryOptions { get; set; } = new CarryOptionsConfig();
 
-        public TransferablesConfig Transferables { get; set; } = new TransferablesConfig();
-
         public CarryablesFiltersConfig CarryablesFilters { get; set; } = new CarryablesFiltersConfig();
-
-        public DroppedBlockOptionsConfig DroppedBlockOptions { get; set; } = new DroppedBlockOptionsConfig();
 
         public DebuggingOptionsConfig DebuggingOptions { get; set; } = new DebuggingOptionsConfig();
 
@@ -166,12 +152,6 @@ namespace CarryOn.Config
                 CarryOptions.AllowCratesOnBack = previousConfig.CarryOptions.AllowCratesOnBack;
             }
 
-            // Transferables
-            if (previousConfig.Transferables != null)
-            {
-                Transferables.MoldRack = previousConfig.Transferables.MoldRack;
-            }
-
             // CarryablesFilters
             if (previousConfig.CarryablesFilters != null)
             {
@@ -181,12 +161,6 @@ namespace CarryOn.Config
                 CarryablesFilters.RemoveBaseCarryableBehaviour = ModConfig.CloneArray(previousConfig.CarryablesFilters.RemoveBaseCarryableBehaviour);
                 CarryablesFilters.RemoveCarryableBehaviour = ModConfig.CloneArray(previousConfig.CarryablesFilters.RemoveCarryableBehaviour);
    
-            }
-
-            // Dropped Block Options
-            if (previousConfig.DroppedBlockOptions != null)
-            {
-                DroppedBlockOptions.NonGroundBlockClasses = ModConfig.CloneArray(previousConfig.DroppedBlockOptions.NonGroundBlockClasses);
             }
 
             // Debugging Options

@@ -144,7 +144,7 @@ namespace CarryOn.API.Common
 
             if (entity is EntityAgent agent)
             {
-                agent.Stats.Remove("walkspeed",  CarryOnCode(slot.ToString()));
+                agent.Stats.Remove("walkspeed", CarryOnCode(slot.ToString()));
 
                 if (slot == CarrySlot.Hands) LockedItemSlot.Restore(agent.RightHandItemSlot);
                 if (slot != CarrySlot.Back) LockedItemSlot.Restore(agent.LeftHandItemSlot);
@@ -196,22 +196,11 @@ namespace CarryOn.API.Common
             if (carried == null) return null;
 
             if (checkIsCarryable && !IsCarryable(carried.Block, slot)) return null;
-            
+
             world.BlockAccessor.SetBlock(0, pos);
             world.Api.ModLoader.GetModSystem<ModSystemBlockReinforcement>()?.ClearReinforcement(pos);
             world.BlockAccessor.TriggerNeighbourBlockUpdate(pos);
             return carried;
-        }
-
-        /// <summary>
-        /// Checks if the block is carryable in the specified slot.
-        /// </summary>
-        /// <param name="block"></param>
-        /// <param name="slot"></param>
-        /// <returns></returns>
-        public bool IsCarryable(Block block, CarrySlot slot)
-        {
-            return block.GetBehavior<BlockBehaviorCarryable>()?.Slots?[slot] != null;
         }
 
         /// <summary>
@@ -324,9 +313,7 @@ namespace CarryOn.API.Common
                 world.BlockAccessor.SetBlock(block.Id, selection.Position, carriedBlock.ItemStack);
 
                 // Set mesh angle to match the block facing
-                // TODO: add fix for multiblock support
-                
-                carriedBlock.BlockEntityData?.SetFloat("meshAngle", GetMeshAngle(meshFacing));                
+                carriedBlock.BlockEntityData?.SetFloat("meshAngle", GetMeshAngle(meshFacing));
 
             }
 
@@ -341,7 +328,7 @@ namespace CarryOn.API.Common
 
             if (dropped)
             {
-                CarryEvents?.TriggerBlockDropped(world, selection.Position, entity, carriedBlock);
+                CarryEvents?.TriggerBlockDropped(selection.Position, entity, carriedBlock);
             }
 
             return true;
@@ -382,7 +369,6 @@ namespace CarryOn.API.Common
             placedAt = blockSelection.Position;
             return TryPlaceDown(player.Entity, carried, blockSelection, ref failureCode);
         }
-
 
         /// <summary>
         /// Gets the mesh angle for the specified block facing.
@@ -484,7 +470,142 @@ namespace CarryOn.API.Common
         {
             if ((player == null) || (player.World.PlayerByUid(player.PlayerUID) is not IServerPlayer serverPlayer)) return;
             LockHotbarSlots(serverPlayer);
-        }        
+        }
+
+        /// <summary>
+        /// Drops the carried blocks from specified slots on the entity.
+        /// </summary>
+        /// <param name="entity"></param>
+        /// <param name="slots">Carried slots to drop</param>
+        /// <param name="range">Radius to check for placement</param>
+        /// <exception cref="ArgumentNullException"></exception>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        public void DropCarried(Entity entity, IEnumerable<CarrySlot> slots, int range = 4)
+        {
+            if (entity == null) throw new ArgumentNullException(nameof(entity));
+            if (slots == null) throw new ArgumentNullException(nameof(slots));
+            if (range < 0) throw new ArgumentOutOfRangeException(nameof(range));
+
+
+            IServerPlayer player = (entity is EntityPlayer entityPlayer) ? (IServerPlayer)entityPlayer.Player : null;
+
+            var world = Api.World;
+            var blockAccessor = world.BlockAccessor;
+
+            var remaining = new HashSet<CarriedBlock>(
+                slots.Select(s => entity.GetCarried(s))
+                     .Where(c => c != null).OrderBy(t => t?.GetCarryableBehavior()?.MultiblockOffset));
+            if (remaining.Count == 0) return;
+
+            BlockPos centerBlock = entity.Pos.AsBlockPos.UpCopy();
+
+            foreach (var carriedBlock in remaining)
+            {
+                var blockPlacer = new BlockPlacer(entity.Api);
+                var blockSelection = blockPlacer.FindBlockPlacement(carriedBlock.Block, centerBlock, range);
+
+                if (blockSelection == null)
+                {
+                    DropBlockAsItem(carriedBlock, centerBlock, player, entity);
+                    continue;
+                }
+
+                if (TryPlaceDown(player?.Entity, carriedBlock, blockSelection, dropped: true))
+                {
+                    RemoveCarried(player?.Entity, carriedBlock.Slot);
+                    Api.World.Logger.Audit($"Player {player?.PlayerName} dropped carried block {carriedBlock.Block.Code} at {blockSelection.Position}");
+                    continue;
+                }
+                DropBlockAsItem(carriedBlock, centerBlock, player, entity);
+            }
+        }
+
+        /// <summary>
+        /// Drops a carried block as an item.
+        /// All items in the carried block's inventory will be dropped if applicable.
+        /// </summary>
+        /// <param name="carriedBlock"></param>
+        /// <param name="centerBlock"></param>
+        /// <param name="player"></param>
+        /// <param name="entity"></param>
+        public void DropBlockAsItem(CarriedBlock carriedBlock, BlockPos centerBlock, IServerPlayer player, Entity entity)
+        {
+            var world = Api.World;
+            var blockDestroyed = false;
+            var hadContents = false;
+            var dropCount = 1;
+            var dropVec3d = new Vec3d(centerBlock.X + 0.5, centerBlock.Y + 0.5, centerBlock.Z + 0.5);
+
+            if (carriedBlock.BlockEntityData?["inventory"] is TreeAttribute inventory && inventory["slots"] is TreeAttribute invSlots)
+            {
+                foreach (var item in invSlots.Values.Cast<ItemstackAttribute>())
+                {
+                    var itemStack = (ItemStack)item.GetValue();
+                    world.SpawnItemEntity(itemStack, dropVec3d);
+                    hadContents = true;
+                    dropCount++;
+                }
+                var carriedItemStack = carriedBlock.ItemStack.Clone();
+                carriedItemStack.Attributes.Remove("contents");
+                world.SpawnItemEntity(carriedItemStack, dropVec3d);
+            }
+            else
+            {
+                var itemStacks = carriedBlock.Block.GetDrops(world, centerBlock, player);
+                if (itemStacks.Length == 1 && itemStacks[0].Id == carriedBlock.ItemStack.Id)
+                {
+                    world.SpawnItemEntity(carriedBlock.ItemStack, dropVec3d);
+                }
+                else
+                {
+                    blockDestroyed = true;
+                    foreach (var itemStack in itemStacks)
+                    {
+                        world.SpawnItemEntity(itemStack, dropVec3d);
+                        hadContents = true;
+                        dropCount++;
+                    }
+                }
+            }
+
+            var breakSound = carriedBlock.Block.Sounds.GetBreakSound(player) ?? new AssetLocation("game:sounds/block/planks");
+            world.PlaySoundAt(breakSound, (double)centerBlock.X, (double)centerBlock.Y, (double)centerBlock.Z);
+            RemoveCarried(entity, carriedBlock.Slot);
+
+            if (blockDestroyed)
+                world.Logger.Audit($"Player {player?.PlayerName} dropped carried block {carriedBlock.Block.Code} at {centerBlock} and it was destroyed dropping {dropCount} items.");
+            else
+                world.Logger.Audit($"Player {player?.PlayerName} dropped carried block {carriedBlock.Block.Code} as item at {centerBlock} spilling {dropCount} items from its contents.");
+
+            CarryEvents?.TriggerBlockDropped(centerBlock, entity, carriedBlock, blockDestroyed, hadContents, blockPlaced: false);
+
+        }
+
+        /// <summary>
+        /// Checks if the block is carryable in the specified slot.
+        /// </summary>
+        /// <param name="block"></param>
+        /// <param name="slot"></param>
+        /// <returns></returns>
+        public bool IsCarryable(Block block, CarrySlot slot)
+            => block.GetBehavior<BlockBehaviorCarryable>()?.Slots?[slot] != null;
+
+        /// <summary>
+        /// Checks if the block is carryable.
+        /// </summary>
+        /// <param name="block"></param>
+        /// <returns></returns>
+        public bool IsCarryable(Block block)
+            => block.HasBehavior<BlockBehaviorCarryable>();
+
+        /// <summary>
+        /// Checks if the entity can interact with block while carrying a block in their hands
+        /// </summary>
+        /// <param name="block"></param>
+        /// <returns></returns>
+        public bool CanInteractWhileCarrying(Block block)
+            => block.HasBehavior<BlockBehaviorCarryableInteract>();
+
 
     }
 }

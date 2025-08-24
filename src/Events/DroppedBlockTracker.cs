@@ -12,10 +12,11 @@ namespace CarryOn.Events
     /// </summary>
     public class DroppedBlockTracker : ICarryEvent
     {
+        private ICarryManager carryManager;
+
         public void Init(ICarryManager carryManager)
         {
-            if (carryManager.Api.Side != EnumAppSide.Server) return;
-
+            this.carryManager = carryManager;
             var events = carryManager.CarryEvents;
 
             if (carryManager.Api.Side == EnumAppSide.Client)
@@ -36,8 +37,17 @@ namespace CarryOn.Events
             hasPermission = isReinforced ? null : true;
         }
 
+        /// <summary>
+        /// Called when checking permission to carry a block. If the block is not reinforced, checks if it was dropped by a player.
+        /// For dropped blocks all claims are ignored.
+        /// </summary>
+        /// <param name="playerEntity"></param>
+        /// <param name="pos"></param>
+        /// <param name="isReinforced"></param>
+        /// <param name="hasPermission"></param>
         public void OnCheckPermissionToCarry(EntityPlayer playerEntity, BlockPos pos, bool isReinforced, out bool? hasPermission)
         {
+            // A null value means the server should continue to check other delegates
             hasPermission = null;
 
             if (isReinforced) return;
@@ -56,19 +66,31 @@ namespace CarryOn.Events
             if (loggingEnabled) world.Logger.Debug($"No dropped block found at '{pos}'");
         }
 
+        /// <summary>
+        /// Called when a block is dropped while being carried.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         public void OnCarriedBlockDropped(object sender, BlockDroppedEventArgs e)
         {
             if (e.Entity is EntityPlayer entityPlayer)
             {
-                DroppedBlockInfo.Create(e.Position, entityPlayer.Player, e.CarriedBlock.BlockEntityData);
+                // Only track if block was placed
+                if (e.BlockPlaced)
+                    DroppedBlockInfo.Create(e.Position, entityPlayer.Player, e.CarriedBlock.BlockEntityData);
             }
         }
 
+        /// <summary>
+        /// Called when a carryable block is removed from the world.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         public void OnCarryableBlockRemoved(object sender, BlockRemovedEventArgs e)
         {
-            if (e.World.Api.Side == EnumAppSide.Server)
+            if (carryManager.Api.Side == EnumAppSide.Server)
             {
-                DroppedBlockInfo.Remove(e.Position, e.World.Api);
+                DroppedBlockInfo.Remove(e.Position, carryManager.Api);
             }
         }
     }

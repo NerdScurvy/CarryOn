@@ -196,7 +196,6 @@ namespace CarryOn
 
         public override void Dispose()
         {
-            CarryableExtensions.ClearCachedCarryManager();
             if (this.harmony != null)
             {
                 this.harmony.UnpatchAll("CarryOn");
