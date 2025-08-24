@@ -4,6 +4,7 @@ using System.Linq;
 using CarryOn.Common;
 using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
+using Vintagestory.GameContent;
 
 namespace CarryOn.Utility
 {
@@ -40,7 +41,7 @@ namespace CarryOn.Utility
                 {
                     var block = BlockAccessor.GetBlock(neighbor);
                     if (!visited.Contains(neighbor) &&
-                        IsPassable(block) &&
+                        IsPassable(block, neighbor) &&
                         startPos.DistanceTo(neighbor) <= maxDistance)
                     {
                         visited.Add(neighbor);
@@ -52,15 +53,17 @@ namespace CarryOn.Utility
             return visited;
         }
 
-        // TODO: Keep track of visited positions to prevent redundant checks
+        /// <summary>
+        /// Get a valid placement position for a block with gravity consideration.
+        /// TODO: Consider caching visited positions for performance.
+        /// </summary>
         private BlockSelection GetValidPlacementWithGravity(Block droppedBlock, BlockPos startPos)
         {
             for (int y = startPos.Y; y >= 0; y--)
             {
-
                 var pos = new BlockPos(startPos.X, y, startPos.Z);
-                var blockAtPos = BlockAccessor.GetBlock(pos);
-                if (!IsPassable(blockAtPos)) break; // Stop if we hit a non-passable block
+                var block = BlockAccessor.GetBlock(pos);
+                if (!IsPassable(block, pos)) break; // Stop if we hit a non-passable block
 
                 // Check if we can place the block here
                 Api.Logger.Debug("Checking position {0}", new BlockPos(startPos.X, y, startPos.Z));
@@ -108,13 +111,35 @@ namespace CarryOn.Utility
         }
 
         /// <summary>
-        /// Check if a block is passable (air, liquid, or non-solid).
+        /// Check if a block is passable (air, liquid, rain permeable or an open door/trapdoor).
         /// </summary>
         /// <param name="block"></param>
         /// <returns></returns>
-        private bool IsPassable(Block block)
+        private bool IsPassable(Block block , BlockPos pos)
         {
-            return IsGasOrLiquid(block) || IsNonSolid(block);
+
+            var multiblockOrigin = BlockUtils.GetMultiblockOriginSelection(BlockAccessor, new BlockSelection() { Position = pos, Block = block });
+
+            var testBlock = multiblockOrigin?.Block ?? block;
+
+            if (testBlock.HasBehavior<BlockBehaviorDoor>())
+            {
+                var blockEntity = BlockAccessor.GetBlockEntity(multiblockOrigin.Position);
+                var doorBehavior = blockEntity?.GetBehavior<BEBehaviorDoor>();
+
+                return !doorBehavior?.Opened ?? false;
+            }
+
+           if (testBlock.HasBehavior<BlockBehaviorTrapDoor>())
+            {
+                var blockEntity = BlockAccessor.GetBlockEntity(multiblockOrigin.Position);
+                var doorBehavior = blockEntity?.GetBehavior<BEBehaviorTrapDoor>();
+
+                return doorBehavior?.Opened ?? false;
+            }                
+
+            // Check if the block is gas, liquid, or rain permeable with the assumption that rain permeable blocks are non-solid and the player can access beyond them;
+            return IsGasOrLiquid(testBlock) || testBlock.RainPermeable;
         }
 
         /// <summary>
@@ -125,19 +150,6 @@ namespace CarryOn.Utility
         private bool IsGasOrLiquid(Block block)
         {
             return block.MatterState is EnumMatterState.Liquid or EnumMatterState.Gas;
-        }
-
-        /// <summary>
-        /// Check if a block is non-solid.
-        ///   Using rain permeability to determine if the block is non-solid. 
-        ///   This may not be the ideal solution.
-        ///   
-        /// </summary>
-        /// <param name="block"></param>
-        /// <returns></returns>
-        private bool IsNonSolid(Block block)
-        {
-            return block.RainPermeable;
         }
 
         /// <summary>
@@ -168,7 +180,7 @@ namespace CarryOn.Utility
                 yield return neighbor;
         }
 
-        BlockSelection CheckCanPlaceBlock(Block droppedBlock, BlockPos position)
+        public BlockSelection CheckCanPlaceBlock(Block droppedBlock, BlockPos position)
         {
             var testBlock = BlockAccessor.GetBlock(position);
             if (!testBlock.IsReplacableBy(droppedBlock)) return null;

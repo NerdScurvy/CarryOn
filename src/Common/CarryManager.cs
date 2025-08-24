@@ -191,12 +191,12 @@ namespace CarryOn.API.Common
         /// <returns></returns>
         public CarriedBlock GetCarriedFromWorld(BlockPos pos, CarrySlot slot, bool checkIsCarryable = false)
         {
-            var carried = CreateCarriedFromBlockPos(pos, slot);
+            var world = Api.World;
+            var carried = BlockUtils.CreateCarriedFromBlockPos(world, pos, slot);
             if (carried == null) return null;
 
             if (checkIsCarryable && !IsCarryable(carried.Block, slot)) return null;
-
-            var world = Api.World;
+            
             world.BlockAccessor.SetBlock(0, pos);
             world.Api.ModLoader.GetModSystem<ModSystemBlockReinforcement>()?.ClearReinforcement(pos);
             world.BlockAccessor.TriggerNeighbourBlockUpdate(pos);
@@ -330,7 +330,9 @@ namespace CarryOn.API.Common
 
             }
 
-            RestoreBlockEntityData(carriedBlock, selection.Position, dropped);
+            var delegates = CarryEvents?.OnRestoreEntityBlockData?.GetInvocationList();
+
+            BlockUtils.RestoreBlockEntityData(world, carriedBlock, selection.Position, delegates: delegates, dropped: dropped);
             world.BlockAccessor.MarkBlockDirty(selection.Position);
             world.BlockAccessor.TriggerNeighbourBlockUpdate(selection.Position);
 
@@ -397,88 +399,6 @@ namespace CarryOn.API.Common
                 case "west": return (float)(3 * Math.PI / 2);
                 default: return 0f;
             }
-        }
-
-        /// <summary>
-        /// Restores the block at a specified position with the entity data from the carried block.
-        /// </summary>
-        /// <param name="carriedBlock"></param>
-        /// <param name="pos"></param>
-        /// <param name="dropped"></param>
-        private void RestoreBlockEntityData(CarriedBlock carriedBlock, BlockPos pos, bool dropped = false)
-        {
-            var world = Api.World;
-            if ((world.Side != EnumAppSide.Server) || (carriedBlock?.BlockEntityData == null)) return;
-
-            var blockEntityData = carriedBlock.BlockEntityData;
-            // Set the block entity's position to the new position.
-            // Without this, we get some funny behavior.
-            blockEntityData.SetInt("posx", pos.X);
-            blockEntityData.SetInt("posy", pos.Y);
-            blockEntityData.SetInt("posz", pos.Z);
-
-            var blockEntity = world.BlockAccessor.GetBlockEntity(pos);
-
-            var delegates = CarryEvents?.OnRestoreEntityBlockData?.GetInvocationList();
-
-            // Handle OnRestoreBlockEntityData events
-            if (delegates != null)
-            {
-                foreach (var blockEntityDataDelegate in delegates.Cast<BlockEntityDataDelegate>())
-                {
-                    try
-                    {
-                        blockEntityDataDelegate(blockEntity, blockEntityData, dropped);
-                    }
-                    catch (Exception e)
-                    {
-                        world.Logger.Error(e.Message);
-                    }
-                }
-            }
-
-            blockEntity?.FromTreeAttributes(blockEntityData, world);
-        }
-
-        /// <summary>
-        /// Creates a CarriedBlock from the specified position in the world.
-        /// Does not remove the block from the world or assign to an entity.
-        /// </summary>
-        /// <param name="pos"></param>
-        /// <param name="slot"></param>
-        /// <returns></returns>
-        /// <exception cref="ArgumentNullException"></exception>
-        private CarriedBlock CreateCarriedFromBlockPos(BlockPos pos, CarrySlot slot)
-        {
-            var world = Api.World;
-
-            if (world == null) throw new ArgumentNullException(nameof(world));
-            if (pos == null) throw new ArgumentNullException(nameof(pos));
-
-            var block = world.BlockAccessor.GetBlock(pos);
-            if (block.Id == 0) return null; // Can't pick up air.
-            var stack = block.OnPickBlock(world, pos) ?? new ItemStack(block);
-
-            ITreeAttribute blockEntityData = null;
-            if (world.Side == EnumAppSide.Server)
-            {
-                var blockEntity = world.BlockAccessor.GetBlockEntity(pos);
-                if (blockEntity != null)
-                {
-                    blockEntityData = new TreeAttribute();
-                    blockEntity.ToTreeAttributes(blockEntityData);
-                    blockEntityData = blockEntityData.Clone();
-                    // We don't need to keep the position.
-                    blockEntityData.RemoveAttribute("posx");
-                    blockEntityData.RemoveAttribute("posy");
-                    blockEntityData.RemoveAttribute("posz");
-                    // And angle needs to be removed, or else it will
-                    // override the angle set from block placement.
-                    blockEntityData.RemoveAttribute("meshAngle");
-                }
-            }
-
-            return new CarriedBlock(slot, stack, blockEntityData);
         }
 
         /// <summary>

@@ -12,8 +12,6 @@ using Vintagestory.API.MathTools;
 using Vintagestory.API.Server;
 using Vintagestory.GameContent;
 using static CarryOn.CarrySystem;
-using static CarryOn.Utility.CarryInventoryUtils;
-using static CarryOn.Utility.CarryHelper;
 using static CarryOn.API.Common.CarryCode;
 using Vintagestory.API.Util;
 using HarmonyLib;
@@ -489,7 +487,7 @@ namespace CarryOn.Common
             if (!CanInteract(player.Entity, carriedHands == null))
             {
                 var selection = player.CurrentBlockSelection;
-                selection = GetMultiblockOriginSelection(selection);
+                selection = BlockUtils.GetMultiblockOriginSelection(world.BlockAccessor, selection);
 
                 // Cannot pick up or put down - check for interact behavior such as open door or chest.
                 if (selection?.Block?.HasBehavior<BlockBehaviorCarryableInteract>() == true)
@@ -542,7 +540,7 @@ namespace CarryOn.Common
                         handled = EnumHandling.PreventDefault;
                         return true;
                     }
-                    var blockPos = GetPlacedPosition(world, selection, carriedHands.Block);
+                    var blockPos = BlockUtils.GetPlacedPosition(world.BlockAccessor, selection, carriedHands.Block);
                     if (blockPos == null) return true;
 
                     if (!player.Entity.HasPermissionToCarry(blockPos))
@@ -563,7 +561,7 @@ namespace CarryOn.Common
             // If nothing's being held..
             else if (CanInteract(player.Entity, true))
             {
-                if (selection != null) selection = GetMultiblockOriginSelection(selection);
+                if (selection != null) selection = BlockUtils.GetMultiblockOriginSelection(world.BlockAccessor, selection);
 
                 if ((selection?.Block != null) && (Interaction.CarrySlot = FindActionSlot(slot => selection.Block.IsCarryable(slot))) != null)
                 {
@@ -859,10 +857,10 @@ namespace CarryOn.Common
                     if (Interaction.CarryAction == CarryAction.PickUp == (holdingAny != null))
                     { CancelInteraction(); return; }
 
-                    selection = (Interaction.CarryAction == CarryAction.PlaceDown) ? player.CurrentBlockSelection : GetMultiblockOriginSelection(player.CurrentBlockSelection);
+                    selection = (Interaction.CarryAction == CarryAction.PlaceDown) ? player.CurrentBlockSelection : BlockUtils.GetMultiblockOriginSelection(world.BlockAccessor, player.CurrentBlockSelection);
 
                     var position = (Interaction.CarryAction == CarryAction.PlaceDown)
-                        ? GetPlacedPosition(world, player?.CurrentBlockSelection, carriedTarget.Block)
+                        ? BlockUtils.GetPlacedPosition(world.BlockAccessor, player?.CurrentBlockSelection, carriedTarget.Block)
                         : selection?.Position;
 
                     // Make sure the player is still looking at the same block.
@@ -1268,7 +1266,7 @@ namespace CarryOn.Common
 
                 attr.SetString("type", type);
 
-                var backpack = ConvertBlockInventoryToBackpack(blockEntityData.GetTreeAttribute("inventory"));
+                var backpack = BlockUtils.ConvertBlockInventoryToBackpack(blockEntityData.GetTreeAttribute("inventory"));
 
                 attr.SetAttribute("backpack", backpack);
 
@@ -1391,7 +1389,7 @@ namespace CarryOn.Common
 
                 var sourceBackpack = itemstack?.Attributes?["backpack"] as ITreeAttribute;
 
-                var destInventory = ConvertBackpackToBlockInventory(sourceBackpack);
+                var destInventory = BlockUtils.ConvertBackpackToBlockInventory(sourceBackpack);
 
                 TreeAttribute blockEntityData;
                 if (itemstack?.Attributes?["carryonbackup"] is not TreeAttribute backupAttributes)
@@ -1688,41 +1686,6 @@ namespace CarryOn.Common
             player.Entity.WatchedAttributes.MarkPathDirty(AttributeKey.Watched.EntityCarried);
             player.Entity.WatchedAttributes.MarkPathDirty("stats/walkspeed");
             CarryManager.LockHotbarSlots(player);
-        }
-
-        /// <summary>
-        /// Get the block position for the main block within for a multiblock structure
-        /// </summary>
-        private BlockPos GetMultiblockOrigin(BlockPos position, BlockMultiblock multiblock)
-        {
-            if (position == null) return null;
-
-            if (multiblock != null)
-            {
-                var multiPosition = position.Copy();
-                multiPosition.Add(multiblock.OffsetInv);
-                return multiPosition;
-            }
-            return position;
-        }
-
-        /// <summary>
-        /// Create a new block selection pointing to the main block within a multiblock structure
-        /// </summary>
-        private BlockSelection GetMultiblockOriginSelection(BlockSelection blockSelection)
-        {
-            if (blockSelection?.Block is BlockMultiblock multiblock)
-            {
-                var world = Api.World;
-                var position = GetMultiblockOrigin(blockSelection.Position, multiblock);
-                var block = world.BlockAccessor.GetBlock(position);
-                var selection = blockSelection.Clone();
-                selection.Position = position;
-                selection.Block = block;
-
-                return selection;
-            }
-            return blockSelection;
         }
 
         public void Dispose()
