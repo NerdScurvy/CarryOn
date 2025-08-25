@@ -6,6 +6,7 @@ using Vintagestory.API.MathTools;
 using Vintagestory.API.Util;
 using Vintagestory.GameContent;
 using CarryOn.API.Common;
+using static CarryOn.API.Common.CarryCode;
 
 namespace CarryOn.Common
 {
@@ -46,7 +47,7 @@ namespace CarryOn.Common
 
 
         public static string Name { get; }
-            = $"{CarrySystem.ModId}:attachablecarryable";
+            = CarryOnCode("attachablecarryable");
 
         public override string PropertyName() => Name;
 
@@ -79,12 +80,12 @@ namespace CarryOn.Common
             {
                 if (targetSlot.Itemstack.Block?.GetBehavior<BlockBehaviorCarryable>() != null)
                 {
-                    langCode = CarrySystem.ModId + ":blockhelp-detach";
+                    langCode = CarryOnCode(":blockhelp-detach");
                 }
             }
             else
             {
-                langCode = CarrySystem.ModId + ":blockhelp-attach";
+                langCode = CarryOnCode(":blockhelp-attach");
             }
 
             if (langCode == null) return null;
@@ -121,7 +122,7 @@ namespace CarryOn.Common
                 else
                     attachedListener.OnDetached(itemslot, targetSlotIndex, entity, byEntity);
             }
-            
+
             entity.MarkShapeModified();
             // Tell server to save this chunk to disk again
             entity.World.BlockAccessor.GetChunkAtBlockPos(entity.ServerPos.AsBlockPos).MarkModified();

@@ -4,6 +4,7 @@ using System.IO;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
+using static CarryOn.API.Common.CarryCode;
 
 namespace CarryOn.Server
 {
@@ -21,7 +22,7 @@ namespace CarryOn.Server
 
         private static string GetFileLocation(BlockPos pos, ICoreAPI api)
         {
-            var localPath = Path.Combine("ModData", api.World.SavegameIdentifier, CarrySystem.ModId);
+            var localPath = Path.Combine("ModData", api.World.SavegameIdentifier, ModId);
             var path = api.GetOrCreateDataPath(localPath);
             return Path.Combine(path, $"dropped-{pos.X}.{pos.Y}.{pos.Z}");
         }

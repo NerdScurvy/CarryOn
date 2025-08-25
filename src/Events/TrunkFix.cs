@@ -5,13 +5,16 @@ using Vintagestory.API.MathTools;
 
 namespace CarryOn.Events
 {
+    /// <summary>
+    /// Fixes mesh angle of dropped trunk blocks.
+    /// </summary>
     public class TrunkFix : ICarryEvent
     {
-        public void Init(CarrySystem carrySystem)
+        public void Init(ICarryManager carryManager)
         {
-            if (carrySystem.Api.Side != EnumAppSide.Server) return;
+            if (carryManager.Api.Side != EnumAppSide.Server) return;
 
-            carrySystem.CarryEvents.OnRestoreEntityBlockData += OnRestoreEntityBlockData;
+            carryManager.CarryEvents.OnRestoreEntityBlockData += OnRestoreEntityBlockData;
         }
 
         public void OnRestoreEntityBlockData(BlockEntity blockEntity, ITreeAttribute blockEntityData, bool dropped)
@@ -19,7 +22,7 @@ namespace CarryOn.Events
             if (dropped && blockEntity.Block.Shape.Base.Path == "block/wood/trunk/normal")
             {
                 // Workaround fix dropped trunk angle
-                blockEntityData.SetFloat("meshAngle", -90 * GameMath.DEG2RAD);
+                //blockEntityData.SetFloat("meshAngle", -90 * GameMath.DEG2RAD);
             }
         }
     }

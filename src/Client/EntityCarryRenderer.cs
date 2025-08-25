@@ -50,7 +50,7 @@ namespace CarryOn.Client
 
             var renderInfo = Api.Render.GetItemStackRenderInfo(slot, EnumItemRenderTarget.Ground, 0);
 
-            renderInfo.Transform = carried.Behavior.Slots[carried.Slot]?.Transform ?? carried.Behavior.DefaultTransform;
+            renderInfo.Transform = carried.GetCarryableBehavior().Slots[carried.Slot]?.Transform ?? carried.GetCarryableBehavior().DefaultTransform;
             return renderInfo;
         }
 

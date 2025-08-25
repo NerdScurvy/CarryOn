@@ -13,18 +13,21 @@ using CarryOn.Utility;
 using HarmonyLib;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
+using Vintagestory.API.Config;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.Server;
 using Vintagestory.API.Util;
 using Vintagestory.GameContent;
+using static CarryOn.API.Common.CarryCode;
 
 [assembly: ModInfo("Carry On",
     modID: "carryon",
-    Version = "1.10.0-rc.3",
+    Version = "2.0.0-pre.1",
     Description = "Adds the capability to carry various things",
     Website = "https://github.com/NerdScurvy/CarryOn",
     Authors = new[] { "copygirl", "NerdScurvy" })]
-[assembly: ModDependency("game", "1.21.0-rc.4")]
+[assembly: ModDependency("game", "1.21.0-rc.7")]
+[assembly: ModDependency("carryonlib", "1.0.0-pre.1")]
 
 namespace CarryOn
 {
@@ -32,30 +35,25 @@ namespace CarryOn
     ///           blocks such as chests to be picked up and carried around. </summary>
     public class CarrySystem : ModSystem
     {
-        public static string ModId = "carryon";
         public static float PlaceSpeedDefault = 0.75f;
         public static float SwapSpeedDefault = 1.5f;
         public static float PickUpSpeedDefault = 0.8f;
+
+        public static float TransferSpeedDefault = 0.8f;
+
         public static float InteractSpeedDefault = 0.8f;
 
-        public static string PickupKeyCode = "carryonpickupkey";
         public static GlKeys PickupKeyDefault = GlKeys.ShiftLeft;
-        public static string SwapBackModifierKeyCode = "carryonswapbackmodifierkey";
         public static GlKeys SwapBackModifierDefault = GlKeys.ControlLeft;
-        public static string ToggleKeyCode = "carryontogglekey";
         public static GlKeys ToggleDefault = GlKeys.K;
-        public static string QuickDropKeyCode = "carryonquickdropkey";
+
 
         // Combine with Alt + Ctrl to drop carried block        
         public static GlKeys QuickDropDefault = GlKeys.K;
 
         // Combine with Ctrl to toggle double tap dismount
         public static GlKeys ToggleDoubleTapDismountDefault = GlKeys.K;
-        public static string ToggleDoubleTapDismountKeyCode = "carryontoggledoubletapdismountkey";
-
-        public static readonly string DoubleTapDismountEnabledAttributeKey = ModId + ":DoubleTapDismountEnabled";
-
-        public static readonly string LastSneakTapMsKey = ModId + ":LastSneakTapMs";
+        
         public static readonly int DoubleTapThresholdMs = 500;
 
         public ICoreAPI Api { get { return ClientAPI ?? ServerAPI as ICoreAPI; } }
@@ -76,7 +74,13 @@ namespace CarryOn
 
         public CarryEvents CarryEvents { get; private set; }
 
+        public CarryOnLib.Core CarryOnLib { get; private set; }
+
+        public ICarryManager CarryManager => CarryOnLib?.CarryManager;
+
         private Harmony _harmony;
+
+        public static string GetLang(string key) => Lang.Get(CarryOnCode(key)) ?? key;
 
         public override void StartPre(ICoreAPI api)
         {
@@ -116,6 +120,16 @@ namespace CarryOn
 
             CarryHandler = new CarryHandler(this);
             CarryEvents = new CarryEvents();
+
+            CarryOnLib = api.ModLoader.GetModSystem<CarryOnLib.Core>();
+            if (CarryOnLib != null)
+            {
+                CarryOnLib.CarryManager = new CarryManager(this);
+            }
+            else
+            {
+                api.World.Logger.Error("CarryOn: Failed to load CarryOnLib mod system");
+            }
         }
 
         public override void StartClientSide(ICoreClientAPI api)
@@ -129,6 +143,8 @@ namespace CarryOn
                 .RegisterMessageType<SwapSlotsMessage>()
                 .RegisterMessageType<AttachMessage>()
                 .RegisterMessageType<DetachMessage>()
+                .RegisterMessageType<PutMessage>()
+                .RegisterMessageType<TakeMessage>()
                 .RegisterMessageType<QuickDropMessage>()
                 .RegisterMessageType<DismountMessage>()
                 .RegisterMessageType<PlayerAttributeUpdateMessage>();
@@ -152,6 +168,8 @@ namespace CarryOn
                 .RegisterMessageType<SwapSlotsMessage>()
                 .RegisterMessageType<AttachMessage>()
                 .RegisterMessageType<DetachMessage>()
+                .RegisterMessageType<PutMessage>()
+                .RegisterMessageType<TakeMessage>()
                 .RegisterMessageType<QuickDropMessage>()
                 .RegisterMessageType<DismountMessage>()
                 .RegisterMessageType<PlayerAttributeUpdateMessage>();
@@ -187,15 +205,22 @@ namespace CarryOn
         }
         private void ManuallyAddCarryableBehaviors(ICoreAPI api)
         {
-            if (ModConfig.HenboxEnabled)
+            try
             {
-                var block = api.World.BlockAccessor.GetBlock("henbox");
-                if (block != null)
+                if (ModConfig.HenboxEnabled)
                 {
-                    // Only allow default hand slot 
-                    var properties = JsonObject.FromJson("{slots:{Hands:{}}}");
-                    AddCarryableBehavior(block, ref block.BlockBehaviors, ref block.CollectibleBehaviors, properties);
+                    var block = api.World.BlockAccessor.GetBlock("henbox");
+                    if (block != null)
+                    {
+                        // Only allow default hand slot 
+                        var properties = JsonObject.FromJson("{slots:{Hands:{}}}");
+                        AddCarryableBehavior(block, ref block.BlockBehaviors, ref block.CollectibleBehaviors, properties);
+                    }
                 }
+            }
+            catch (Exception e)
+            {
+                api.Logger.Error($"Error in ManuallyAddCarryableBehaviors: {e.Message}");
             }
         }
 
@@ -232,7 +257,7 @@ namespace CarryOn
         private void ResolveMultipleCarryableBehaviors(ICoreAPI api)
         {
             var filters = ModConfig.ServerConfig.CarryablesFilters;
-            
+
             foreach (var block in api.World.Blocks)
             {
                 bool removeBaseBehavior = false;
@@ -385,7 +410,7 @@ namespace CarryOn
                             if (loggingEnabled) api.Logger.Debug($"CarryOn matchBehavior: {key} carryableBlock: {carryableBlock.Code}");
                         }
                     }
-                        
+
                     if (filters.AllowedShapeOnlyMatches.Contains(shapePath) && !matchBehaviors.ContainsKey(shapeKey))
                     {
                         matchBehaviors[shapeKey] = carryableBlock.GetBehavior<BlockBehaviorCarryable>();
@@ -438,6 +463,9 @@ namespace CarryOn
             }
         }
 
+
+
+        // TODO: Consider renaming since it also contains TransferHandlerType init 
         private void InitEvents()
         {
             var ignoreMods = new[] { "game", "creative", "survival" };
@@ -455,14 +483,37 @@ namespace CarryOn
                 {
                     try
                     {
-                        (Activator.CreateInstance(type) as ICarryEvent)?.Init(this);
+                        (Activator.CreateInstance(type) as ICarryEvent)?.Init(CarryOnLib.CarryManager);
                     }
                     catch (Exception e)
                     {
                         Api.Logger.Error(e.Message);
                     }
                 }
+
+                foreach (Type type in assembly.GetTypes().Where(t => t.GetInterfaces().Contains(typeof(ICarryableTransfer))))
+                {
+                    foreach (var block in Api.World.Blocks.Where(b => b.IsCarryable()))
+                    {
+                        if (block.HasBehavior(type))
+                        {
+                            try
+                            {
+                                var carryableBehavior = block.GetBehavior<BlockBehaviorCarryable>();
+                                if (carryableBehavior != null)
+                                {
+                                    carryableBehavior.TransferHandlerType = type;
+                                }
+                            }
+                            catch (Exception e)
+                            {
+                                Api.Logger.Error($"CarryOn: Failed to set TransferHandlerType for block {block.Code}: {e.Message}");
+                            }
+                        }
+                    }
+                }
             }
         }
+
     }
 }
