@@ -327,8 +327,11 @@ namespace CarryOn.API.Common
                 // Set mesh angle to match the block facing
                 // TODO: add fix for multiblock support
                 
-                carriedBlock.BlockEntityData?.SetFloat("meshAngle", GetMeshAngle(meshFacing));                
-
+                if (carriedBlock.BlockEntityData == null)
+                {
+                    carriedBlock.BlockEntityData = new TreeAttribute();
+                }
+                carriedBlock.BlockEntityData.SetFloat("meshAngle", GetMeshAngle(meshFacing));
             }
 
             RestoreBlockEntityData(carriedBlock, selection.Position, dropped);
