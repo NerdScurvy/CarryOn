@@ -2,7 +2,7 @@ using CarryOn.Utility;
 using Vintagestory.API.Common;
 using Vintagestory.API.Server;
 
-namespace CarryOn.Common
+namespace CarryOn.Common.Handlers
 {
     public class DeathHandler
     {

@@ -1,10 +1,11 @@
 using System.ComponentModel;
 using CarryOn.API.Common;
+using CarryOn.Common.Enums;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
 using Vintagestory.API.MathTools;
 
-namespace CarryOn.Common
+namespace CarryOn.Common.Models
 {
 
     public class CarryInteraction

@@ -11,7 +11,7 @@ using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using static CarryOn.API.Common.CarryCode;
 
-namespace CarryOn.Common
+namespace CarryOn.Common.Behaviors
 {
     /// <summary> Block behavior which, when added to a block, will allow
     ///           said block to be picked up by players and carried around. </summary>

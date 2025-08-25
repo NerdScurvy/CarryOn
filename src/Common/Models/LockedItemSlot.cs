@@ -1,7 +1,7 @@
 using System;
 using Vintagestory.API.Common;
 
-namespace CarryOn.Utility
+namespace CarryOn.Common.Models
 {
     public class LockedItemSlot : ItemSlot
     {

@@ -15,10 +15,11 @@ using static CarryOn.CarrySystem;
 using static CarryOn.API.Common.CarryCode;
 using Vintagestory.API.Util;
 using HarmonyLib;
+using CarryOn.Common.Behaviors;
+using CarryOn.Common.Enums;
+using CarryOn.Common.Models;
 
-
-
-namespace CarryOn.Common
+namespace CarryOn.Common.Handlers
 {
     /// <summary>
     ///   Takes care of core CarryCapacity handling, such as listening to input events,
@@ -1724,15 +1725,19 @@ namespace CarryOn.Common
             try
             {
                 var method = AccessTools.Method(typeof(Vintagestory.Client.NoObf.HudElementInteractionHelp), "ComposeBlockWorldInteractionHelp");
+                if(method == null)
+                {
+                    Api.Logger.Error("Failed to find method ComposeBlockWorldInteractionHelp via reflection.");
+                    HudHelp = null;
+                    return;
+                }
+
                 method.Invoke(HudHelp, null);
             }
             catch (Exception e)
             {
-                if (Api == null)
-                {
-                    throw new InvalidOperationException($"Api is not initialized. Failed to refresh placed block interaction help: {e}", e);
-                }
-                Api.Logger.Error($"Failed to refresh placed block interaction help: {e}");
+                Api.Logger.Error($"Failed to refresh placed block interaction help (Disabling further calls): {e}");
+                HudHelp = null;
             }
         }
 

@@ -8,7 +8,7 @@ using Vintagestory.GameContent;
 using static CarryOn.API.Common.CarryCode;
 using CarryOn.Utility;
 
-namespace CarryOn.Common
+namespace CarryOn.Common.Behaviors
 {
 
     public class EntityBehaviorAttachableCarryable : EntityBehavior, ICustomInteractionHelpPositioning

@@ -1,4 +1,4 @@
-namespace CarryOn.Common
+namespace CarryOn.Common.Enums
 {
     public enum CarryAction
     {

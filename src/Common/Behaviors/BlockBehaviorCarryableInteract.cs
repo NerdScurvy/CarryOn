@@ -4,7 +4,7 @@ using CarryOn.Utility;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
 
-namespace CarryOn.Common
+namespace CarryOn.Common.Behaviors
 {
     /// <summary> Block behavior which, when added to a block, will allow
     ///           said block to be picked up by players and carried around. </summary>
