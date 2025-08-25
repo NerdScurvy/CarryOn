@@ -258,9 +258,7 @@ namespace CarryOn.Config
             api.StoreModConfig(new CarryOnConfig(previousConfig), ConfigFile);
         }
 
-        public static string[] CloneArray(string[] source)
-        {
-            return source != null ? (string[])source.Clone() : [];
+            return source?.ToArray() ?? [];
         }        
 
     }
