@@ -7,6 +7,7 @@ using CarryOn.API.Event;
 using CarryOn.Client;
 using CarryOn.Common;
 using CarryOn.Common.Network;
+using CarryOn.Compatibility;
 using CarryOn.Config;
 using CarryOn.Server;
 using CarryOn.Utility;
@@ -20,11 +21,11 @@ using Vintagestory.GameContent;
 
 [assembly: ModInfo("Carry On",
     modID: "carryon",
-    Version = "1.10.0-rc.3",
+    Version = "1.10.0",
     Description = "Adds the capability to carry various things",
     Website = "https://github.com/NerdScurvy/CarryOn",
     Authors = new[] { "copygirl", "NerdScurvy" })]
-[assembly: ModDependency("game", "1.21.0-rc.4")]
+[assembly: ModDependency("game", "1.21.0")]
 
 namespace CarryOn
 {
@@ -81,13 +82,22 @@ namespace CarryOn
         public override void StartPre(ICoreAPI api)
         {
             base.StartPre(api);
-            _harmony = new Harmony("CarryOn");
+            
+            var wasPatched = AutoConfigLib.HadPatches(api);
+
             ModConfig.ReadConfig(api);
+
+            if (wasPatched)
+            {
+                // Load the config file for AutoConfigLib to parse
+                api.LoadModConfig<CarryOnConfig>(ModConfig.ConfigFile);
+            }
 
             if (ModConfig.HarmonyPatchEnabled)
             {
                 try
                 {
+                    _harmony = new Harmony("CarryOn");
                     _harmony.PatchAll();
                     api.World.Logger.Notification("CarryOn: Harmony patches enabled.");
                 }
