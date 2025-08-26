@@ -1,5 +1,3 @@
-using System.Text.Json.Serialization;
-using ProtoBuf;
 namespace CarryOn.Config
 {
     public class CarryablesConfig

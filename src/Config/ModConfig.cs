@@ -117,7 +117,7 @@ namespace CarryOn.Config
             }
         }
 
-        private const string ConfigFile = "CarryOnConfig.json";
+        public static string ConfigFile = "CarryOnConfig.json";
 
         public static void ReadConfig(ICoreAPI api)
         {
@@ -139,11 +139,10 @@ namespace CarryOn.Config
                         StoreConfig(api, ServerConfig);
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // Save default config
-                    StoreConfig(api);
-                    ServerConfig = LoadConfig(api);
+                    api.Logger.Error("CarryOn: Exception loading config: " + ex);
+                    ServerConfig = new CarryOnConfig();
                 }
 
                 var worldConfig = api?.World?.Config;
@@ -211,7 +210,7 @@ namespace CarryOn.Config
             }
         }
 
-        private static CarryOnConfig LoadConfig(ICoreAPI api)
+        public static CarryOnConfig LoadConfig(ICoreAPI api)
         {
             // Check version of config
             var version = api.LoadModConfig<CarryOnConfigVersion>(ConfigFile);
@@ -230,8 +229,7 @@ namespace CarryOn.Config
 
                         // Convert legacy config to new format and save
                         api.Logger?.Debug($"Converting legacy config to newer format");
-                        var newConfig = legacyConfig.Convert();
-                        api.StoreModConfig(newConfig, ConfigFile);
+                        return legacyConfig.Convert();
                     }
                 }
 
