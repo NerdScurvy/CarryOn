@@ -21,9 +21,13 @@
 		<Reference Include="VintagestoryLib">
 			<HintPath>$(VINTAGE_STORY)/VintagestoryLib.dll</HintPath>
 			<Private>false</Private>
-		</Reference>		
+		</Reference>	
 		<Reference Include="VSEssentials">
 			<HintPath>$(VINTAGE_STORY)/Mods/VSEssentials.dll</HintPath>
+			<Private>false</Private>
+		</Reference>			
+		<Reference Include="Newtonsoft.Json">
+			<HintPath>$(VINTAGE_STORY)/Lib/Newtonsoft.Json.dll</HintPath>
 			<Private>false</Private>
 		</Reference>
 		<Reference Include="VSSurvivalMod">

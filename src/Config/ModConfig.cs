@@ -1,5 +1,8 @@
 using System;
+using System.Collections.Generic;
+using CarryOn.Utility;
 using Vintagestory.API.Common;
+using Vintagestory.API.Datastructures;
 using static CarryOn.API.Common.CarryCode;
 
 namespace CarryOn.Config
@@ -122,25 +125,31 @@ namespace CarryOn.Config
             World = api.World;
             if (api.Side == EnumAppSide.Server)
             {
+                const int currentVersion = 2;
                 try
                 {
-                    ServerConfig = LoadConfig(api);
-
-                    if (ServerConfig == null)
+                    var loadedConfig = api.LoadModConfig<CarryOnConfig>(ConfigFile);
+                    if (loadedConfig != null)
                     {
-                        // Save default config
-                        StoreConfig(api);
-                        ServerConfig = LoadConfig(api);
+                        loadedConfig.UpgradeVersion();
                     }
                     else
                     {
-                        StoreConfig(api, ServerConfig);
+                        loadedConfig = new CarryOnConfig(currentVersion);
                     }
+
+                    new CarryOnConfig(currentVersion);
+
+                    // DEBUG:DISABLES              api.StoreModConfig(ServerConfig, ConfigFile);
+
+                    ServerConfig = loadedConfig;
+
                 }
                 catch (Exception ex)
                 {
+                    // Log the exception and create a default config
                     api.Logger.Error("CarryOn: Exception loading config: " + ex);
-                    ServerConfig = new CarryOnConfig();
+                    ServerConfig = new CarryOnConfig(currentVersion);
                 }
 
                 var worldConfig = api?.World?.Config;
@@ -157,98 +166,24 @@ namespace CarryOn.Config
                     return;
                 }
 
-                // Sections below save the value to the world config so it is available for both server and client
-
-                // Carryables
-                worldConfig.SetBool(CarryOnCode("AnvilEnabled"), ServerConfig.Carryables.Anvil);
-                worldConfig.SetBool(CarryOnCode("BarrelEnabled"), ServerConfig.Carryables.Barrel);
-                worldConfig.SetBool(CarryOnCode("BookshelfEnabled"), ServerConfig.Carryables.Bookshelf);
-                worldConfig.SetBool(CarryOnCode("BunchOCandlesEnabled"), ServerConfig.Carryables.BunchOCandles);
-                worldConfig.SetBool(CarryOnCode("ChandelierEnabled"), ServerConfig.Carryables.Chandelier);
-                worldConfig.SetBool(CarryOnCode("ChestLabeledEnabled"), ServerConfig.Carryables.ChestLabeled);
-                worldConfig.SetBool(CarryOnCode("ChestTrunkEnabled"), ServerConfig.Carryables.ChestTrunk);
-                worldConfig.SetBool(CarryOnCode("ChestEnabled"), ServerConfig.Carryables.Chest);
-                worldConfig.SetBool(CarryOnCode("ClutterEnabled"), ServerConfig.Carryables.Clutter);
-                worldConfig.SetBool(CarryOnCode("CrateEnabled"), ServerConfig.Carryables.Crate);
-                worldConfig.SetBool(CarryOnCode("DisplayCaseEnabled"), ServerConfig.Carryables.DisplayCase);
-                worldConfig.SetBool(CarryOnCode("FlowerpotEnabled"), ServerConfig.Carryables.Flowerpot);
-                worldConfig.SetBool(CarryOnCode("ForgeEnabled"), ServerConfig.Carryables.Forge);
-                worldConfig.SetBool(CarryOnCode("LogWithResinEnabled"), ServerConfig.Carryables.LogWithResin);
-                worldConfig.SetBool(CarryOnCode("MoldRackEnabled"), ServerConfig.Carryables.MoldRack);
-                worldConfig.SetBool(CarryOnCode("MoldsEnabled"), ServerConfig.Carryables.Molds);
-                worldConfig.SetBool(CarryOnCode("LootVesselEnabled"), ServerConfig.Carryables.LootVessel);
-                worldConfig.SetBool(CarryOnCode("OvenEnabled"), ServerConfig.Carryables.Oven);
-                worldConfig.SetBool(CarryOnCode("PlanterEnabled"), ServerConfig.Carryables.Planter);
-                worldConfig.SetBool(CarryOnCode("QuernEnabled"), ServerConfig.Carryables.Quern);
-                worldConfig.SetBool(CarryOnCode("ReedBasketEnabled"), ServerConfig.Carryables.ReedBasket);
-                worldConfig.SetBool(CarryOnCode("ResonatorEnabled"), ServerConfig.Carryables.Resonator);
-                worldConfig.SetBool(CarryOnCode("ShelfEnabled"), ServerConfig.Carryables.Shelf);
-                worldConfig.SetBool(CarryOnCode("SignEnabled"), ServerConfig.Carryables.Sign);
-                worldConfig.SetBool(CarryOnCode("StorageVesselEnabled"), ServerConfig.Carryables.StorageVessel);
-                worldConfig.SetBool(CarryOnCode("ToolRackEnabled"), ServerConfig.Carryables.ToolRack);
-                worldConfig.SetBool(CarryOnCode("TorchHolderEnabled"), ServerConfig.Carryables.TorchHolder);
-
-                worldConfig.SetBool(CarryOnCode("BookshelfAndClutterEnabled"), ServerConfig.Carryables.Bookshelf && ServerConfig.Carryables.Clutter);
-                HenboxEnabled = ServerConfig.Carryables.Henbox;
-
-                // Interactables
-                worldConfig.SetBool(CarryOnCode("InteractDoorEnabled"), ServerConfig.Interactables.Door);
-                worldConfig.SetBool(CarryOnCode("InteractBarrelEnabled"), ServerConfig.Interactables.Barrel);
-                worldConfig.SetBool(CarryOnCode("InteractStorageEnabled"), ServerConfig.Interactables.Storage);
-
-                // CarryOptions
-                worldConfig.SetBool(CarryOnCode("AllowChestTrunksOnBack"), ServerConfig.CarryOptions.AllowChestTrunksOnBack);
-                worldConfig.SetBool(CarryOnCode("AllowLargeChestsOnBack"), ServerConfig.CarryOptions.AllowLargeChestsOnBack);
-                worldConfig.SetBool(CarryOnCode("AllowCratesOnBack"), ServerConfig.CarryOptions.AllowCratesOnBack);
-
-                AllowSprintWhileCarrying = ServerConfig.CarryOptions.AllowSprintWhileCarrying;
-                IgnoreCarrySpeedPenalty = ServerConfig.CarryOptions.IgnoreCarrySpeedPenalty;
-                BackSlotEnabled = ServerConfig.CarryOptions.BackSlotEnabled;
-                InteractSpeedMultiplier = ServerConfig.CarryOptions.InteractSpeedMultiplier;
-                RemoveInteractDelayWhileCarrying = ServerConfig.CarryOptions.RemoveInteractDelayWhileCarrying;
-
-                // Debugging Options
-                HarmonyPatchEnabled = !ServerConfig.DebuggingOptions.DisableHarmonyPatch;
-
-            }
-        }
-
-        public static CarryOnConfig LoadConfig(ICoreAPI api)
-        {
-            // Check version of config
-            var version = api.LoadModConfig<CarryOnConfigVersion>(ConfigFile);
-            if (version != null)
-            {
-                if (version.ConfigVersion == null)
+                // Cleanup old world config: Remove all keys starting with "carryon:"
+                var keysToRemove = new List<string>();
+                foreach (var key in (worldConfig as TreeAttribute)?.Keys)
                 {
-                    // No versioning information present so treat as legacy config
-                    var legacyConfig = api.LoadModConfig<CarryOnConfigLegacy>(ConfigFile);
-                    if (legacyConfig != null)
+                    if (key.StartsWith("carryon:", StringComparison.OrdinalIgnoreCase))
                     {
-                        // Save backup of legacy config
-                        var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-                        api.Logger?.Debug($"Saving backup of {ConfigFile} to {ConfigFile}-{timestamp}.bak");
-                        api.StoreModConfig(legacyConfig, $"{ConfigFile}-{timestamp}.bak");
-
-                        // Convert legacy config to new format and save
-                        api.Logger?.Debug($"Converting legacy config to newer format");
-                        return legacyConfig.Convert();
+                        keysToRemove.Add(key);
                     }
                 }
+                foreach (var key in keysToRemove)
+                {
+                    worldConfig.RemoveAttribute(key);
+                }
+
+                // Save the value to the world config so it is available for both server and client
+                worldConfig.GetOrAddTreeAttribute(ModId).MergeTree(ServerConfig.ToTreeAttribute());
 
             }
-            // Load the actual CarryOnConfig
-            return api.LoadModConfig<CarryOnConfig>(ConfigFile);
-        }
-
-        private static void StoreConfig(ICoreAPI api)
-        {
-            api.StoreModConfig(new CarryOnConfig(), ConfigFile);
-        }
-
-        private static void StoreConfig(ICoreAPI api, CarryOnConfig previousConfig)
-        {
-            api.StoreModConfig(new CarryOnConfig(previousConfig), ConfigFile);
         }
 
         public static string[] CloneArray(string[] source)

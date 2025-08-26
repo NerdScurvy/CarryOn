@@ -9,7 +9,7 @@
 	"authors": [ "copygirl","NerdScurvy" ],
 
 	"dependencies": {
-		"game": "1.21.1",
+		"game": "1.21.0",
 		"carryonlib": "1.0.0"
 	}
 }

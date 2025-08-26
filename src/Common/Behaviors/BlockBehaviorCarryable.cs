@@ -69,6 +69,8 @@ namespace CarryOn.Common.Behaviors
 
         public Type TransferHandlerType { get; set; } = null;
 
+        public string EnabledConditionKey { get; private set; }
+
         public CollectibleBehavior TransferHandlerBehavior { get; private set; } = null;
 
         public ICarryableTransfer TransferHandler { get; private set; } = null;
@@ -91,6 +93,9 @@ namespace CarryOn.Common.Behaviors
             if (JsonHelper.TryGetVec3i(properties, "multiblockOffset", out var o)) MultiblockOffset = o;
 
             if (JsonHelper.TryGetBool(properties, "preventAttaching", out var a)) PreventAttaching = a;
+
+            if (JsonHelper.TryGetString(properties, "enabledConditionKey", out var e))
+                EnabledConditionKey = e;
 
             DefaultTransform = JsonHelper.GetTransform(properties, DefaultBlockTransform);
             Slots.Initialize(properties["slots"], DefaultTransform);

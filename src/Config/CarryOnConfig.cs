@@ -1,3 +1,9 @@
+using System.Collections.Generic;
+using CarryOn.Utility;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using Vintagestory.API.Datastructures;
+
 namespace CarryOn.Config
 {
     public class CarryablesConfig
@@ -19,11 +25,11 @@ namespace CarryOn.Config
         public bool LogWithResin { get; set; }
         public bool LootVessel { get; set; } = true;
         public bool MoldRack { get; set; }
-        public bool Molds { get; set; }
+        public bool Mold { get; set; }
         public bool Oven { get; set; }
         public bool Planter { get; set; } = true;
         public bool Quern { get; set; } = true;
-        public bool ReedBasket { get; set; } = true;
+        public bool ReedChest { get; set; } = true;
         public bool Resonator { get; set; } = true;
         public bool Shelf { get; set; }
         public bool Sign { get; set; }
@@ -75,7 +81,7 @@ namespace CarryOn.Config
 
     public class CarryOnConfig
     {
-        public int ConfigVersion { get; set; } = 2;
+        public int? ConfigVersion { get; set; }
         public CarryablesConfig Carryables { get; set; } = new CarryablesConfig();
 
         public InteractablesConfig Interactables { get; set; } = new InteractablesConfig();
@@ -86,89 +92,156 @@ namespace CarryOn.Config
 
         public DebuggingOptionsConfig DebuggingOptions { get; set; } = new DebuggingOptionsConfig();
 
+        [JsonExtensionData]
+        public Dictionary<string, JToken> LegacyData { get; set; }
+
         public CarryOnConfig()
         {
 
         }
 
-        public CarryOnConfig(CarryOnConfig previousConfig)
+        public CarryOnConfig(int version)
         {
-            if (previousConfig is null)
-                throw new System.ArgumentNullException(nameof(previousConfig));
+            ConfigVersion = version;
+        }
 
-            ConfigVersion = previousConfig.ConfigVersion;
+        public void UpgradeVersion()
+        {
+            // Upgrade from version 1 to 2
+            if (ConfigVersion == null)
+            {
+                // Perform upgrade actions
+                ConfigVersion = 2;
+
+                // Carryables
+                Carryables.Anvil = LegacyData.TryGetBool("AnvilEnabled", Carryables.Anvil);
+                Carryables.Barrel = LegacyData.TryGetBool("BarrelEnabled", Carryables.Barrel);
+                Carryables.Bookshelf = LegacyData.TryGetBool("BookshelfEnabled", Carryables.Bookshelf);
+                Carryables.BunchOCandles = LegacyData.TryGetBool("BunchOCandlesEnabled", Carryables.BunchOCandles);
+                Carryables.Chandelier = LegacyData.TryGetBool("ChandelierEnabled", Carryables.Chandelier);
+                Carryables.ChestLabeled = LegacyData.TryGetBool("ChestLabeledEnabled", Carryables.ChestLabeled);
+                Carryables.ChestTrunk = LegacyData.TryGetBool("ChestTrunkEnabled", Carryables.ChestTrunk);
+                Carryables.Chest = LegacyData.TryGetBool("ChestEnabled", Carryables.Chest);
+                Carryables.Clutter = LegacyData.TryGetBool("ClutterEnabled", Carryables.Clutter);
+                Carryables.Crate = LegacyData.TryGetBool("CrateEnabled", Carryables.Crate);
+                Carryables.DisplayCase = LegacyData.TryGetBool("DisplayCaseEnabled", Carryables.DisplayCase);
+                Carryables.Flowerpot = LegacyData.TryGetBool("FlowerpotEnabled", Carryables.Flowerpot);
+                Carryables.Forge = LegacyData.TryGetBool("ForgeEnabled", Carryables.Forge);
+                Carryables.Henbox = LegacyData.TryGetBool("HenboxEnabled", Carryables.Henbox);
+                Carryables.LogWithResin = LegacyData.TryGetBool("LogWithResinEnabled", Carryables.LogWithResin);
+                Carryables.LootVessel = LegacyData.TryGetBool("LootVesselEnabled", Carryables.LootVessel);
+                Carryables.MoldRack = LegacyData.TryGetBool("MoldRackEnabled", Carryables.MoldRack);
+                Carryables.Mold = LegacyData.TryGetBool("MoldsEnabled", Carryables.Mold);
+                Carryables.Oven = LegacyData.TryGetBool("OvenEnabled", Carryables.Oven);
+                Carryables.Planter = LegacyData.TryGetBool("PlanterEnabled", Carryables.Planter);
+                Carryables.Quern = LegacyData.TryGetBool("QuernEnabled", Carryables.Quern);
+                Carryables.ReedChest = LegacyData.TryGetBool("ReedBasketEnabled", Carryables.ReedChest);
+                Carryables.Shelf = LegacyData.TryGetBool("ShelfEnabled", Carryables.Shelf);
+                Carryables.Sign = LegacyData.TryGetBool("SignEnabled", Carryables.Sign);
+                Carryables.StorageVessel = LegacyData.TryGetBool("StorageVesselEnabled", Carryables.StorageVessel);
+                Carryables.ToolRack = LegacyData.TryGetBool("ToolRackEnabled", Carryables.ToolRack);
+                Carryables.TorchHolder = LegacyData.TryGetBool("TorchHolderEnabled", Carryables.TorchHolder);
+                Carryables.Resonator = LegacyData.TryGetBool("ResonatorEnabled", Carryables.Resonator);
+
+                // Interactables
+                Interactables.Door = LegacyData.TryGetBool("InteractDoorEnabled", Interactables.Door);
+                Interactables.Storage = LegacyData.TryGetBool("InteractStorageEnabled", Interactables.Storage);
+
+                // CarryOptions
+                CarryOptions.BackSlotEnabled = LegacyData.TryGetBool("BackSlotEnabled", CarryOptions.BackSlotEnabled);
+                CarryOptions.AllowChestTrunksOnBack = LegacyData.TryGetBool("AllowChestTrunksOnBack", CarryOptions.AllowChestTrunksOnBack);
+                CarryOptions.AllowLargeChestsOnBack = LegacyData.TryGetBool("AllowLargeChestsOnBack", CarryOptions.AllowLargeChestsOnBack);
+                CarryOptions.AllowCratesOnBack = LegacyData.TryGetBool("AllowCratesOnBack", CarryOptions.AllowCratesOnBack);
+                CarryOptions.AllowSprintWhileCarrying = LegacyData.TryGetBool("AllowSprintWhileCarrying", CarryOptions.AllowSprintWhileCarrying);
+                CarryOptions.IgnoreCarrySpeedPenalty = LegacyData.TryGetBool("IgnoreCarrySpeedPenalty", CarryOptions.IgnoreCarrySpeedPenalty);
+                CarryOptions.RemoveInteractDelayWhileCarrying = LegacyData.TryGetBool("RemoveInteractDelayWhileCarrying", CarryOptions.RemoveInteractDelayWhileCarrying);
+                CarryOptions.InteractSpeedMultiplier = LegacyData.TryGetFloat("InteractSpeedMultiplier", CarryOptions.InteractSpeedMultiplier);
+
+                // Debugging Options
+                DebuggingOptions.LoggingEnabled = LegacyData.TryGetBool("LoggingEnabled", DebuggingOptions.LoggingEnabled);
+                DebuggingOptions.DisableHarmonyPatch = !LegacyData.TryGetBool("HarmonyPatchEnabled", !DebuggingOptions.DisableHarmonyPatch);
+
+                // CarryablesFilters
+                CarryablesFilters.AutoMatchIgnoreMods = LegacyData.TryGetStringArray("AutoMatchIgnoreMods", CarryablesFilters.AutoMatchIgnoreMods);
+                CarryablesFilters.AllowedShapeOnlyMatches = LegacyData.TryGetStringArray("AllowedShapeOnlyMatches", CarryablesFilters.AllowedShapeOnlyMatches);
+                CarryablesFilters.RemoveBaseCarryableBehaviour = LegacyData.TryGetStringArray("RemoveBaseCarryableBehaviour", CarryablesFilters.RemoveBaseCarryableBehaviour);
+                CarryablesFilters.RemoveCarryableBehaviour = LegacyData.TryGetStringArray("RemoveCarryableBehaviour", CarryablesFilters.RemoveCarryableBehaviour);
+            }
+        }
+
+
+        public ITreeAttribute ToTreeAttribute()
+        {
+            var tree = new TreeAttribute();
+            tree.SetInt("ConfigVersion", ConfigVersion ?? 2);
 
             // Carryables
-            if (previousConfig.Carryables != null)
-            {
-                Carryables.Anvil = previousConfig.Carryables.Anvil;
-                Carryables.Barrel = previousConfig.Carryables.Barrel;
-                Carryables.Bookshelf = previousConfig.Carryables.Bookshelf;
-                Carryables.BunchOCandles = previousConfig.Carryables.BunchOCandles;
-                Carryables.Chandelier = previousConfig.Carryables.Chandelier;
-                Carryables.ChestLabeled = previousConfig.Carryables.ChestLabeled;
-                Carryables.ChestTrunk = previousConfig.Carryables.ChestTrunk;
-                Carryables.Chest = previousConfig.Carryables.Chest;
-                Carryables.Clutter = previousConfig.Carryables.Clutter;
-                Carryables.Crate = previousConfig.Carryables.Crate;
-                Carryables.DisplayCase = previousConfig.Carryables.DisplayCase;
-                Carryables.Flowerpot = previousConfig.Carryables.Flowerpot;
-                Carryables.Forge = previousConfig.Carryables.Forge;
-                Carryables.Henbox = previousConfig.Carryables.Henbox;
-                Carryables.LogWithResin = previousConfig.Carryables.LogWithResin;
-                Carryables.MoldRack = previousConfig.Carryables.MoldRack;
-                Carryables.Molds = previousConfig.Carryables.Molds;
-                Carryables.LootVessel = previousConfig.Carryables.LootVessel;
-                Carryables.Oven = previousConfig.Carryables.Oven;
-                Carryables.Planter = previousConfig.Carryables.Planter;
-                Carryables.Quern = previousConfig.Carryables.Quern;
-                Carryables.ReedBasket = previousConfig.Carryables.ReedBasket;
-                Carryables.Resonator = previousConfig.Carryables.Resonator;
-                Carryables.Shelf = previousConfig.Carryables.Shelf;
-                Carryables.Sign = previousConfig.Carryables.Sign;
-                Carryables.StorageVessel = previousConfig.Carryables.StorageVessel;
-                Carryables.ToolRack = previousConfig.Carryables.ToolRack;
-                Carryables.TorchHolder = previousConfig.Carryables.TorchHolder;
-            }
+            var carryables = new TreeAttribute();
+            carryables.SetBool("Anvil", Carryables.Anvil);
+            carryables.SetBool("Barrel", Carryables.Barrel);
+            carryables.SetBool("Bookshelf", Carryables.Bookshelf);
+            carryables.SetBool("BunchOCandles", Carryables.BunchOCandles);
+            carryables.SetBool("Chandelier", Carryables.Chandelier);
+            carryables.SetBool("ChestLabeled", Carryables.ChestLabeled);
+            carryables.SetBool("ChestTrunk", Carryables.ChestTrunk);
+            carryables.SetBool("Chest", Carryables.Chest);
+            carryables.SetBool("Clutter", Carryables.Clutter);
+            carryables.SetBool("Crate", Carryables.Crate);
+            carryables.SetBool("DisplayCase", Carryables.DisplayCase);
+            carryables.SetBool("Flowerpot", Carryables.Flowerpot);
+            carryables.SetBool("Forge", Carryables.Forge);
+            carryables.SetBool("Henbox", Carryables.Henbox);
+            carryables.SetBool("LogWithResin", Carryables.LogWithResin);
+            carryables.SetBool("LootVessel", Carryables.LootVessel);
+            carryables.SetBool("MoldRack", Carryables.MoldRack);
+            carryables.SetBool("Mold", Carryables.Mold);
+            carryables.SetBool("Oven", Carryables.Oven);
+            carryables.SetBool("Planter", Carryables.Planter);
+            carryables.SetBool("Quern", Carryables.Quern);
+            carryables.SetBool("ReedChest", Carryables.ReedChest);
+            carryables.SetBool("Resonator", Carryables.Resonator);
+            carryables.SetBool("Shelf", Carryables.Shelf);
+            carryables.SetBool("Sign", Carryables.Sign);
+            carryables.SetBool("StorageVessel", Carryables.StorageVessel);
+            carryables.SetBool("ToolRack", Carryables.ToolRack);
+            carryables.SetBool("TorchHolder", Carryables.TorchHolder);
+            tree["Carryables"] = carryables;
 
             // Interactables
-            if (previousConfig.Interactables != null)
-            {
-                Interactables.Barrel = previousConfig.Interactables.Barrel;
-                Interactables.Door = previousConfig.Interactables.Door;
-                Interactables.Storage = previousConfig.Interactables.Storage;
-            }
+            var interactables = new TreeAttribute();
+            interactables.SetBool("Door", Interactables.Door);
+            interactables.SetBool("Barrel", Interactables.Barrel);
+            interactables.SetBool("Storage", Interactables.Storage);
+            tree["Interactables"] = interactables;
 
             // CarryOptions
-            if (previousConfig.CarryOptions != null)
-            {
-                CarryOptions.AllowSprintWhileCarrying = previousConfig.CarryOptions.AllowSprintWhileCarrying;
-                CarryOptions.IgnoreCarrySpeedPenalty = previousConfig.CarryOptions.IgnoreCarrySpeedPenalty;
-                CarryOptions.RemoveInteractDelayWhileCarrying = previousConfig.CarryOptions.RemoveInteractDelayWhileCarrying;
-                CarryOptions.InteractSpeedMultiplier = previousConfig.CarryOptions.InteractSpeedMultiplier;
-                CarryOptions.AllowChestTrunksOnBack = previousConfig.CarryOptions.AllowChestTrunksOnBack;
-                CarryOptions.BackSlotEnabled = previousConfig.CarryOptions.BackSlotEnabled;
-                CarryOptions.AllowLargeChestsOnBack = previousConfig.CarryOptions.AllowLargeChestsOnBack;
-                CarryOptions.AllowCratesOnBack = previousConfig.CarryOptions.AllowCratesOnBack;
-            }
+            var carryOptions = new TreeAttribute();
+            carryOptions.SetBool("AllowSprintWhileCarrying", CarryOptions.AllowSprintWhileCarrying);
+            carryOptions.SetBool("IgnoreCarrySpeedPenalty", CarryOptions.IgnoreCarrySpeedPenalty);
+            carryOptions.SetBool("RemoveInteractDelayWhileCarrying", CarryOptions.RemoveInteractDelayWhileCarrying);
+            carryOptions.SetFloat("InteractSpeedMultiplier", CarryOptions.InteractSpeedMultiplier);
+            carryOptions.SetBool("BackSlotEnabled", CarryOptions.BackSlotEnabled);
+            carryOptions.SetBool("AllowChestTrunksOnBack", CarryOptions.AllowChestTrunksOnBack);
+            carryOptions.SetBool("AllowLargeChestsOnBack", CarryOptions.AllowLargeChestsOnBack);
+            carryOptions.SetBool("AllowCratesOnBack", CarryOptions.AllowCratesOnBack);
+            tree["CarryOptions"] = carryOptions;
 
             // CarryablesFilters
-            if (previousConfig.CarryablesFilters != null)
-            {
-                CarryablesFilters.AutoMapSimilar = previousConfig.CarryablesFilters.AutoMapSimilar;
-                CarryablesFilters.AutoMatchIgnoreMods = ModConfig.CloneArray(previousConfig.CarryablesFilters.AutoMatchIgnoreMods);
-                CarryablesFilters.AllowedShapeOnlyMatches = ModConfig.CloneArray(previousConfig.CarryablesFilters.AllowedShapeOnlyMatches);
-                CarryablesFilters.RemoveBaseCarryableBehaviour = ModConfig.CloneArray(previousConfig.CarryablesFilters.RemoveBaseCarryableBehaviour);
-                CarryablesFilters.RemoveCarryableBehaviour = ModConfig.CloneArray(previousConfig.CarryablesFilters.RemoveCarryableBehaviour);
-   
-            }
+            var filters = new TreeAttribute();
+            filters.SetBool("AutoMapSimilar", CarryablesFilters.AutoMapSimilar);
+            filters.SetStringArray("AutoMatchIgnoreMods", CarryablesFilters.AutoMatchIgnoreMods);
+            filters.SetStringArray("AllowedShapeOnlyMatches", CarryablesFilters.AllowedShapeOnlyMatches);
+            filters.SetStringArray("RemoveBaseCarryableBehaviour", CarryablesFilters.RemoveBaseCarryableBehaviour);
+            filters.SetStringArray("RemoveCarryableBehaviour", CarryablesFilters.RemoveCarryableBehaviour);
+            tree["CarryablesFilters"] = filters;
 
-            // Debugging Options
-            if (previousConfig.DebuggingOptions != null)
-            {
-                DebuggingOptions.LoggingEnabled = previousConfig.DebuggingOptions.LoggingEnabled;
-                DebuggingOptions.DisableHarmonyPatch = previousConfig.DebuggingOptions.DisableHarmonyPatch;
-            }
+            // DebuggingOptions
+            var debug = new TreeAttribute();
+            debug.SetBool("LoggingEnabled", DebuggingOptions.LoggingEnabled);
+            debug.SetBool("DisableHarmonyPatch", DebuggingOptions.DisableHarmonyPatch);
+            tree["DebuggingOptions"] = debug;
+
+            return tree;
         }
     }
 }

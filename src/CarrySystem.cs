@@ -5,11 +5,9 @@ using System.Linq;
 using CarryOn.API.Common;
 using CarryOn.API.Event;
 using CarryOn.Client;
-using CarryOn.Common;
 using CarryOn.Common.Behaviors;
 using CarryOn.Common.Handlers;
 using CarryOn.Common.Network;
-using CarryOn.Compatibility;
 using CarryOn.Config;
 using CarryOn.Server;
 using CarryOn.Utility;
@@ -29,7 +27,7 @@ using static CarryOn.API.Common.CarryCode;
     Description = "Adds the capability to carry various things",
     Website = "https://github.com/NerdScurvy/CarryOn",
     Authors = new[] { "copygirl", "NerdScurvy" })]
-[assembly: ModDependency("game", "1.21.1")]
+[assembly: ModDependency("game", "1.21.0")]
 [assembly: ModDependency("carryonlib", "1.0.0")]
 
 namespace CarryOn
@@ -56,7 +54,7 @@ namespace CarryOn
 
         // Combine with Ctrl to toggle double tap dismount
         public static GlKeys ToggleDoubleTapDismountDefault = GlKeys.K;
-        
+
         public static readonly int DoubleTapThresholdMs = 500;
 
         public ICoreAPI Api { get { return ClientApi ?? ServerApi as ICoreAPI; } }
@@ -88,16 +86,8 @@ namespace CarryOn
         public override void StartPre(ICoreAPI api)
         {
             base.StartPre(api);
-            
-            var wasPatched = AutoConfigLib.HadPatches(api);
 
             ModConfig.ReadConfig(api);
-
-            if (wasPatched)
-            {
-                // Load the config file for AutoConfigLib to parse
-                api.LoadModConfig<CarryOnConfig>(ModConfig.ConfigFile);
-            }
 
             if (ModConfig.HarmonyPatchEnabled)
             {
@@ -195,6 +185,8 @@ namespace CarryOn
         {
             if (api.Side == EnumAppSide.Server)
             {
+                RemoveDisabledCarryableBehaviours(api);
+
                 ManuallyAddCarryableBehaviors(api);
                 ResolveMultipleCarryableBehaviors(api);
 
@@ -204,6 +196,50 @@ namespace CarryOn
             }
 
             base.AssetsFinalize(api);
+        }
+
+        private void RemoveDisabledCarryableBehaviours(ICoreAPI api)
+        {
+            // Find all blocks with disabled carryable behaviors
+            var blocksWithEnabledKey = api.World.Blocks.Where(b => b.HasBehavior<BlockBehaviorCarryable>());
+
+            IAttribute carryOnConfig, carryables;
+
+            // TODO: Allow checking in different world config locations
+            // Current implementation is only looking at carryon.Carryables
+
+            if (!api.World.Config.TryGetAttribute("carryon", out carryOnConfig)) return;
+
+            carryables = carryOnConfig.TryGet("Carryables");
+            if (carryables == null)
+            {
+                api.Logger.Warning("CarryOn: Cannot find carryon.Carryables in world config");
+                return;
+            }
+
+            if (carryables is not TreeAttribute carryablesTree)
+            {
+                api.Logger.Warning("CarryOn: carryon.Carryables is not a TreeAttribute");
+                return;
+            }
+
+            foreach (var block in blocksWithEnabledKey)
+            {
+                var behavior = block.GetBehavior<BlockBehaviorCarryable>();
+
+                if (string.IsNullOrWhiteSpace(behavior.EnabledConditionKey)) continue;
+
+                var isEnabled = carryablesTree.TryGetBool(behavior.EnabledConditionKey);
+                if (!isEnabled.HasValue)
+                {
+                    api.Logger.Warning($"CarryOn: {behavior.EnabledConditionKey} is not a boolean");
+                }
+
+                if (isEnabled.Value) continue;
+
+                block.BlockBehaviors = RemoveCarryableBehaviours(block.BlockBehaviors.OfType<CollectibleBehavior>().ToArray()).OfType<BlockBehavior>().ToArray();
+                block.CollectibleBehaviors = RemoveCarryableBehaviours(block.CollectibleBehaviors);
+            }
         }
 
         public override void Dispose()
