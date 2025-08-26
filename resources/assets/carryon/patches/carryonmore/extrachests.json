@@ -7,6 +7,7 @@
     "value": {
       "name": "Carryable",
       "properties": {
+        "enabledCondition": "carryon.Carryables.Chest",
         "override": true,
         "translation": [
           0.0625,
@@ -45,6 +46,7 @@
     "value": {
       "name": "Carryable",
       "properties": {
+        "enabledCondition": "carryon.Carryables.ChestLabeled",
         "override": true,
         "translation": [
           0.0625,

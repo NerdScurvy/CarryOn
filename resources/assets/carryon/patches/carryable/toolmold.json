@@ -7,6 +7,7 @@
     "value": {
       "name": "Carryable",
       "properties": {
+        "enabledCondition": "carryon.Carryables.Mold",
         "interactDelay": 0.5,
         "translation": [
           0.0625,
@@ -22,10 +23,6 @@
           "Hands": {}
         }
       }
-    },
-    "condition": {
-      "when": "carryon:MoldsEnabled",
-      "isValue": "true"
     }
   }
 ]

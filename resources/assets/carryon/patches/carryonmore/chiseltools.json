@@ -7,6 +7,7 @@
     "value": {
       "name": "Carryable",
       "properties": {
+        "enabledCondition": "carryon.Carryables.Chest",
         "translation": [
           0.0625,
           0,
@@ -23,10 +24,6 @@
         },
         "preventAttaching": true
       }
-    },
-    "condition": {
-      "when": "carryon:ChestEnabled",
-      "isValue": "true"
     },
     "dependsOn": [
       {
@@ -64,6 +61,7 @@
     "value": {
       "name": "Carryable",
       "properties": {
+        "enabledCondition": "carryon.Carryables.Barrel",
         "translation": [
           -0.0625,
           0,
@@ -75,10 +73,6 @@
         },
         "preventAttaching": true
       }
-    },
-    "condition": {
-      "when": "carryon:BarrelEnabled",
-      "isValue": "true"
     },
     "dependsOn": [
       {
@@ -94,6 +88,7 @@
     "value": {
       "name": "Carryable",
       "properties": {
+        "enabledCondition": "carryon.Carryables.Forge",
         "translation": [
           0.0625,
           0,
@@ -110,10 +105,6 @@
         "preventAttaching": true
       }
     },
-    "condition": {
-      "when": "carryon:ForgeEnabled",
-      "isValue": "true"
-    },
     "dependsOn": [
       {
         "modid": "chiseltools"
@@ -128,6 +119,7 @@
     "value": {
       "name": "Carryable",
       "properties": {
+        "enabledCondition": "carryon.Carryables.Anvil",
         "interactDelay": 1.5,
         "translation": [
           0.05,
@@ -147,10 +139,6 @@
         },
         "preventAttaching": true      }
     },
-    "condition": {
-      "when": "carryon:AnvilEnabled",
-      "isValue": "true"
-    },
     "dependsOn": [
       {
         "modid": "chiseltools"
@@ -165,6 +153,7 @@
     "value": {
       "name": "Carryable",
       "properties": {
+        "enabledCondition": "carryon.Carryables.FlowerPot",
         "translation": [
           0.3175,
           0.1,
@@ -185,10 +174,6 @@
         "preventAttaching": true
       }
     },
-    "condition": {
-      "when": "carryon:FlowerpotEnabled",
-      "isValue": "true"
-    },
     "dependsOn": [
       {
         "modid": "chiseltools"
@@ -203,6 +188,7 @@
     "value": {
       "name": "Carryable",
       "properties": {
+        "enabledCondition": "carryon.Carryables.DisplayCase",
         "translation": [
           0.0625,
           0,
@@ -218,10 +204,6 @@
         },
         "preventAttaching": true
       }
-    },
-    "condition": {
-      "when": "carryon:DisplayCaseEnabled",
-      "isValue": "true"
     },
     "dependsOn": [
       {
@@ -237,6 +219,7 @@
     "value": {
       "name": "Carryable",
       "properties": {
+        "enabledCondition": "carryon.Carryables.Oven",
         "translation": [
           0.0625,
           0,
@@ -253,10 +236,6 @@
         "preventAttaching": true
       }
     },
-    "condition": {
-      "when": "carryon:OvenEnabled",
-      "isValue": "true"
-    },
     "dependsOn": [
       {
         "modid": "chiseltools"
@@ -271,13 +250,10 @@
     "value": {
       "name": "Carryable",
       "properties": {
+        "enabledCondition": "carryon.Carryables.Planter",
         "scale": 0.6,
         "preventAttaching": true
       }
-    },
-    "condition": {
-      "when": "carryon:PlanterEnabled",
-      "isValue": "true"
     },
     "dependsOn": [
       {
@@ -293,6 +269,7 @@
     "value": {
       "name": "Carryable",
       "properties": {
+        "enabledCondition": "carryon.Carryables.Shelf",
         "translation": [
           0.0625,
           0,
@@ -310,10 +287,6 @@
         "preventAttaching": true
       }
     },
-    "condition": {
-      "when": "carryon:ShelfEnabled",
-      "isValue": "true"
-    },
     "dependsOn": [
       {
         "modid": "chiseltools"
@@ -329,6 +302,7 @@
       {
         "name": "Carryable",
         "properties": {
+          "enabledCondition": "carryon.Carryables.Sign",
           "translation": [
             0.0625,
             0,
@@ -346,10 +320,6 @@
         }
       }
     ],
-    "condition": {
-      "when": "carryon:SignEnabled",
-      "isValue": "true"
-    },
     "dependsOn": [
       {
         "modid": "chiseltools"
@@ -364,6 +334,7 @@
     "value": {
       "name": "Carryable",
       "properties": {
+        "enabledCondition": "carryon.Carryables.StorageVessel",
         "translation": [
           -0.125,
           0,
@@ -375,10 +346,6 @@
         },
         "preventAttaching": true
       }
-    },
-    "condition": {
-      "when": "carryon:StorageVesselEnabled",
-      "isValue": "true"
     },
     "dependsOn": [
       {
@@ -394,6 +361,7 @@
     "value": {
       "name": "Carryable",
       "properties": {
+        "enabledCondition": "carryon.Carryables.ToolRack",
         "translation": [
           0.0625,
           0,
@@ -409,10 +377,6 @@
         },
         "preventAttaching": true
       }
-    },
-    "condition": {
-      "when": "carryon:ToolRackEnabled",
-      "isValue": "true"
     },
     "dependsOn": [
       {

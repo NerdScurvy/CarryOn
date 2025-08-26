@@ -5,11 +5,7 @@
     "op": "add",
     "path": "/behaviors",
     "value":  []
-    ,
-    "condition": {
-      "when": "carryon:BookshelfEnabled",
-      "isValue": "true"
-    }    
+    
   },
 
 
@@ -21,6 +17,7 @@
     "value": {
       "name": "Carryable",
       "properties": {
+        "enabledCondition": "carryon.Carryables.Bookshelf",
         "translation": [
           0,
           0,
@@ -35,10 +32,6 @@
           "Hands": {}
         }
       }
-    },
-    "condition": {
-      "when": "carryon:BookshelfEnabled",
-      "isValue": "true"
-    }    
+    }
   }
 ]

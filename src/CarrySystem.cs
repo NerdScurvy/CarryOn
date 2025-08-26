@@ -227,15 +227,52 @@ namespace CarryOn
             {
                 var behavior = block.GetBehavior<BlockBehaviorCarryable>();
 
-                if (string.IsNullOrWhiteSpace(behavior.EnabledConditionKey)) continue;
+                if (string.IsNullOrWhiteSpace(behavior.EnabledCondition)) continue;
 
-                var isEnabled = carryablesTree.TryGetBool(behavior.EnabledConditionKey);
-                if (!isEnabled.HasValue)
+                // Support dot notation for enabledCondition
+                var keys = behavior.EnabledCondition.Split('.');
+                IAttribute current = api.World.Config;
+                bool? isEnabled = null;
+                foreach (var key in keys)
                 {
-                    api.Logger.Warning($"CarryOn: {behavior.EnabledConditionKey} is not a boolean");
+                    if (current is TreeAttribute tree)
+                    {
+                        if (tree.HasAttribute(key))
+                        {
+                            current = tree[key];
+                        }
+                        else
+                        {
+                            current = null;
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        current = null;
+                        break;
+                    }
+                }
+                if (current is BoolAttribute boolAttr)
+                {
+                    isEnabled = boolAttr.value;
+                }
+                else if (current is TreeAttribute treeAttr && treeAttr is not null)
+                {
+                    // If the final attribute is a TreeAttribute, treat as enabled
+                    isEnabled = true;
+                }
+                else
+                {
+                    isEnabled = null;
                 }
 
-                if (isEnabled.Value) continue;
+                if (!isEnabled.HasValue)
+                {
+                    api.Logger.Warning($"CarryOn: {behavior.EnabledCondition} is not a boolean or not found");
+                }
+
+                if (isEnabled.HasValue && isEnabled.Value) continue;
 
                 block.BlockBehaviors = RemoveCarryableBehaviours(block.BlockBehaviors.OfType<CollectibleBehavior>().ToArray()).OfType<BlockBehavior>().ToArray();
                 block.CollectibleBehaviors = RemoveCarryableBehaviours(block.CollectibleBehaviors);

@@ -7,6 +7,7 @@
     "value": {
       "name": "Carryable",
       "properties": {
+        "enabledCondition": "carryon.Carryables.ChestTrunk",
         "translation": [
           0.0625,
           0,
@@ -34,10 +35,6 @@
         },
         "multiblockOffset": [0, 0, 1]
       }
-    },
-    "condition": {
-      "when": "carryon:ChestTrunkEnabled",
-      "isValue": "true"
     }
   }
 ]

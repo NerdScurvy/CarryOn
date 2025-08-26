@@ -138,16 +138,15 @@ namespace CarryOn.Config
                         loadedConfig = new CarryOnConfig(currentVersion);
                     }
 
-                    new CarryOnConfig(currentVersion);
-
-                    // DEBUG:DISABLES              api.StoreModConfig(ServerConfig, ConfigFile);
+                    // Save the upgraded or default config back to the file
+                    api.StoreModConfig(loadedConfig, ConfigFile);
 
                     ServerConfig = loadedConfig;
 
                 }
                 catch (Exception ex)
                 {
-                    // Log the exception and create a default config
+                    // Log the exception and create a default config but not save it
                     api.Logger.Error("CarryOn: Exception loading config: " + ex);
                     ServerConfig = new CarryOnConfig(currentVersion);
                 }
