@@ -142,7 +142,7 @@ namespace CarryOn.Config
                 catch (Exception ex)
                 {
                     api.Logger.Error("CarryOn: Exception loading config: " + ex);
-                    return;
+                    ServerConfig = new CarryOnConfig();
                 }
 
                 var worldConfig = api?.World?.Config;
@@ -210,7 +210,7 @@ namespace CarryOn.Config
             }
         }
 
-        private static CarryOnConfig LoadConfig(ICoreAPI api)
+        public static CarryOnConfig LoadConfig(ICoreAPI api)
         {
             // Check version of config
             var version = api.LoadModConfig<CarryOnConfigVersion>(ConfigFile);

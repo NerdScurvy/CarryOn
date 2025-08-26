@@ -9,23 +9,40 @@ namespace CarryOn.Compatibility
     {
         public static bool HadPatches(ICoreAPI api)
         {
+            var hadPatch = false;
             try
             {
-                var harmony = new Harmony("autoconfiglib");
-                if (Harmony.HasAnyPatches("autoconfiglib"))
+                var harmonyId = "autoconfiglib";
+
+                var harmony = new Harmony(harmonyId);
+                var readConfigMethod = AccessTools.DeclaredMethod(typeof(ModConfig), nameof(ModConfig.ReadConfig));
+                var loadConfigMethod = AccessTools.DeclaredMethod(typeof(ModConfig), nameof(ModConfig.LoadConfig));
+
+
+
+                if (readConfigMethod != null)
                 {
-                    var readConfigMethod = AccessTools.Method(typeof(ModConfig), "ReadConfig");
-                    var loadConfigMethod = AccessTools.Method(typeof(ModConfig), "LoadConfig");
-                    harmony.Unpatch(readConfigMethod, HarmonyPatchType.All, "autoconfiglib");
-                    harmony.Unpatch(loadConfigMethod, HarmonyPatchType.All, "autoconfiglib");
-                    return true;
+                    harmony.Unpatch(readConfigMethod, HarmonyPatchType.All, harmonyId);
+                    hadPatch = true;
                 }
+                if (loadConfigMethod != null)
+                {
+                    harmony.Unpatch(loadConfigMethod, HarmonyPatchType.All, harmonyId);
+                    hadPatch = true;
+                }
+
+                if (hadPatch)
+                {
+                    api.Logger.Notification("CarryOn: Disabled AutoConfigLib patches.");
+                }   
+
+
             }
             catch (Exception ex)
             {
-                api.World.Logger.Error($"CarryOn: Exception during disabling CarryOn AutoConfigLib patches: {ex}");
+                api.Logger.Error($"CarryOn: Exception during disabling CarryOn AutoConfigLib patches: {ex}");
             }
-            return false;
+            return hadPatch;
         }
     }
 }
