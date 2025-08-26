@@ -1,6 +1,6 @@
 [
   {
-    "file": "game:blocktypes/clay/oven.json",
+    "file": "game:blocktypes/clay/oven",
     "side": "Server",
     "op": "add",
     "path": "/behaviors/-",
