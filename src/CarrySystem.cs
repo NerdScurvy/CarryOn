@@ -7,6 +7,7 @@ using CarryOn.API.Event;
 using CarryOn.Client;
 using CarryOn.Common;
 using CarryOn.Common.Network;
+using CarryOn.Compatibility;
 using CarryOn.Config;
 using CarryOn.Server;
 using CarryOn.Utility;
@@ -85,13 +86,22 @@ namespace CarryOn
         public override void StartPre(ICoreAPI api)
         {
             base.StartPre(api);
-            _harmony = new Harmony("CarryOn");
+            
+            var wasPatched = AutoConfigLib.HadPatches(api);
+
             ModConfig.ReadConfig(api);
+
+            if (wasPatched)
+            {
+                // Load the config file for AutoConfigLib to parse
+                api.LoadModConfig<CarryOnConfig>(ModConfig.ConfigFile);
+            }
 
             if (ModConfig.HarmonyPatchEnabled)
             {
                 try
                 {
+                    _harmony = new Harmony("CarryOn");
                     _harmony.PatchAll();
                     api.World.Logger.Notification("CarryOn: Harmony patches enabled.");
                 }
