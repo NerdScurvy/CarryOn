@@ -1,0 +1,7 @@
+{
+  "modVersion": "2.0.0",
+  "dependencies": {
+    "game": "1.21.1",
+    "carryonlib": "1.0.0"
+  }
+}

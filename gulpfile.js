@@ -2,8 +2,10 @@ const gulp = require('gulp');
 const replace = require('gulp-replace');
 const fs = require('fs');
 
-const carryOnVersion = require('./CarryOn.json').carryOnVersion;
-const vintageStoryVersion = require('./CarryOn.json').vintageStoryVersion;
+const VERSION_JSON_PATH = './version.json';
+const versionData = require(VERSION_JSON_PATH);
+const modVersion = versionData.modVersion;
+const dependencies = versionData.dependencies || {};
 
 async function helloWorld() {
     console.log('Hello, World!');
@@ -11,26 +13,34 @@ async function helloWorld() {
 }
 
 async function setVersion() {
-    console.log(`Setting carryOnVersion to: ${carryOnVersion} and vintageStoryVersion to: ${vintageStoryVersion}`);
+    console.log(`Setting modVersion to: ${modVersion} and dependencies: ${JSON.stringify(dependencies)}`);
 
-    if (!carryOnVersion) {
-        console.error('No carryOnVersion specified. Update CarryOn.json with the carryOnVersion field.');
-        return Promise.reject(new Error('carryOnVersion not specified'));
+    if (!modVersion) {
+        console.error('No modVersion specified. Update version.json with the modVersion field.');
+        return Promise.reject(new Error('modVersion not specified'));
     }
 
-    if (!vintageStoryVersion) {
-        console.error('No vintageStoryVersion specified. Update CarryOn.json with the vintageStoryVersion field.');
-        return Promise.reject(new Error('vintageStoryVersion not specified'));
+    // Check all dependencies have a version
+    for (const dep in dependencies) {
+        if (!dependencies[dep]) {
+            console.error(`No version specified for dependency '${dep}' in version.json.`);
+            return Promise.reject(new Error(`Dependency '${dep}' version not specified`));
+        }
     }
 
     try {
         await new Promise((resolve, reject) => {
             gulp.src('./resources/modinfo.json')
-                .pipe(replace(/"version"\s*:\s*".*?"/, `"version": "${carryOnVersion}"`))
-                .pipe(replace(/"game"\s*:\s*".*?"/, `"game": "${vintageStoryVersion}"`))
+                .pipe(replace(/"version"\s*:\s*".*?"/, `"version": "${modVersion}"`))
+                .pipe(replace(/"(.*?)"\s*:\s*"(.*?)"/g, (match, dep, ver) => {
+                    if (dependencies.hasOwnProperty(dep)) {
+                        return `"${dep}": "${dependencies[dep]}"`;
+                    }
+                    return match;
+                }))
                 .pipe(gulp.dest('./resources/'))
                 .on('end', () => {
-                    console.log('Version updated successfully in modinfo.json');
+                    console.log('Version and dependencies updated successfully in modinfo.json');
                     resolve();
                 })
                 .on('error', reject);
@@ -38,7 +48,7 @@ async function setVersion() {
 
         await new Promise((resolve, reject) => {
             gulp.src('./CarryOn.csproj')
-                .pipe(replace(/<Version>.*?<\/Version>/, `<Version>${carryOnVersion}</Version>`))
+                .pipe(replace(/<Version>.*?<\/Version>/, `<Version>${modVersion}</Version>`))
                 .pipe(gulp.dest('./'))
                 .on('end', () => {
                     console.log('Version updated successfully in CarryOn.csproj');
@@ -49,14 +59,16 @@ async function setVersion() {
 
         await new Promise((resolve, reject) => {
             gulp.src('./src/CarrySystem.cs')
-                .pipe(replace(/(Version\s*=\s*")[^"]*(")/, `$1${carryOnVersion}$2`))
-                .pipe(replace(
-                    /\[assembly:\s*ModDependency\(\s*"game"\s*,\s*"(.*?)"\s*\)\]/,
-                    `[assembly: ModDependency("game", "${vintageStoryVersion}")]`
-                ))
+                .pipe(replace(/(Version\s*=\s*")[^"]*(")/, `$1${modVersion}$2`))
+                .pipe(replace(/\[assembly:\s*ModDependency\(\s*"(.*?)"\s*,\s*"(.*?)"\s*\)\]/g, (match, dep, ver) => {
+                    if (dependencies.hasOwnProperty(dep)) {
+                        return `[assembly: ModDependency("${dep}", "${dependencies[dep]}")]`;
+                    }
+                    return match;
+                }))
                 .pipe(gulp.dest('./src/'))
                 .on('end', () => {
-                    console.log('Version updated successfully in CarrySystem.cs');
+                    console.log('Version and dependencies updated successfully in CarrySystem.cs');
                     resolve();
                 })
                 .on('error', reject);
@@ -71,16 +83,15 @@ async function setVersion() {
 }
 
 function renameZip() {
-    const carryOnVersion = require('./CarryOn.json').carryOnVersion;
-    const vintageStoryVersion = require('./CarryOn.json').vintageStoryVersion;
+    const vintageStoryVersion = versionData.dependencies.game;
 
-    if (!carryOnVersion || !vintageStoryVersion) {
-        console.error('Cannot rename zip: carryOnVersion or vintageStoryVersion is not set.');
-        return Promise.reject(new Error('carryOnVersion or vintageStoryVersion not set'));
+    if (!modVersion || !vintageStoryVersion) {
+        console.error('Cannot rename zip: modVersion or dependencies.game is not set in version.json.');
+        return Promise.reject(new Error('modVersion or dependencies.game not set in version.json'));
     }
 
     const oldName = `CarryOn.zip`;
-    const newName = `CarryOn-${vintageStoryVersion}_v${carryOnVersion}.zip`;
+    const newName = `CarryOn-${vintageStoryVersion}_v${modVersion}.zip`;
     const destinationPath = `./release`;
     const sourcePath = `./bin`;
 
