@@ -5,7 +5,6 @@ using CarryOn.API.Event;
 using CarryOn.Common.Behaviors;
 using CarryOn.Common.Models;
 using CarryOn.Common.Network;
-using CarryOn.Config;
 using CarryOn.Server.Logic;
 using CarryOn.Utility;
 using Vintagestory.API.Common;
