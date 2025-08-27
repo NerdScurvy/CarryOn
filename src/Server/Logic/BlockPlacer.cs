@@ -128,7 +128,7 @@ namespace CarryOn.Server.Logic
                 var blockEntity = BlockAccessor.GetBlockEntity(multiblockOrigin.Position);
                 var doorBehavior = blockEntity?.GetBehavior<BEBehaviorDoor>();
 
-                return !doorBehavior?.Opened ?? false;
+                return doorBehavior?.Opened == true;
             }
 
            if (testBlock.HasBehavior<BlockBehaviorTrapDoor>())
@@ -136,7 +136,7 @@ namespace CarryOn.Server.Logic
                 var blockEntity = BlockAccessor.GetBlockEntity(multiblockOrigin.Position);
                 var doorBehavior = blockEntity?.GetBehavior<BEBehaviorTrapDoor>();
 
-                return doorBehavior?.Opened ?? false;
+                return doorBehavior?.Opened == true;
             }                
 
             // Check if the block is gas, liquid, or rain permeable with the assumption that rain permeable blocks are non-solid and the player can access beyond them;
