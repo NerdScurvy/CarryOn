@@ -8,7 +8,7 @@ namespace CarryOn.Common.Behaviors
 {
     /// <summary> Block behavior which, when added to a block, will allow
     ///           said block to be picked up by players and carried around. </summary>
-    public class BlockBehaviorCarryableInteract : BlockBehaviorConditional
+    public class BlockBehaviorCarryableInteract : BlockBehavior, IConditionalBlockBehavior
     {
         public static string Name { get; } = "CarryableInteract";
 
@@ -16,6 +16,8 @@ namespace CarryOn.Common.Behaviors
             = new BlockBehaviorCarryableInteract(null);
 
         public float InteractDelay { get; private set; } = CarrySystem.InteractSpeedDefault;
+
+        public string EnabledCondition { get; set; }
 
         public IList<AllowedCarryable> AllowedCarryables { get; } = new List<AllowedCarryable>();
 
@@ -26,6 +28,7 @@ namespace CarryOn.Common.Behaviors
         {
             base.Initialize(properties);
             if (JsonHelper.TryGetFloat(properties, "interactDelay", out var d)) InteractDelay = d;
+            if (JsonHelper.TryGetString(properties, "enabledCondition", out var e)) EnabledCondition = e;
 
             // Whitelist of carryable blocks that can be used to interact with a block entity
             if (!properties.KeyExists("allowedCarryables")) return;
@@ -58,6 +61,11 @@ namespace CarryOn.Common.Behaviors
             }
 
             return false;
+        }
+
+        public void ProcessConditions(ICoreAPI api, Block block)
+        {
+           
         }
 
         public class AllowedCarryable

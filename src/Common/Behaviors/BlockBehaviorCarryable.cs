@@ -5,6 +5,7 @@ using CarryOn.API.Common;
 using CarryOn.Config;
 using CarryOn.Server.Models;
 using CarryOn.Utility;
+using Newtonsoft.Json.Linq;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
@@ -15,7 +16,7 @@ namespace CarryOn.Common.Behaviors
 {
     /// <summary> Block behavior which, when added to a block, will allow
     ///           said block to be picked up by players and carried around. </summary>
-    public class BlockBehaviorCarryable : BlockBehaviorConditional
+    public class BlockBehaviorCarryable : BlockBehavior, IConditionalBlockBehavior
     {
         public static string Name { get; } = "Carryable";
 
@@ -69,6 +70,8 @@ namespace CarryOn.Common.Behaviors
 
         public Type TransferHandlerType { get; set; } = null;
 
+        public string EnabledCondition { get; set; }
+
         public CollectibleBehavior TransferHandlerBehavior { get; private set; } = null;
 
         public ICarryableTransfer TransferHandler { get; private set; } = null;
@@ -77,6 +80,7 @@ namespace CarryOn.Common.Behaviors
             : base(block) { }
 
         public JsonObject Properties { get; set; }
+        
 
         public override void Initialize(JsonObject properties)
         {
@@ -92,9 +96,47 @@ namespace CarryOn.Common.Behaviors
 
             if (JsonHelper.TryGetBool(properties, "preventAttaching", out var a)) PreventAttaching = a;
 
+            if (JsonHelper.TryGetString(properties, "enabledCondition", out var e)) EnabledCondition = e;
+
             DefaultTransform = JsonHelper.GetTransform(properties, DefaultBlockTransform);
             Slots.Initialize(properties["slots"], DefaultTransform);
 
+        }
+
+        public void ProcessConditions(ICoreAPI api, Block block)
+        {
+            // Check each slot's SlotSettings.EnabledCondition and remove if condition is false
+            var config = api.World.Config;
+            var slotsToRemove = new List<CarrySlot>();
+            foreach (var kvp in Slots._dict.ToList())
+            {
+                var slot = kvp.Key;
+                var settings = kvp.Value;
+                if (!string.IsNullOrWhiteSpace(settings.EnabledCondition))
+                {
+                    bool enabled = config.EvaluateDotNotationLogic(api, settings.EnabledCondition);
+                    if (!enabled)
+                    {
+                        slotsToRemove.Add(slot);
+                    }
+                }
+            }
+            
+            if (slotsToRemove.Count > 0)
+            {
+                // Removing slot from instance and propertiesAtString to disable the slot
+                var jObj = JObject.Parse(propertiesAtString);
+                var jSlots = jObj["slots"] as JObject;
+
+                // Remove slots that are disabled
+                foreach (var slot in slotsToRemove)
+                {
+                    jSlots?.Remove(slot.ToString());
+                    Slots.RemoveSlot(slot); // For server instance
+                }
+                // Updating propertiesAtString which is sent to the client
+                propertiesAtString = jObj.ToString();
+            }
         }
 
         public void ConfigureTransferBehavior(Type type, ICoreAPI api)
@@ -166,11 +208,17 @@ namespace CarryOn.Common.Behaviors
             public string Animation { get; set; }
 
             public float WalkSpeedModifier { get; set; } = 0.0F;
+
+            public string EnabledCondition { get; set; }
         }
 
         public class SlotStorage
         {
-            private readonly Dictionary<CarrySlot, SlotSettings> _dict = new();
+            public readonly Dictionary<CarrySlot, SlotSettings> _dict = new();
+            public void RemoveSlot(CarrySlot slot)
+            {
+                _dict.Remove(slot);
+            }
 
             public SlotSettings this[CarrySlot slot]
                 => _dict.TryGetValue(slot, out var settings) ? settings : null;
@@ -192,14 +240,6 @@ namespace CarryOn.Common.Behaviors
                         var slotProperties = properties[slot.ToString()];
                         if (slotProperties?.Exists != true) continue;
 
-                        // If world config is false then do not include the shot settings
-                        var jsonObjProperty = slotProperties["keepWhenTrue"];
-                        if (ModConfig.World?.Config != null && jsonObjProperty.Exists
-                            && !ModConfig.World.Config.GetBool(jsonObjProperty.AsString(), true))
-                        {
-                            continue;
-                        }
-
                         if (!_dict.TryGetValue(slot, out var settings))
                         {
                             if (!DefaultAnimation.TryGetValue(slot, out var anim)) anim = null;
@@ -211,6 +251,8 @@ namespace CarryOn.Common.Behaviors
 
                         if (!DefaultWalkSpeed.TryGetValue(slot, out var speed)) speed = 0.0F;
                         settings.WalkSpeedModifier = slotProperties["walkSpeedModifier"].AsFloat(speed);
+
+                        if (JsonHelper.TryGetString(slotProperties, "enabledCondition", out var e)) settings.EnabledCondition = e;
                     }
                 }
             }

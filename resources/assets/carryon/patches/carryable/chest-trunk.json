@@ -30,7 +30,7 @@
               180,
               0
             ],
-            "keepWhenTrue": "carryon:AllowChestTrunksOnBack"
+            "enabledCondition": "carryon.CarryOptions.AllowChestTrunksOnBack"
           }
         },
         "multiblockOffset": [0, 0, 1]

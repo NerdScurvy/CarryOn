@@ -13,7 +13,7 @@
           "Hands": {},
           "Back": {
             "walkSpeedModifier": -0.2,
-            "keepWhenTrue": "carryon:AllowCratesOnBack"            
+            "enabledCondition": "carryon.CarryOptions.AllowCratesOnBack"
           }
         },
         "patchPriority": 1

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CarryOn.API.Common;
 using CarryOn.Common.Behaviors;
 using CarryOn.Config;
 using CarryOn.Utility;
@@ -30,22 +31,24 @@ namespace CarryOn.Server.Logic
         {
             var config = api.World.Config;
 
-            foreach (var block in api.World.Blocks.Where(b => b.BlockBehaviors.Any(beh => beh is BlockBehaviorConditional)))
+            foreach (var block in api.World.Blocks.Where(b => b.BlockBehaviors.Any(beh => beh is IConditionalBlockBehavior)))
             {
                 // Get all conditional behaviors
-                var conditionalBehaviors = block.BlockBehaviors.OfType<BlockBehaviorConditional>().ToList();
+                var conditionalBehaviors = block.BlockBehaviors.OfType<IConditionalBlockBehavior>().ToList();
 
-                // If any conditional behavior is disabled, remove all carryable behaviors
-                bool anyDisabled = conditionalBehaviors.Any(behavior =>
-                    behavior.EnabledCondition == null
-                        ? false
-                        : !config.EvaluateDotNotationLogic(api, behavior.EnabledCondition.ToString())
-                );
+                foreach (var behavior in conditionalBehaviors)
+                {
+                    if (behavior.EnabledCondition != null && !config.EvaluateDotNotationLogic(api, behavior.EnabledCondition))
+                    {
+                        // Remove all behaviors of this type if disabled
+                        block.BlockBehaviors = RemoveBehaviorsOfType(block.BlockBehaviors, behavior.GetType());
+                        block.CollectibleBehaviors = RemoveBehaviorsOfType(block.CollectibleBehaviors, behavior.GetType());
+                        continue;
+                    }
+                    // If we reach here, the behavior is enabled
+                    behavior.ProcessConditions(api, block);
 
-                if (!anyDisabled) continue;
-
-                block.BlockBehaviors = RemoveCarryableBehaviors(block.BlockBehaviors);
-                block.CollectibleBehaviors = RemoveCarryableBehaviors(block.CollectibleBehaviors);
+                }
             }
         }
 
@@ -71,8 +74,8 @@ namespace CarryOn.Server.Logic
                     if (block.Code.ToString().StartsWith(remove))
                     {
                         var count = block.BlockBehaviors.Length;
-                        block.BlockBehaviors = RemoveCarryableBehaviors(block.BlockBehaviors);
-                        block.CollectibleBehaviors = RemoveCarryableBehaviors(block.CollectibleBehaviors);
+                        block.BlockBehaviors = RemoveBehaviorsOfType(block.BlockBehaviors, typeof(BlockBehaviorCarryable));
+                        block.CollectibleBehaviors = RemoveBehaviorsOfType(block.CollectibleBehaviors, typeof(BlockBehaviorCarryable));
 
                         if (count != block.BlockBehaviors.Length && loggingEnabled)
                         {
@@ -142,11 +145,11 @@ namespace CarryOn.Server.Logic
         /// <summary>
         /// Removes all BlockBehaviorCarryable from an array of behaviors (BlockBehavior[] or CollectibleBehavior[]).
         /// </summary>
-        public static T[] RemoveCarryableBehaviors<T>(T[] behaviours)
+        public static T[] RemoveBehaviorsOfType<T>(T[] behaviours, Type typeToRemove)
         {
             if (behaviours == null) return null;
             var behaviourList = behaviours.ToList();
-            behaviourList.RemoveAll(r => r is BlockBehaviorCarryable);
+            behaviourList.RemoveAll(r => typeToRemove.IsInstanceOfType(r));
             return behaviourList.ToArray();
         }
 
