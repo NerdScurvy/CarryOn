@@ -90,7 +90,7 @@ namespace CarryOn
             {
                 try
                 {
-                    this.harmony = new Harmony("CarryOn");
+                    this.harmony = new Harmony(ModId);
                     this.harmony.PatchAll();
                     api.World.Logger.Notification("CarryOn: Harmony patches enabled.");
                 }
@@ -194,7 +194,7 @@ namespace CarryOn
         {
             if (this.harmony != null)
             {
-                this.harmony.UnpatchAll("CarryOn");
+                this.harmony.UnpatchAll(ModId);
                 this.harmony = null;
             }
 
