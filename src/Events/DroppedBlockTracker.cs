@@ -2,6 +2,7 @@ using CarryOn.API.Common;
 using CarryOn.API.Event.Data;
 using CarryOn.Config;
 using CarryOn.Server.Models;
+using CarryOn.Utility;
 using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
 
@@ -14,8 +15,16 @@ namespace CarryOn.Events
     {
         private ICarryManager carryManager;
 
+        private bool loggingEnabled = false;
+
         public void Init(ICarryManager carryManager)
         {
+            var carrySystem = carryManager?.Api?.World?.GetCarrySystem();
+            if (carrySystem != null)
+            {
+                this.loggingEnabled = carrySystem.Config.DebuggingOptions.LoggingEnabled;
+            }
+
             this.carryManager = carryManager;
             var events = carryManager.CarryEvents;
 
@@ -53,17 +62,16 @@ namespace CarryOn.Events
             if (isReinforced) return;
 
             var world = playerEntity.Api.World;
-            var loggingEnabled = ModConfig.ServerConfig?.DebuggingOptions?.LoggingEnabled == true;
 
             // Check if block was dropped by a player
             var droppedBlock = DroppedBlockInfo.Get(pos, playerEntity.Player);
             if (droppedBlock != null)
             {
-                if (loggingEnabled) world.Logger.Debug($"Dropped block found at '{pos}'");
+                if (this.loggingEnabled) world.Logger.Debug($"Dropped block found at '{pos}'");
                 hasPermission = true;
                 return;
             }
-            if (loggingEnabled) world.Logger.Debug($"No dropped block found at '{pos}'");
+            if (this.loggingEnabled) world.Logger.Debug($"No dropped block found at '{pos}'");
         }
 
         /// <summary>

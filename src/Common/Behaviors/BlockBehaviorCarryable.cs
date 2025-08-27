@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CarryOn.API.Common;
-using CarryOn.Config;
 using CarryOn.Server.Models;
 using CarryOn.Utility;
 using Newtonsoft.Json.Linq;

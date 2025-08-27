@@ -1,12 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using CarryOn.API.Common;
 using CarryOn.Common.Behaviors;
 using CarryOn.Config;
 using CarryOn.Utility;
 using Vintagestory.API.Common;
-using Vintagestory.API.Datastructures;
 using Vintagestory.API.Util;
 using static CarryOn.Utility.Extensions;
 
@@ -15,8 +13,12 @@ namespace CarryOn.Server.Logic
     public class BehaviorialConditioning
     {
 
-        public void Init(ICoreAPI api)
+        public CarryOnConfig Config { get; private set; }
+
+        public void Init(ICoreAPI api, CarryOnConfig config)
         {
+            this.Config = config;
+
             RemoveDisabledConditionalBehaviors(api);
             ResolveMultipleCarryableBehaviors(api);
             AutoMapSimilarCarryables(api);
@@ -58,10 +60,12 @@ namespace CarryOn.Server.Logic
         /// <param name="api"></param>
         private void RemoveExcludedCarryableBehaviors(ICoreAPI api)
         {
-            var loggingEnabled = ModConfig.ServerConfig.DebuggingOptions.LoggingEnabled;
-            var filters = ModConfig.ServerConfig.CarryablesFilters;
 
-            var removeArray = filters.RemoveCarryableBehaviour;
+            var loggingEnabled = Config?.DebuggingOptions?.LoggingEnabled ?? false;
+            var filters = Config?.CarryablesFilters;
+
+
+            var removeArray = filters?.RemoveCarryableBehaviour;
             if (removeArray == null || removeArray.Length == 0)
             {
                 return;
@@ -92,7 +96,7 @@ namespace CarryOn.Server.Logic
         /// <param name="api"></param>
         private void ResolveMultipleCarryableBehaviors(ICoreAPI api)
         {
-            var filters = ModConfig.ServerConfig.CarryablesFilters;
+            var filters = Config?.CarryablesFilters; 
 
             foreach (var block in api.World.Blocks)
             {
@@ -159,8 +163,8 @@ namespace CarryOn.Server.Logic
         /// <param name="api"></param>
         private void AutoMapSimilarCarryableInteract(ICoreAPI api)
         {
-            var loggingEnabled = ModConfig.ServerConfig.DebuggingOptions.LoggingEnabled;
-            var filters = ModConfig.ServerConfig.CarryablesFilters;
+            var loggingEnabled = Config?.DebuggingOptions?.LoggingEnabled ?? false;
+            var filters = Config?.CarryablesFilters;
 
             if (!filters.AutoMapSimilar) return;
 
@@ -191,9 +195,8 @@ namespace CarryOn.Server.Logic
         /// <param name="api"></param>
         private void AutoMapSimilarCarryables(ICoreAPI api)
         {
-            var loggingEnabled = ModConfig.ServerConfig.DebuggingOptions.LoggingEnabled;
-
-            var filters = ModConfig.ServerConfig.CarryablesFilters;
+            var loggingEnabled = Config?.DebuggingOptions?.LoggingEnabled ?? false;
+            var filters = Config?.CarryablesFilters; 
 
             if (!filters.AutoMapSimilar) return;
 

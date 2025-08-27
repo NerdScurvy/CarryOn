@@ -76,17 +76,28 @@ namespace CarryOn
 
         public ICarryManager CarryManager => CarryOnLib?.CarryManager;
 
+        private CarryOnConfig config = null;
+
+        public CarryOnConfig Config
+        {
+            get { return config ??= CarryOnConfig.FromTreeAttribute(Api?.World?.Config?.GetTreeAttribute(ModId)); }
+        }
+
         private Harmony harmony;
 
         public static string GetLang(string key) => Lang.Get(CarryOnCode(key)) ?? key;
 
         public override void StartPre(ICoreAPI api)
         {
+            if (api.Side == EnumAppSide.Client) ClientApi = api as ICoreClientAPI;
+            else ServerApi = api as ICoreServerAPI;
+
             base.StartPre(api);
 
-            ModConfig.ReadConfig(api);
+            var config = new ModConfig();
+            config.Init(api);
 
-            if (ModConfig.HarmonyPatchEnabled)
+            if (!Config.DebuggingOptions.DisableHarmonyPatch)
             {
                 try
                 {
@@ -184,7 +195,7 @@ namespace CarryOn
             {
                 // Behavioral conditioning and reassignment
                 var behaviorialConditioning = new BehaviorialConditioning();
-                behaviorialConditioning.Init(api);
+                behaviorialConditioning.Init(api, Config);
             }
 
             base.AssetsFinalize(api);

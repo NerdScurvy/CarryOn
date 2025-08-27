@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using CarryOn.Utility;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
@@ -7,11 +8,11 @@ using static CarryOn.API.Common.CarryCode;
 
 namespace CarryOn.Config
 {
-    static class ModConfig
+    public class ModConfig
     {
 
-        public static CarryOnConfig ServerConfig { get; private set; }
-        public static IWorldAccessor World { get; private set; }
+        public CarryOnConfig ServerConfig { get; private set; }
+        public IWorldAccessor World { get; private set; }
 
         private static readonly string allowSprintKey = CarryOnCode("AllowSprintWhileCarrying");
         private static readonly string ignoreSpeedPenaltyKey = CarryOnCode("IgnoreCarrySpeedPenalty");
@@ -21,7 +22,7 @@ namespace CarryOn.Config
         private static readonly string backSlotEnabledKey = CarryOnCode("BackSlotEnabled");
         private static readonly string henboxEnabledKey = CarryOnCode("HenboxEnabled");
 
-        public static bool AllowSprintWhileCarrying
+        public bool AllowSprintWhileCarrying
         {
             get
             {
@@ -34,7 +35,7 @@ namespace CarryOn.Config
                 World.Config.SetBool(allowSprintKey, value);
             }
         }
-        public static bool IgnoreCarrySpeedPenalty
+        public bool IgnoreCarrySpeedPenalty
         {
             get
             {
@@ -47,7 +48,7 @@ namespace CarryOn.Config
                 World.Config.SetBool(ignoreSpeedPenaltyKey, value);
             }
         }
-        public static bool RemoveInteractDelayWhileCarrying
+        public bool RemoveInteractDelayWhileCarrying
         {
             get
             {
@@ -60,7 +61,7 @@ namespace CarryOn.Config
                 World.Config.SetBool(removeInteractDelayKey, value);
             }
         }
-        public static float InteractSpeedMultiplier
+        public float InteractSpeedMultiplier
         {
             get
             {
@@ -77,7 +78,7 @@ namespace CarryOn.Config
                 World.Config.SetFloat(interactSpeedMultiplierKey, value);
             }
         }
-        public static bool HarmonyPatchEnabled
+        public bool HarmonyPatchEnabled
         {
             get
             {
@@ -90,7 +91,7 @@ namespace CarryOn.Config
                 World.Config.SetBool(harmonyPatchEnabledKey, value);
             }
         }
-        public static bool BackSlotEnabled
+        public bool BackSlotEnabled
         {
             get
             {
@@ -104,23 +105,9 @@ namespace CarryOn.Config
             }
         }
 
-        public static bool HenboxEnabled
-        {
-            get
-            {
-                return World?.Config?.GetBool(henboxEnabledKey, true) ?? true;
-            }
-            set
-            {
-                if (World?.Config == null)
-                    throw new InvalidOperationException("World or World.Config is null. Cannot set HenboxEnabled.");
-                World.Config.SetBool(henboxEnabledKey, value);
-            }
-        }
+        public const string ConfigFile = "CarryOnConfig.json";
 
-        public static string ConfigFile = "CarryOnConfig.json";
-
-        public static void ReadConfig(ICoreAPI api)
+        public void Init(ICoreAPI api)
         {
             World = api.World;
             if (api.Side == EnumAppSide.Server)
@@ -183,12 +170,8 @@ namespace CarryOn.Config
                 worldConfig.GetOrAddTreeAttribute(ModId).MergeTree(ServerConfig.ToTreeAttribute());
 
             }
-        }
 
-        public static string[] CloneArray(string[] source)
-        {
-            return source != null ? (string[])source.Clone() : [];
-        }        
+        }
 
     }
 }

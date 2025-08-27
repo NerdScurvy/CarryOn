@@ -2,7 +2,6 @@ using System;
 using System.Linq;
 using CarryOn.API.Common;
 using CarryOn.Common.Network;
-using CarryOn.Config;
 using CarryOn.Utility;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
@@ -13,6 +12,7 @@ using Vintagestory.API.Server;
 using Vintagestory.GameContent;
 using static CarryOn.CarrySystem;
 using static CarryOn.API.Common.CarryCode;
+using static CarryOn.Utility.Extensions;
 using Vintagestory.API.Util;
 using HarmonyLib;
 using CarryOn.Common.Behaviors;
@@ -27,11 +27,22 @@ namespace CarryOn.Common.Handlers
     /// </summary>
     public class CarryHandler : IDisposable
     {
+        private ICoreAPI api;
+
         private long gameTickListenerId;
 
         private readonly CarrySystem carrySystem;
 
-        private ICoreAPI api;
+        private bool? allowSprintWhileCarrying;
+        private bool? backSlotEnabled;
+        private bool? removeInteractDelayWhileCarrying;
+        private float? interactSpeedMultiplier;
+
+        public bool RemoveInteractDelayWhileCarrying => removeInteractDelayWhileCarrying ??= this.carrySystem?.Config?.CarryOptions?.RemoveInteractDelayWhileCarrying ?? false;
+        public bool AllowSprintWhileCarrying => allowSprintWhileCarrying ??= this.carrySystem?.Config?.CarryOptions?.AllowSprintWhileCarrying ?? false;
+        public bool BackSlotEnabled => backSlotEnabled ??= this.carrySystem?.Config?.CarryOptions?.BackSlotEnabled ?? false;
+        public float InteractSpeedMultiplier => interactSpeedMultiplier ??= this.carrySystem.Config.CarryOptions?.InteractSpeedMultiplier ?? 1.0f;
+
         private ICoreClientAPI clientApi;
         private ICoreServerAPI serverApi;
         private ICarryManager carryManager;
@@ -473,7 +484,9 @@ namespace CarryOn.Common.Handlers
         /// <returns></returns>
         private bool BeginSwapBackInteraction(ref EnumHandling handled)
         {
-            if (!ModConfig.BackSlotEnabled) return false;
+            var backSlotEnabled = this.carrySystem?.Config?.CarryOptions?.BackSlotEnabled ?? false;
+
+            if (!backSlotEnabled) return false;
 
             var world = ClientApi.World;
             var player = world.Player;
@@ -834,7 +847,7 @@ namespace CarryOn.Common.Handlers
                     isInteract = false;
                     break;
                 case EnumEntityAction.Sprint:
-                    if (ModConfig.AllowSprintWhileCarrying) return;
+                    if (AllowSprintWhileCarrying) return;
                     isInteract = false;
                     break;
                 default: return;
@@ -942,7 +955,7 @@ namespace CarryOn.Common.Handlers
                     break;
 
                 case CarryAction.SwapBack:
-                    if (!ModConfig.BackSlotEnabled) return;
+                    if (!BackSlotEnabled) return;
 
                     var carriedBack = player.Entity.GetCarried(CarrySlot.Back);
                     // Get the carry behavior from from hands slot unless null, then from back slot.
@@ -981,7 +994,7 @@ namespace CarryOn.Common.Handlers
             }
             else if (Interaction.CarryAction == CarryAction.Interact)
             {
-                if (ModConfig.RemoveInteractDelayWhileCarrying) requiredTime = 0;
+                if (RemoveInteractDelayWhileCarrying) requiredTime = 0;
                 else requiredTime = interactBehavior?.InteractDelay ?? InteractSpeedDefault;
             }
             else
@@ -995,7 +1008,7 @@ namespace CarryOn.Common.Handlers
                 }
             }
 
-            requiredTime /= ModConfig.InteractSpeedMultiplier > 0 ? ModConfig.InteractSpeedMultiplier : 1.0f;
+            requiredTime /= InteractSpeedMultiplier > 0 ? InteractSpeedMultiplier : 1.0f;
 
             Interaction.TimeHeld += deltaTime;
             var progress = Interaction.TimeHeld / requiredTime;
@@ -1222,7 +1235,7 @@ namespace CarryOn.Common.Handlers
 
         public void OnSwapSlotsMessage(IServerPlayer player, SwapSlotsMessage message)
         {
-            if (!ModConfig.BackSlotEnabled) return;
+            if (!BackSlotEnabled) return;
 
             if ((message.First != message.Second) && (message.First == CarrySlot.Back) ||
                 CanInteract(player.Entity, true))

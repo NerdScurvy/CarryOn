@@ -29,6 +29,11 @@ namespace CarryOn.API.Common
 
         public CarryEvents CarryEvents => CarrySystem?.CarryEvents;
 
+
+        private bool? allowSprintWhileCarrying;
+        public bool AllowSprintWhileCarrying => allowSprintWhileCarrying ??= CarrySystem?.Config?.CarryOptions?.AllowSprintWhileCarrying ?? false;
+
+
         public CarryManager(CarrySystem carrySystem)
         {
             CarrySystem = carrySystem ?? throw new ArgumentNullException(nameof(carrySystem));
@@ -119,7 +124,7 @@ namespace CarryOn.API.Common
             if (entity is EntityAgent agent)
             {
                 var speed = slotSettings?.WalkSpeedModifier ?? 0.0F;
-                if (speed != 0.0F && !ModConfig.AllowSprintWhileCarrying)
+                if (speed != 0.0F && !AllowSprintWhileCarrying)
                 {
                     agent.Stats.Set("walkspeed",
                        CarryOnCode(slot.ToString()), speed, false);
