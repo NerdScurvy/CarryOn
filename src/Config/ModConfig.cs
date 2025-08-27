@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
-using CarryOn.Utility;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
 using static CarryOn.API.Common.CarryCode;
@@ -13,97 +11,6 @@ namespace CarryOn.Config
 
         public CarryOnConfig ServerConfig { get; private set; }
         public IWorldAccessor World { get; private set; }
-
-        private static readonly string allowSprintKey = CarryOnCode("AllowSprintWhileCarrying");
-        private static readonly string ignoreSpeedPenaltyKey = CarryOnCode("IgnoreCarrySpeedPenalty");
-        private static readonly string removeInteractDelayKey = CarryOnCode("RemoveInteractDelayWhileCarrying");
-        private static readonly string interactSpeedMultiplierKey = CarryOnCode("InteractSpeedMultiplier");
-        private static readonly string harmonyPatchEnabledKey = CarryOnCode("HarmonyPatchEnabled");
-        private static readonly string backSlotEnabledKey = CarryOnCode("BackSlotEnabled");
-        private static readonly string henboxEnabledKey = CarryOnCode("HenboxEnabled");
-
-        public bool AllowSprintWhileCarrying
-        {
-            get
-            {
-                return World?.Config?.GetBool(allowSprintKey, false) ?? false;
-            }
-            set
-            {
-                if (World?.Config == null)
-                    throw new InvalidOperationException("World or World.Config is null. Cannot set AllowSprintWhileCarrying.");
-                World.Config.SetBool(allowSprintKey, value);
-            }
-        }
-        public bool IgnoreCarrySpeedPenalty
-        {
-            get
-            {
-                return World?.Config?.GetBool(ignoreSpeedPenaltyKey, false) ?? false;
-            }
-            set
-            {
-                if (World?.Config == null)
-                    throw new InvalidOperationException("World or World.Config is null. Cannot set IgnoreCarrySpeedPenalty.");
-                World.Config.SetBool(ignoreSpeedPenaltyKey, value);
-            }
-        }
-        public bool RemoveInteractDelayWhileCarrying
-        {
-            get
-            {
-                return World?.Config?.GetBool(removeInteractDelayKey, false) ?? false;
-            }
-            set
-            {
-                if (World?.Config == null)
-                    throw new InvalidOperationException("World or World.Config is null. Cannot set RemoveInteractDelayWhileCarrying.");
-                World.Config.SetBool(removeInteractDelayKey, value);
-            }
-        }
-        public float InteractSpeedMultiplier
-        {
-            get
-            {
-                return World?.Config?.GetFloat(interactSpeedMultiplierKey, 1f) ?? 1f;
-            }
-
-            set
-            {
-                if (World?.Config == null)
-                    throw new InvalidOperationException("World or World.Config is null. Cannot set InteractSpeedMultiplier.");
-
-                if (value < 0.01f) value = 0.01f;
-                else if (value > 20f) value = 20f;
-                World.Config.SetFloat(interactSpeedMultiplierKey, value);
-            }
-        }
-        public bool HarmonyPatchEnabled
-        {
-            get
-            {
-                return World?.Config?.GetBool(harmonyPatchEnabledKey, true) ?? true;
-            }
-            set
-            {
-                if (World?.Config == null)
-                    throw new InvalidOperationException("World or World.Config is null. Cannot set HarmonyPatchEnabled.");
-                World.Config.SetBool(harmonyPatchEnabledKey, value);
-            }
-        }
-        public bool BackSlotEnabled
-        {
-            get
-            {
-                return World?.Config?.GetBool(backSlotEnabledKey, true) ?? true;
-            }
-            set
-            {
-                if (World?.Config == null)
-                    throw new InvalidOperationException("World or World.Config is null. Cannot set BackSlotEnabled.");
-                World.Config.SetBool(backSlotEnabledKey, value);
-            }
-        }
 
         public const string ConfigFile = "CarryOnConfig.json";
 
