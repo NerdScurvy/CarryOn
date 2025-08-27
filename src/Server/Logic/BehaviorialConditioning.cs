@@ -7,34 +7,31 @@ using CarryOn.Utility;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.Util;
+using static CarryOn.Utility.BlockUtils;
 
 namespace CarryOn.Server.Logic
 {
     public class BehaviorialConditioning
     {
-
         public void Init(ICoreAPI api)
         {
-            RemoveDisabledCarryableBehaviours(api);
+            RemoveDisabledCarryableBehaviors(api);
             ManuallyAddCarryableBehaviors(api);
             ResolveMultipleCarryableBehaviors(api);
             AutoMapSimilarCarryables(api);
             AutoMapSimilarCarryableInteract(api);
-            RemoveExcludedCarryableBehaviours(api);
+            RemoveExcludedCarryableBehaviors(api);
         }
 
         /// <summary>
         /// Removes all carryable behaviors from blocks that are not enabled by the EnabledCondition.
         /// </summary>
-        private void RemoveDisabledCarryableBehaviours(ICoreAPI api)
+        private void RemoveDisabledCarryableBehaviors(ICoreAPI api)
         {
             // Find all blocks with disabled carryable behaviors
             var blocksWithEnabledKey = api.World.Blocks.Where(b => b.HasBehavior<BlockBehaviorCarryable>());
 
             IAttribute carryOnConfig, carryables;
-
-            // TODO: Allow checking in different world config locations
-            // Current implementation is only looking at carryon.Carryables
 
             if (!api.World.Config.TryGetAttribute("carryon", out carryOnConfig)) return;
 
@@ -59,51 +56,26 @@ namespace CarryOn.Server.Logic
 
                 // Support dot notation for enabledCondition
                 var keys = behavior.EnabledCondition.Split('.');
-                IAttribute current = api.World.Config;
-                bool? isEnabled = null;
-                foreach (var key in keys)
-                {
-                    if (current is TreeAttribute tree)
-                    {
-                        if (tree.HasAttribute(key))
-                        {
-                            current = tree[key];
-                        }
-                        else
-                        {
-                            current = null;
-                            break;
-                        }
-                    }
-                    else
-                    {
-                        current = null;
-                        break;
-                    }
-                }
-                if (current is BoolAttribute boolAttr)
+
+                IAttribute attribute = api.World.Config.LookupConfigValue(behavior.EnabledCondition);
+
+                bool isEnabled;
+
+                if (attribute is BoolAttribute boolAttr)
                 {
                     isEnabled = boolAttr.value;
                 }
-                else if (current is TreeAttribute treeAttr && treeAttr is not null)
-                {
-                    // If the final attribute is a TreeAttribute, treat as enabled
-                    isEnabled = true;
-                }
                 else
                 {
-                    isEnabled = null;
-                }
-
-                if (!isEnabled.HasValue)
-                {
+                    // Attribute is not a boolean or not found so we will treat it as enabled by default
                     api.Logger.Warning($"CarryOn: {behavior.EnabledCondition} is not a boolean or not found");
+                    isEnabled = true;
                 }
 
-                if (isEnabled.HasValue && isEnabled.Value) continue;
+                if (isEnabled) continue;
 
-                block.BlockBehaviors = RemoveCarryableBehaviours(block.BlockBehaviors.OfType<CollectibleBehavior>().ToArray()).OfType<BlockBehavior>().ToArray();
-                block.CollectibleBehaviors = RemoveCarryableBehaviours(block.CollectibleBehaviors);
+                block.BlockBehaviors = RemoveCarryableBehaviors(block.BlockBehaviors);
+                block.CollectibleBehaviors = RemoveCarryableBehaviors(block.CollectibleBehaviors);
             }
         }
 
@@ -146,7 +118,7 @@ namespace CarryOn.Server.Logic
         /// Removes carryable behaviors from blocks that are excluded in the config.
         /// </summary>
         /// <param name="api"></param>
-        private void RemoveExcludedCarryableBehaviours(ICoreAPI api)
+        private void RemoveExcludedCarryableBehaviors(ICoreAPI api)
         {
             var loggingEnabled = ModConfig.ServerConfig.DebuggingOptions.LoggingEnabled;
             var filters = ModConfig.ServerConfig.CarryablesFilters;
@@ -164,8 +136,8 @@ namespace CarryOn.Server.Logic
                     if (block.Code.ToString().StartsWith(remove))
                     {
                         var count = block.BlockBehaviors.Length;
-                        block.BlockBehaviors = RemoveCarryableBehaviours(block.BlockBehaviors.OfType<CollectibleBehavior>().ToArray()).OfType<BlockBehavior>().ToArray();
-                        block.CollectibleBehaviors = RemoveCarryableBehaviours(block.CollectibleBehaviors);
+                        block.BlockBehaviors = RemoveCarryableBehaviors(block.BlockBehaviors);
+                        block.CollectibleBehaviors = RemoveCarryableBehaviors(block.CollectibleBehaviors);
 
                         if (count != block.BlockBehaviors.Length && loggingEnabled)
                         {
@@ -196,8 +168,8 @@ namespace CarryOn.Server.Logic
                         break;
                     }
                 }
-                block.BlockBehaviors = RemoveOverriddenCarryableBehaviours(block.BlockBehaviors.OfType<CollectibleBehavior>().ToArray(), removeBaseBehavior).OfType<BlockBehavior>().ToArray();
-                block.CollectibleBehaviors = RemoveOverriddenCarryableBehaviours(block.CollectibleBehaviors, removeBaseBehavior);
+                block.BlockBehaviors = RemoveOverriddenCarryableBehaviors(block.BlockBehaviors);
+                block.CollectibleBehaviors = RemoveOverriddenCarryableBehaviors(block.CollectibleBehaviors, removeBaseBehavior);
             }
         }
 
@@ -205,59 +177,43 @@ namespace CarryOn.Server.Logic
         /// Removes overridden carryable behaviors from blocks based on patch priority.
         /// </summary>
         /// <param name="api"></param>
-        private CollectibleBehavior[] RemoveOverriddenCarryableBehaviours(CollectibleBehavior[] behaviours, bool removeBaseBehavior = false)
+        private T[] RemoveOverriddenCarryableBehaviors<T>(T[] behaviours, bool removeBaseBehavior = false)
         {
+            if (behaviours == null || behaviours.Length == 0) return behaviours;
             var behaviourList = behaviours.ToList();
-            var carryableList = FindCarryables(behaviourList);
+            // Only consider BlockBehaviorCarryable instances for removal
+            var carryableList = behaviourList.OfType<BlockBehaviorCarryable>().ToList();
             if (carryableList.Count > 1)
             {
-                var priorityCarryable = carryableList.First(p => p.PatchPriority == carryableList.Max(m => m.PatchPriority));
+                var maxPriority = carryableList.Max(m => m.PatchPriority);
+                var priorityCarryable = carryableList.FirstOrDefault(p => p.PatchPriority == maxPriority);
                 if (priorityCarryable != null)
                 {
                     if (!(removeBaseBehavior && priorityCarryable.PatchPriority == 0))
                     {
                         carryableList.Remove(priorityCarryable);
                     }
-                    behaviourList.RemoveAll(r => carryableList.Contains(r));
+                    behaviourList.RemoveAll(r => carryableList.Any(c => ReferenceEquals(r, c)));
                 }
             }
             else if (removeBaseBehavior && carryableList.Count == 1 && carryableList[0].PatchPriority == 0)
             {
                 // Remove base behavior
-                behaviourList.RemoveAll(r => carryableList.Contains(r));
+                behaviourList.RemoveAll(r => carryableList.Any(c => ReferenceEquals(r, c)));
             }
             return behaviourList.ToArray();
         }
 
         /// <summary>
-        /// Removes all carryable behaviors from a collection of behaviors.
+        /// Removes all BlockBehaviorCarryable from an array of behaviors (BlockBehavior[] or CollectibleBehavior[]).
         /// </summary>
-        /// <param name="api"></param>
-        private CollectibleBehavior[] RemoveCarryableBehaviours(CollectibleBehavior[] behaviours)
+        public static T[] RemoveCarryableBehaviors<T>(T[] behaviours)
         {
+            if (behaviours == null) return null;
             var behaviourList = behaviours.ToList();
-            var carryableList = FindCarryables(behaviourList);
-
-            if (carryableList.Count == 0) return behaviours;
-
-            behaviourList.RemoveAll(r => carryableList.Contains(r));
-
+            behaviourList.RemoveAll(r => r is BlockBehaviorCarryable);
             return behaviourList.ToArray();
-        }
-
-        // Finds all carryable behaviors in a list of behaviors.
-        private List<BlockBehaviorCarryable> FindCarryables<T>(List<T> behaviors)
-        {
-            var carryables = new List<BlockBehaviorCarryable>();
-            foreach (var behavior in behaviors)
-            {
-                if (behavior is BlockBehaviorCarryable carryable)
-                {
-                    carryables.Add(carryable);
-                }
-            }
-            return carryables;
-        }
+        }        
 
         /// <summary>
         /// Automatically maps carryable interact behaviors to similar blocks.
