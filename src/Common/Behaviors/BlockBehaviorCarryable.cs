@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CarryOn.API.Common;
 using CarryOn.Config;
-using CarryOn.Server;
+using CarryOn.Server.Models;
 using CarryOn.Utility;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;

@@ -6,7 +6,7 @@ using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using static CarryOn.API.Common.CarryCode;
 
-namespace CarryOn.Server
+namespace CarryOn.Server.Models
 {
     public class DroppedBlockInfo
     {

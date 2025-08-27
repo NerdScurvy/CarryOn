@@ -2,11 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CarryOn.API.Event;
-using CarryOn.Common;
 using CarryOn.Common.Behaviors;
 using CarryOn.Common.Models;
 using CarryOn.Common.Network;
 using CarryOn.Config;
+using CarryOn.Server.Logic;
 using CarryOn.Utility;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
@@ -582,6 +582,37 @@ namespace CarryOn.API.Common
             CarryEvents?.TriggerBlockDropped(centerBlock, entity, carriedBlock, blockDestroyed, hadContents, blockPlaced: false);
 
         }
+
+        /// <summary>
+        /// Initializes any carry events.
+        /// </summary>
+        /// <param name="api"></param>
+        public void InitEvents(ICoreAPI api)
+        {
+            var ignoreMods = new[] { "game", "creative", "survival" };
+
+            var assemblies = api.ModLoader.Mods.Where(m => !ignoreMods.Contains(m.Info.ModID))
+                                               .Select(s => s.Systems)
+                                               .SelectMany(o => o.ToArray())
+                                               .Select(t => t.GetType().Assembly)
+                                               .Distinct();
+
+            foreach (var assembly in assemblies)
+            {
+                // Initialise all ICarryEvent 
+                foreach (Type type in assembly.GetTypes().Where(t => t.GetInterfaces().Contains(typeof(ICarryEvent))))
+                {
+                    try
+                    {
+                        (Activator.CreateInstance(type) as ICarryEvent)?.Init(this);
+                    }
+                    catch (Exception e)
+                    {
+                        api.Logger.Error(e.Message);
+                    }
+                }
+            }
+        }        
 
         /// <summary>
         /// Checks if the block is carryable in the specified slot.

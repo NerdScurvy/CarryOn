@@ -5,7 +5,7 @@ using Vintagestory.API.Common.Entities;
 using static CarryOn.API.Common.CarryCode;
 using static CarryOn.Utility.Extensions;
 
-namespace CarryOn.Server
+namespace CarryOn.Server.Behaviors
 {
     public class EntityBehaviorDropCarriedOnDamage : EntityBehavior
     {

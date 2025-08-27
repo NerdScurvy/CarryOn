@@ -1,7 +1,7 @@
 using CarryOn.API.Common;
 using CarryOn.API.Event.Data;
 using CarryOn.Config;
-using CarryOn.Server;
+using CarryOn.Server.Models;
 using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
 

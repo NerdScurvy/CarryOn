@@ -2,11 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CarryOn.Common.Behaviors;
+using CarryOn.Utility;
 using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
 using Vintagestory.GameContent;
 
-namespace CarryOn.Utility
+namespace CarryOn.Server.Logic
 {
     public class BlockPlacer
     {
