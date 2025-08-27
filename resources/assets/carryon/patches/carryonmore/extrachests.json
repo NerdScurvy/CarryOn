@@ -7,7 +7,7 @@
     "value": {
       "name": "Carryable",
       "properties": {
-        "enabledCondition": "carryon.Carryables.Chest",
+        "enabledCondition": "carryon.Carryables.Chest&carryon.CarryOptions.AllowLargeChestsOnBack",
         "override": true,
         "translation": [
           0.0625,
@@ -27,10 +27,6 @@
         },
         "patchPriority": 1
       }
-    },
-    "condition": {
-      "when": "carryon:AllowLargeChestsOnBack",
-      "isValue": "true"
     },
     "dependsOn": [
       {
@@ -46,7 +42,7 @@
     "value": {
       "name": "Carryable",
       "properties": {
-        "enabledCondition": "carryon.Carryables.ChestLabeled",
+        "enabledCondition": "carryon.Carryables.ChestLabeled&carryon.CarryOptions.AllowLargeChestsOnBack",
         "override": true,
         "translation": [
           0.0625,
@@ -67,10 +63,6 @@
         "patchPriority": 1
       }
     },
-    "condition": {
-      "when": "carryon:AllowLargeChestsOnBack",
-      "isValue": "true"
-    },
     "dependsOn": [
       {
         "modid": "extrachests"
@@ -83,11 +75,10 @@
     "op": "add",
     "path": "/behaviors/-",
     "value": {
-      "name": "CarryableInteract"
-    },
-    "condition": {
-      "when": "carryon:InteractStorageEnabled",
-      "isValue": "true"
+      "name": "CarryableInteract",
+      "properties":{
+        "enabledCondition": "carryon.Interactables.Storage"
+      }
     },
     "dependsOn": [
       {
@@ -101,11 +92,10 @@
     "op": "add",
     "path": "/behaviors/-",
     "value": {
-      "name": "CarryableInteract"
-    },
-    "condition": {
-      "when": "carryon:InteractStorageEnabled",
-      "isValue": "true"
+      "name": "CarryableInteract",
+      "properties":{
+        "enabledCondition": "carryon.Interactables.Storage"
+      }
     },
     "dependsOn": [
       {

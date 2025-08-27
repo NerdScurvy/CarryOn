@@ -8,7 +8,7 @@ namespace CarryOn.Common.Behaviors
 {
     /// <summary> Block behavior which, when added to a block, will allow
     ///           said block to be picked up by players and carried around. </summary>
-    public class BlockBehaviorCarryableInteract : BlockBehavior
+    public class BlockBehaviorCarryableInteract : BlockBehaviorConditional
     {
         public static string Name { get; } = "CarryableInteract";
 

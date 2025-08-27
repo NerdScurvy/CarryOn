@@ -16,7 +16,7 @@ namespace CarryOn.Server.Logic
 
         public void Init(ICoreAPI api)
         {
-            RemoveDisabledCarryableBehaviors(api);
+            RemoveDisabledConditionalBehaviors(api);
             ResolveMultipleCarryableBehaviors(api);
             AutoMapSimilarCarryables(api);
             AutoMapSimilarCarryableInteract(api);
@@ -24,36 +24,29 @@ namespace CarryOn.Server.Logic
         }
 
         /// <summary>
-        /// Removes all carryable behaviors from blocks that are not enabled by the EnabledCondition.
+        /// Removes all conditional behaviors from blocks that are not enabled by the EnabledCondition.
         /// </summary>
-        private void RemoveDisabledCarryableBehaviors(ICoreAPI api)
+        private void RemoveDisabledConditionalBehaviors(ICoreAPI api)
         {
-            // Find all blocks with disabled carryable behaviors
-            var blocksWithEnabledKey = api.World.Blocks.Where(b => b.HasBehavior<BlockBehaviorCarryable>());
-
             var config = api.World.Config;
 
-            foreach (var block in blocksWithEnabledKey)
+            foreach (var block in api.World.Blocks.Where(b => b.BlockBehaviors.Any(beh => beh is BlockBehaviorConditional)))
             {
-                var behavior = block.GetBehavior<BlockBehaviorCarryable>();
+                // Get all conditional behaviors
+                var conditionalBehaviors = block.BlockBehaviors.OfType<BlockBehaviorConditional>().ToList();
 
-                bool isEnabled = config.EvaluateDotNotationLogic(api, behavior.EnabledCondition);
+                // If any conditional behavior is disabled, remove all carryable behaviors
+                bool anyDisabled = conditionalBehaviors.Any(behavior =>
+                    behavior.EnabledCondition == null
+                        ? false
+                        : !config.EvaluateDotNotationLogic(api, behavior.EnabledCondition.ToString())
+                );
 
-                if (isEnabled) continue;
+                if (!anyDisabled) continue;
 
                 block.BlockBehaviors = RemoveCarryableBehaviors(block.BlockBehaviors);
                 block.CollectibleBehaviors = RemoveCarryableBehaviors(block.CollectibleBehaviors);
             }
-        }
-
-        // Helper to create, initialize, and append BlockBehaviorCarryable to a collection
-        private void AddCarryableBehavior(Block block, ref BlockBehavior[] blockBehaviors, ref CollectibleBehavior[] collectibleBehaviors, JsonObject properties)
-        {
-            var blockBehavior = new BlockBehaviorCarryable(block);
-            blockBehaviors = blockBehaviors.Append(blockBehavior);
-            blockBehavior.Initialize(properties);
-
-            collectibleBehaviors = collectibleBehaviors.Append(blockBehavior);
         }
 
         /// <summary>
@@ -155,7 +148,7 @@ namespace CarryOn.Server.Logic
             var behaviourList = behaviours.ToList();
             behaviourList.RemoveAll(r => r is BlockBehaviorCarryable);
             return behaviourList.ToArray();
-        }        
+        }
 
         /// <summary>
         /// Automatically maps carryable interact behaviors to similar blocks.

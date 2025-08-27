@@ -15,7 +15,7 @@ namespace CarryOn.Common.Behaviors
 {
     /// <summary> Block behavior which, when added to a block, will allow
     ///           said block to be picked up by players and carried around. </summary>
-    public class BlockBehaviorCarryable : BlockBehavior
+    public class BlockBehaviorCarryable : BlockBehaviorConditional
     {
         public static string Name { get; } = "Carryable";
 
@@ -69,8 +69,6 @@ namespace CarryOn.Common.Behaviors
 
         public Type TransferHandlerType { get; set; } = null;
 
-        public string EnabledCondition { get; private set; }
-
         public CollectibleBehavior TransferHandlerBehavior { get; private set; } = null;
 
         public ICarryableTransfer TransferHandler { get; private set; } = null;
@@ -93,9 +91,6 @@ namespace CarryOn.Common.Behaviors
             if (JsonHelper.TryGetVec3i(properties, "multiblockOffset", out var o)) MultiblockOffset = o;
 
             if (JsonHelper.TryGetBool(properties, "preventAttaching", out var a)) PreventAttaching = a;
-
-            if (JsonHelper.TryGetString(properties, "enabledCondition", out var e))
-                EnabledCondition = e;
 
             DefaultTransform = JsonHelper.GetTransform(properties, DefaultBlockTransform);
             Slots.Initialize(properties["slots"], DefaultTransform);
