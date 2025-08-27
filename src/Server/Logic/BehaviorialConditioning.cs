@@ -7,16 +7,16 @@ using CarryOn.Utility;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.Util;
-using static CarryOn.Utility.BlockUtils;
+using static CarryOn.Utility.Extensions;
 
 namespace CarryOn.Server.Logic
 {
     public class BehaviorialConditioning
     {
+
         public void Init(ICoreAPI api)
         {
             RemoveDisabledCarryableBehaviors(api);
-            ManuallyAddCarryableBehaviors(api);
             ResolveMultipleCarryableBehaviors(api);
             AutoMapSimilarCarryables(api);
             AutoMapSimilarCarryableInteract(api);
@@ -31,76 +31,18 @@ namespace CarryOn.Server.Logic
             // Find all blocks with disabled carryable behaviors
             var blocksWithEnabledKey = api.World.Blocks.Where(b => b.HasBehavior<BlockBehaviorCarryable>());
 
-            IAttribute carryOnConfig, carryables;
-
-            if (!api.World.Config.TryGetAttribute("carryon", out carryOnConfig)) return;
-
-            carryables = carryOnConfig.TryGet("Carryables");
-            if (carryables == null)
-            {
-                api.Logger.Warning("CarryOn: Cannot find carryon.Carryables in world config");
-                return;
-            }
-
-            if (carryables is not TreeAttribute carryablesTree)
-            {
-                api.Logger.Warning("CarryOn: carryon.Carryables is not a TreeAttribute");
-                return;
-            }
+            var config = api.World.Config;
 
             foreach (var block in blocksWithEnabledKey)
             {
                 var behavior = block.GetBehavior<BlockBehaviorCarryable>();
 
-                if (string.IsNullOrWhiteSpace(behavior.EnabledCondition)) continue;
-
-                // Support dot notation for enabledCondition
-                var keys = behavior.EnabledCondition.Split('.');
-
-                IAttribute attribute = api.World.Config.LookupConfigValue(behavior.EnabledCondition);
-
-                bool isEnabled;
-
-                if (attribute is BoolAttribute boolAttr)
-                {
-                    isEnabled = boolAttr.value;
-                }
-                else
-                {
-                    // Attribute is not a boolean or not found so we will treat it as enabled by default
-                    api.Logger.Warning($"CarryOn: {behavior.EnabledCondition} is not a boolean or not found");
-                    isEnabled = true;
-                }
+                bool isEnabled = config.EvaluateDotNotationLogic(api, behavior.EnabledCondition);
 
                 if (isEnabled) continue;
 
                 block.BlockBehaviors = RemoveCarryableBehaviors(block.BlockBehaviors);
                 block.CollectibleBehaviors = RemoveCarryableBehaviors(block.CollectibleBehaviors);
-            }
-        }
-
-        /// <summary>
-        /// Manually adds carryable behaviors to specific blocks.
-        /// </summary>
-        /// <param name="api"></param>
-        private void ManuallyAddCarryableBehaviors(ICoreAPI api)
-        {
-            try
-            {
-                if (ModConfig.HenboxEnabled)
-                {
-                    var block = api.World.BlockAccessor.GetBlock("henbox");
-                    if (block != null)
-                    {
-                        // Only allow default hand slot 
-                        var properties = JsonObject.FromJson("{slots:{Hands:{}}}");
-                        AddCarryableBehavior(block, ref block.BlockBehaviors, ref block.CollectibleBehaviors, properties);
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                api.Logger.Error($"Error in ManuallyAddCarryableBehaviors: {e.Message}");
             }
         }
 

@@ -92,8 +92,8 @@ namespace CarryOn.Config
 
         public DebuggingOptionsConfig DebuggingOptions { get; set; } = new DebuggingOptionsConfig();
 
-        [JsonExtensionData]
-        public Dictionary<string, JToken> LegacyData { get; set; }
+        [JsonExtensionData(ReadData = true, WriteData = false)]
+        private Dictionary<string, JToken> LegacyData { get; set; }
 
         public CarryOnConfig()
         {
