@@ -25,7 +25,6 @@ namespace CarryOn.API.Common
 
         public CarryEvents CarryEvents => CarrySystem?.CarryEvents;
 
-
         private bool? allowSprintWhileCarrying;
         public bool AllowSprintWhileCarrying => allowSprintWhileCarrying ??= CarrySystem?.Config?.CarryOptions?.AllowSprintWhileCarrying ?? false;
 
@@ -316,7 +315,6 @@ namespace CarryOn.API.Common
                 }
 
                 world.BlockAccessor.SetBlock(block.Id, selection.Position, carriedBlock.ItemStack);
-
                 // Set mesh angle to match the block facing
                 carriedBlock.BlockEntityData?.SetFloat("meshAngle", GetMeshAngle(meshFacing));
 

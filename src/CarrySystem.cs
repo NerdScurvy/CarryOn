@@ -33,6 +33,9 @@ namespace CarryOn
     ///           blocks such as chests to be picked up and carried around. </summary>
     public class CarrySystem : ModSystem
     {
+        // Whether CarryOn is enabled on the client side. This does not affect server-side behavior.
+        public bool CarryOnEnabled { get; set; } = true;
+
         public ICoreAPI Api { get { return ClientApi ?? ServerApi as ICoreAPI; } }
 
         // Client
@@ -40,6 +43,7 @@ namespace CarryOn
         public IClientNetworkChannel ClientChannel { get; private set; }
         public EntityCarryRenderer EntityCarryRenderer { get; private set; }
         public HudOverlayRenderer HudOverlayRenderer { get; private set; }
+        public HotKeyHandler HotKeyHandler { get; private set; }
 
         // Server
         public ICoreServerAPI ServerApi { get; private set; }
@@ -110,6 +114,11 @@ namespace CarryOn
             CarryHandler = new CarryHandler(this);
             CarryEvents = new CarryEvents();
 
+            if (api.Side == EnumAppSide.Client)
+            {
+                HotKeyHandler = new HotKeyHandler(this);
+            }
+
             CarryOnLib = api.ModLoader.GetModSystem<CarryOnLib.Core>();
             if (CarryOnLib != null)
             {
@@ -124,24 +133,14 @@ namespace CarryOn
         public override void StartClientSide(ICoreClientAPI api)
         {
             ClientApi = api;
-            ClientChannel = api.Network.RegisterChannel(ModId)
-                .RegisterMessageType<InteractMessage>()
-                .RegisterMessageType<LockSlotsMessage>()
-                .RegisterMessageType<PickUpMessage>()
-                .RegisterMessageType<PlaceDownMessage>()
-                .RegisterMessageType<SwapSlotsMessage>()
-                .RegisterMessageType<AttachMessage>()
-                .RegisterMessageType<DetachMessage>()
-                .RegisterMessageType<PutMessage>()
-                .RegisterMessageType<TakeMessage>()
-                .RegisterMessageType<QuickDropMessage>()
-                .RegisterMessageType<DismountMessage>()
-                .RegisterMessageType<PlayerAttributeUpdateMessage>();
+            ClientChannel = api.Network.RegisterChannel(ModId);
 
             EntityCarryRenderer = new EntityCarryRenderer(api);
             HudOverlayRenderer = new HudOverlayRenderer(api);
+
             CarryHandler.InitClient(api);
             CarryManager.InitEvents(api);
+            HotKeyHandler.InitClient(api);
         }
 
         public override void StartServerSide(ICoreServerAPI api)
@@ -149,23 +148,12 @@ namespace CarryOn
             api.Register<EntityBehaviorDropCarriedOnDamage>();
 
             ServerApi = api;
-            ServerChannel = api.Network.RegisterChannel(ModId)
-                .RegisterMessageType<InteractMessage>()
-                .RegisterMessageType<LockSlotsMessage>()
-                .RegisterMessageType<PickUpMessage>()
-                .RegisterMessageType<PlaceDownMessage>()
-                .RegisterMessageType<SwapSlotsMessage>()
-                .RegisterMessageType<AttachMessage>()
-                .RegisterMessageType<DetachMessage>()
-                .RegisterMessageType<PutMessage>()
-                .RegisterMessageType<TakeMessage>()
-                .RegisterMessageType<QuickDropMessage>()
-                .RegisterMessageType<DismountMessage>()
-                .RegisterMessageType<PlayerAttributeUpdateMessage>();
+            ServerChannel = api.Network.RegisterChannel(ModId);
 
             DeathHandler = new DeathHandler(api);
             CarryHandler.InitServer(api);
             CarryManager.InitEvents(api);
+            HotKeyHandler.InitServer(api);
         }
 
         public override void AssetsFinalize(ICoreAPI api)
