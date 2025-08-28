@@ -515,9 +515,11 @@ namespace CarryOn.Common.Handlers
 
                 if (carriedHands == null && !notTargetingBlock)
                 {
-                    // Don't allow swap back operation if the player is looking at a container with empty hands.
-                    var hasBehavior = player.CurrentBlockSelection?.Block?.HasBehavior<BlockBehaviorContainer>() ?? false;
-                    if (hasBehavior)
+                    // Don't allow swap back operation if the player is looking at a container or ground storage with empty hands.
+                    var isContainer = player.CurrentBlockSelection?.Block?.HasBehavior<BlockBehaviorContainer>() ?? false;
+                    var isGroundStorage = player.CurrentBlockSelection?.Block?.Code == "groundstorage";
+
+                    if (isContainer || isGroundStorage)
                     {
                         CompleteInteraction();
                         return true;
