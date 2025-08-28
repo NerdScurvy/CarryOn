@@ -8,11 +8,8 @@ namespace CarryOn.Config
 {
     public class ModConfig
     {
-
         public CarryOnConfig ServerConfig { get; private set; }
         public IWorldAccessor World { get; private set; }
-
-        public const string ConfigFile = "CarryOnConfig.json";
 
         public void Init(ICoreAPI api)
         {

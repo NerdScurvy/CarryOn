@@ -35,7 +35,7 @@ namespace CarryOn.Patches
                     // Check last tap was in the past. If in the future then the server time has been reset.
                     if (lastTapMs < nowMs)
                     {
-                        if (nowMs - lastTapMs < DoubleTapThresholdMs && nowMs - lastTapMs > 50)
+                        if (nowMs - lastTapMs < Default.DoubleTapThresholdMs && nowMs - lastTapMs > 50)
                         {
                             // Double tap detected
                             var carrySystem = entityAgent.Api.ModLoader.GetModSystem<CarrySystem>();

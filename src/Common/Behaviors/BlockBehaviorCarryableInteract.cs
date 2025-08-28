@@ -3,6 +3,7 @@ using CarryOn.API.Common;
 using CarryOn.Utility;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
+using static CarryOn.API.Common.CarryCode;
 
 namespace CarryOn.Common.Behaviors
 {
@@ -12,10 +13,7 @@ namespace CarryOn.Common.Behaviors
     {
         public static string Name { get; } = "CarryableInteract";
 
-        public static BlockBehaviorCarryableInteract Default { get; }
-            = new BlockBehaviorCarryableInteract(null);
-
-        public float InteractDelay { get; private set; } = CarrySystem.InteractSpeedDefault;
+        public float InteractDelay { get; private set; } = Default.InteractSpeed;
 
         public string EnabledCondition { get; set; }
 

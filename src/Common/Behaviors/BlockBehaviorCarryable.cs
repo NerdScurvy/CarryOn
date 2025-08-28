@@ -51,9 +51,9 @@ namespace CarryOn.Common.Behaviors
                 { CarrySlot.Shoulder , CarryOnCode("shoulder")  }
             };
 
-        public float InteractDelay { get; private set; } = CarrySystem.PickUpSpeedDefault;
+        public float InteractDelay { get; private set; } = CarryCode.Default.PickUpSpeed;
 
-        public float TransferDelay { get; private set; } = CarrySystem.TransferSpeedDefault;
+        public float TransferDelay { get; private set; } = CarryCode.Default.TransferSpeed;
 
         public ModelTransform DefaultTransform { get; private set; } = DefaultBlockTransform;
 

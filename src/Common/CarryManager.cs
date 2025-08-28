@@ -19,9 +19,6 @@ namespace CarryOn.API.Common
 {
     public class CarryManager : ICarryManager
     {
-
-        public static string CarryAttributeKey { get; } = CarryOnCode("Carried");
-
         public ICoreAPI Api => CarrySystem?.Api;
 
         public CarrySystem CarrySystem { get; private set; }
@@ -64,8 +61,9 @@ namespace CarryOn.API.Common
         {
             if (entity == null) throw new ArgumentNullException(nameof(entity));
 
+            var entityCarriedKey = AttributeKey.Watched.EntityCarried;
             var slotAttribute = entity.WatchedAttributes
-                .TryGet<ITreeAttribute>(CarryAttributeKey, slot.ToString());
+                .TryGet<ITreeAttribute>(entityCarriedKey, slot.ToString());
             if (slotAttribute == null) return null;
 
             var stack = slotAttribute.GetItemstack("Stack");
@@ -79,7 +77,7 @@ namespace CarryOn.API.Common
             }
 
             var blockEntityData = (entity.World.Side == EnumAppSide.Server)
-                ? entity.Attributes.TryGet<ITreeAttribute>(CarryAttributeKey, slot.ToString(), "Data")
+                ? entity.Attributes.TryGet<ITreeAttribute>(entityCarriedKey, slot.ToString(), "Data")
                 : null;
 
             return new CarriedBlock(slot, stack, blockEntityData);
@@ -108,11 +106,12 @@ namespace CarryOn.API.Common
         {
             if (entity == null) throw new ArgumentNullException(nameof(entity));
 
-            entity.WatchedAttributes.Set(stack, CarryAttributeKey, slot.ToString(), "Stack");
-            ((SyncedTreeAttribute)entity.WatchedAttributes).MarkPathDirty(CarryAttributeKey);
+            var entityCarriedKey = AttributeKey.Watched.EntityCarried;
+            entity.WatchedAttributes.Set(stack, entityCarriedKey, slot.ToString(), "Stack");
+            ((SyncedTreeAttribute)entity.WatchedAttributes).MarkPathDirty(entityCarriedKey);
 
             if ((entity.World.Side == EnumAppSide.Server) && (blockEntityData != null))
-                entity.Attributes.Set(blockEntityData, CarryAttributeKey, slot.ToString(), "Data");
+                entity.Attributes.Set(blockEntityData, entityCarriedKey, slot.ToString(), "Data");
 
             var behavior = stack.Block.GetBehaviorOrDefault(BlockBehaviorCarryable.Default);
             var slotSettings = behavior.Slots[slot];
@@ -156,10 +155,10 @@ namespace CarryOn.API.Common
                 if (slot != CarrySlot.Back) LockedItemSlot.Restore(agent.LeftHandItemSlot);
                 SendLockSlotsMessage(agent as EntityPlayer);
             }
-
-            entity.WatchedAttributes.Remove(CarryAttributeKey, slot.ToString());
-            ((SyncedTreeAttribute)entity.WatchedAttributes).MarkPathDirty(CarryAttributeKey);
-            entity.Attributes.Remove(CarryAttributeKey, slot.ToString());
+            var entityCarriedKey = AttributeKey.Watched.EntityCarried;
+            entity.WatchedAttributes.Remove(entityCarriedKey, slot.ToString());
+            ((SyncedTreeAttribute)entity.WatchedAttributes).MarkPathDirty(entityCarriedKey);
+            entity.Attributes.Remove(entityCarriedKey, slot.ToString());
         }
 
         /// <summary>

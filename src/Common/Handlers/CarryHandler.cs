@@ -85,13 +85,13 @@ namespace CarryOn.Common.Handlers
                 throw new InvalidOperationException("CarryHandler.InitClient requires Input to be initialized.");
             }
 
-            input.RegisterHotKey(HotKeyCode.Pickup, GetLang("pickup-hotkey"), PickupKeyDefault);
+            input.RegisterHotKey(HotKeyCode.Pickup, GetLang("pickup-hotkey"), Default.PickupKeybind);
 
-            input.RegisterHotKey(HotKeyCode.SwapBackModifier, GetLang("swap-back-hotkey"), SwapBackModifierDefault);
+            input.RegisterHotKey(HotKeyCode.SwapBackModifier, GetLang("swap-back-hotkey"), Default.SwapBackModifierKeybind);
 
-            input.RegisterHotKey(HotKeyCode.Toggle, GetLang("toggle-hotkey"), ToggleDefault, altPressed: true);
-            input.RegisterHotKey(HotKeyCode.QuickDrop, GetLang("quickdrop-hotkey"), QuickDropDefault, altPressed: true, ctrlPressed: true);
-            input.RegisterHotKey(HotKeyCode.ToggleDoubleTapDismount, GetLang("toggle-double-tap-dismount-hotkey"), ToggleDoubleTapDismountDefault, ctrlPressed: true);
+            input.RegisterHotKey(HotKeyCode.Toggle, GetLang("toggle-hotkey"), Default.FunctionKeybind, altPressed: true);
+            input.RegisterHotKey(HotKeyCode.QuickDrop, GetLang("quickdrop-hotkey"), Default.FunctionKeybind, altPressed: true, ctrlPressed: true);
+            input.RegisterHotKey(HotKeyCode.ToggleDoubleTapDismount, GetLang("toggle-double-tap-dismount-hotkey"), Default.FunctionKeybind, ctrlPressed: true);
 
             input.SetHotKeyHandler(HotKeyCode.Toggle, TriggerToggleKeyPressed);
             input.SetHotKeyHandler(HotKeyCode.QuickDrop, TriggerQuickDropKeyPressed);
@@ -1001,21 +1001,21 @@ namespace CarryOn.Common.Handlers
             }
             else if (Interaction.CarryAction is CarryAction.Put or CarryAction.Take)
             {
-                requiredTime = carryBehavior?.TransferDelay ?? TransferSpeedDefault;
+                requiredTime = carryBehavior?.TransferDelay ?? Default.TransferSpeed;
             }
             else if (Interaction.CarryAction == CarryAction.Interact)
             {
                 if (RemoveInteractDelayWhileCarrying) requiredTime = 0;
-                else requiredTime = interactBehavior?.InteractDelay ?? InteractSpeedDefault;
+                else requiredTime = interactBehavior?.InteractDelay ?? Default.InteractSpeed;
             }
             else
             {
 
-                requiredTime = carryBehavior?.InteractDelay ?? PickUpSpeedDefault;
+                requiredTime = carryBehavior?.InteractDelay ?? Default.PickUpSpeed;
                 switch (Interaction.CarryAction)
                 {
-                    case CarryAction.PlaceDown: requiredTime *= PlaceSpeedDefault; break;
-                    case CarryAction.SwapBack: requiredTime *= SwapSpeedDefault; break;
+                    case CarryAction.PlaceDown: requiredTime *= Default.PlaceSpeed; break;
+                    case CarryAction.SwapBack: requiredTime *= Default.SwapSpeed; break;
                 }
             }
 

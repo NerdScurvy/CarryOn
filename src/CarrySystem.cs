@@ -33,27 +33,6 @@ namespace CarryOn
     ///           blocks such as chests to be picked up and carried around. </summary>
     public class CarrySystem : ModSystem
     {
-        public static float PlaceSpeedDefault = 0.75f;
-        public static float SwapSpeedDefault = 1.5f;
-        public static float PickUpSpeedDefault = 0.8f;
-
-        public static float TransferSpeedDefault = 0.8f;
-
-        public static float InteractSpeedDefault = 0.8f;
-
-        public static GlKeys PickupKeyDefault = GlKeys.ShiftLeft;
-        public static GlKeys SwapBackModifierDefault = GlKeys.ControlLeft;
-        public static GlKeys ToggleDefault = GlKeys.K;
-
-
-        // Combine with Alt + Ctrl to drop carried block        
-        public static GlKeys QuickDropDefault = GlKeys.K;
-
-        // Combine with Ctrl to toggle double tap dismount
-        public static GlKeys ToggleDoubleTapDismountDefault = GlKeys.K;
-
-        public static readonly int DoubleTapThresholdMs = 500;
-
         public ICoreAPI Api { get { return ClientApi ?? ServerApi as ICoreAPI; } }
 
         // Client
