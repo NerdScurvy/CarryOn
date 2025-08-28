@@ -260,9 +260,9 @@ namespace CarryOn.Common
 
                     if (Interaction.Slot?.Itemstack?.Block?.GetBehavior<BlockBehaviorCarryable>() == null)
                     {
-                        CarrySystem.ClientAPI.TriggerIngameError("carryon", "slot-not-carryable", Lang.Get(ModId + ":slot-not-carryable"));
+                        // Item in slot is not carryable by CarryOn - e.g. Oar or Lantern
+                        // Let default interaction handle it - required for when players have different keybinds
                         CompleteInteraction();
-                        handled = EnumHandling.PreventDefault;
                         return true;
                     }
                     Interaction.CarryAction = CarryAction.Detach;
