@@ -27,6 +27,7 @@
   },
   {
     "file": "game:blocktypes/wood/woodtyped/log-withresin",
+    "side": "Server",
     "op": "add",
     "path": "/behaviorsByType/log-resinharvested-*/-",
     "value": {

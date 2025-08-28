@@ -1,27 +1,5 @@
 [
   {
-    "file": "bricklayers:blocktypes/wood/barrel_planter",
-    "side": "Server",    
-    "op": "add",
-    "path": "/behaviors/-",
-    "value": {
-      "name": "Carryable",
-      "properties": {
-        "enabledCondition": "carryon.Carryables.Planter",
-        "scale": 0.6,
-        "slots": {
-          "Hands": {},
-          "Back": {}
-        }        
-      }
-    },
-    "dependsOn": [
-      {
-        "modid": "bricklayers"
-      }
-    ]
-  },
-  {
     "file": "bricklayers:blocktypes/clay/plantercolored",
     "side": "Server",
     "op": "add",
@@ -44,7 +22,7 @@
     ]
   },
   {
-    "file": "bricklayers:blocktypes/clay/planterglazed_salt",
+    "file": "bricklayers:blocktypes/clay/planterglazed",
     "side": "Server",
     "op": "add",
     "path": "/behaviorsByType/*/-",

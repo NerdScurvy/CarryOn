@@ -460,9 +460,9 @@ namespace CarryOn.Common.Handlers
 
                     if (Interaction.Slot?.Itemstack?.Block?.GetBehavior<BlockBehaviorCarryable>() == null)
                     {
-                        ClientApi.TriggerIngameError("carryon", "slot-not-carryable", GetLang("slot-not-carryable"));
+                        // Item in slot is not carryable by CarryOn - e.g. Oar or Lantern
+                        // Let default interaction handle it - required for when players have different keybinds
                         CompleteInteraction();
-                        handled = EnumHandling.PreventDefault;
                         return true;
                     }
                     Interaction.CarryAction = CarryAction.Detach;
