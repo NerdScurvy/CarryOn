@@ -307,6 +307,17 @@ namespace CarryOn.Common
             if (carryKeyHeld && (swapKeyPressed || notTargetingBlock || canSwapBackFromBackSlot))
             {
 
+                if (carriedHands == null && !notTargetingBlock)
+                {
+                    // Don't allow swap back operation if the player is looking at a container with empty hands.
+                    var hasBehavior = player.CurrentBlockSelection?.Block?.HasBehavior<BlockBehaviorContainer>() ?? false;
+                    if (hasBehavior)
+                    {
+                        CompleteInteraction();
+                        return true;
+                    }
+                }
+
                 if (carriedHands != null)
                 {
                     if (carriedHands.Behavior.Slots[CarrySlot.Back] == null)
