@@ -1055,7 +1055,7 @@ namespace CarryOn.Common.Handlers
                     else
                     {
                         // Show in-game error if placing down failed.
-                        if (failureCode != null && failureCode != "__ignore__")
+                        if (failureCode != null && failureCode != FailureCode.Ignore)
                         {
                             ClientApi.TriggerIngameError("carryon", failureCode, GetLang("place-down-failed-" + failureCode));
                         }
@@ -1226,7 +1226,7 @@ namespace CarryOn.Common.Handlers
             {
                 InvalidCarry(player, message.PlacedAt);
 
-                if (failureCode != null && failureCode != "__ignore__")
+                if (failureCode != null && failureCode != FailureCode.Ignore)
                 {
                     ServerApi.SendIngameError(player, failureCode, GetLang("place-down-failed-" + failureCode));
                 }

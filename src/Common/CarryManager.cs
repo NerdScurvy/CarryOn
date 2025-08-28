@@ -248,7 +248,7 @@ namespace CarryOn.API.Common
         /// <exception cref="ArgumentNullException"></exception>
         public bool TryPlaceDown(Entity entity, CarriedBlock carriedBlock, BlockSelection selection, bool dropped = false, bool playSound = true)
         {
-            string failureCode = "__ignore__";
+            string failureCode = FailureCode.Ignore;
             return TryPlaceDown(entity, carriedBlock, selection, ref failureCode, dropped, playSound);
         }
 
@@ -273,7 +273,7 @@ namespace CarryOn.API.Common
 
             if (entity is EntityPlayer playerEntity && !dropped)
             {
-                failureCode ??= "__ignore__";
+                failureCode ??= FailureCode.Ignore;
 
                 var player = world.PlayerByUid(playerEntity.PlayerUID);
                 try
