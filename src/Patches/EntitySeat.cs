@@ -9,7 +9,7 @@ namespace CarryOn.Patches
 {
 
     [HarmonyPatch(typeof(EntitySeat), "onControls")]
-    public class Patch_EntitySeat_onControls
+    public class EntitySeat_onControls_Patch
     {
 
         [HarmonyPrefix]

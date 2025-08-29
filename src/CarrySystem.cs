@@ -114,10 +114,7 @@ namespace CarryOn
             CarryHandler = new CarryHandler(this);
             CarryEvents = new CarryEvents();
 
-            if (api.Side == EnumAppSide.Client)
-            {
-                HotKeyHandler = new HotKeyHandler(this);
-            }
+            HotKeyHandler = new HotKeyHandler(this);
 
             CarryOnLib = api.ModLoader.GetModSystem<CarryOnLib.Core>();
             if (CarryOnLib != null)

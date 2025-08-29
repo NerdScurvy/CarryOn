@@ -29,7 +29,7 @@ namespace CarryOn.Patches
                 var loadedGuis = internalField.GetValue(__instance) as List<GuiDialog>;
                 var hudHelp = loadedGuis?.FirstOrDefault(gui => gui is HudElementInteractionHelp) as HudElementInteractionHelp;
 
-                carrySystem.CarryHandler.HudHelp = hudHelp;
+                carrySystem.CarryHandler.SetHudHelp(hudHelp);
             }
             catch (System.Exception ex)
             {
