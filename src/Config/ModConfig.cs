@@ -11,10 +11,14 @@ namespace CarryOn.Config
         public CarryOnConfig ServerConfig { get; private set; }
         public IWorldAccessor World { get; private set; }
 
-        public void Init(ICoreAPI api)
+        public void Load(ICoreAPI api)
         {
             World = api.World;
-            if (api.Side == EnumAppSide.Server)
+            if (api.Side != EnumAppSide.Server)
+            {
+                return;
+            }
+            else
             {
                 const int currentVersion = 2;
                 try
@@ -71,15 +75,14 @@ namespace CarryOn.Config
                     {
                         worldConfig.RemoveAttribute(key);
                     }
+
+                    // Save the value to the world config so it is available for both server and client
+                    worldConfig.GetOrAddTreeAttribute(ModId).MergeTree(ServerConfig.ToTreeAttribute());                    
                 }
                 else
                 {
                     api.Logger.Warning("CarryOn: World.Config is not a TreeAttribute; skipping legacy key cleanup.");
                 }
-
-                // Save the value to the world config so it is available for both server and client
-                worldConfig.GetOrAddTreeAttribute(ModId).MergeTree(ServerConfig.ToTreeAttribute());
-
             }
 
         }

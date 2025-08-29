@@ -19,7 +19,8 @@ namespace CarryOn.API.Common
 {
     public class CarryManager : ICarryManager
     {
-        public ICoreAPI Api => CarrySystem?.Api;
+        
+        public ICoreAPI Api { get; private set; }
 
         public CarrySystem CarrySystem { get; private set; }
 
@@ -29,9 +30,10 @@ namespace CarryOn.API.Common
         public bool AllowSprintWhileCarrying => allowSprintWhileCarrying ??= CarrySystem?.Config?.CarryOptions?.AllowSprintWhileCarrying ?? false;
 
 
-        public CarryManager(CarrySystem carrySystem)
+        public CarryManager(ICoreAPI api, CarrySystem carrySystem)
         {
             CarrySystem = carrySystem ?? throw new ArgumentNullException(nameof(carrySystem));
+            Api = api ?? throw new ArgumentNullException(nameof(api));
         }
 
 

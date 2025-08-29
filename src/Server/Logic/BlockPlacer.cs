@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using CarryOn.Common.Behaviors;
 using CarryOn.Utility;
 using Vintagestory.API.Common;
@@ -14,7 +15,8 @@ namespace CarryOn.Server.Logic
 
         public ICoreAPI Api { get; }
 
-        public static Random Rand { get; } = Random.Shared;
+        private static readonly ThreadLocal<Random> ThreadLocalRandom = new ThreadLocal<Random>(() => new Random());
+        public static Random Rand => ThreadLocalRandom.Value;
 
         public IBlockAccessor BlockAccessor => Api?.World?.BlockAccessor;
 

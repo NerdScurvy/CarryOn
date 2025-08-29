@@ -5,7 +5,6 @@ using CarryOn.API.Event;
 using CarryOn.Client;
 using CarryOn.Common.Behaviors;
 using CarryOn.Common.Handlers;
-using CarryOn.Common.Network;
 using CarryOn.Config;
 using CarryOn.Server.Behaviors;
 using CarryOn.Server.Logic;
@@ -36,14 +35,11 @@ namespace CarryOn
         // Whether CarryOn is enabled on the client side. This does not affect server-side behavior.
         public bool CarryOnEnabled { get; set; } = true;
 
-        public ICoreAPI Api { get { return ClientApi ?? ServerApi as ICoreAPI; } }
-
         // Client
         public ICoreClientAPI ClientApi { get; private set; }
         public IClientNetworkChannel ClientChannel { get; private set; }
         public EntityCarryRenderer EntityCarryRenderer { get; private set; }
         public HudOverlayRenderer HudOverlayRenderer { get; private set; }
-        public HotKeyHandler HotKeyHandler { get; private set; }
 
         // Server
         public ICoreServerAPI ServerApi { get; private set; }
@@ -51,6 +47,8 @@ namespace CarryOn
         public DeathHandler DeathHandler { get; private set; }
 
         // Common
+        public HotKeyHandler HotKeyHandler { get; private set; }
+
         public CarryHandler CarryHandler { get; private set; }
 
         public CarryEvents CarryEvents { get; private set; }
@@ -59,12 +57,7 @@ namespace CarryOn
 
         public ICarryManager CarryManager => CarryOnLib?.CarryManager;
 
-        private CarryOnConfig config = null;
-
-        public CarryOnConfig Config
-        {
-            get { return config ??= CarryOnConfig.FromTreeAttribute(Api?.World?.Config?.GetTreeAttribute(ModId)); }
-        }
+        public CarryOnConfig Config { get; private set; }
 
         private Harmony harmony;
 
@@ -72,13 +65,23 @@ namespace CarryOn
 
         public override void StartPre(ICoreAPI api)
         {
-            if (api.Side == EnumAppSide.Client) ClientApi = api as ICoreClientAPI;
-            else ServerApi = api as ICoreServerAPI;
+            if (api.Side == EnumAppSide.Client)
+            {
+                ClientApi = api as ICoreClientAPI;
+            }
+            else
+            {
+                ServerApi = api as ICoreServerAPI;
+
+                // Load the configuration into the world config
+                var modConfig = new ModConfig();
+                modConfig.Load(api);                
+            }
 
             base.StartPre(api);
 
-            var config = new ModConfig();
-            config.Init(api);
+            // Extract the configuration from the world config
+            Config = CarryOnConfig.FromTreeAttribute(api?.World?.Config?.GetTreeAttribute(ModId));
 
             if (!Config.DebuggingOptions.DisableHarmonyPatch)
             {
@@ -119,7 +122,7 @@ namespace CarryOn
             CarryOnLib = api.ModLoader.GetModSystem<CarryOnLib.Core>();
             if (CarryOnLib != null)
             {
-                CarryOnLib.CarryManager = new CarryManager(this);
+                CarryOnLib.CarryManager = new CarryManager(api, this);
             }
             else
             {

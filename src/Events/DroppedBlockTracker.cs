@@ -1,7 +1,6 @@
 using System;
 using CarryOn.API.Common;
 using CarryOn.API.Event.Data;
-using CarryOn.Config;
 using CarryOn.Server.Models;
 using CarryOn.Utility;
 using Vintagestory.API.Common;
@@ -82,6 +81,8 @@ namespace CarryOn.Events
         /// <param name="e"></param>
         public void OnCarriedBlockDropped(object sender, BlockDroppedEventArgs e)
         {
+            if (e == null) throw new ArgumentNullException(nameof(e));
+
             if (e.Entity is EntityPlayer entityPlayer)
             {
                 // Only track if block was placed
@@ -97,6 +98,7 @@ namespace CarryOn.Events
         /// <param name="e"></param>
         public void OnCarryableBlockRemoved(object sender, BlockRemovedEventArgs e)
         {
+            if (e == null) throw new ArgumentNullException(nameof(e));
             if (carryManager.Api.Side == EnumAppSide.Server)
             {
                 DroppedBlockInfo.Remove(e.Position, carryManager.Api);
