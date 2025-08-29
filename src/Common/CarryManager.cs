@@ -449,13 +449,15 @@ namespace CarryOn.API.Common
             const float SOUND_RANGE = 16.0F;
             const float SOUND_VOLUME = 1.0F;
 
-            if (block.Sounds?.Place == null) return;
+            var sound = block.Sounds?.Place ?? new AssetLocation("sounds/player/build");
+
+            if (sound == null) return;
 
             var world = Api.World;
             var player = (entityPlayer != null) && (world.Side == EnumAppSide.Server)
                 ? entityPlayer?.Player : null;
 
-            world.PlaySoundAt(block.Sounds.Place,
+            world.PlaySoundAt(sound,
                 pos.X + 0.5, pos.Y + 0.25, pos.Z + 0.5, player,
                 range: SOUND_RANGE, volume: SOUND_VOLUME);
         }

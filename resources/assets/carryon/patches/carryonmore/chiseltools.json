@@ -152,7 +152,7 @@
     "value": {
       "name": "Carryable",
       "properties": {
-        "enabledCondition": "carryon.Carryables.FlowerPot",
+        "enabledCondition": "carryon.Carryables.Flowerpot",
         "translation": [
           0.3175,
           0.1,
