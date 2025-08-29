@@ -748,7 +748,7 @@ namespace CarryOn.Common.Handlers
                 default: return;
             }
 
-            this.interactProcessor.TryInteraction(isInteracting, ref handled);
+            this.interactProcessor.TryBeginInteraction(isInteracting, ref handled);
 
         }
 

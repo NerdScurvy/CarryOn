@@ -44,7 +44,7 @@ namespace CarryOn.Common.Logic
             this.transferProcessor = new TransferProcessor(api, carrySystem);
         }
 
-        public void TryInteraction(bool isInteracting, ref EnumHandling handled)
+        public void TryBeginInteraction(bool isInteracting, ref EnumHandling handled)
         {
             // If an action is currently ongoing, ignore the game's entity action.
             if (Interaction.CarryAction != CarryAction.None)
@@ -62,7 +62,11 @@ namespace CarryOn.Common.Logic
 
             if (isInteracting)
             {
-                if (TryBeginInteraction(ref handled)) return;
+                if (BeginEntityCarryableInteraction(ref handled)) return;
+                if (BeginSwapBackInteraction(ref handled)) return;
+                if (BeginBlockEntityInteraction(ref handled)) return;
+                if (BeginTransferInteraction(ref handled)) return;
+                if (BeginBlockCarryableInteraction(ref handled)) return;
             }
 
             var carriedHands = player.Entity.GetCarried(CarrySlot.Hands);
@@ -70,17 +74,6 @@ namespace CarryOn.Common.Logic
             // If player is carrying something in their hands or an interaction is in progress then prevent default interactions
             if ((carriedHands != null) || (isInteracting && (Interaction.TimeHeld > 0.0F)))
                 handled = EnumHandling.PreventDefault;
-        }
-
-        public bool TryBeginInteraction(ref EnumHandling handled)
-        {
-            if (BeginEntityCarryableInteraction(ref handled)) return true;
-            if (BeginSwapBackInteraction(ref handled)) return true;
-            if (BeginBlockEntityInteraction(ref handled)) return true;
-            if (BeginTransferInteraction(ref handled)) return true;
-            if (BeginBlockCarryableInteraction(ref handled)) return true;
-
-            return false;
         }
 
         /// <summary>
@@ -101,7 +94,7 @@ namespace CarryOn.Common.Logic
             var requireEmpty = (Interaction.CarryAction != CarryAction.PlaceDown) || (Interaction.CarrySlot != CarrySlot.Hands);
 
             if (Interaction.CarryAction != CarryAction.Interact && !player.Entity.CanInteract(requireEmptyHanded: requireEmpty))
-            { CancelInteraction(); return; }
+            { CancelInteraction(resetTimeHeld: true); return; }
 
             var carriedTarget = Interaction.CarrySlot.HasValue ? player.Entity.GetCarried(Interaction.CarrySlot.Value) : null;
             var holdingAny = player.Entity.GetCarried(CarrySlot.Hands)
@@ -484,7 +477,7 @@ namespace CarryOn.Common.Logic
             // 2. The player is not targeting a block
             // 3. The player has empty hands but has something in back slot and the target block is not carryable
             bool carryKeyHeld = api.Input.IsCarryKeyPressed();
-            bool swapKeyPressed = api.Input.IsCarrySwapKeyPressed();
+            bool swapKeyPressed = api.Input.IsCarrySwapBackKeyPressed();
             bool notTargetingBlock = player.CurrentBlockSelection == null;
             bool canSwapBackFromBackSlot = !canCarryTarget && carriedBack != null && carriedHands == null;
 

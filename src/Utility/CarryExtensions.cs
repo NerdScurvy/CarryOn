@@ -122,7 +122,7 @@ namespace CarryOn.Utility
         /// Always returns false on server.
         /// </summary>
         /// <returns></returns>
-        public static bool IsCarrySwapKeyPressed(this IInputAPI input)
+        public static bool IsCarrySwapBackKeyPressed(this IInputAPI input)
         {
             return input.KeyboardKeyState[input.HotKeys.Get(HotKeyCode.SwapBackModifier).CurrentMapping.KeyCode];
         }

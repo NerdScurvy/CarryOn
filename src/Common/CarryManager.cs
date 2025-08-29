@@ -280,6 +280,10 @@ namespace CarryOn.API.Common
                     // Add phantom Item to player's active slot so any related block placement code can fire. (Workaround for creature container)
                     player.InventoryManager.ActiveHotbarSlot.Itemstack = carriedBlock.ItemStack;
 
+                    // Force sneak mode for placing blocks (in case carry keybinds are different)
+                    // This is a workaround for some blocks like Molds which require sneak to be placed
+                    playerEntity.Controls.ShiftKey = true;
+
                     if (!carriedBlock.Block.TryPlaceBlock(world, player, carriedBlock.ItemStack, selection, ref failureCode))
                     {
                         // Remove phantom item from active slot if failed to place
