@@ -1,11 +1,10 @@
 using System;
-using CarryOn.API.Common;
 using CarryOn.Common.Network;
 using Vintagestory.API.Client;
 using static CarryOn.CarrySystem;
-using static CarryOn.API.Common.CarryCode;
 using Vintagestory.API.Server;
-using Vintagestory.API.Common;
+using static CarryOn.API.Common.Models.CarryCode;
+using CarryOn.API.Common.Models;
 
 
 namespace CarryOn.Common.Handlers

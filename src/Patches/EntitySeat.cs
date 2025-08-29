@@ -2,8 +2,7 @@ using CarryOn.Common.Network;
 using HarmonyLib;
 using Vintagestory.API.Common;
 using Vintagestory.GameContent;
-using static CarryOn.API.Common.CarryCode;
-using static CarryOn.CarrySystem;
+using static CarryOn.API.Common.Models.CarryCode;
 
 namespace CarryOn.Patches
 {

@@ -4,7 +4,7 @@ using System.IO;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
-using static CarryOn.API.Common.CarryCode;
+using static CarryOn.API.Common.Models.CarryCode;
 
 namespace CarryOn.Server.Models
 {

@@ -1,4 +1,4 @@
-using CarryOn.API.Common;
+using CarryOn.API.Common.Models;
 using ProtoBuf;
 using System;
 

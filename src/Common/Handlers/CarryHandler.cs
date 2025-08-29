@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using CarryOn.API.Common;
 using CarryOn.Common.Network;
 using CarryOn.Utility;
 using Vintagestory.API.Client;
@@ -11,12 +10,14 @@ using Vintagestory.API.MathTools;
 using Vintagestory.API.Server;
 using Vintagestory.GameContent;
 using static CarryOn.CarrySystem;
-using static CarryOn.API.Common.CarryCode;
 using static CarryOn.Utility.Extensions;
 using Vintagestory.API.Util;
 using CarryOn.Common.Behaviors;
 using CarryOn.Common.Models;
 using CarryOn.Common.Logic;
+using static CarryOn.API.Common.Models.CarryCode;
+using CarryOn.API.Common.Interfaces;
+using CarryOn.API.Common.Models;
 
 namespace CarryOn.Common.Handlers
 {

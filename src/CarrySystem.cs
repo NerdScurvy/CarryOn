@@ -1,6 +1,7 @@
 
 using System;
 using CarryOn.API.Common;
+using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Event;
 using CarryOn.Client;
 using CarryOn.Common.Behaviors;
@@ -15,7 +16,7 @@ using Vintagestory.API.Common;
 using Vintagestory.API.Config;
 using Vintagestory.API.Server;
 using Vintagestory.GameContent;
-using static CarryOn.API.Common.CarryCode;
+using static CarryOn.API.Common.Models.CarryCode;
 
 [assembly: ModInfo("Carry On",
     modID: "carryon",

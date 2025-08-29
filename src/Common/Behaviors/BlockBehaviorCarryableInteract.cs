@@ -1,9 +1,10 @@
 using System.Collections.Generic;
-using CarryOn.API.Common;
+using CarryOn.API.Common.Interfaces;
+using CarryOn.API.Common.Models;
 using CarryOn.Utility;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
-using static CarryOn.API.Common.CarryCode;
+using static CarryOn.API.Common.Models.CarryCode;
 
 namespace CarryOn.Common.Behaviors
 {

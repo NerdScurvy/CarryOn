@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using CarryOn.API.Common;
+using CarryOn.API.Common.Interfaces;
+using CarryOn.API.Common.Models;
 using CarryOn.Server.Models;
 using CarryOn.Utility;
 using Newtonsoft.Json.Linq;
@@ -9,7 +10,7 @@ using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
-using static CarryOn.API.Common.CarryCode;
+using static CarryOn.API.Common.Models.CarryCode;
 
 namespace CarryOn.Common.Behaviors
 {

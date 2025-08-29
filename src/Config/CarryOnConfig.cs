@@ -3,7 +3,7 @@ using CarryOn.Utility;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Vintagestory.API.Datastructures;
-using static CarryOn.API.Common.CarryCode;
+using static CarryOn.API.Common.Models.CarryCode;
 
 namespace CarryOn.Config
 {

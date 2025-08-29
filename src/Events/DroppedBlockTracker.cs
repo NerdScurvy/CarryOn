@@ -1,5 +1,5 @@
 using System;
-using CarryOn.API.Common;
+using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Event.Data;
 using CarryOn.Server.Models;
 using CarryOn.Utility;

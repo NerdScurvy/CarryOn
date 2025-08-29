@@ -1,11 +1,10 @@
-using System.Runtime.CompilerServices;
-using CarryOn.API.Common;
+using CarryOn.API.Common.Models;
 using CarryOn.API.Event;
 using CarryOn.Common.Behaviors;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Util;
-using static CarryOn.API.Common.CarryCode;
+using static CarryOn.API.Common.Models.CarryCode;
 
 namespace CarryOn.Utility
 {

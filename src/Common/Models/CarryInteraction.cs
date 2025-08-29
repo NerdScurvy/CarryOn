@@ -1,5 +1,4 @@
-using System.ComponentModel;
-using CarryOn.API.Common;
+using CarryOn.API.Common.Models;
 using CarryOn.Common.Enums;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;

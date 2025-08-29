@@ -1,12 +1,12 @@
 using System;
-using CarryOn.API.Common;
 using CarryOn.Common.Behaviors;
 using Vintagestory.API.Common;
 using static CarryOn.CarrySystem;
-using static CarryOn.API.Common.CarryCode;
+using static CarryOn.API.Common.Models.CarryCode;
 using CarryOn.Utility;
 using CarryOn.Common.Network;
 using Vintagestory.API.Datastructures;
+using CarryOn.API.Common.Models;
 
 namespace CarryOn.Common.Logic
 {

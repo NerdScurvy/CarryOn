@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
-using static CarryOn.API.Common.CarryCode;
+using static CarryOn.API.Common.Models.CarryCode;
 
 namespace CarryOn.Config
 {
@@ -77,7 +77,7 @@ namespace CarryOn.Config
                     }
 
                     // Save the value to the world config so it is available for both server and client
-                    worldConfig.GetOrAddTreeAttribute(ModId).MergeTree(ServerConfig.ToTreeAttribute());                    
+                    worldConfig.GetOrAddTreeAttribute(ModId).MergeTree(ServerConfig.ToTreeAttribute());
                 }
                 else
                 {

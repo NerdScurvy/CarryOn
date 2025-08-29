@@ -1,8 +1,7 @@
-using System;
-using CarryOn.API.Common;
+using CarryOn.API.Common.Models;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
-using static CarryOn.API.Common.CarryCode;
+using static CarryOn.API.Common.Models.CarryCode;
 using static CarryOn.Utility.Extensions;
 
 namespace CarryOn.Server.Behaviors

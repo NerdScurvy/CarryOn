@@ -1,5 +1,4 @@
 using System;
-using CarryOn.API.Common;
 using CarryOn.Common.Behaviors;
 using CarryOn.Common.Enums;
 using CarryOn.Utility;
@@ -7,11 +6,11 @@ using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.GameContent;
 using static CarryOn.CarrySystem;
-using static CarryOn.API.Common.CarryCode;
 using CarryOn.Common.Models;
 using CarryOn.Common.Network;
 using HarmonyLib;
-using Vintagestory.API.Datastructures;
+using CarryOn.API.Common.Models;
+using static CarryOn.API.Common.Models.CarryCode;
 
 namespace CarryOn.Common.Logic
 {
@@ -714,8 +713,8 @@ namespace CarryOn.Common.Logic
             Interaction.TargetSlotIndex = selection.SelectionBoxIndex;
             handled = EnumHandling.PreventDefault;
             return true;
-        }                    
-        
+        }
+
         /// <summary>
         /// Helper for transfer interaction error handling
         /// </summary>
@@ -747,6 +746,6 @@ namespace CarryOn.Common.Logic
             }
 
             return false;
-        }        
+        }
     }
 }
