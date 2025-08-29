@@ -275,6 +275,8 @@ namespace CarryOn.API.Common
 
             if (!world.BlockAccessor.IsValidPos(selection.Position)) return false;
 
+            BlockEntity droppedBlockEntity = null;
+
             if (entity is EntityPlayer playerEntity && !dropped)
             {
                 failureCode ??= FailureCode.Ignore;
@@ -305,34 +307,33 @@ namespace CarryOn.API.Common
             }
             else
             {
-
-                Block block = carriedBlock.Block;
                 var meshFacing = selection.Clone().Face;
+                var assetLocation = carriedBlock.Block.Code.Clone();
+                var baseCode = assetLocation.FirstCodePart();
+                assetLocation.Path = $"{baseCode}-{selection.Face.Code}";
 
-                // Workaround for trunk - may work for other two-wide multiblocks                
-                if (carriedBlock.Block.HasBehavior<BlockBehaviorMultiblock>())
-                {
-                    var assetLocation = carriedBlock.Block.Code.Clone();
-                    var baseCode = assetLocation.FirstCodePart();
-                    assetLocation.Path = $"{baseCode}-{selection.Face.Code}";
+                // Check for cardinal version of block
+                var droppedBlock = world.GetBlock(assetLocation) ?? carriedBlock.Block;
 
-                    if (meshFacing == BlockFacing.EAST || meshFacing == BlockFacing.WEST)
-                    {
-                        meshFacing = meshFacing.Opposite;
-                    }
-                    block = world.GetBlock(assetLocation);
-                }
+                world.BlockAccessor.ExchangeBlock(droppedBlock.Id, selection.Position);
+                world.BlockAccessor.SpawnBlockEntity(droppedBlock.EntityClass, selection.Position, carriedBlock.ItemStack);
 
-                world.BlockAccessor.SetBlock(block.Id, selection.Position, carriedBlock.ItemStack);
-                // Set mesh angle to match the block facing
-                carriedBlock.BlockEntityData?.SetFloat("meshAngle", GetMeshAngle(meshFacing));
+                // Will trigger placement of multiblock sections
+                droppedBlock?.OnBlockPlaced(world, selection.Position, carriedBlock.ItemStack);
+
+                droppedBlockEntity = world.BlockAccessor.GetBlockEntity(selection.Position);
+
+                // Set mesh angle opposite to block facing
+                carriedBlock.BlockEntityData?.SetFloat("meshAngle", -GetMeshAngle(meshFacing));
 
             }
-
+            
             var delegates = CarryEvents?.OnRestoreEntityBlockData?.GetInvocationList();
-
             BlockUtils.RestoreBlockEntityData(world, carriedBlock, selection.Position, delegates: delegates, dropped: dropped);
-            world.BlockAccessor.MarkBlockDirty(selection.Position);
+
+            // Notify the dropped block entity that it has been placed
+            droppedBlockEntity?.OnBlockPlaced(carriedBlock.ItemStack);
+
             world.BlockAccessor.TriggerNeighbourBlockUpdate(selection.Position);
 
             RemoveCarried(entity, carriedBlock.Slot);
@@ -624,7 +625,7 @@ namespace CarryOn.API.Common
                     }
                 }
             }
-        }        
+        }
 
         /// <summary>
         /// Checks if the block is carryable in the specified slot.
