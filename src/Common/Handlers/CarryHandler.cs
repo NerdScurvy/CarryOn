@@ -46,16 +46,16 @@ namespace CarryOn.Common.Handlers
         public ICarryManager CarryManager => this.carryManager ??= this.carrySystem.CarryManager;
 
         // Clientside
-        private InteractionProcessor interactProcessor { get; set; } 
+        private InteractionLogic interactionLogic { get; set; }
 
         // Serverside
-        private TransferProcessor transferProcessor { get; set; }
+        private TransferLogic transferLogic { get; set; }
 
         public int MaxInteractionDistance { get; set; }
 
         public void SetHudHelp(Vintagestory.Client.NoObf.HudElementInteractionHelp hudHelp)
         {
-            this.interactProcessor.HudHelp = hudHelp;
+            this.interactionLogic.HudHelp = hudHelp;
         }
 
         public CarryHandler(CarrySystem carrySystem)
@@ -81,7 +81,7 @@ namespace CarryOn.Common.Handlers
                 throw new InvalidOperationException("CarryHandler.InitClient requires Input to be initialized.");
             }
 
-            this.interactProcessor = new InteractionProcessor(ClientApi, this.carrySystem);
+            this.interactionLogic = new InteractionLogic(ClientApi, this.carrySystem);
 
             this.carrySystem.ClientChannel
                 .RegisterMessageType<InteractMessage>()
@@ -119,7 +119,7 @@ namespace CarryOn.Common.Handlers
             // TODO: Change this to a config value.
             MaxInteractionDistance = 6;
 
-            this.transferProcessor = new TransferProcessor(api, this.carrySystem);
+            this.transferLogic = new TransferLogic(api, this.carrySystem);
 
             this.carrySystem.ServerChannel
                 .RegisterMessageType<InteractMessage>()
@@ -617,7 +617,7 @@ namespace CarryOn.Common.Handlers
             string failureCode;
             string onScreenErrorMessage;
 
-            if (!this.transferProcessor.TryPutCarryable(player, message, out failureCode, out onScreenErrorMessage))
+            if (!this.transferLogic.TryPutCarryable(player, message, out failureCode, out onScreenErrorMessage))
             {
                 if (onScreenErrorMessage != null)
                 {
@@ -634,7 +634,7 @@ namespace CarryOn.Common.Handlers
         public void OnTakeMessage(IServerPlayer player, TakeMessage message)
         {
 
-            if (!this.transferProcessor.TryTakeCarryable(player, message, out string failureCode, out string onScreenErrorMessage))
+            if (!this.transferLogic.TryTakeCarryable(player, message, out string failureCode, out string onScreenErrorMessage))
             {
                 if (onScreenErrorMessage != null)
                 {
@@ -707,7 +707,7 @@ namespace CarryOn.Common.Handlers
             var entityCarriedListener = new TreeModifiedListener()
             {
                 path = AttributeKey.Watched.EntityCarried,
-                listener = this.interactProcessor.RefreshPlacedBlockInteractionHelp
+                listener = this.interactionLogic.RefreshPlacedBlockInteractionHelp
 
             };
 
@@ -725,7 +725,7 @@ namespace CarryOn.Common.Handlers
 
             if (!on && action == EnumEntityAction.InWorldRightMouseDown)
             {
-                this.interactProcessor.CancelInteraction(resetTimeHeld: true);
+                this.interactionLogic.CancelInteraction(resetTimeHeld: true);
                 return;
             }
 
@@ -743,13 +743,13 @@ namespace CarryOn.Common.Handlers
                     isInteracting = false;
                     break;
                 case EnumEntityAction.Sprint:
-                    if (this.interactProcessor.AllowSprintWhileCarrying) return;
+                    if (this.interactionLogic.AllowSprintWhileCarrying) return;
                     isInteracting = false;
                     break;
                 default: return;
             }
 
-            this.interactProcessor.TryBeginInteraction(isInteracting, ref handled);
+            this.interactionLogic.TryBeginInteraction(isInteracting, ref handled);
 
         }
 
@@ -761,7 +761,7 @@ namespace CarryOn.Common.Handlers
         {
             if (!IsCarryOnEnabled) return;
 
-            this.interactProcessor.TryContinueInteraction(deltaTime);
+            this.interactionLogic.TryContinueInteraction(deltaTime);
 
         }
 

@@ -161,8 +161,8 @@ namespace CarryOn
             if (api.Side == EnumAppSide.Server)
             {
                 // Behavioral conditioning and reassignment
-                var behaviorialConditioning = new BehaviorialConditioning();
-                behaviorialConditioning.Init(api, Config);
+                var BehavioralConditioning = new BehavioralConditioning();
+                BehavioralConditioning.Init(api, Config);
             }
 
             base.AssetsFinalize(api);

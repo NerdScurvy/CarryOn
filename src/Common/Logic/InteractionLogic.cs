@@ -15,7 +15,7 @@ using Vintagestory.API.Datastructures;
 
 namespace CarryOn.Common.Logic
 {
-    public class InteractionProcessor
+    public class InteractionLogic
     {
         private ICoreClientAPI api;
         private CarrySystem carrySystem;
@@ -29,7 +29,7 @@ namespace CarryOn.Common.Logic
         private bool? removeInteractDelayWhileCarrying;
         private float? interactSpeedMultiplier;
 
-        private TransferProcessor transferProcessor;
+        private TransferLogic transferLogic;
 
         public bool RemoveInteractDelayWhileCarrying => removeInteractDelayWhileCarrying ??= this.carrySystem?.Config?.CarryOptions?.RemoveInteractDelayWhileCarrying ?? false;
         public bool AllowSprintWhileCarrying => allowSprintWhileCarrying ??= this.carrySystem?.Config?.CarryOptions?.AllowSprintWhileCarrying ?? false;
@@ -37,11 +37,11 @@ namespace CarryOn.Common.Logic
         public float InteractSpeedMultiplier => interactSpeedMultiplier ??= this.carrySystem.Config.CarryOptions?.InteractSpeedMultiplier ?? 1.0f;
 
 
-        public InteractionProcessor(ICoreClientAPI api, CarrySystem carrySystem)
+        public InteractionLogic(ICoreClientAPI api, CarrySystem carrySystem)
         {
             this.api = api ?? throw new ArgumentNullException(nameof(api));
             this.carrySystem = carrySystem ?? throw new ArgumentNullException(nameof(carrySystem));
-            this.transferProcessor = new TransferProcessor(api, carrySystem);
+            this.transferLogic = new TransferLogic(api, carrySystem);
         }
 
         public void TryBeginInteraction(bool isInteracting, ref EnumHandling handled)
@@ -262,7 +262,7 @@ namespace CarryOn.Common.Logic
                     };
 
                     // Call Client side
-                    if (!this.transferProcessor.TryPutCarryable(player, putMessage, out failureCode, out onScreenErrorMessage))
+                    if (!this.transferLogic.TryPutCarryable(player, putMessage, out failureCode, out onScreenErrorMessage))
                     {
                         if (failureCode != FailureCode.Continue)
                         {
@@ -288,7 +288,7 @@ namespace CarryOn.Common.Logic
                     };
 
                     // Call Client side
-                    if (!this.transferProcessor.TryTakeCarryable(player, takeMessage, out failureCode, out onScreenErrorMessage))
+                    if (!this.transferLogic.TryTakeCarryable(player, takeMessage, out failureCode, out onScreenErrorMessage))
                     {
                         if (failureCode != FailureCode.Continue)
                         {
@@ -687,7 +687,7 @@ namespace CarryOn.Common.Logic
 
             if (carriedHands == null)
             {
-                if (!this.transferProcessor.CanTakeCarryable(player, blockEntity, selection.SelectionBoxIndex, out transferDelay, out failureCode, out onScreenErrorMessage))
+                if (!this.transferLogic.CanTakeCarryable(player, blockEntity, selection.SelectionBoxIndex, out transferDelay, out failureCode, out onScreenErrorMessage))
                 {
                     return HandleCanTransferResponse(failureCode, onScreenErrorMessage, ref handled);
                 }
@@ -699,7 +699,7 @@ namespace CarryOn.Common.Logic
             }
             else
             {
-                if (!this.transferProcessor.CanPutCarryable(player, blockEntity, selection.SelectionBoxIndex, out transferDelay, out failureCode, out onScreenErrorMessage))
+                if (!this.transferLogic.CanPutCarryable(player, blockEntity, selection.SelectionBoxIndex, out transferDelay, out failureCode, out onScreenErrorMessage))
                 {
                     return HandleCanTransferResponse(failureCode, onScreenErrorMessage, ref handled);
                 }

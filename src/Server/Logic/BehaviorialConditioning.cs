@@ -10,7 +10,7 @@ using static CarryOn.Utility.Extensions;
 
 namespace CarryOn.Server.Logic
 {
-    public class BehaviorialConditioning
+    public class BehavioralConditioning
     {
 
         public CarryOnConfig Config { get; private set; }

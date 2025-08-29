@@ -10,12 +10,12 @@ using Vintagestory.API.Datastructures;
 
 namespace CarryOn.Common.Logic
 {
-    public class TransferProcessor
+    public class TransferLogic
     {
         private ICoreAPI api;
         private CarrySystem carrySystem;
 
-        public TransferProcessor(ICoreAPI api, CarrySystem carrySystem)
+        public TransferLogic(ICoreAPI api, CarrySystem carrySystem)
         {
             this.api = api ?? throw new ArgumentNullException(nameof(api));
             this.carrySystem = carrySystem ?? throw new ArgumentNullException(nameof(carrySystem));
@@ -244,8 +244,6 @@ namespace CarryOn.Common.Logic
                 {
                     // If the transfer was successful, we can put the block in the player's hands.
                     this.carrySystem.CarryManager.SetCarried(player?.Entity, new CarriedBlock(CarrySlot.Hands, itemStack, blockEntityData));
-                    // var carriedBlock = new CarriedBlockExtended(CarrySlot.Hands, itemStack, blockEntityData);
-                    // carriedBlock.Set(player.Entity);
                     return true;
                 }
 
