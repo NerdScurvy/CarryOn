@@ -2,9 +2,9 @@
   {
     "file": "game:blocktypes/wood/bookshelf-clutter*",
     "side": "Server",
-    "op": "add",
+    "op": "addmerge",
     "path": "/behaviors",
-    "value":  []
+    "value": []
   },
   {
     "file": "game:blocktypes/wood/bookshelf-clutter*",

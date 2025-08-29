@@ -13,7 +13,7 @@ namespace CarryOn.Client
         public void Update(EntityPlayer player)
         {
             var current = new HashSet<string>(player.GetCarried()
-                .Select(carried => carried.GetCarryableBehavior()?.Slots[carried.Slot]?.Animation)
+                .Select(carried => carried.GetCarryableBehavior()?.Slots?[carried.Slot]?.Animation)
                 .Where(animation => animation != null));
 
             var added = current.Except(this.previous);

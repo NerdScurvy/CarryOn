@@ -342,6 +342,15 @@ namespace CarryOn.Common.Logic
                     return;
                 }
 
+                // Validate method signature
+                var parameters = method.GetParameters();
+                if (parameters.Length != 0)
+                {
+                    this.api.Logger.Error($"Unexpected method signature for ComposeBlockWorldInteractionHelp: expected 0 parameters, got {parameters.Length}");
+                    HudHelp = null;
+                    return;
+                }
+
                 method.Invoke(HudHelp, null);
             }
             catch (Exception e)

@@ -1,3 +1,4 @@
+using System;
 using CarryOn.API.Common;
 using CarryOn.API.Event.Data;
 using CarryOn.Config;
@@ -19,16 +20,16 @@ namespace CarryOn.Events
 
         public void Init(ICarryManager carryManager)
         {
-            var carrySystem = carryManager?.Api?.World?.GetCarrySystem();
-            if (carrySystem != null)
-            {
-                this.loggingEnabled = carrySystem.Config.DebuggingOptions.LoggingEnabled;
-            }
-
+            if (carryManager == null) throw new ArgumentNullException(nameof(carryManager));
             this.carryManager = carryManager;
-            var events = carryManager.CarryEvents;
+            var api = carryManager.Api ?? throw new ArgumentNullException(nameof(carryManager.Api));
+            var world = api.World ?? throw new ArgumentNullException(nameof(api.World));
+            var carrySystem = world.GetCarrySystem();
+            this.loggingEnabled = carrySystem?.Config?.DebuggingOptions?.LoggingEnabled ?? false;
 
-            if (carryManager.Api.Side == EnumAppSide.Client)
+            var events = carryManager.CarryEvents ?? throw new InvalidOperationException("CarryEvents not initialized");
+
+            if (api.Side == EnumAppSide.Client)
             {
                 events.OnCheckPermissionToCarry += OnCheckPermissionToCarryClient;
                 return;

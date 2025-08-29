@@ -57,17 +57,24 @@ namespace CarryOn.Config
                 }
 
                 // Cleanup old world config: Remove all keys starting with "carryon:"
-                var keysToRemove = new List<string>();
-                foreach (var key in (worldConfig as TreeAttribute)?.Keys)
+                if (worldConfig is TreeAttribute tree)
                 {
-                    if (key.StartsWith("carryon:", StringComparison.OrdinalIgnoreCase))
+                    var keysToRemove = new List<string>();
+                    foreach (var key in tree.Keys)
                     {
-                        keysToRemove.Add(key);
+                        if (key.StartsWith("carryon:", StringComparison.OrdinalIgnoreCase))
+                        {
+                            keysToRemove.Add(key);
+                        }
+                    }
+                    foreach (var key in keysToRemove)
+                    {
+                        worldConfig.RemoveAttribute(key);
                     }
                 }
-                foreach (var key in keysToRemove)
+                else
                 {
-                    worldConfig.RemoveAttribute(key);
+                    api.Logger.Warning("CarryOn: World.Config is not a TreeAttribute; skipping legacy key cleanup.");
                 }
 
                 // Save the value to the world config so it is available for both server and client

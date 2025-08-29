@@ -2,7 +2,7 @@
   {
     "file": "game:blocktypes/wood/henbox",
     "side": "Server",
-    "op": "add",
+    "op": "addmerge",
     "path": "/behaviors",
     "value": []
   },

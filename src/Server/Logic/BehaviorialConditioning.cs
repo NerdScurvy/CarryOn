@@ -33,7 +33,7 @@ namespace CarryOn.Server.Logic
         {
             var config = api.World.Config;
 
-            foreach (var block in api.World.Blocks.Where(b => b.BlockBehaviors.Any(beh => beh is IConditionalBlockBehavior)))
+            foreach (var block in api.World.Blocks.Where(b => b.BlockBehaviors.Any(beh => beh is IConditionalBlockBehavior) == true))
             {
                 // Get all conditional behaviors
                 var conditionalBehaviors = block.BlockBehaviors.OfType<IConditionalBlockBehavior>().ToList();
@@ -96,18 +96,21 @@ namespace CarryOn.Server.Logic
         /// <param name="api"></param>
         private void ResolveMultipleCarryableBehaviors(ICoreAPI api)
         {
-            var filters = Config?.CarryablesFilters; 
+            var filters = Config?.CarryablesFilters;
 
             foreach (var block in api.World.Blocks)
             {
                 bool removeBaseBehavior = false;
                 if (block.Code == null || block.Id == 0) continue;
-                foreach (var match in filters.RemoveBaseCarryableBehaviour)
+                if (filters?.RemoveBaseCarryableBehaviour != null)
                 {
-                    if (block.Code.ToString().StartsWith(match))
+                    foreach (var match in filters.RemoveBaseCarryableBehaviour)
                     {
-                        removeBaseBehavior = true;
-                        break;
+                        if (block.Code.ToString().StartsWith(match))
+                        {
+                            removeBaseBehavior = true;
+                            break;
+                        }
                     }
                 }
                 block.BlockBehaviors = RemoveOverriddenCarryableBehaviors(block.BlockBehaviors);
@@ -131,7 +134,7 @@ namespace CarryOn.Server.Logic
                 var priorityCarryable = carryableList.FirstOrDefault(p => p.PatchPriority == maxPriority);
                 if (priorityCarryable != null)
                 {
-                    if (!(removeBaseBehavior && priorityCarryable.PatchPriority == 0))
+                    if (ShouldKeepBehavior(priorityCarryable, maxPriority, removeBaseBehavior))
                     {
                         carryableList.Remove(priorityCarryable);
                     }
@@ -166,7 +169,7 @@ namespace CarryOn.Server.Logic
             var loggingEnabled = Config?.DebuggingOptions?.LoggingEnabled ?? false;
             var filters = Config?.CarryablesFilters;
 
-            if (!filters.AutoMapSimilar) return;
+            if (filters?.AutoMapSimilar != true) return;
 
             var matchKeys = new List<string>();
             foreach (var interactBlock in api.World.Blocks.Where(b => b.IsCarryableInteract()))
@@ -196,9 +199,9 @@ namespace CarryOn.Server.Logic
         private void AutoMapSimilarCarryables(ICoreAPI api)
         {
             var loggingEnabled = Config?.DebuggingOptions?.LoggingEnabled ?? false;
-            var filters = Config?.CarryablesFilters; 
+            var filters = Config?.CarryablesFilters;
 
-            if (!filters.AutoMapSimilar) return;
+            if (filters?.AutoMapSimilar != true) return;
 
             var matchBehaviors = new Dictionary<string, BlockBehaviorCarryable>();
             foreach (var carryableBlock in api.World.Blocks.Where(b => b.IsCarryable() && b.Code.Domain == "game"))
@@ -263,20 +266,8 @@ namespace CarryOn.Server.Logic
             foreach (var block in api.World.Blocks.Where(w => !w.IsCarryable() && !filters.AutoMatchIgnoreMods.Contains(w?.Code?.Domain)))
             {
                 if (block.EntityClass == null) continue;
+                var matchKeys = GetPotentialMatchKeys(block);
                 string key = null;
-
-                var classKey = $"Class:{block.Class}";
-                var entityClassKey = $"EntityClass:{block.EntityClass}";
-                var shapePath = block?.ShapeInventory?.Base?.Path ?? block?.Shape?.Base?.Path;
-                var shapeKey = shapePath != null ? $"Shape:{shapePath}" : null;
-
-                var matchKeys = new List<string>
-                {
-                    $"{classKey}|{shapeKey}",
-                    $"{entityClassKey}|{shapeKey}",
-                    shapeKey,
-                    classKey
-                };
 
                 foreach (var matchKey in matchKeys)
                 {
@@ -301,6 +292,32 @@ namespace CarryOn.Server.Logic
                     newBehavior.Initialize(behavior.Properties);
                 }
             }
+        }
+
+        // Move outside the loop if the keys don't change per block
+        private string[] GetPotentialMatchKeys(Block block)
+        {
+            var classKey = $"Class:{block.Class}";
+            var entityClassKey = $"EntityClass:{block.EntityClass}";
+            var shapePath = block?.ShapeInventory?.Base?.Path ?? block?.Shape?.Base?.Path;
+            var shapeKey = shapePath != null ? $"Shape:{shapePath}" : null;
+
+            if (shapeKey == null)
+                return [classKey];
+
+            return
+            [
+                $"{classKey}|{shapeKey}",
+                $"{entityClassKey}|{shapeKey}",
+                shapeKey,
+                classKey
+            ];
+        }
+
+        private bool ShouldKeepBehavior(BlockBehaviorCarryable behavior, int maxPriority, bool removeBaseBehavior)
+        {
+            return behavior.PatchPriority == maxPriority &&
+                !(removeBaseBehavior && behavior.PatchPriority == 0);
         }
     }
 }

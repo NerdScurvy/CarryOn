@@ -22,18 +22,19 @@ namespace CarryOn.Common.Behaviors
             Api = entity.World.Api;
         }
 
-        private EntityBehaviorAttachable _behaviorAttachable;
+        private EntityBehaviorAttachable behaviorAttachable;
 
         public int GetSlotIndex(int selBoxIndex)
         {
             if (selBoxIndex <= 0) return 0;
-            _behaviorAttachable ??= entity.GetBehavior<EntityBehaviorAttachable>();
-            return _behaviorAttachable.GetSlotIndexFromSelectionBoxIndex(selBoxIndex - 1);
+            this.behaviorAttachable ??= entity.GetBehavior<EntityBehaviorAttachable>();
+            if (this.behaviorAttachable == null) return -1;
+            return this.behaviorAttachable.GetSlotIndexFromSelectionBoxIndex(selBoxIndex - 1);
         }
 
         public ItemSlot GetItemSlot(int slotIndex)
         {
-            return (slotIndex >= 0 && slotIndex < _behaviorAttachable?.Inventory.Count) ? _behaviorAttachable?.Inventory[slotIndex] : null;
+            return (slotIndex >= 0 && slotIndex < this.behaviorAttachable?.Inventory.Count) ? this.behaviorAttachable?.Inventory[slotIndex] : null;
         }
 
         public bool IsItemSlotEmpty(ItemSlot itemSlot)

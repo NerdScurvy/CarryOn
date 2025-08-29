@@ -327,10 +327,11 @@ namespace CarryOn.Common.Handlers
         public void OnSwapSlotsMessage(IServerPlayer player, SwapSlotsMessage message)
         {
             if (!BackSlotEnabled) return;
-
-            if ((message.First != message.Second) && (message.First == CarrySlot.Back) ||
-                player.Entity.CanInteract(requireEmptyHanded: true))
+            if ((message.First != message.Second)
+                && (message.First == CarrySlot.Back || message.Second == CarrySlot.Back)
+                && player.Entity.CanInteract(requireEmptyHanded: true))
             {
+            
                 if (player.Entity.SwapCarried(message.First, message.Second))
                 {
                     Api.World.PlaySoundAt(new AssetLocation("sounds/player/throw"), player.Entity);

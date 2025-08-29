@@ -42,10 +42,14 @@
             <HintPath>$(VINTAGE_STORY)/Lib/0Harmony.dll</HintPath>
             <Private>false</Private>
         </Reference>
-		<Reference Include="CarryOnLib">
+		<Reference Include="CarryOnLib" Condition="'$(Configuration)' == 'Debug'">
 			<HintPath>..\CarryOnLib\bin\Debug\net8.0\CarryOnLib.dll</HintPath>
 			<Private>false</Private>
-		</Reference>				
+		</Reference>	
+		<Reference Include="CarryOnLib" Condition="'$(Configuration)' == 'Release'">
+			<HintPath>..\CarryOnLib\bin\Release\net8.0\CarryOnLib.dll</HintPath>
+			<Private>false</Private>
+		</Reference>
 	</ItemGroup>
 	
 	<ItemGroup Condition="'$(Configuration)' == 'Release'">

@@ -72,7 +72,7 @@ namespace CarryOn.Common.Logic
             if (transferHandler == null) return false;
 
 
-            var carriedHands = player.Entity.GetCarried(CarrySlot.Hands);
+            var carriedHands = player?.Entity?.GetCarried(CarrySlot.Hands);
 
             try
             {

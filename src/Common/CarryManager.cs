@@ -293,7 +293,7 @@ namespace CarryOn.API.Common
                 }
                 catch (NullReferenceException ex)
                 {
-                    world.Logger.Error("Error occured while trying to place a carried block: " + ex.Message);
+                    world.Logger.Error($"Error occurred while trying to place a carried block at {selection.Position}: {ex}");
                     // Workaround was for null ref with reed chest - Leaving here in case of other issues
                     world.BlockAccessor.SetBlock(carriedBlock.Block.Id, selection.Position, carriedBlock.ItemStack);
                 }
@@ -517,9 +517,9 @@ namespace CarryOn.API.Common
                     continue;
                 }
 
-                if (TryPlaceDown(player?.Entity, carriedBlock, blockSelection, dropped: true))
+                if (TryPlaceDown(entity, carriedBlock, blockSelection, dropped: true))
                 {
-                    RemoveCarried(player?.Entity, carriedBlock.Slot);
+                    RemoveCarried(entity, carriedBlock.Slot);
                     Api.World.Logger.Audit($"Player {player?.PlayerName} dropped carried block {carriedBlock.Block.Code} at {blockSelection.Position}");
                     continue;
                 }

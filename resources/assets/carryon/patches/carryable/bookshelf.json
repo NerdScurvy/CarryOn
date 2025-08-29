@@ -2,9 +2,9 @@
   {
     "file": "game:blocktypes/wood/woodtyped/bookshelf",
     "side": "Server",
-    "op": "add",
+    "op": "addmerge",
     "path": "/behaviors",
-    "value":  []
+    "value": []
     
   },
 

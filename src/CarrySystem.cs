@@ -136,7 +136,7 @@ namespace CarryOn
             HudOverlayRenderer = new HudOverlayRenderer(api);
 
             CarryHandler.InitClient(api);
-            CarryManager.InitEvents(api);
+            CarryManager?.InitEvents(api);
             HotKeyHandler.InitClient(api);
         }
 
@@ -149,7 +149,7 @@ namespace CarryOn
 
             DeathHandler = new DeathHandler(api);
             CarryHandler.InitServer(api);
-            CarryManager.InitEvents(api);
+            CarryManager?.InitEvents(api);
             HotKeyHandler.InitServer(api);
         }
 

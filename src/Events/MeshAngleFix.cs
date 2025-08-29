@@ -18,8 +18,9 @@ namespace CarryOn.Events
             carryManager.CarryEvents.OnRestoreEntityBlockData += OnRestoreEntityBlockData;
         }
 
-        public void OnRestoreEntityBlockData(BlockEntity blockEntity, ITreeAttribute blockEntityData, bool dropped)
+        private void OnRestoreEntityBlockData(BlockEntity blockEntity, ITreeAttribute blockEntityData, bool dropped)
         {
+            if (blockEntity == null || blockEntityData == null) return;
 
             var blockClass = blockEntity?.Block?.Class;
             switch (blockClass)

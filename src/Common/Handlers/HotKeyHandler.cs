@@ -12,9 +12,9 @@ namespace CarryOn.Common.Handlers
 {
     public class HotKeyHandler
     {
-        private ICoreAPI api;
+        private ICoreClientAPI clientApi;
 
-        public ICoreClientAPI ClientApi => api as ICoreClientAPI;
+        public ICoreClientAPI ClientApi => clientApi;
 
         private readonly CarrySystem carrySystem;
 
@@ -28,7 +28,7 @@ namespace CarryOn.Common.Handlers
 
         public void InitClient(ICoreClientAPI api)
         {
-            this.api = api ?? throw new ArgumentNullException(nameof(api));
+            this.clientApi = api ?? throw new ArgumentNullException(nameof(api));
 
             this.carrySystem.ClientChannel
                 .RegisterMessageType<QuickDropMessage>()
@@ -52,8 +52,6 @@ namespace CarryOn.Common.Handlers
 
         public void InitServer(ICoreServerAPI api)
         {
-            this.api = api ?? throw new ArgumentNullException(nameof(api));
-
             this.carrySystem.ServerChannel
                 .RegisterMessageType<QuickDropMessage>()
                 .RegisterMessageType<PlayerAttributeUpdateMessage>()
@@ -119,6 +117,8 @@ namespace CarryOn.Common.Handlers
         /// <returns></returns>
         private bool TriggerToggleDoubleTapDismountKeyPressed(KeyCombination keyCombination)
         {
+            if (IsCursorActive()) return false;
+            if (ClientApi?.World?.Player?.Entity == null) return false;
             var playerEntity = ClientApi.World.Player.Entity;
             var isEnabled = playerEntity.WatchedAttributes.GetBool(AttributeKey.Watched.EntityDoubleTapDismountEnabled, false);
 
@@ -140,7 +140,7 @@ namespace CarryOn.Common.Handlers
         {
             carrySystem.CarryManager.DropCarried(player.Entity, message.CarrySlots, 2);
         }
-        
+
         /// <summary>
         /// Handles player attribute updates.
         /// Currently only updates the double-tap dismount attribute which toggles the feature for the player.
@@ -170,6 +170,6 @@ namespace CarryOn.Common.Handlers
             }
 
             playerEntity.Api.Logger.Warning($"Received PlayerAttributeUpdateMessage with unknown attribute key: {message.AttributeKey}");
-        }        
+        }
     }
 }
