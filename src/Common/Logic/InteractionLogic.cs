@@ -613,7 +613,7 @@ namespace CarryOn.Common.Logic
 
                     if (!player.Entity.HasPermissionToCarry(blockPos))
                     {
-                        this.api.TriggerIngameError("carryon", "place-down-no-permission", GetLang("place-down-no-permission"));
+                        this.api.TriggerIngameError(ModId, "place-down-no-permission", GetLang("place-down-no-permission"));
                         handled = EnumHandling.PreventDefault;
                         return false;
                     }
