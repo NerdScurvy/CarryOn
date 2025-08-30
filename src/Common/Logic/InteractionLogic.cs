@@ -478,7 +478,7 @@ namespace CarryOn.Common.Logic
             }
 
             // Get origin block if multiblock like a trunk
-            var selection = BlockUtils.GetMultiblockOriginSelection(player?.CurrentBlockSelection);
+            var selection = BlockUtils.GetMultiblockOriginSelection(world.BlockAccessor, player?.CurrentBlockSelection);
 
             // Can player carry target block
             bool canCarryTarget = selection?.Block?.IsCarryable(CarrySlot.Hands) == true;
