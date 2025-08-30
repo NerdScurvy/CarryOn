@@ -38,8 +38,8 @@ namespace CarryOn.Common.Handlers
             var input = api.Input;
 
             input.RegisterHotKey(HotKeyCode.Toggle, GetLang("toggle-hotkey"), Default.FunctionKeybind, altPressed: true);
-            input.RegisterHotKey(HotKeyCode.QuickDrop, GetLang("quickdrop-hotkey"), Default.FunctionKeybind, altPressed: true, ctrlPressed: true);
-            input.RegisterHotKey(HotKeyCode.QuickDropAll, GetLang("quickdropall-hotkey"), Default.FunctionKeybind);
+            input.RegisterHotKey(HotKeyCode.QuickDrop, GetLang("quickdrop-hotkey"), Default.FunctionKeybind);
+            input.RegisterHotKey(HotKeyCode.QuickDropAll, GetLang("quickdropall-hotkey"), Default.FunctionKeybind, altPressed: true, ctrlPressed: true);
             input.RegisterHotKey(HotKeyCode.ToggleDoubleTapDismount, GetLang("toggle-double-tap-dismount-hotkey"), Default.FunctionKeybind, ctrlPressed: true);
 
             input.SetHotKeyHandler(HotKeyCode.Toggle, TriggerToggleKeyPressed);

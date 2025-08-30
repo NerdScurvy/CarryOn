@@ -12,6 +12,7 @@
   "toggle-hotkey": "CarryOn - Enable / Disable interaction",
   
   "quickdrop-hotkey": "CarryOn - Quick Drop",
+  "quickdropall-hotkey": "CarryOn - Quick Drop All",
   "blockhelp-attach": "Attach carried",
   "blockhelp-detach": "Detach and carry",
 
