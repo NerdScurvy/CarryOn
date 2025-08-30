@@ -291,9 +291,12 @@ namespace CarryOn.Common
             {
                 return false;
             }
+            
+            // Get origin block if multiblock like a trunk
+            var selection = GetMultiblockOriginSelection(player?.CurrentBlockSelection);
 
             // Can player carry target block
-            bool canCarryTarget = player.CurrentBlockSelection?.Block?.IsCarryable(CarrySlot.Hands) == true;
+            bool canCarryTarget = selection?.Block?.IsCarryable(CarrySlot.Hands) == true;
 
             // Swap back conditions: When carry key is held down and one of the following is true:
             // 1. The carry swap key is pressed
@@ -301,7 +304,7 @@ namespace CarryOn.Common
             // 3. The player has empty hands but has something in back slot and the target block is not carryable
             bool carryKeyHeld = player.Entity.IsCarryKeyHeld();
             bool swapKeyPressed = IsCarrySwapKeyPressed();
-            bool notTargetingBlock = player.CurrentBlockSelection == null;
+            bool notTargetingBlock = selection == null;
             bool canSwapBackFromBackSlot = !canCarryTarget && carriedBack != null && carriedHands == null;
 
             if (carryKeyHeld && (swapKeyPressed || notTargetingBlock || canSwapBackFromBackSlot))
@@ -310,7 +313,7 @@ namespace CarryOn.Common
                 if (carriedHands == null && !notTargetingBlock)
                 {
                     // Don't allow swap back operation if the player is looking at a container with empty hands.
-                    var hasBehavior = player.CurrentBlockSelection?.Block?.HasBehavior<BlockBehaviorContainer>() ?? false;
+                    var hasBehavior = selection?.Block?.HasBehavior<BlockBehaviorContainer>() ?? false;
                     if (hasBehavior)
                     {
                         CompleteInteraction();
