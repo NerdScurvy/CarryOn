@@ -19,7 +19,8 @@ namespace CarryOn.Events
             // Fix trunk dropped angle - Sets to a fixed angle for east facing trunk
             // Updated to support labeled trunks
             // Should not be required in CarryOn v2
-            if (dropped && blockEntity?.Block?.Shape?.Base?.Path?.StartsWith("block/wood/trunk/") == true)
+            bool isTrunkBlock = blockEntity?.Block?.Shape?.Base?.Path?.StartsWith("block/wood/trunk/") == true;
+            if (dropped && isTrunkBlock)
             {
                 // Workaround fix dropped trunk angle
                 blockEntityData.SetFloat("meshAngle", -90 * GameMath.DEG2RAD);
