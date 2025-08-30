@@ -477,8 +477,11 @@ namespace CarryOn.Common.Logic
                 return false;
             }
 
+            // Get origin block if multiblock like a trunk
+            var selection = BlockUtils.GetMultiblockOriginSelection(player?.CurrentBlockSelection);
+
             // Can player carry target block
-            bool canCarryTarget = player.CurrentBlockSelection?.Block?.IsCarryable(CarrySlot.Hands) == true;
+            bool canCarryTarget = selection?.Block?.IsCarryable(CarrySlot.Hands) == true;
 
             // Swap back conditions: When carry key is held down and one of the following is true:
             // 1. The carry swap key is pressed
@@ -486,7 +489,7 @@ namespace CarryOn.Common.Logic
             // 3. The player has empty hands but has something in back slot and the target block is not carryable
             bool carryKeyHeld = api.Input.IsCarryKeyPressed();
             bool swapKeyPressed = api.Input.IsCarrySwapBackKeyPressed();
-            bool notTargetingBlock = player.CurrentBlockSelection == null;
+            bool notTargetingBlock = selection == null;
             bool canSwapBackFromBackSlot = !canCarryTarget && carriedBack != null && carriedHands == null;
 
             if (carryKeyHeld && (swapKeyPressed || notTargetingBlock || canSwapBackFromBackSlot))
@@ -495,8 +498,8 @@ namespace CarryOn.Common.Logic
                 if (carriedHands == null && !notTargetingBlock)
                 {
                     // Don't allow swap back operation if the player is looking at a container or ground storage with empty hands.
-                    var isContainer = player.CurrentBlockSelection?.Block?.HasBehavior<BlockBehaviorContainer>() ?? false;
-                    var isGroundStorage = player.CurrentBlockSelection?.Block?.Code == "groundstorage";
+                    var isContainer = selection?.Block?.HasBehavior<BlockBehaviorContainer>() ?? false;
+                    var isGroundStorage = selection?.Block?.Code == "groundstorage";
 
                     if (isContainer || isGroundStorage)
                     {
@@ -509,7 +512,7 @@ namespace CarryOn.Common.Logic
                 {
                     if (carriedHands.GetCarryableBehavior().Slots[CarrySlot.Back] == null)
                     {
-                        this.api.TriggerIngameError("carryon", "cannot-swap-back", GetLang("cannot-swap-back"));
+                        this.api.TriggerIngameError(ModId, "cannot-swap-back", GetLang("cannot-swap-back"));
                         CompleteInteraction();
                         return true;
                     }
@@ -518,7 +521,7 @@ namespace CarryOn.Common.Logic
                 if (carriedHands == null && carriedBack == null)
                 {
                     // If nothing is being carried, do not allow swap back.
-                    this.api.TriggerIngameError("carryon", "nothing-carried", GetLang("nothing-carried"));
+                    this.api.TriggerIngameError(ModId, "nothing-carried", GetLang("nothing-carried"));
                     CompleteInteraction();
                     return true;
                 }

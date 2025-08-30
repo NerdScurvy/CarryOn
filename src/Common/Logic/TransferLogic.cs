@@ -44,6 +44,10 @@ namespace CarryOn.Common.Logic
                 return transferHandler.CanTakeCarryable(player, blockEntity, index,
                    out transferDelay, out failureCode, out onScreenErrorMessage);
             }
+            catch (Exception e)
+            {
+                failureCode = FailureCode.Internal;
+                onScreenErrorMessage = GetLang("unknown-error");
                 this.api.Logger.Error($"CanTakeCarryable method failed: {e}", e);
             }
 
