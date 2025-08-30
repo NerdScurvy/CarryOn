@@ -282,27 +282,30 @@ namespace CarryOn.API.Common
                 failureCode ??= FailureCode.Ignore;
 
                 var player = world.PlayerByUid(playerEntity.PlayerUID);
-                try
+                // Defensive null checks
+                if (player == null || playerEntity == null || carriedBlock == null || carriedBlock.Block == null || selection == null)
                 {
-                    // Add phantom Item to player's active slot so any related block placement code can fire. (Workaround for creature container)
-                    player.InventoryManager.ActiveHotbarSlot.Itemstack = carriedBlock.ItemStack;
-
-                    // Force sneak mode for placing blocks (in case carry keybinds are different)
-                    // This is a workaround for some blocks like Molds which require sneak to be placed
-                    playerEntity.Controls.ShiftKey = true;
-
-                    if (!carriedBlock.Block.TryPlaceBlock(world, player, carriedBlock.ItemStack, selection, ref failureCode))
+                    world.Logger.Error($"Error: Null reference detected while trying to place a carried block at {selection?.Position}. player: {player}, playerEntity: {playerEntity}, carriedBlock: {carriedBlock}, block: {carriedBlock?.Block}, selection: {selection}");
+                    // Fallback logic for known issue (e.g., reed chest)
+                    if (carriedBlock != null && carriedBlock.Block != null && selection != null && carriedBlock.ItemStack != null)
                     {
-                        // Remove phantom item from active slot if failed to place
-                        player.InventoryManager.ActiveHotbarSlot.Itemstack = null;
-                        return false;
+                        world.BlockAccessor.SetBlock(carriedBlock.Block.Id, selection.Position, carriedBlock.ItemStack);
                     }
+                    return false;
                 }
-                catch (NullReferenceException ex)
+
+                // Add phantom Item to player's active slot so any related block placement code can fire. (Workaround for creature container)
+                player.InventoryManager.ActiveHotbarSlot.Itemstack = carriedBlock.ItemStack;
+
+                // Force sneak mode for placing blocks (in case carry keybinds are different)
+                // This is a workaround for some blocks like Molds which require sneak to be placed
+                playerEntity.Controls.ShiftKey = true;
+
+                if (!carriedBlock.Block.TryPlaceBlock(world, player, carriedBlock.ItemStack, selection, ref failureCode))
                 {
-                    world.Logger.Error($"Error occurred while trying to place a carried block at {selection.Position}: {ex}");
-                    // Workaround was for null ref with reed chest - Leaving here in case of other issues
-                    world.BlockAccessor.SetBlock(carriedBlock.Block.Id, selection.Position, carriedBlock.ItemStack);
+                    // Remove phantom item from active slot if failed to place
+                    player.InventoryManager.ActiveHotbarSlot.Itemstack = null;
+                    return false;
                 }
             }
             else
