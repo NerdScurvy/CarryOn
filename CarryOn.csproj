@@ -3,7 +3,7 @@
 		
 		<AssemblyTitle>Carry On</AssemblyTitle>
 		<Authors>copygirl,NerdScurvy</Authors>
-		<Version>1.10.2</Version>
+		<Version>2.0.0-pre.1</Version>
 		
 		<Description>Vintage Story mod which adds the capability to carry various things</Description>
 		<RepositoryUrl>https://github.com/NerdScurvy/CarryOn</RepositoryUrl>
@@ -18,8 +18,16 @@
 			<HintPath>$(VINTAGE_STORY)/VintagestoryAPI.dll</HintPath>
 			<Private>false</Private>
 		</Reference>
+		<Reference Include="VintagestoryLib">
+			<HintPath>$(VINTAGE_STORY)/VintagestoryLib.dll</HintPath>
+			<Private>false</Private>
+		</Reference>	
 		<Reference Include="VSEssentials">
 			<HintPath>$(VINTAGE_STORY)/Mods/VSEssentials.dll</HintPath>
+			<Private>false</Private>
+		</Reference>			
+		<Reference Include="Newtonsoft.Json">
+			<HintPath>$(VINTAGE_STORY)/Lib/Newtonsoft.Json.dll</HintPath>
 			<Private>false</Private>
 		</Reference>
 		<Reference Include="VSSurvivalMod">
@@ -32,8 +40,16 @@
 		</Reference>	
         <Reference Include="0Harmony">
             <HintPath>$(VINTAGE_STORY)/Lib/0Harmony.dll</HintPath>
-            <Private>False</Private>
-        </Reference>		
+            <Private>false</Private>
+        </Reference>
+		<Reference Include="CarryOnLib" Condition="'$(Configuration)' == 'Debug'">
+			<HintPath>..\CarryOnLib\bin\Debug\net8.0\CarryOnLib.dll</HintPath>
+			<Private>false</Private>
+		</Reference>	
+		<Reference Include="CarryOnLib" Condition="'$(Configuration)' == 'Release'">
+			<HintPath>..\CarryOnLib\bin\Release\net8.0\CarryOnLib.dll</HintPath>
+			<Private>false</Private>
+		</Reference>
 	</ItemGroup>
 	
 	<ItemGroup Condition="'$(Configuration)' == 'Release'">
@@ -46,5 +62,6 @@
 	
 	<Target Name="Package" AfterTargets="PostBuildEvent" Condition="'$(Configuration)' == 'Release'">
 		<ZipDirectory DestinationFile="bin/$(TargetName).zip" SourceDirectory="$(TargetDir)" Overwrite="true" />
+		<Copy DestinationFolder="$(VINTAGE_STORY_DATA)/CarryOnDev/Mods/" SourceFiles="bin/$(TargetName).zip" />
 	</Target>
 </Project>

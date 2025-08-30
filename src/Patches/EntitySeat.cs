@@ -2,13 +2,13 @@ using CarryOn.Common.Network;
 using HarmonyLib;
 using Vintagestory.API.Common;
 using Vintagestory.GameContent;
-using static CarryOn.CarrySystem;
+using static CarryOn.API.Common.Models.CarryCode;
 
 namespace CarryOn.Patches
 {
 
     [HarmonyPatch(typeof(EntitySeat), "onControls")]
-    public class Patch_EntitySeat_onControls
+    public class EntitySeat_onControls_Patch
     {
 
         [HarmonyPrefix]
@@ -17,7 +17,7 @@ namespace CarryOn.Patches
             var entityAgent = __instance.Passenger as EntityAgent;
             if (entityAgent == null) return true;
 
-            if (!entityAgent.WatchedAttributes.GetBool(DoubleTapDismountEnabledAttributeKey, false))
+            if (!entityAgent.WatchedAttributes.GetBool(AttributeKey.Watched.EntityDoubleTapDismountEnabled, false))
             {
                 return true; // return to normal behavior
             }
@@ -29,12 +29,12 @@ namespace CarryOn.Patches
                 if (action == EnumEntityAction.Sneak && on)
                 {
                     long nowMs = entityAgent.World.ElapsedMilliseconds;
-                    long lastTapMs = entityAgent.Attributes.GetLong(LastSneakTapMsKey, 0);
+                    long lastTapMs = entityAgent.Attributes.GetLong(AttributeKey.EntityLastSneakTap, 0);
 
                     // Check last tap was in the past. If in the future then the server time has been reset.
                     if (lastTapMs < nowMs)
                     {
-                        if (nowMs - lastTapMs < DoubleTapThresholdMs && nowMs - lastTapMs > 50)
+                        if (nowMs - lastTapMs < Default.DoubleTapThresholdMs && nowMs - lastTapMs > 50)
                         {
                             // Double tap detected
                             var carrySystem = entityAgent.Api.ModLoader.GetModSystem<CarrySystem>();
@@ -57,12 +57,12 @@ namespace CarryOn.Patches
                         else
                         {
                             // Single tap, just update the last tap time
-                            entityAgent.Attributes.SetLong(LastSneakTapMsKey, nowMs);
+                            entityAgent.Attributes.SetLong(AttributeKey.EntityLastSneakTap, nowMs);
 
                         }
                     }
 
-                    entityAgent.Attributes.SetLong(LastSneakTapMsKey, nowMs);
+                    entityAgent.Attributes.SetLong(AttributeKey.EntityLastSneakTap, nowMs);
                 }
             }
 

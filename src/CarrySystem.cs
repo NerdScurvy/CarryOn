@@ -1,31 +1,31 @@
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using CarryOn.API.Common;
+using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Event;
 using CarryOn.Client;
-using CarryOn.Common;
-using CarryOn.Common.Network;
-using CarryOn.Compatibility;
+using CarryOn.Common.Behaviors;
+using CarryOn.Common.Handlers;
 using CarryOn.Config;
-using CarryOn.Server;
+using CarryOn.Server.Behaviors;
+using CarryOn.Server.Logic;
 using CarryOn.Utility;
 using HarmonyLib;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
-using Vintagestory.API.Datastructures;
+using Vintagestory.API.Config;
 using Vintagestory.API.Server;
-using Vintagestory.API.Util;
 using Vintagestory.GameContent;
+using static CarryOn.API.Common.Models.CarryCode;
 
 [assembly: ModInfo("Carry On",
     modID: "carryon",
-    Version = "1.10.2",
+    Version = "2.0.0-pre.1",
     Description = "Adds the capability to carry various things",
     Website = "https://github.com/NerdScurvy/CarryOn",
     Authors = new[] { "copygirl", "NerdScurvy" })]
 [assembly: ModDependency("game", "1.21.0")]
+[assembly: ModDependency("carryonlib", "1.0.0-pre.1")]
 
 namespace CarryOn
 {
@@ -33,72 +33,63 @@ namespace CarryOn
     ///           blocks such as chests to be picked up and carried around. </summary>
     public class CarrySystem : ModSystem
     {
-        public static string ModId = "carryon";
-        public static float PlaceSpeedDefault = 0.75f;
-        public static float SwapSpeedDefault = 1.5f;
-        public static float PickUpSpeedDefault = 0.8f;
-        public static float InteractSpeedDefault = 0.8f;
-
-        public static string PickupKeyCode = "carryonpickupkey";
-        public static GlKeys PickupKeyDefault = GlKeys.ShiftLeft;
-        public static string SwapBackModifierKeyCode = "carryonswapbackmodifierkey";
-        public static GlKeys SwapBackModifierDefault = GlKeys.ControlLeft;
-        public static string ToggleKeyCode = "carryontogglekey";
-        public static GlKeys ToggleDefault = GlKeys.K;
-        public static string QuickDropKeyCode = "carryonquickdropkey";
-
-        // Combine with Alt + Ctrl to drop carried block        
-        public static GlKeys QuickDropDefault = GlKeys.K;
-
-        // Combine with Ctrl to toggle double tap dismount
-        public static GlKeys ToggleDoubleTapDismountDefault = GlKeys.K;
-        public static string ToggleDoubleTapDismountKeyCode = "carryontoggledoubletapdismountkey";
-
-        public static readonly string DoubleTapDismountEnabledAttributeKey = ModId + ":DoubleTapDismountEnabled";
-
-        public static readonly string LastSneakTapMsKey = ModId + ":LastSneakTapMs";
-        public static readonly int DoubleTapThresholdMs = 500;
-
-        public ICoreAPI Api { get { return ClientAPI ?? ServerAPI as ICoreAPI; } }
+        // Whether CarryOn is enabled on the client side. This does not affect server-side behavior.
+        public bool CarryOnEnabled { get; set; } = true;
 
         // Client
-        public ICoreClientAPI ClientAPI { get; private set; }
+        public ICoreClientAPI ClientApi { get; private set; }
         public IClientNetworkChannel ClientChannel { get; private set; }
         public EntityCarryRenderer EntityCarryRenderer { get; private set; }
         public HudOverlayRenderer HudOverlayRenderer { get; private set; }
 
         // Server
-        public ICoreServerAPI ServerAPI { get; private set; }
+        public ICoreServerAPI ServerApi { get; private set; }
         public IServerNetworkChannel ServerChannel { get; private set; }
         public DeathHandler DeathHandler { get; private set; }
 
         // Common
+        public HotKeyHandler HotKeyHandler { get; private set; }
+
         public CarryHandler CarryHandler { get; private set; }
 
         public CarryEvents CarryEvents { get; private set; }
 
-        private Harmony _harmony;
+        public CarryOnLib.Core CarryOnLib { get; private set; }
+
+        public ICarryManager CarryManager => CarryOnLib?.CarryManager;
+
+        public CarryOnConfig Config { get; private set; }
+
+        private Harmony harmony;
+
+        public static string GetLang(string key) => Lang.Get(CarryOnCode(key)) ?? key;
 
         public override void StartPre(ICoreAPI api)
         {
-            base.StartPre(api);
-            
-            var wasPatched = AutoConfigLib.HadPatches(api);
-
-            ModConfig.ReadConfig(api);
-
-            if (wasPatched)
+            if (api.Side == EnumAppSide.Client)
             {
-                // Load the config file for AutoConfigLib to parse
-                api.LoadModConfig<CarryOnConfig>(ModConfig.ConfigFile);
+                ClientApi = api as ICoreClientAPI;
+            }
+            else
+            {
+                ServerApi = api as ICoreServerAPI;
+
+                // Load the configuration into the world config
+                var modConfig = new ModConfig();
+                modConfig.Load(api);                
             }
 
-            if (ModConfig.HarmonyPatchEnabled)
+            base.StartPre(api);
+
+            // Extract the configuration from the world config
+            Config = CarryOnConfig.FromTreeAttribute(api?.World?.Config?.GetTreeAttribute(ModId));
+
+            if (!Config.DebuggingOptions.DisableHarmonyPatch)
             {
                 try
                 {
-                    _harmony = new Harmony("CarryOn");
-                    _harmony.PatchAll();
+                    this.harmony = new Harmony(ModId);
+                    this.harmony.PatchAll();
                     api.World.Logger.Notification("CarryOn: Harmony patches enabled.");
                 }
                 catch (Exception ex)
@@ -109,7 +100,7 @@ namespace CarryOn
             else
             {
                 api.World.Logger.Notification("CarryOn: Harmony patches are disabled by config.");
-                // If runtime config changes are supported, call _harmony.UnpatchAll("CarryOn") here
+                // If runtime config changes are supported, call this.harmony.UnpatchAll("CarryOn") here
             }
 
             api.World.Logger.Event("started 'CarryOn' mod");
@@ -126,353 +117,74 @@ namespace CarryOn
 
             CarryHandler = new CarryHandler(this);
             CarryEvents = new CarryEvents();
+
+            HotKeyHandler = new HotKeyHandler(this);
+
+            CarryOnLib = api.ModLoader.GetModSystem<CarryOnLib.Core>();
+            if (CarryOnLib != null)
+            {
+                CarryOnLib.CarryManager = new CarryManager(api, this);
+            }
+            else
+            {
+                api.World.Logger.Error("CarryOn: Failed to load CarryOnLib mod system");
+            }
         }
 
         public override void StartClientSide(ICoreClientAPI api)
         {
-            ClientAPI = api;
-            ClientChannel = api.Network.RegisterChannel(ModId)
-                .RegisterMessageType<InteractMessage>()
-                .RegisterMessageType<LockSlotsMessage>()
-                .RegisterMessageType<PickUpMessage>()
-                .RegisterMessageType<PlaceDownMessage>()
-                .RegisterMessageType<SwapSlotsMessage>()
-                .RegisterMessageType<AttachMessage>()
-                .RegisterMessageType<DetachMessage>()
-                .RegisterMessageType<QuickDropMessage>()
-                .RegisterMessageType<DismountMessage>()
-                .RegisterMessageType<PlayerAttributeUpdateMessage>();
+            ClientApi = api;
+            ClientChannel = api.Network.RegisterChannel(ModId);
 
             EntityCarryRenderer = new EntityCarryRenderer(api);
             HudOverlayRenderer = new HudOverlayRenderer(api);
-            CarryHandler.InitClient();
-            InitEvents();
+
+            CarryHandler.InitClient(api);
+            CarryManager?.InitEvents(api);
+            HotKeyHandler.InitClient(api);
         }
 
         public override void StartServerSide(ICoreServerAPI api)
         {
             api.Register<EntityBehaviorDropCarriedOnDamage>();
 
-            ServerAPI = api;
-            ServerChannel = api.Network.RegisterChannel(ModId)
-                .RegisterMessageType<InteractMessage>()
-                .RegisterMessageType<LockSlotsMessage>()
-                .RegisterMessageType<PickUpMessage>()
-                .RegisterMessageType<PlaceDownMessage>()
-                .RegisterMessageType<SwapSlotsMessage>()
-                .RegisterMessageType<AttachMessage>()
-                .RegisterMessageType<DetachMessage>()
-                .RegisterMessageType<QuickDropMessage>()
-                .RegisterMessageType<DismountMessage>()
-                .RegisterMessageType<PlayerAttributeUpdateMessage>();
+            ServerApi = api;
+            ServerChannel = api.Network.RegisterChannel(ModId);
 
             DeathHandler = new DeathHandler(api);
-            CarryHandler.InitServer();
-            InitEvents();
+            CarryHandler.InitServer(api);
+            CarryManager?.InitEvents(api);
+            HotKeyHandler.InitServer(api);
         }
 
         public override void AssetsFinalize(ICoreAPI api)
         {
             if (api.Side == EnumAppSide.Server)
             {
-                ManuallyAddCarryableBehaviors(api);
-                ResolveMultipleCarryableBehaviors(api);
-
-                AutoMapSimilarCarryables(api);
-                AutoMapSimilarCarryableInteract(api);
-                RemoveExcludedCarryableBehaviours(api);
+                // Behavioral conditioning and reassignment
+                var BehavioralConditioning = new BehavioralConditioning();
+                BehavioralConditioning.Init(api, Config);
             }
 
             base.AssetsFinalize(api);
         }
 
-        // Helper to create, initialize, and append BlockBehaviorCarryable to a collection
-        private void AddCarryableBehavior(Block block, ref BlockBehavior[] blockBehaviors, ref CollectibleBehavior[] collectibleBehaviors, JsonObject properties)
+        public override void Dispose()
         {
-            var blockBehavior = new BlockBehaviorCarryable(block);
-            blockBehaviors = blockBehaviors.Append(blockBehavior);
-            blockBehavior.Initialize(properties);
-
-            collectibleBehaviors = collectibleBehaviors.Append(blockBehavior);
-        }
-        private void ManuallyAddCarryableBehaviors(ICoreAPI api)
-        {
-            if (ModConfig.HenboxEnabled)
+            if (this.harmony != null)
             {
-                var block = api.World.BlockAccessor.GetBlock("henbox");
-                if (block != null)
-                {
-                    // Only allow default hand slot 
-                    var properties = JsonObject.FromJson("{slots:{Hands:{}}}");
-                    AddCarryableBehavior(block, ref block.BlockBehaviors, ref block.CollectibleBehaviors, properties);
-                }
-            }
-        }
-
-        private void RemoveExcludedCarryableBehaviours(ICoreAPI api)
-        {
-            var loggingEnabled = ModConfig.ServerConfig.DebuggingOptions.LoggingEnabled;
-            var filters = ModConfig.ServerConfig.CarryablesFilters;
-
-            var removeArray = filters.RemoveCarryableBehaviour;
-            if (removeArray == null || removeArray.Length == 0)
-            {
-                return;
+                this.harmony.UnpatchAll(ModId);
+                this.harmony = null;
             }
 
-            foreach (var block in api.World.Blocks.Where(b => b.Code != null))
+            if (ClientApi != null)
             {
-                foreach (var remove in removeArray)
-                {
-                    if (block.Code.ToString().StartsWith(remove))
-                    {
-                        var count = block.BlockBehaviors.Length;
-                        block.BlockBehaviors = RemoveCarryableBehaviours(block.BlockBehaviors.OfType<CollectibleBehavior>().ToArray()).OfType<BlockBehavior>().ToArray();
-                        block.CollectibleBehaviors = RemoveCarryableBehaviours(block.CollectibleBehaviors);
+                EntityCarryRenderer?.Dispose();
+                HudOverlayRenderer?.Dispose();
 
-                        if (count != block.BlockBehaviors.Length && loggingEnabled)
-                        {
-                            api.Logger.Debug($"CarryOn Removed Carryable Behaviour: {block.Code}");
-                        }
-                    }
-                }
+                CarryHandler?.Dispose();
             }
-        }
-
-        private void ResolveMultipleCarryableBehaviors(ICoreAPI api)
-        {
-            var filters = ModConfig.ServerConfig.CarryablesFilters;
-            
-            foreach (var block in api.World.Blocks)
-            {
-                bool removeBaseBehavior = false;
-                if (block.Code == null || block.Id == 0) continue;
-                foreach (var match in filters.RemoveBaseCarryableBehaviour)
-                {
-                    if (block.Code.ToString().StartsWith(match))
-                    {
-                        removeBaseBehavior = true;
-                        break;
-                    }
-                }
-                block.BlockBehaviors = RemoveOverriddenCarryableBehaviours(block.BlockBehaviors.OfType<CollectibleBehavior>().ToArray(), removeBaseBehavior).OfType<BlockBehavior>().ToArray();
-                block.CollectibleBehaviors = RemoveOverriddenCarryableBehaviours(block.CollectibleBehaviors, removeBaseBehavior);
-            }
-        }
-
-        private CollectibleBehavior[] RemoveOverriddenCarryableBehaviours(CollectibleBehavior[] behaviours, bool removeBaseBehavior = false)
-        {
-            var behaviourList = behaviours.ToList();
-            var carryableList = FindCarryables(behaviourList);
-            if (carryableList.Count > 1)
-            {
-                var priorityCarryable = carryableList.First(p => p.PatchPriority == carryableList.Max(m => m.PatchPriority));
-                if (priorityCarryable != null)
-                {
-                    if (!(removeBaseBehavior && priorityCarryable.PatchPriority == 0))
-                    {
-                        carryableList.Remove(priorityCarryable);
-                    }
-                    behaviourList.RemoveAll(r => carryableList.Contains(r));
-                }
-            }
-            else if (removeBaseBehavior && carryableList.Count == 1 && carryableList[0].PatchPriority == 0)
-            {
-                // Remove base behavior
-                behaviourList.RemoveAll(r => carryableList.Contains(r));
-            }
-            return behaviourList.ToArray();
-        }
-
-        private CollectibleBehavior[] RemoveCarryableBehaviours(CollectibleBehavior[] behaviours)
-        {
-            var behaviourList = behaviours.ToList();
-            var carryableList = FindCarryables(behaviourList);
-
-            if (carryableList.Count == 0) return behaviours;
-
-            behaviourList.RemoveAll(r => carryableList.Contains(r));
-
-            return behaviourList.ToArray();
-        }
-
-        private List<BlockBehaviorCarryable> FindCarryables<T>(List<T> behaviors)
-        {
-            var carryables = new List<BlockBehaviorCarryable>();
-            foreach (var behavior in behaviors)
-            {
-                if (behavior is BlockBehaviorCarryable carryable)
-                {
-                    carryables.Add(carryable);
-                }
-            }
-            return carryables;
-        }
-
-        private void AutoMapSimilarCarryableInteract(ICoreAPI api)
-        {
-            var loggingEnabled = ModConfig.ServerConfig.DebuggingOptions.LoggingEnabled;
-            var filters = ModConfig.ServerConfig.CarryablesFilters;
-
-            if (!filters.AutoMapSimilar) return;
-
-            var matchKeys = new List<string>();
-            foreach (var interactBlock in api.World.Blocks.Where(b => b.IsCarryableInteract()))
-            {
-                if (interactBlock.EntityClass == null || interactBlock.EntityClass == "Generic") continue;
-
-                if (!matchKeys.Contains(interactBlock.EntityClass))
-                {
-                    matchKeys.Add(interactBlock.EntityClass);
-                }
-            }
-
-            foreach (var block in api.World.Blocks.Where(w => !w.IsCarryableInteract()
-                && matchKeys.Contains(w.EntityClass)
-                && !filters.AutoMatchIgnoreMods.Contains(w?.Code?.Domain)))
-            {
-                block.BlockBehaviors = block.BlockBehaviors.Append(new BlockBehaviorCarryableInteract(block));
-                block.CollectibleBehaviors = block.CollectibleBehaviors.Append(new BlockBehaviorCarryableInteract(block));
-                if (loggingEnabled) api.Logger.Debug($"CarryOn AutoMatch Interact: {block.Code} key: {block.EntityClass}");
-            }
-        }
-
-        private void AutoMapSimilarCarryables(ICoreAPI api)
-        {
-            var loggingEnabled = ModConfig.ServerConfig.DebuggingOptions.LoggingEnabled;
-
-            var filters = ModConfig.ServerConfig.CarryablesFilters;
-
-            if (!filters.AutoMapSimilar) return;
-
-            var matchBehaviors = new Dictionary<string, BlockBehaviorCarryable>();
-            foreach (var carryableBlock in api.World.Blocks.Where(b => b.IsCarryable() && b.Code.Domain == "game"))
-            {
-                var shapePath = carryableBlock?.ShapeInventory?.Base?.Path ?? carryableBlock?.Shape?.Base?.Path;
-                var shapeKey = shapePath != null && shapePath != "block/basic/cube" ? $"Shape:{shapePath}" : null;
-
-                string entityClassKey = null;
-
-                if (carryableBlock.EntityClass != null && carryableBlock.EntityClass != "Generic" && carryableBlock.EntityClass != "Transient")
-                {
-                    entityClassKey = $"EntityClass:{carryableBlock.EntityClass}";
-                    if (!matchBehaviors.ContainsKey(entityClassKey))
-                    {
-                        matchBehaviors[entityClassKey] = carryableBlock.GetBehavior<BlockBehaviorCarryable>();
-                        if (loggingEnabled) api.Logger.Debug($"CarryOn matchBehavior: {entityClassKey} carryableBlock: {carryableBlock.Code}");
-                    }
-                }
-
-                string classKey = null;
-                if (carryableBlock.Class != "Block")
-                {
-                    classKey = $"Class:{carryableBlock.Class}";
-                    if (!matchBehaviors.ContainsKey(classKey))
-                    {
-                        matchBehaviors[classKey] = carryableBlock.GetBehavior<BlockBehaviorCarryable>();
-                        if (loggingEnabled) api.Logger.Debug($"CarryOn matchBehavior: {classKey} carryableBlock: {carryableBlock.Code}");
-                    }
-                }
-
-                if (shapeKey != null)
-                {
-                    if (entityClassKey != null)
-                    {
-                        var key = $"{entityClassKey}|{shapeKey}";
-                        if (!matchBehaviors.ContainsKey(key))
-                        {
-                            matchBehaviors[key] = carryableBlock.GetBehavior<BlockBehaviorCarryable>();
-                            if (loggingEnabled) api.Logger.Debug($"CarryOn matchBehavior: {key} carryableBlock: {carryableBlock.Code}");
-                        }
-                    }
-
-                    if (classKey != null)
-                    {
-                        var key = $"{classKey}|{shapeKey}";
-                        if (!matchBehaviors.ContainsKey(key))
-                        {
-                            matchBehaviors[key] = carryableBlock.GetBehavior<BlockBehaviorCarryable>();
-                            if (loggingEnabled) api.Logger.Debug($"CarryOn matchBehavior: {key} carryableBlock: {carryableBlock.Code}");
-                        }
-                    }
-                        
-                    if (filters.AllowedShapeOnlyMatches.Contains(shapePath) && !matchBehaviors.ContainsKey(shapeKey))
-                    {
-                        matchBehaviors[shapeKey] = carryableBlock.GetBehavior<BlockBehaviorCarryable>();
-
-                        if (loggingEnabled) api.Logger.Debug($"CarryOn matchBehavior: {shapeKey} carryableBlock: {carryableBlock.Code}");
-                    }
-                }
-            }
-
-            foreach (var block in api.World.Blocks.Where(w => !w.IsCarryable() && !filters.AutoMatchIgnoreMods.Contains(w?.Code?.Domain)))
-            {
-                if (block.EntityClass == null) continue;
-                string key = null;
-
-                var classKey = $"Class:{block.Class}";
-                var entityClassKey = $"EntityClass:{block.EntityClass}";
-                var shapePath = block?.ShapeInventory?.Base?.Path ?? block?.Shape?.Base?.Path;
-                var shapeKey = shapePath != null ? $"Shape:{shapePath}" : null;
-
-                var matchKeys = new List<string>
-                {
-                    $"{classKey}|{shapeKey}",
-                    $"{entityClassKey}|{shapeKey}",
-                    shapeKey,
-                    classKey
-                };
-
-                foreach (var matchKey in matchKeys)
-                {
-                    if (matchBehaviors.ContainsKey(matchKey))
-                    {
-                        key = matchKey;
-                        if (loggingEnabled) api.Logger.Debug($"CarryOn AutoMatch: {block.Code} key: {key}");
-                        break;
-                    }
-                }
-
-                if (key != null)
-                {
-                    var behavior = matchBehaviors[key];
-
-                    var newBehavior = new BlockBehaviorCarryable(block);
-                    block.BlockBehaviors = block.BlockBehaviors.Append(newBehavior);
-                    newBehavior.Initialize(behavior.Properties);
-
-                    newBehavior = new BlockBehaviorCarryable(block);
-                    block.CollectibleBehaviors = block.CollectibleBehaviors.Append(newBehavior);
-                    newBehavior.Initialize(behavior.Properties);
-                }
-            }
-        }
-
-        private void InitEvents()
-        {
-            var ignoreMods = new[] { "game", "creative", "survival" };
-
-            var assemblies = Api.ModLoader.Mods.Where(m => !ignoreMods.Contains(m.Info.ModID))
-                                               .Select(s => s.Systems)
-                                               .SelectMany(o => o.ToArray())
-                                               .Select(t => t.GetType().Assembly)
-                                               .Distinct();
-
-            foreach (var assembly in assemblies)
-            {
-                // Initialise all ICarryEvent 
-                foreach (Type type in assembly.GetTypes().Where(t => t.GetInterfaces().Contains(typeof(ICarryEvent))))
-                {
-                    try
-                    {
-                        (Activator.CreateInstance(type) as ICarryEvent)?.Init(this);
-                    }
-                    catch (Exception e)
-                    {
-                        Api.Logger.Error(e.Message);
-                    }
-                }
-            }
+            base.Dispose();
         }
     }
 }

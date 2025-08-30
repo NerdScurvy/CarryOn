@@ -2,13 +2,14 @@
 	"type": "code",
 	"name": "Carry On",
 	"modid": "carryon",
-	"version": "1.10.2",
+	"version": "2.0.0-pre.1",
 
 	"description": "Adds the capability to carry various things",
 	"website": "https://github.com/NerdScurvy/CarryOn",
 	"authors": [ "copygirl","NerdScurvy" ],
 
 	"dependencies": {
-		"game": "1.21.0"
+		"game": "1.21.0",
+		"carryonlib": "1.0.0-pre.1"
 	}
 }

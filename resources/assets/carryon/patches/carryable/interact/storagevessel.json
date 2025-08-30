@@ -5,11 +5,10 @@
     "op": "add",
     "path": "/behaviors/-",
     "value": {
-      "name": "CarryableInteract"
-    },
-    "condition": {
-      "when": "carryon:InteractStorageEnabled",
-      "isValue": "true"
-    }  
+      "name": "CarryableInteract",
+      "properties":{
+        "enabledCondition": "carryon.Interactables.Storage"
+      }
+    } 
   }
 ]

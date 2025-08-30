@@ -7,16 +7,13 @@
     "value": {
       "name": "Carryable",
       "properties": {
+        "enabledCondition": "carryon.Carryables.Planter",
         "scale": 0.6,
         "slots": {
           "Hands": {},
           "Back": {}
         }        
       }
-    },
-    "condition": {
-      "when": "carryon:PlanterEnabled",
-      "isValue": "true"
     },
     "dependsOn": [
       {
@@ -32,16 +29,13 @@
     "value": {
       "name": "Carryable",
       "properties": {
+        "enabledCondition": "carryon.Carryables.Planter",
         "scale": 0.6,
         "slots": {
           "Hands": {},
           "Back": {}
         }        
       }
-    },
-    "condition": {
-      "when": "carryon:PlanterEnabled",
-      "isValue": "true"
     },
     "dependsOn": [
       {
@@ -57,16 +51,13 @@
     "value": {
       "name": "Carryable",
       "properties": {
+        "enabledCondition": "carryon.Carryables.Planter",
         "scale": 0.6,
         "slots": {
           "Hands": {},
           "Back": {}
         }        
       }
-    },
-    "condition": {
-      "when": "carryon:PlanterEnabled",
-      "isValue": "true"
     },
     "dependsOn": [
       {
@@ -82,6 +73,7 @@
     "value": {
       "name": "Carryable",
       "properties": {
+        "enabledCondition": "carryon.Carryables.Planter",
         "translation": [
           -0.125,
           0,
@@ -92,10 +84,6 @@
           "Back": {}
         }        
       }
-    },
-    "condition": {
-      "when": "carryon:PlanterEnabled",
-      "isValue": "true"
     },
     "dependsOn": [
       {

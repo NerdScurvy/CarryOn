@@ -1,0 +1,14 @@
+{
+	"code": "handsfree",
+	"maxstacksize": 1,
+	"textures":{ 
+		"handsfree": { "base": "carryon:item/handsfree.png" }
+	},
+	"shape": { "base": "carryon:item/flat" },
+  "guiTransform": {
+    "translation": { "x": 5, "y": 3, "z": 0 },
+    "rotation": { "x": 0, "y": 0, "z": 0 },
+    "scale": 1.6
+  },	
+	"creativeinventory": { "general": ["*"], "items": ["*"] }
+}

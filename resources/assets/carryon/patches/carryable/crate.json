@@ -7,6 +7,7 @@
     "value": {
       "name": "Carryable",
       "properties": {
+        "enabledCondition": "carryon.Carryables.Crate",
         "translation": [
           -0.0625,
           0,
@@ -16,14 +17,10 @@
           "Hands": {},
           "Back": {
             "walkSpeedModifier": -0.2,
-            "keepWhenTrue": "carryon:AllowCratesOnBack"            
+            "enabledCondition": "carryon.CarryOptions.AllowCratesOnBack"
           }
         }
       }
-    },
-    "condition": {
-      "when": "carryon:CrateEnabled",
-      "isValue": "true"
     }
   }
 ]

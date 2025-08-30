@@ -7,12 +7,9 @@
     "value": {
       "name": "Carryable",
       "properties": {
+        "enabledCondition": "carryon.Carryables.Planter",
         "scale": 0.6
       }
-    },
-    "condition": {
-      "when": "carryon:PlanterEnabled",
-      "isValue": "true"
     }
   }
 ]

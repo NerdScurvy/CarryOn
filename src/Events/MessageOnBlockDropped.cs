@@ -1,24 +1,28 @@
-using CarryOn.API.Common;
+using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Event.Data;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
 using Vintagestory.API.Server;
+using static CarryOn.API.Common.Models.CarryCode;
 
 namespace CarryOn.Events
 {
+    /// <summary>
+    /// Sends a message to the player when a block is dropped.
+    /// </summary>
     public class MessageOnBlockDropped : ICarryEvent
     {
-        public void Init(CarrySystem carrySystem)
+        public void Init(ICarryManager carryManager)
         {
-            if (carrySystem.Api.Side != EnumAppSide.Server) return;
+            if (carryManager.Api.Side != EnumAppSide.Server) return;
 
-            carrySystem.CarryEvents.BlockDropped += OnCarriedBlockDropped;
+            carryManager.CarryEvents.BlockDropped += OnCarriedBlockDropped;
         }
 
         public void OnCarriedBlockDropped(object sender, BlockDroppedEventArgs e)
         {
             var messageKey = string.Format("{0}:drop-notice{1}{2}",
-                    CarrySystem.ModId,
+                    ModId,
                     e.Destroyed ? "-destroyed" : null,
                     e.HadContents ? "-spill-contents" : null
                     );
@@ -26,9 +30,9 @@ namespace CarryOn.Events
             var player = (e.Entity as EntityPlayer)?.Player as IServerPlayer;
 
             var name = e.CarriedBlock.ItemStack?.GetName()?.ToLower();
-            var slot = Lang.Get($"{CarrySystem.ModId}:slot-{e.CarriedBlock.Slot.ToString().ToLower()}");
+            var slot = CarrySystem.GetLang($"slot-{e.CarriedBlock.Slot.ToString().ToLower()}");
 
-            player.SendMessage(GlobalConstants.GeneralChatGroup,Lang.Get(messageKey, name, slot), EnumChatType.Notification);
+            player?.SendMessage(GlobalConstants.GeneralChatGroup, Lang.Get(messageKey, name, slot), EnumChatType.Notification);
         }
     }
 }
