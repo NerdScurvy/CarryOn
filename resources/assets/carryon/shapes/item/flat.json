@@ -1,0 +1,19 @@
+{
+	"textureWidth": 16,
+	"textureHeight": 16,
+	"textureSizes": {
+	},
+	"textures": {
+		"handsfree": "carryon:item/handsfree"
+	},
+	"elements": [
+		{
+			"name": "Cube1",
+			"from": [ 0.0, 2.0, 8.0 ],
+			"to": [ 16.0, 15.0, 8.0 ],
+			"rotationOrigin": [ 8.0, 8.0, 8.0 ],
+			"faces": {
+				"south": { "texture": "#handsfree", "uv": [ 0.5, 63.5, 63.5, 0.5 ], "autoUv": false }
+			}
+		}
+	]}

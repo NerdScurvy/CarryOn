@@ -5,11 +5,13 @@ using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
 using CarryOn.Server.Models;
 using CarryOn.Utility;
+using HarmonyLib;
 using Newtonsoft.Json.Linq;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
+using Vintagestory.API.Util;
 using static CarryOn.API.Common.Models.CarryCode;
 
 namespace CarryOn.Common.Behaviors
@@ -26,7 +28,11 @@ namespace CarryOn.Common.Behaviors
                 HotKeyCode      = HotKeyCode.Pickup,
                 MouseButton     = EnumMouseButton.Right,
                 RequireFreeHand = true,
+                Itemstacks      = []
             } };
+
+        public static ItemStack[] handsfreeStacks;
+        public static ItemStack[] nohandsfreeStacks;
 
         public static BlockBehaviorCarryable Default { get; }
             = new BlockBehaviorCarryable(null);
@@ -80,7 +86,7 @@ namespace CarryOn.Common.Behaviors
             : base(block) { }
 
         public JsonObject Properties { get; set; }
-        
+
 
         public override void Initialize(JsonObject properties)
         {
@@ -100,6 +106,8 @@ namespace CarryOn.Common.Behaviors
 
             DefaultTransform = JsonHelper.GetTransform(properties, DefaultBlockTransform);
             Slots.Initialize(properties["slots"], DefaultTransform);
+
+            
 
         }
 
@@ -173,16 +181,26 @@ namespace CarryOn.Common.Behaviors
         public override WorldInteraction[] GetPlacedBlockInteractionHelp(
                     IWorldAccessor world, BlockSelection selection, IPlayer forPlayer, ref EnumHandling handled)
         {
-            // Don't show interaction help if the block is not carryable
-            if (Slots == null || Slots.Count == 0)
+            // Don't show interaction help if the block is not carryable or the player is already carrying something
+            if (Slots == null || Slots.Count == 0 || forPlayer.Entity.GetCarried(CarrySlot.Hands) != null)
             {
                 return null;
             }
 
-            if (forPlayer.Entity.GetCarried(CarrySlot.Hands) != null)
+
+            handsfreeStacks ??= [new ItemStack(world.GetItem(new AssetLocation("carryon:handsfree")))];
+            nohandsfreeStacks ??= [new ItemStack(world.GetItem(new AssetLocation("carryon:nohandsfree")))];
+
+            if (!forPlayer.Entity.CanDoCarryAction(requireEmptyHanded: true))
             {
-                return null; // Don't show interaction help if player is already carrying something
+                Interactions[0].Itemstacks = nohandsfreeStacks;
+
             }
+            else
+            {
+                Interactions[0].Itemstacks = handsfreeStacks;
+            }
+
 
             if (!TransferBlockCarryAllowed(forPlayer, selection))
             {

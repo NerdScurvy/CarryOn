@@ -35,6 +35,8 @@ namespace CarryOn.Common.Handlers
 
         public bool IsCarryOnEnabled => this.carrySystem.CarryOnEnabled;
 
+        private bool lastCanInteractState = true;
+
         public bool BackSlotEnabled { get; private set; }
 
         private ICarryManager carryManager;
@@ -713,6 +715,7 @@ namespace CarryOn.Common.Handlers
             };
 
             byPlayer.Entity.WatchedAttributes.OnModified.Add(entityCarriedListener);
+
         }
 
         /// <summary>
@@ -761,6 +764,19 @@ namespace CarryOn.Common.Handlers
         public void OnGameTick(float deltaTime)
         {
             if (!IsCarryOnEnabled) return;
+
+            var entity = ClientApi?.World?.Player?.Entity;
+
+            if (entity != null )
+            {
+                // Check if the interaction state has changed
+                bool canInteractNow = entity.CanDoCarryAction(requireEmptyHanded: true);
+                if (canInteractNow != lastCanInteractState)
+                {
+                    this.lastCanInteractState = canInteractNow;
+                    this.interactionLogic.RefreshPlacedBlockInteractionHelp();
+                }
+            }
 
             this.interactionLogic.TryContinueInteraction(deltaTime);
 
