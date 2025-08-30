@@ -27,8 +27,13 @@ namespace CarryOn.Utility
         /// Returns whether the specified block can be carried in the specified slot.
         /// Checks if <see cref="BlockBehaviorCarryable"/> is present and has slot enabled. 
         /// </summary>
-        public static bool IsCarryable(this Block block, CarrySlot slot)
-            => block?.GetBehavior<BlockBehaviorCarryable>()?.Slots?[slot] != null;
+        {
+            if (block == null) return false;
+            var behavior = block.GetBehavior<BlockBehaviorCarryable>();
+            if (behavior == null) return false;
+            if (behavior.Slots == null) return false;
+            return behavior.Slots[slot] != null;
+        }
 
 
         /* ------------------------------ */
