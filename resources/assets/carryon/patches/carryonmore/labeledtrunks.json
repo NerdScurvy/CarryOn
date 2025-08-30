@@ -32,7 +32,7 @@
             "keepWhenTrue": "carryon:AllowChestTrunksOnBack"
           }
         },
-		"multiblockOffset": [0, 0, 1]
+        "multiblockOffset": [0, 0, 1]
       }
     },
     "condition": {
