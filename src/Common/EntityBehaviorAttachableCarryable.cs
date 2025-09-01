@@ -27,7 +27,8 @@ namespace CarryOn.Common
         {
             if (selBoxIndex <= 0) return 0;
             _behaviorAttachable ??= entity.GetBehavior<EntityBehaviorAttachable>();
-            return _behaviorAttachable.GetSlotIndexFromSelectionBoxIndex(selBoxIndex - 1);
+            
+            return _behaviorAttachable?.GetSlotIndexFromSelectionBoxIndex(selBoxIndex - 1) ?? 0;
         }
 
         public ItemSlot GetItemSlot(int slotIndex)
