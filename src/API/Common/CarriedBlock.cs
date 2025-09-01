@@ -84,7 +84,7 @@ namespace CarryOn.API.Common
 
             if (entity is EntityAgent agent)
             {
-                var speed = slotSettings?.WalkSpeedModifier ?? 0.0F;
+                var speed = ModConfig.IgnoreCarrySpeedPenalty ? 0.0f : slotSettings?.WalkSpeedModifier ?? 0.0F;
                 if (speed != 0.0F && !ModConfig.AllowSprintWhileCarrying)
                 {
                     agent.Stats.Set("walkspeed",
@@ -196,7 +196,13 @@ namespace CarryOn.API.Common
                 try{
                     // Add phantom Item to player's active slot so any related block placement code can fire. (Workaround for creature container)
                     player.InventoryManager.ActiveHotbarSlot.Itemstack = ItemStack;
-                    if (!Block.TryPlaceBlock(world, player, ItemStack, selection, ref failureCode)) {
+
+                    // Force sneak mode for placing blocks (in case carry keybinds are different)
+                    // This is a workaround for some blocks like Molds which require sneak to be placed
+                    playerEntity.Controls.ShiftKey = true;
+
+                    if (!Block.TryPlaceBlock(world, player, ItemStack, selection, ref failureCode))
+                    {
                         // Remove phantom item from active slot if failed to place
                         player.InventoryManager.ActiveHotbarSlot.Itemstack = null;
                         return false;
