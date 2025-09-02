@@ -200,6 +200,8 @@ namespace CarryOn.API.Common
                     // Force sneak mode for placing blocks (in case carry keybinds are different)
                     // This is a workaround for some blocks like Molds which require sneak to be placed
                     playerEntity.Controls.ShiftKey = true;
+                    // Force ctrl key to be off - workaround for more piles
+                    playerEntity.Controls.CtrlKey = false;
 
                     if (!Block.TryPlaceBlock(world, player, ItemStack, selection, ref failureCode))
                     {
