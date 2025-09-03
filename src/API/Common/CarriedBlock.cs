@@ -280,6 +280,7 @@ namespace CarryOn.API.Common
             }
 
             blockEntity?.FromTreeAttributes(blockEntityData, world);
+            blockEntity?.MarkDirty();
         }
 
         internal void PlaySound(BlockPos pos, IWorldAccessor world,
