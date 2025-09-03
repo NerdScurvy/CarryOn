@@ -192,8 +192,12 @@ namespace CarryOn.API.Common
             {
                 failureCode ??= "__ignore__";
 
+                var shift = playerEntity.Controls.ShiftKey;
+                var ctrl = playerEntity.Controls.CtrlKey;
+
                 var player = world.PlayerByUid(playerEntity.PlayerUID);
-                try{
+                try
+                {
                     // Add phantom Item to player's active slot so any related block placement code can fire. (Workaround for creature container)
                     player.InventoryManager.ActiveHotbarSlot.Itemstack = ItemStack;
 
@@ -209,10 +213,18 @@ namespace CarryOn.API.Common
                         player.InventoryManager.ActiveHotbarSlot.Itemstack = null;
                         return false;
                     }
-                }catch(NullReferenceException ex){
+                }
+                catch (NullReferenceException ex)
+                {
                     world.Logger.Error("Error occured while trying to place a carried block: " + ex.Message);
                     // Workaround was for null ref with reed chest - Leaving here in case of other issues
                     world.BlockAccessor.SetBlock(Block.Id, selection.Position, ItemStack);
+                }
+                finally
+                {
+                    // Set controls back to original state
+                    playerEntity.Controls.ShiftKey = shift;
+                    playerEntity.Controls.CtrlKey = ctrl;
                 }
             }
             else
@@ -280,7 +292,7 @@ namespace CarryOn.API.Common
             }
 
             blockEntity?.FromTreeAttributes(blockEntityData, world);
-            blockEntity?.MarkDirty();
+            blockEntity?.MarkDirty(true);
         }
 
         internal void PlaySound(BlockPos pos, IWorldAccessor world,
