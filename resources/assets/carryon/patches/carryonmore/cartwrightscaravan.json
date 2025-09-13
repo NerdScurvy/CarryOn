@@ -1,6 +1,6 @@
 [
   {
-    "file": "cartwrightscaravan:entities/land/cart",
+    "file": "cartwrightscaravan:entities/nonliving/cart",
     "side": "Server",
     "op": "add",
     "path": "/server/behaviors/-",
@@ -14,7 +14,7 @@
     ]
   },
   {
-    "file": "cartwrightscaravan:entities/land/cart",
+    "file": "cartwrightscaravan:entities/nonliving/cart",
     "side": "Server",
     "op": "add",
     "path": "/client/behaviors/-",
@@ -29,7 +29,7 @@
   },
   
   {
-    "file": "cartwrightscaravan:entities/land/sled",
+    "file": "cartwrightscaravan:entities/nonliving/sled",
     "side": "Server",
     "op": "add",
     "path": "/server/behaviors/-",
@@ -43,7 +43,7 @@
     ]
   },
   {
-    "file": "cartwrightscaravan:entities/land/sled",
+    "file": "cartwrightscaravan:entities/nonliving/sled",
     "side": "Server",
     "op": "add",
     "path": "/client/behaviors/-",
@@ -58,7 +58,7 @@
   },
   
   {
-    "file": "cartwrightscaravan:entities/land/marketstall",
+    "file": "cartwrightscaravan:entities/nonliving/marketstall",
     "side": "Server",
     "op": "add",
     "path": "/server/behaviors/-",
@@ -72,7 +72,7 @@
     ]
   },
   {
-    "file": "cartwrightscaravan:entities/land/marketstall",
+    "file": "cartwrightscaravan:entities/nonliving/marketstall",
     "side": "Server",
     "op": "add",
     "path": "/client/behaviors/-",
