@@ -21,7 +21,7 @@ using Vintagestory.GameContent;
 
 [assembly: ModInfo("Carry On",
     modID: "carryon",
-    Version = "1.10.9",
+    Version = "1.11.0",
     Description = "Adds the capability to carry various things",
     Website = "https://github.com/NerdScurvy/CarryOn",
     Authors = new[] { "copygirl", "NerdScurvy" })]
@@ -66,6 +66,8 @@ namespace CarryOn
         public IClientNetworkChannel ClientChannel { get; private set; }
         public EntityCarryRenderer EntityCarryRenderer { get; private set; }
         public HudOverlayRenderer HudOverlayRenderer { get; private set; }
+        public HudCarried HudCarried { get; private set; }
+        public Client.Logic.ClientModConfig ClientConfig { get; private set; }
 
         // Server
         public ICoreServerAPI ServerAPI { get; private set; }
@@ -145,6 +147,39 @@ namespace CarryOn
 
             EntityCarryRenderer = new EntityCarryRenderer(api);
             HudOverlayRenderer = new HudOverlayRenderer(api);
+            HudCarried = new HudCarried(api);
+
+            // Load client-side configuration (HUD anchor placements etc.) and apply anchors
+            try
+            {
+                ClientConfig = new Client.Logic.ClientModConfig();
+                ClientConfig.Load(api);
+
+                var cfg = ClientConfig.Config;
+                if (cfg != null)
+                {
+                    // Parse and apply HandsAnchor
+                    if (!string.IsNullOrEmpty(cfg.HandsAnchor) && Enum.TryParse<HudCarried.Anchor>(cfg.HandsAnchor, true, out var handsAnchor))
+                    {
+                        HudCarried.HandsAnchor = handsAnchor;
+                    }
+
+                    // Parse and apply BackAnchor
+                    if (!string.IsNullOrEmpty(cfg.BackAnchor) && Enum.TryParse<HudCarried.Anchor>(cfg.BackAnchor, true, out var backAnchor))
+                    {
+                        HudCarried.BackAnchor = backAnchor;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                api.Logger.Warning("CarryOn: Failed to apply client config: " + ex.Message);
+            }
+
+            // Register client chat commands through Commands helper
+            var commands = new Commands(this);
+            commands.Register();
+
             CarryHandler.InitClient();
             InitEvents();
         }

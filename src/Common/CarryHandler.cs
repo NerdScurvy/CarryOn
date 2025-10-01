@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using CarryOn.API.Common;
+using CarryOn.Client;
 using CarryOn.Common.Network;
 using CarryOn.Config;
 using CarryOn.Utility;
@@ -611,6 +612,17 @@ namespace CarryOn.Common
             Interaction.TimeHeld += deltaTime;
             var progress = Interaction.TimeHeld / requiredTime;
             CarrySystem.HudOverlayRenderer.CircleProgress = progress;
+
+            if (Interaction.CarrySlot == CarrySlot.Hands)
+            {
+                HudCarried.TriggerHandsHighlight();
+            }
+
+            if (Interaction.CarryAction == CarryAction.SwapBack)
+            {
+                HudCarried.TriggerBackHighlight();
+            }
+                        
             if (progress <= 1.0F) return;
 
             switch (Interaction.CarryAction)
