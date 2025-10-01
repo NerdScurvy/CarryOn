@@ -1,0 +1,412 @@
+using System;
+using CarryOn.API.Common;
+using Vintagestory.API.Client;
+using Vintagestory.API.Common;
+using Vintagestory.API.MathTools;
+
+namespace CarryOn.Client
+{
+    public class HudCarried : IDisposable
+    {
+        private readonly ICoreClientAPI api;
+        private IRenderer renderer;
+        // Toggle to show debug icons (can be controlled by client chat command)
+        public static bool ShowDebugIcons { get; set; } = false;
+
+        // Anchor positions available for GUI placement
+        public enum Anchor
+        {
+            None = 0,
+            L1,
+            L2,
+            L3,
+            R1,
+            R2,
+            R3
+        }
+
+        // Current assignments for hands and back; defaults: Hands -> None (blank), Back -> R1
+        public static Anchor HandsAnchor { get; set; } = Anchor.None;
+        public static Anchor BackAnchor { get; set; } = Anchor.R1;
+
+        // Highlight timers (seconds remaining). When > 0 the corresponding icon will be tinted.
+        // Trigger these from other client-side code when the player starts interacting with that carried item.
+        public static float HandsHighlightSecondsRemaining { get; private set; } = 0f;
+        public static float BackHighlightSecondsRemaining { get; private set; } = 0f;
+
+        // Default highlight duration (seconds)
+        public const float DefaultHighlightDuration = 1.0f;
+        // Extra time after the main shrink where the alpha will fade out (seconds)
+        public const float HighlightFadeExtra = 0.4f;
+
+        // Trigger the hands highlight for the given duration (seconds). Use when the player starts interacting with the hands-carried item.
+        public static void TriggerHandsHighlight(float seconds = DefaultHighlightDuration + HighlightFadeExtra)
+        {
+            HandsHighlightSecondsRemaining = Math.Max(HandsHighlightSecondsRemaining, seconds);
+        }
+
+        // Trigger the back highlight for the given duration (seconds). Use when the player starts interacting with the back-carried item.
+        public static void TriggerBackHighlight(float seconds = DefaultHighlightDuration + HighlightFadeExtra)
+        {
+            BackHighlightSecondsRemaining = Math.Max(BackHighlightSecondsRemaining, seconds);
+        }
+
+        public HudCarried(ICoreClientAPI api)
+        {
+            this.api = api ?? throw new ArgumentNullException(nameof(api));
+            this.renderer = new HudCarriedRenderer(api);
+            this.api.Event.RegisterRenderer(this.renderer, EnumRenderStage.Ortho);
+            
+            // Debug: Log that we registered the HUD
+            this.api.Logger.Debug("[HudCarried] HUD renderer registered successfully");
+        }
+
+        public void Dispose()
+        {
+            if (this.renderer != null)
+            {
+                this.api.Event.UnregisterRenderer(this.renderer, EnumRenderStage.Ortho);
+                this.renderer = null;
+            }
+        }
+
+        private class HudCarriedRenderer : IRenderer
+        {
+            private readonly ICoreClientAPI api;
+            
+            // Cached positioning values - update only when GUI scale or frame size changes
+            private float cachedGUIScale = -1f;
+            private float cachedFrameWidth = -1f;
+            private float cachedFrameHeight = -1f;
+            private float cachedSlotSize;
+            private float cachedHotbarWidth;
+            private float cachedHotbarCenterX;
+            private float cachedHotbarY;
+            
+            // Pre-calculated positions for multiple icons (3 left, 3 right of hotbar)
+            private readonly (int x, int y)[] cachedLeftPositions = new (int, int)[3];
+            private readonly (int x, int y)[] cachedRightPositions = new (int, int)[3];
+            private MeshRef highlightMesh = null;
+
+            public HudCarriedRenderer(ICoreClientAPI api)
+            {
+                this.api = api;
+            }
+
+            public double RenderOrder => 1.0; // Higher than default (0) to render on top
+            public int RenderRange => 10;
+
+            public void OnRenderFrame(float deltaTime, EnumRenderStage stage)
+            {
+                if (stage != EnumRenderStage.Ortho) return;
+
+                var player = this.api.World.Player;
+                if (player == null) return;
+
+                var rapi = this.api.Render;
+
+                // Check if we need to update cached positioning (like StatusHud renderer pattern)
+                float currentGUIScale = Vintagestory.API.Config.RuntimeEnv.GUIScale;
+                float currentFrameWidth = rapi.FrameWidth;
+                float currentFrameHeight = rapi.FrameHeight;
+                
+                if (this.cachedGUIScale != currentGUIScale || 
+                    this.cachedFrameWidth != currentFrameWidth || 
+                    this.cachedFrameHeight != currentFrameHeight)
+                {
+                    this.UpdateCachedPositions(currentGUIScale, currentFrameWidth, currentFrameHeight);
+                }
+
+                // DEBUG: Render colored gears at all positions to visualize placement
+                if (ShowDebugIcons) this.RenderDebugPositions();
+
+                // Decrement highlight timers
+                if (HudCarried.HandsHighlightSecondsRemaining > 0f)
+                {
+                    HudCarried.HandsHighlightSecondsRemaining = Math.Max(0f, HudCarried.HandsHighlightSecondsRemaining - deltaTime);
+                }
+                if (HudCarried.BackHighlightSecondsRemaining > 0f)
+                {
+                    HudCarried.BackHighlightSecondsRemaining = Math.Max(0f, HudCarried.BackHighlightSecondsRemaining - deltaTime);
+                }
+
+                // Render carried back item (for now, just show in first right position)
+                var carriedBack = player.Entity?.GetCarried(CarrySlot.Back);
+                if (carriedBack != null)
+                {
+                    RenderCarriedBlock(rapi, carriedBack, HudCarried.BackAnchor, HudCarried.BackHighlightSecondsRemaining, false);
+                }
+
+                // Render carried hands item (default position L1 -> first left position)
+                var carriedHands = player.Entity?.GetCarried(CarrySlot.Hands);
+                if (carriedHands != null)
+                {
+                    RenderCarriedBlock(rapi, carriedHands, HudCarried.HandsAnchor, HudCarried.HandsHighlightSecondsRemaining, true);
+                }
+
+            }
+
+            private void RenderDebugPositions()
+            {
+                // Create a simple item for debug visualization
+                var gearItem = this.api.World.GetItem(new AssetLocation("game:gear-rusty"));
+                if (gearItem == null) return;
+
+                var rapi = this.api.Render;
+
+                // Render debug "icons" as colored squares for each position
+                // Left positions (red tinted)
+                for (int i = 0; i < 3; i++)
+                {
+                    var pos = this.cachedLeftPositions[i];
+                    var dummyItem = new ItemStack(gearItem, 1);
+                    var dummySlot = new DummySlot(dummyItem);
+                    // Render with red tint to distinguish left positions
+                    rapi.RenderItemstackToGui(dummySlot, pos.x, pos.y, 102, this.cachedSlotSize,
+                        ColorUtil.ToRgba(200, 255, 100, 100), true, false, false);
+                }
+
+                // Right positions (blue tinted) 
+                for (int i = 0; i < 3; i++)
+                {
+                    var pos = this.cachedRightPositions[i];
+                    var dummyItem = new ItemStack(gearItem, 1);
+                    var dummySlot = new DummySlot(dummyItem);
+                    // Render with blue tint to distinguish right positions
+                    rapi.RenderItemstackToGui(dummySlot, pos.x, pos.y, 102, this.cachedSlotSize,
+                        ColorUtil.ToRgba(200, 100, 100, 255), true, false, false);
+                }
+
+            }
+
+            private void EnsureHighlightMesh(int steps = 32)
+            {
+                if (this.highlightMesh != null) return;
+
+                // Build a filled circle as a triangle fan: center vertex + outer ring
+                int vertexCount = 1 + steps; // center + outer
+                int indexCount = steps * 3;
+                var mesh = new MeshData(vertexCount, indexCount, false, false, true, true);
+
+                // center vertex
+                mesh.AddVertexSkipTex(0f, 0f, 0f);
+
+                // outer ring vertices (unit circle), clockwise
+                for (int i = 0; i < steps; i++)
+                {
+                    float a = (float)i / steps * GameMath.TWOPI;
+                    float x = (float)Math.Cos(a);
+                    float y = (float)Math.Sin(a);
+                    mesh.AddVertexSkipTex(x, y, 0f);
+                }
+
+                // Indices for triangle fan from center (0)
+                for (int i = 0; i < steps; i++)
+                {
+                    int a = 0;
+                    int b = 1 + i;
+                    int c = 1 + ((i + 1) % steps);
+                    mesh.AddIndices(new[] { a, b, c });
+                }
+
+                // UVs (not used) - provide defaults
+                var uvs = new float[vertexCount * 2];
+                for (int i = 0; i < vertexCount; i++) { uvs[i * 2 + 0] = 0; uvs[i * 2 + 1] = 0; }
+                mesh.Uv = uvs;
+
+                // Colors RGBA per-vertex: center opaque white, outer vertices transparent white to get a soft fade
+                var rgba = new byte[vertexCount * 4];
+                // center
+                rgba[0] = 255; rgba[1] = 255; rgba[2] = 255; rgba[3] = 255;
+                for (int i = 1; i < vertexCount; i++)
+                {
+                    int idx = i * 4;
+                    rgba[idx + 0] = 255;
+                    rgba[idx + 1] = 255;
+                    rgba[idx + 2] = 255;
+                    rgba[idx + 3] = 0; // fully transparent at edges
+                }
+                mesh.Rgba = rgba;
+
+                this.highlightMesh = this.api.Render.UploadMesh(mesh);
+            }
+
+            private void DrawIconHighlight(IRenderAPI rapi, float secondsRemaining, float duration, float centerX, float centerY)
+            {
+                if (duration <= 0f) return;
+
+                // We separate the animation into two phases:
+                // 1) Shrink phase: duration seconds (progressShrink 0->1)
+                // 2) Fade phase: extra seconds (HighlightFadeExtra) where alpha goes to 0
+                float total = duration; // duration passed in already includes the extra fade time when triggered
+
+                // Ensure we don't divide by zero
+                float mainDuration = Math.Max(0.0001f, Math.Max(0f, total - HighlightFadeExtra));
+                float fadeDuration = HighlightFadeExtra;
+
+                // timeElapsed from start
+                float timeElapsed = total - secondsRemaining;
+
+                // Shrink progress clamped 0..1
+                float progressShrink = Math.Max(0f, Math.Min(1f, timeElapsed / mainDuration));
+                // Ease out for shrink
+                float easeShrink = 1f - (1f - progressShrink) * (1f - progressShrink);
+
+                // Scale from 1.35 -> 1.0 as shrink progress goes from 0->1
+                float scale = 1.35f - 0.35f * easeShrink;
+
+                // Fade progress (0 = opaque, 1 = fully faded)
+                float progressFade = 0f;
+                if (timeElapsed >= mainDuration)
+                {
+                    progressFade = Math.Max(0f, Math.Min(1f, (timeElapsed - mainDuration) / Math.Max(0.0001f, fadeDuration)));
+                }
+
+                // Alpha eases out during the fade phase; base alpha before fade
+                float baseAlpha = 0.6f;
+                float alpha = baseAlpha * (1f - progressFade);
+
+                EnsureHighlightMesh();
+
+                var shader = rapi.CurrentActiveShader;
+
+                try
+                {
+                    // Use GUI matrix transforms similar to HudOverlayRenderer to position and scale
+#pragma warning disable CS0618
+                    rapi.GlPushMatrix();
+                    rapi.GlTranslate((int)centerX, (int)centerY, 0);
+                    // Make the highlight slightly larger than the slot so it surrounds the icon
+                    float radius = this.cachedSlotSize * 0.8f * scale;
+                    rapi.GlScale(radius, radius, 0);
+                    shader.UniformMatrix("modelViewMatrix", rapi.CurrentModelviewMatrix);
+#pragma warning restore CS0618
+
+                    // Tint white with alpha
+                    var col = new Vec4f(1f, 1f, 1f, alpha);
+                    shader.Uniform("rgbaIn", col);
+                    shader.Uniform("applyColor", 1);
+                    shader.Uniform("noTexture", 1.0F);
+
+                    rapi.RenderMesh(this.highlightMesh);
+
+                    // Reset shader state toggles
+                    shader.Uniform("applyColor", 0);
+                    shader.Uniform("noTexture", 0.0F);
+
+#pragma warning disable CS0618
+                    rapi.GlPopMatrix();
+#pragma warning restore CS0618
+                }
+                catch (Exception ex)
+                {
+                    this.api.Logger.Debug("[HudCarried] Exception in DrawIconHighlight: " + ex);
+                }
+            }
+
+            // Helper to render a carried block (draw highlight then the item)
+            private void RenderCarriedBlock(IRenderAPI rapi, CarriedBlock carriedBlock, Anchor anchor, float highlightSecondsRemaining, bool isHands)
+            {
+                var slot = new DummySlot(carriedBlock.ItemStack);
+                var pos = this.GetPositionForAnchor(anchor);
+
+                // If highlight active, draw highlight. Note: we pass the main duration (DefaultHighlightDuration)
+                // but the triggers include the extra fade time, so DrawIconHighlight expects the total passed
+                if (highlightSecondsRemaining > 0f)
+                {
+                    DrawIconHighlight(rapi, highlightSecondsRemaining, DefaultHighlightDuration + HighlightFadeExtra, pos.x, pos.y);
+                }
+
+                // Render the item. For hands we allow the 'true' flag for the special rendering parameter the code used.
+                rapi.RenderItemstackToGui(slot, pos.x, pos.y, 100, this.cachedSlotSize, -1, isHands, false, true);
+            }
+
+            private void UpdateCachedPositions(float guiScale, float frameWidth, float frameHeight)
+            {
+                // Use GuiElement.scaled() for proper GUI scaling like StatusHud renderer
+                this.cachedSlotSize = (float)GuiElement.scaled(32.0); // base slot size of 32 pixels
+                int margin = (int)GuiElement.scaled(16.0); // increased margin between left/right groups and hotbar
+                int spacingBetweenIcons = (int)GuiElement.scaled(16.0); // spacing between icons within a group
+
+                // Hotbar dimensions (before scaling)
+                float baseHotbarWidth = 850f;
+                this.cachedHotbarWidth = (float)GuiElement.scaled(baseHotbarWidth);
+                
+                // Center of screen and hotbar position
+                this.cachedHotbarCenterX = frameWidth / 2f; 
+
+                // Vertical positioning: place the center of icons at 36 pixels from bottom (GUI-scaled)
+                // Note: RenderItemstackToGui expects center coordinates, so cachedHotbarY represents the icon center Y
+                this.cachedHotbarY = frameHeight - (float)GuiElement.scaled(36.0);
+
+                // Calculate positions to the left of hotbar (right to left: closest to farthest)
+                // Start from the left edge of hotbar, move left by margin, then place icons
+                float leftStartX = this.cachedHotbarCenterX - (this.cachedHotbarWidth / 2f) - margin - this.cachedSlotSize;
+                for (int i = 0; i < 3; i++)
+                {
+                    float x = leftStartX - (i * (this.cachedSlotSize + spacingBetweenIcons));
+                    // Y is the icon center; keep it exactly at cachedHotbarY
+                    float y = this.cachedHotbarY;
+
+                    // The render API centers the item at the provided pos. Convert our top-left calculations to center-based
+                    // by adding half the slot size so the renderer draws the icon where we expect on X.
+                    x += this.cachedSlotSize / 2f;
+
+                    // Boundary clamping - keep icon center inside frame
+                    x = Math.Max(this.cachedSlotSize / 2f, Math.Min(x, frameWidth - this.cachedSlotSize / 2f));
+                    y = Math.Max(this.cachedSlotSize / 2f, Math.Min(y, frameHeight - this.cachedSlotSize / 2f));
+                    
+                    this.cachedLeftPositions[i] = ((int)x, (int)y);
+                }
+
+                // Calculate positions to the right of hotbar (left to right: closest to farthest)
+                // Start from the right edge of hotbar, move right by margin, then place icons
+                float rightStartX = this.cachedHotbarCenterX + (this.cachedHotbarWidth / 2f) + margin;
+                for (int i = 0; i < 3; i++)
+                {
+                    float x = rightStartX + (i * (this.cachedSlotSize + spacingBetweenIcons));
+
+                    // Y is the icon center; keep it exactly at cachedHotbarY
+                    float y = this.cachedHotbarY;
+
+                    // Convert top-left calculation to renderer's center-based coordinates
+                    x += this.cachedSlotSize / 2f;
+
+                    // Boundary clamping - keep icon center inside frame
+                    x = Math.Max(this.cachedSlotSize / 2f, Math.Min(x, frameWidth - this.cachedSlotSize / 2f));
+                    y = Math.Max(this.cachedSlotSize / 2f, Math.Min(y, frameHeight - this.cachedSlotSize / 2f));
+
+                    this.cachedRightPositions[i] = ((int)x, (int)y);
+                }
+                
+                // Update cached values
+                this.cachedGUIScale = guiScale;
+                this.cachedFrameWidth = frameWidth;
+                this.cachedFrameHeight = frameHeight;
+            }
+
+            private (int x, int y) GetPositionForAnchor(Anchor anchor)
+            {
+                switch (anchor)
+                {
+                    case Anchor.L1: return this.cachedLeftPositions[0];
+                    case Anchor.L2: return this.cachedLeftPositions[1];
+                    case Anchor.L3: return this.cachedLeftPositions[2];
+                    case Anchor.R1: return this.cachedRightPositions[0];
+                    case Anchor.R2: return this.cachedRightPositions[1];
+                    case Anchor.R3: return this.cachedRightPositions[2];
+                    default: return ((int)this.cachedHotbarCenterX, (int)this.cachedHotbarY);
+                }
+            }
+
+            public void Dispose()
+            {
+                if (this.highlightMesh != null)
+                {
+                    this.api.Render.DeleteMesh(this.highlightMesh);
+                    this.highlightMesh = null;
+                }
+            }
+        }
+    }
+}
