@@ -50,7 +50,41 @@ namespace CarryOn.Client
                                     .WithDescription("Show current anchor background settings (runtime and saved)")
                                     .HandleWith(this.CmdCarryOnGuiBgShow)
                                 .EndSubCommand()
+                                .BeginSubCommand("reset")
+                                    .WithDescription("Reset anchor background to defaults (enabled, color, alpha)")
+                                    .HandleWith(this.CmdCarryOnGuiBgReset)
+                                .EndSubCommand()
                             .EndSubCommand()
+                        // .carryon gui border ... (border outline settings)
+                        .BeginSubCommand("border")
+                            .WithDescription("Configure anchor border outline (enable/disable/color/alpha/show/reset)")
+                            .BeginSubCommand("enable")
+                                .WithDescription("Enable anchor border outline")
+                                .HandleWith(this.CmdCarryOnGuiBorderEnable)
+                            .EndSubCommand()
+                            .BeginSubCommand("disable")
+                                .WithDescription("Disable anchor border outline")
+                                .HandleWith(this.CmdCarryOnGuiBorderDisable)
+                            .EndSubCommand()
+                            .BeginSubCommand("color")
+                                .WithDescription("Set anchor border color as hex (e.g. #45372D)")
+                                .WithArgs(api.ChatCommands.Parsers.Word("hex"))
+                                .HandleWith(this.CmdCarryOnGuiBorderColor)
+                            .EndSubCommand()
+                            .BeginSubCommand("alpha")
+                                .WithDescription("Set anchor border alpha (0.0 - 1.0)")
+                                .WithArgs(api.ChatCommands.Parsers.Float("alpha"))
+                                .HandleWith(this.CmdCarryOnGuiBorderAlpha)
+                            .EndSubCommand()
+                            .BeginSubCommand("reset")
+                                .WithDescription("Reset anchor border to defaults")
+                                .HandleWith(this.CmdCarryOnGuiBorderReset)
+                            .EndSubCommand()
+                            .BeginSubCommand("show")
+                                .WithDescription("Show current anchor border settings (runtime and saved)")
+                                .HandleWith(this.CmdCarryOnGuiBorderShow)
+                            .EndSubCommand()
+                        .EndSubCommand()
                         // .carryon gui show
                         .BeginSubCommand("show")
                             .WithDescription("Show current CarryOn GUI anchor assignments")
@@ -82,11 +116,12 @@ namespace CarryOn.Client
             string msg = $"CarryOn GUI debug icons {state}";
             // Command framework will display the returned message; avoid double-printing
             // Attempt to persist client config (no-op if not present)
+
             try
             {
+                // No fields currently for this toggle, but save to ensure config folder exists
                 if (this.carrySystem?.ClientConfig != null)
                 {
-                    // No fields currently for this toggle, but save to ensure config folder exists
                     this.carrySystem.ClientConfig.Save(this.api);
                 }
             }
@@ -294,8 +329,25 @@ namespace CarryOn.Client
             string hex = ((string)args[0])?.Trim();
             if (string.IsNullOrEmpty(hex)) return Vintagestory.API.Common.TextCommandResult.Error("Usage: .carryon gui bg color #rrggbb");
 
-            // Normalize: ensure leading '#'
-            if (!hex.StartsWith("#")) hex = "#" + hex;
+            // Normalize: ensure leading '#' and uppercase hex digits
+            hex = "#" + hex.TrimStart('#').ToUpperInvariant();
+
+            // Strict validation: must be exactly 7 characters (# + 6 hex digits)
+            if (hex.Length != 7)
+            {
+                return Vintagestory.API.Common.TextCommandResult.Error("Invalid hex color. Expected format: #rrggbb (6 hex digits)");
+            }
+
+            // Validate each char is a hex digit
+            for (int i = 1; i < 7; i++)
+            {
+                char c = hex[i];
+                bool ok = (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+                if (!ok)
+                {
+                    return Vintagestory.API.Common.TextCommandResult.Error("Invalid hex color. Expected format: #rrggbb (6 hex digits)");
+                }
+            }
 
             try
             {
@@ -357,6 +409,157 @@ namespace CarryOn.Client
             catch { }
 
             return Vintagestory.API.Common.TextCommandResult.Success("CarryOn anchor background — " + runtime + " | " + saved);
+        }
+
+        protected Vintagestory.API.Common.TextCommandResult CmdCarryOnGuiBgReset(Vintagestory.API.Common.TextCommandCallingArgs args)
+        {
+            // Defaults as defined in CarryOnConfig
+            const bool defEnabled = true;
+            const string defColor = "#E4C4A6";
+            const float defAlpha = 0.6f;
+
+            try
+            {
+                HudCarried.AnchorBackgroundEnabled = defEnabled;
+                HudCarried.AnchorBackgroundColor = defColor;
+                HudCarried.AnchorBackgroundAlpha = defAlpha;
+
+                if (this.carrySystem?.ClientConfig != null)
+                {
+                    this.carrySystem.ClientConfig.Config.AnchorBackgroundEnabled = defEnabled;
+                    this.carrySystem.ClientConfig.Config.AnchorBackgroundColor = defColor;
+                    this.carrySystem.ClientConfig.Config.AnchorBackgroundAlpha = defAlpha;
+                    this.carrySystem.ClientConfig.Save(this.api);
+                }
+            }
+            catch { }
+
+            return Vintagestory.API.Common.TextCommandResult.Success($"CarryOn anchor background reset to defaults: enabled={defEnabled}, color={defColor}, alpha={defAlpha:0.##}");
+        }
+
+        // === Border subcommand handlers ===
+        protected Vintagestory.API.Common.TextCommandResult CmdCarryOnGuiBorderEnable(Vintagestory.API.Common.TextCommandCallingArgs args)
+        {
+            try
+            {
+                HudCarried.AnchorBorderEnabled = true;
+                if (this.carrySystem?.ClientConfig != null)
+                {
+                    this.carrySystem.ClientConfig.Config.AnchorBorderEnabled = true;
+                    this.carrySystem.ClientConfig.Save(this.api);
+                }
+            }
+            catch { }
+            return Vintagestory.API.Common.TextCommandResult.Success("CarryOn anchor border: enabled");
+        }
+
+        protected Vintagestory.API.Common.TextCommandResult CmdCarryOnGuiBorderDisable(Vintagestory.API.Common.TextCommandCallingArgs args)
+        {
+            try
+            {
+                HudCarried.AnchorBorderEnabled = false;
+                if (this.carrySystem?.ClientConfig != null)
+                {
+                    this.carrySystem.ClientConfig.Config.AnchorBorderEnabled = false;
+                    this.carrySystem.ClientConfig.Save(this.api);
+                }
+            }
+            catch { }
+            return Vintagestory.API.Common.TextCommandResult.Success("CarryOn anchor border: disabled");
+        }
+
+        protected Vintagestory.API.Common.TextCommandResult CmdCarryOnGuiBorderColor(Vintagestory.API.Common.TextCommandCallingArgs args)
+        {
+            string hex = ((string)args[0])?.Trim();
+            if (string.IsNullOrEmpty(hex)) return Vintagestory.API.Common.TextCommandResult.Error("Usage: .carryon gui border color #rrggbb");
+
+            // Normalize to uppercase with '#'
+            hex = "#" + hex.TrimStart('#').ToUpperInvariant();
+
+            // Validate
+            if (hex.Length != 7) return Vintagestory.API.Common.TextCommandResult.Error("Invalid hex color. Expected format: #rrggbb");
+            for (int i = 1; i < 7; i++)
+            {
+                char c = hex[i];
+                bool ok = (c >= '0' && c <= '9') || (c >= 'A' && c <= 'F');
+                if (!ok) return Vintagestory.API.Common.TextCommandResult.Error("Invalid hex color. Expected format: #rrggbb");
+            }
+
+            try
+            {
+                HudCarried.AnchorBorderColor = hex;
+                if (this.carrySystem?.ClientConfig != null)
+                {
+                    this.carrySystem.ClientConfig.Config.AnchorBorderColor = hex;
+                    this.carrySystem.ClientConfig.Save(this.api);
+                }
+            }
+            catch { }
+
+            return Vintagestory.API.Common.TextCommandResult.Success($"CarryOn anchor border color set to {hex}");
+        }
+
+        protected Vintagestory.API.Common.TextCommandResult CmdCarryOnGuiBorderAlpha(Vintagestory.API.Common.TextCommandCallingArgs args)
+        {
+            float a = 0f;
+            try { a = (float)args[0]; }
+            catch { return Vintagestory.API.Common.TextCommandResult.Error("Usage: .carryon gui border alpha 0.0-1.0"); }
+
+            if (a < 0f || a > 1f) return Vintagestory.API.Common.TextCommandResult.Error("Alpha must be between 0.0 and 1.0");
+
+            try
+            {
+                HudCarried.AnchorBorderAlpha = a;
+                if (this.carrySystem?.ClientConfig != null)
+                {
+                    this.carrySystem.ClientConfig.Config.AnchorBorderAlpha = a;
+                    this.carrySystem.ClientConfig.Save(this.api);
+                }
+            }
+            catch { }
+
+            return Vintagestory.API.Common.TextCommandResult.Success($"CarryOn anchor border alpha set to {a:0.##}");
+        }
+
+        protected Vintagestory.API.Common.TextCommandResult CmdCarryOnGuiBorderReset(Vintagestory.API.Common.TextCommandCallingArgs args)
+        {
+            const bool defEnabled = true;
+            const string defColor = "#45372D";
+            const float defAlpha = 0.75f;
+
+            try
+            {
+                HudCarried.AnchorBorderEnabled = defEnabled;
+                HudCarried.AnchorBorderColor = defColor;
+                HudCarried.AnchorBorderAlpha = defAlpha;
+                if (this.carrySystem?.ClientConfig != null)
+                {
+                    this.carrySystem.ClientConfig.Config.AnchorBorderEnabled = defEnabled;
+                    this.carrySystem.ClientConfig.Config.AnchorBorderColor = defColor;
+                    this.carrySystem.ClientConfig.Config.AnchorBorderAlpha = defAlpha;
+                    this.carrySystem.ClientConfig.Save(this.api);
+                }
+            }
+            catch { }
+
+            return Vintagestory.API.Common.TextCommandResult.Success($"CarryOn anchor border reset to defaults: enabled={defEnabled}, color={defColor}, alpha={defAlpha:0.##}");
+        }
+
+        protected Vintagestory.API.Common.TextCommandResult CmdCarryOnGuiBorderShow(Vintagestory.API.Common.TextCommandCallingArgs args)
+        {
+            string runtime = $"Runtime: enabled={HudCarried.AnchorBorderEnabled}, color={HudCarried.AnchorBorderColor}, alpha={HudCarried.AnchorBorderAlpha:0.##}";
+            string saved = "Saved: (none)";
+            try
+            {
+                var cfg = this.carrySystem?.ClientConfig?.Config;
+                if (cfg != null)
+                {
+                    saved = $"Saved: enabled={cfg.AnchorBorderEnabled}, color={cfg.AnchorBorderColor}, alpha={cfg.AnchorBorderAlpha:0.##}";
+                }
+            }
+            catch { }
+
+            return Vintagestory.API.Common.TextCommandResult.Success("CarryOn anchor border — " + runtime + " | " + saved);
         }
     }
 }

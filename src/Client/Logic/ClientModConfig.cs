@@ -18,8 +18,12 @@ namespace CarryOn.Client.Logic
         
         // Anchor background preferences (client-side persistence)
         public bool AnchorBackgroundEnabled { get; set; } = true;
-        public string AnchorBackgroundColor { get; set; } = "#e4c4a6";
+        public string AnchorBackgroundColor { get; set; } = "#E4C4A6";
         public float AnchorBackgroundAlpha { get; set; } = 0.6f;
+        // Anchor border (outline) preferences
+        public bool AnchorBorderEnabled { get; set; } = true;
+        public string AnchorBorderColor { get; set; } = "#45372D";
+        public float AnchorBorderAlpha { get; set; } = 0.75f;
 
         public CarryOnClientConfig() { }
 

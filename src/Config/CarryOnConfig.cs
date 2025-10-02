@@ -68,7 +68,7 @@ namespace CarryOn.Config
 
         // Anchor background rendering options (client-visible via world config)
         // Hex color for fill (e.g. "#e4c4a6")
-        public string AnchorBackgroundColor { get; set; } = "#e4c4a6";
+    public string AnchorBackgroundColor { get; set; } = "#E4C4A6";
         // Alpha for fill (0.0 - 1.0)
         public float AnchorBackgroundAlpha { get; set; } = 0.6f;
         // Whether to draw the fill background (true = enabled)

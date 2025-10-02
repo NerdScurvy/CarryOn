@@ -31,7 +31,12 @@ namespace CarryOn.Client
 
         public static bool AnchorBackgroundEnabled { get; set; } = true;
         public static float AnchorBackgroundAlpha { get; set; } = 0.6f;
-        public static string AnchorBackgroundColor { get; set; } = "#e4c4a6";
+        public static string AnchorBackgroundColor { get; set; } = "#E4C4A6";
+        
+        // Border (outline) options
+        public static bool AnchorBorderEnabled { get; set; } = true;
+        public static float AnchorBorderAlpha { get; set; } = 0.75f;
+        public static string AnchorBorderColor { get; set; } = "#45372D";
 
         // Highlight timers (seconds remaining). When > 0 the corresponding icon will be tinted.
         // Trigger these from other client-side code when the player starts interacting with that carried item.
