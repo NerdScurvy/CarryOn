@@ -64,6 +64,8 @@ namespace CarryOn.Config
         public bool AllowLargeChestsOnBack { get; set; } = false;
         public bool AllowCratesOnBack { get; set; } = false;
 
+        public string[] PreventSwapFromBackOnTarget { get; set; } = ["behavior::Container", "behavior::Door", "class::portals.portal"];
+
     }
 
     public class DroppedBlockOptionsConfig
@@ -157,6 +159,9 @@ namespace CarryOn.Config
                 CarryOptions.BackSlotEnabled = previousConfig.CarryOptions.BackSlotEnabled;
                 CarryOptions.AllowLargeChestsOnBack = previousConfig.CarryOptions.AllowLargeChestsOnBack;
                 CarryOptions.AllowCratesOnBack = previousConfig.CarryOptions.AllowCratesOnBack;
+                CarryOptions.PreventSwapFromBackOnTarget = previousConfig.CarryOptions.PreventSwapFromBackOnTarget != null
+                    ? (string[])previousConfig.CarryOptions.PreventSwapFromBackOnTarget.Clone()
+                    : [];
             }
 
             // CarryablesFilters

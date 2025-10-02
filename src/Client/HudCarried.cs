@@ -87,6 +87,7 @@ namespace CarryOn.Client
             private readonly (int x, int y)[] cachedLeftPositions = new (int, int)[3];
             private readonly (int x, int y)[] cachedRightPositions = new (int, int)[3];
             private MeshRef highlightMesh = null;
+            private MeshRef rectMesh = null;
 
             public HudCarriedRenderer(ICoreClientAPI api)
             {
@@ -132,6 +133,12 @@ namespace CarryOn.Client
 
                 // Render carried back item (for now, just show in first right position)
                 var carriedBack = player.Entity?.GetCarried(CarrySlot.Back);
+                // Draw bounding rect for back anchor if selected
+                if (HudCarried.BackAnchor != Anchor.None)
+                {
+                    var posB = this.GetPositionForAnchor(HudCarried.BackAnchor);
+                    DrawRectOutline(rapi, posB.x, posB.y, this.cachedSlotSize, this.cachedSlotSize, Math.Max(1f, this.cachedSlotSize * 0.08f), new Vec4f(0.4f, 0.8f, 1f, 0.6f));
+                }
                 if (carriedBack != null)
                 {
                     RenderCarriedBlock(rapi, carriedBack, HudCarried.BackAnchor, HudCarried.BackHighlightSecondsRemaining, false);
@@ -139,6 +146,12 @@ namespace CarryOn.Client
 
                 // Render carried hands item (default position L1 -> first left position)
                 var carriedHands = player.Entity?.GetCarried(CarrySlot.Hands);
+                // Draw bounding rect for hands anchor if selected
+                if (HudCarried.HandsAnchor != Anchor.None)
+                {
+                    var posH = this.GetPositionForAnchor(HudCarried.HandsAnchor);
+                    DrawRectOutline(rapi, posH.x, posH.y, this.cachedSlotSize, this.cachedSlotSize, Math.Max(1f, this.cachedSlotSize * 0.08f), new Vec4f(0.6f, 1f, 0.6f, 0.6f));
+                }
                 if (carriedHands != null)
                 {
                     RenderCarriedBlock(rapi, carriedHands, HudCarried.HandsAnchor, HudCarried.HandsHighlightSecondsRemaining, true);
@@ -229,6 +242,96 @@ namespace CarryOn.Client
                 mesh.Rgba = rgba;
 
                 this.highlightMesh = this.api.Render.UploadMesh(mesh);
+            }
+
+            private void EnsureRectMesh()
+            {
+                if (this.rectMesh != null) return;
+
+                // Unit quad centered at origin (-0.5..0.5)
+                var mesh = new MeshData(4, 6, false, false, true, true);
+                mesh.AddVertexSkipTex(-0.5f, -0.5f, 0f);
+                mesh.AddVertexSkipTex(0.5f, -0.5f, 0f);
+                mesh.AddVertexSkipTex(0.5f, 0.5f, 0f);
+                mesh.AddVertexSkipTex(-0.5f, 0.5f, 0f);
+
+                mesh.AddIndices(new[] { 0, 1, 2, 0, 2, 3 });
+
+                // UVs and colors not needed for solid color quads
+                var uvs = new float[8];
+                mesh.Uv = uvs;
+                var rgba = new byte[16];
+                for (int i = 0; i < 4; i++) { rgba[i * 4 + 0] = 255; rgba[i * 4 + 1] = 255; rgba[i * 4 + 2] = 255; rgba[i * 4 + 3] = 255; }
+                mesh.Rgba = rgba;
+
+                this.rectMesh = this.api.Render.UploadMesh(mesh);
+            }
+
+            private void DrawRectOutline(IRenderAPI rapi, float centerX, float centerY, float width, float height, float thickness, Vec4f color)
+            {
+                EnsureRectMesh();
+
+                var shader = rapi.CurrentActiveShader;
+
+                try
+                {
+#pragma warning disable CS0618
+                    rapi.GlPushMatrix();
+#pragma warning restore CS0618
+
+                    // We'll draw four quads: top, bottom, left, right
+                    // Top
+#pragma warning disable CS0618
+                    rapi.GlTranslate((int)centerX, (int)centerY, 0);
+#pragma warning restore CS0618
+
+                    // Top bar
+                    rapi.GlPushMatrix();
+                    rapi.GlTranslate(0, -(height / 2f - thickness / 2f), 0);
+                    rapi.GlScale(width, thickness, 0);
+                    shader.UniformMatrix("modelViewMatrix", rapi.CurrentModelviewMatrix);
+                    shader.Uniform("rgbaIn", color);
+                    shader.Uniform("applyColor", 1);
+                    shader.Uniform("noTexture", 1.0F);
+                    rapi.RenderMesh(this.rectMesh);
+                    rapi.GlPopMatrix();
+
+                    // Bottom bar
+                    rapi.GlPushMatrix();
+                    rapi.GlTranslate(0, (height / 2f - thickness / 2f), 0);
+                    rapi.GlScale(width, thickness, 0);
+                    shader.UniformMatrix("modelViewMatrix", rapi.CurrentModelviewMatrix);
+                    rapi.RenderMesh(this.rectMesh);
+                    rapi.GlPopMatrix();
+
+                    // Left bar
+                    rapi.GlPushMatrix();
+                    rapi.GlTranslate(-(width / 2f - thickness / 2f), 0, 0);
+                    rapi.GlScale(thickness, height, 0);
+                    shader.UniformMatrix("modelViewMatrix", rapi.CurrentModelviewMatrix);
+                    rapi.RenderMesh(this.rectMesh);
+                    rapi.GlPopMatrix();
+
+                    // Right bar
+                    rapi.GlPushMatrix();
+                    rapi.GlTranslate((width / 2f - thickness / 2f), 0, 0);
+                    rapi.GlScale(thickness, height, 0);
+                    shader.UniformMatrix("modelViewMatrix", rapi.CurrentModelviewMatrix);
+                    rapi.RenderMesh(this.rectMesh);
+                    rapi.GlPopMatrix();
+
+                    // Reset shader toggles
+                    shader.Uniform("applyColor", 0);
+                    shader.Uniform("noTexture", 0.0F);
+
+#pragma warning disable CS0618
+                    rapi.GlPopMatrix();
+#pragma warning restore CS0618
+                }
+                catch (Exception ex)
+                {
+                    this.api.Logger.Debug("[HudCarried] Exception in DrawRectOutline: " + ex);
+                }
             }
 
             private void DrawIconHighlight(IRenderAPI rapi, float secondsRemaining, float duration, float centerX, float centerY)
@@ -405,6 +508,11 @@ namespace CarryOn.Client
                 {
                     this.api.Render.DeleteMesh(this.highlightMesh);
                     this.highlightMesh = null;
+                }
+                if (this.rectMesh != null)
+                {
+                    this.api.Render.DeleteMesh(this.rectMesh);
+                    this.rectMesh = null;
                 }
             }
         }

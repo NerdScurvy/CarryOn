@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using CarryOn.API.Common;
 using CarryOn.Client;
@@ -38,6 +39,9 @@ namespace CarryOn.Common
 
         public int MaxInteractionDistance { get; set; }
 
+        private Type[] preventSwapFromBackOnBehaviors = [];
+        private string[] preventSwapFromBackOnClasses = [];
+
         public void InitClient()
         {
             var cApi = CarrySystem.ClientAPI;
@@ -62,9 +66,53 @@ namespace CarryOn.Common
 
             cApi.Event.BeforeActiveSlotChanged +=
                 (_) => OnBeforeActiveSlotChanged(CarrySystem.ClientAPI.World.Player.Entity);
+
+            var worldConfig = cApi?.World?.Config;
+            var attr = worldConfig[ModConfig.GetConfigKey("PreventSwapFromBackOnTarget")];
+            if (attr != null)
+            {
+                var treeArray = attr as TreeArrayAttribute;
+                var behaviors = new List<Type>();
+                var classes = new List<string>();
+                foreach (var entry in treeArray.value)
+                {
+                    var value = entry.GetAsString("value");
+                    if (string.IsNullOrEmpty(value)) continue;
+                    if (value.Contains("::"))
+                    {
+                        if (value.StartsWith("class::"))
+                        {
+                            value = value.Substring("class::".Length);
+                            classes.Add(value);
+                        }else if (value.StartsWith("behavior::"))
+                        {
+                            value = value.Substring("behavior::".Length);
+                            var behavior = cApi.ClassRegistry.GetBlockBehaviorClass(value);
+                            if (behavior != null)
+                            {
+                                behaviors.Add(behavior);
+                            }
+                            else
+                            {
+                                cApi.Logger.Warning("CarryOn: Block behavior class '{0}' not found for PreventSwapFromBackOnTarget config entry.", value);
+                            }
+                        }
+                        else
+                        {
+                            cApi.Logger.Warning("CarryOn: Invalid format '{0}' for PreventSwapFromBackOnTarget config entry. Must start with 'class::' or 'behavior::'", value);
+                        }
+                        // TODO: Handle other formats?                      
+                    }
+                    else
+                    {
+                        cApi.Logger.Warning("CarryOn: Invalid format '{0}' for PreventSwapFromBackOnTarget config entry. Must start with 'class::' or 'behavior::'", value);
+                    }
+                }
+                preventSwapFromBackOnBehaviors = behaviors.ToArray();
+                preventSwapFromBackOnClasses = classes.ToArray();
+            }
+
         }
-
-
 
         public void InitServer()
         {
@@ -314,7 +362,7 @@ namespace CarryOn.Common
                 if (carriedHands == null && !notTargetingBlock)
                 {
                     // Don't allow swap back operation if the player is looking at a container with empty hands.
-                    var hasBehavior = selection?.Block?.HasBehavior<BlockBehaviorContainer>() ?? false;
+                    var hasBehavior = SelectionPreventsSwap(selection);
                     if (hasBehavior)
                     {
                         CompleteInteraction();
@@ -613,10 +661,7 @@ namespace CarryOn.Common
             var progress = Interaction.TimeHeld / requiredTime;
             CarrySystem.HudOverlayRenderer.CircleProgress = progress;
 
-            if (Interaction.CarrySlot == CarrySlot.Hands)
-            {
-                HudCarried.TriggerHandsHighlight();
-            }
+            HudCarried.TriggerHandsHighlight();
 
             if (Interaction.CarryAction == CarryAction.SwapBack)
             {
@@ -1214,6 +1259,40 @@ namespace CarryOn.Common
                 return selection;
             }
             return blockSelection;
+        }
+
+        /// <summary>
+        /// Returns true if the selection's block should prevent swap-back based on configured behavior names or block classes.
+        /// </summary>
+        private bool SelectionPreventsSwap(BlockSelection selection)
+        {
+            if (selection?.Block == null) return false;
+
+            var block = selection.Block;
+
+            // Check class names first
+            if (preventSwapFromBackOnClasses != null && preventSwapFromBackOnClasses.Length > 0)
+            {
+                var blockClass = block.Class ?? "";
+                foreach (var cls in preventSwapFromBackOnClasses)
+                {
+                    if (string.IsNullOrEmpty(cls)) continue;
+                    if (string.Equals(blockClass, cls, StringComparison.OrdinalIgnoreCase)) return true;
+                }
+            }
+
+            // Check behavior names. The config values may be either fully qualified like "Namespace.TypeName"
+            // or formatted as "BehaviorClassName" or with a separator like "Namespace::TypeName".
+            if (preventSwapFromBackOnBehaviors != null && preventSwapFromBackOnBehaviors.Length > 0)
+            {
+                foreach (var behaviorType in preventSwapFromBackOnBehaviors)
+                {
+                    if (behaviorType == null) continue;
+                    if (block.HasBehavior(behaviorType)) return true;
+                }
+            }
+
+            return false;
         }
     }
 }
