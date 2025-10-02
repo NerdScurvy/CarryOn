@@ -85,6 +85,36 @@ namespace CarryOn.Client
                                 .HandleWith(this.CmdCarryOnGuiBorderShow)
                             .EndSubCommand()
                         .EndSubCommand()
+                        // .carryon gui highlight ... (icon highlight settings)
+                        .BeginSubCommand("highlight")
+                            .WithDescription("Configure icon highlight (enable/disable/color/alpha/show/reset)")
+                            .BeginSubCommand("enable")
+                                .WithDescription("Enable icon highlight")
+                                .HandleWith(this.CmdCarryOnGuiHighlightEnable)
+                            .EndSubCommand()
+                            .BeginSubCommand("disable")
+                                .WithDescription("Disable icon highlight")
+                                .HandleWith(this.CmdCarryOnGuiHighlightDisable)
+                            .EndSubCommand()
+                            .BeginSubCommand("color")
+                                .WithDescription("Set icon highlight color as hex (e.g. #FFFFFF)")
+                                .WithArgs(api.ChatCommands.Parsers.Word("hex"))
+                                .HandleWith(this.CmdCarryOnGuiHighlightColor)
+                            .EndSubCommand()
+                            .BeginSubCommand("alpha")
+                                .WithDescription("Set icon highlight alpha (0.0 - 1.0)")
+                                .WithArgs(api.ChatCommands.Parsers.Float("alpha"))
+                                .HandleWith(this.CmdCarryOnGuiHighlightAlpha)
+                            .EndSubCommand()
+                            .BeginSubCommand("reset")
+                                .WithDescription("Reset icon highlight to defaults")
+                                .HandleWith(this.CmdCarryOnGuiHighlightReset)
+                            .EndSubCommand()
+                            .BeginSubCommand("show")
+                                .WithDescription("Show current icon highlight settings (runtime and saved)")
+                                .HandleWith(this.CmdCarryOnGuiHighlightShow)
+                            .EndSubCommand()
+                        .EndSubCommand()
                         // .carryon gui show
                         .BeginSubCommand("show")
                             .WithDescription("Show current CarryOn GUI anchor assignments")
@@ -247,8 +277,8 @@ namespace CarryOn.Client
 
         protected Vintagestory.API.Common.TextCommandResult CmdCarryOnGuiReset(Vintagestory.API.Common.TextCommandCallingArgs args)
         {
-            // Reset to defaults: Hands -> None, Back -> R1
-            HudCarried.HandsAnchor = HudCarried.Anchor.None;
+            // Reset to defaults: Hands -> L1, Back -> R1
+            HudCarried.HandsAnchor = HudCarried.Anchor.L1;
             HudCarried.BackAnchor = HudCarried.Anchor.R1;
 
             try
@@ -560,6 +590,127 @@ namespace CarryOn.Client
             catch { }
 
             return Vintagestory.API.Common.TextCommandResult.Success("CarryOn anchor border — " + runtime + " | " + saved);
+        }
+
+        // === Highlight subcommand handlers ===
+        protected Vintagestory.API.Common.TextCommandResult CmdCarryOnGuiHighlightEnable(Vintagestory.API.Common.TextCommandCallingArgs args)
+        {
+            try
+            {
+                HudCarried.IconHighlightEnabled = true;
+                if (this.carrySystem?.ClientConfig != null)
+                {
+                    this.carrySystem.ClientConfig.Config.IconHighlightEnabled = true;
+                    this.carrySystem.ClientConfig.Save(this.api);
+                }
+            }
+            catch { }
+            return Vintagestory.API.Common.TextCommandResult.Success("CarryOn icon highlight: enabled");
+        }
+
+        protected Vintagestory.API.Common.TextCommandResult CmdCarryOnGuiHighlightDisable(Vintagestory.API.Common.TextCommandCallingArgs args)
+        {
+            try
+            {
+                HudCarried.IconHighlightEnabled = false;
+                if (this.carrySystem?.ClientConfig != null)
+                {
+                    this.carrySystem.ClientConfig.Config.IconHighlightEnabled = false;
+                    this.carrySystem.ClientConfig.Save(this.api);
+                }
+            }
+            catch { }
+            return Vintagestory.API.Common.TextCommandResult.Success("CarryOn icon highlight: disabled");
+        }
+
+        protected Vintagestory.API.Common.TextCommandResult CmdCarryOnGuiHighlightColor(Vintagestory.API.Common.TextCommandCallingArgs args)
+        {
+            string hex = ((string)args[0])?.Trim();
+            if (string.IsNullOrEmpty(hex)) return Vintagestory.API.Common.TextCommandResult.Error("Usage: .carryon gui highlight color #rrggbb");
+
+            hex = "#" + hex.TrimStart('#').ToUpperInvariant();
+            if (hex.Length != 7) return Vintagestory.API.Common.TextCommandResult.Error("Invalid hex color. Expected format: #rrggbb");
+            for (int i = 1; i < 7; i++)
+            {
+                char c = hex[i];
+                bool ok = (c >= '0' && c <= '9') || (c >= 'A' && c <= 'F');
+                if (!ok) return Vintagestory.API.Common.TextCommandResult.Error("Invalid hex color. Expected format: #rrggbb");
+            }
+
+            try
+            {
+                HudCarried.IconHighlightColor = hex;
+                if (this.carrySystem?.ClientConfig != null)
+                {
+                    this.carrySystem.ClientConfig.Config.IconHighlightColor = hex;
+                    this.carrySystem.ClientConfig.Save(this.api);
+                }
+            }
+            catch { }
+
+            return Vintagestory.API.Common.TextCommandResult.Success($"CarryOn icon highlight color set to {hex}");
+        }
+
+        protected Vintagestory.API.Common.TextCommandResult CmdCarryOnGuiHighlightAlpha(Vintagestory.API.Common.TextCommandCallingArgs args)
+        {
+            float a = 0f;
+            try { a = (float)args[0]; }
+            catch { return Vintagestory.API.Common.TextCommandResult.Error("Usage: .carryon gui highlight alpha 0.0-1.0"); }
+            if (a < 0f || a > 1f) return Vintagestory.API.Common.TextCommandResult.Error("Alpha must be between 0.0 and 1.0");
+
+            try
+            {
+                HudCarried.IconHighlightAlpha = a;
+                if (this.carrySystem?.ClientConfig != null)
+                {
+                    this.carrySystem.ClientConfig.Config.IconHighlightAlpha = a;
+                    this.carrySystem.ClientConfig.Save(this.api);
+                }
+            }
+            catch { }
+
+            return Vintagestory.API.Common.TextCommandResult.Success($"CarryOn icon highlight alpha set to {a:0.##}");
+        }
+
+        protected Vintagestory.API.Common.TextCommandResult CmdCarryOnGuiHighlightReset(Vintagestory.API.Common.TextCommandCallingArgs args)
+        {
+            const bool defEnabled = true;
+            const string defColor = "#FFFFFF";
+            const float defAlpha = 0.8f;
+
+            try
+            {
+                HudCarried.IconHighlightEnabled = defEnabled;
+                HudCarried.IconHighlightColor = defColor;
+                HudCarried.IconHighlightAlpha = defAlpha;
+                if (this.carrySystem?.ClientConfig != null)
+                {
+                    this.carrySystem.ClientConfig.Config.IconHighlightEnabled = defEnabled;
+                    this.carrySystem.ClientConfig.Config.IconHighlightColor = defColor;
+                    this.carrySystem.ClientConfig.Config.IconHighlightAlpha = defAlpha;
+                    this.carrySystem.ClientConfig.Save(this.api);
+                }
+            }
+            catch { }
+
+            return Vintagestory.API.Common.TextCommandResult.Success($"CarryOn icon highlight reset to defaults: enabled={defEnabled}, color={defColor}, alpha={defAlpha:0.##}");
+        }
+
+        protected Vintagestory.API.Common.TextCommandResult CmdCarryOnGuiHighlightShow(Vintagestory.API.Common.TextCommandCallingArgs args)
+        {
+            string runtime = $"Runtime: enabled={HudCarried.IconHighlightEnabled}, color={HudCarried.IconHighlightColor}, alpha={HudCarried.IconHighlightAlpha:0.##}";
+            string saved = "Saved: (none)";
+            try
+            {
+                var cfg = this.carrySystem?.ClientConfig?.Config;
+                if (cfg != null)
+                {
+                    saved = $"Saved: enabled={cfg.IconHighlightEnabled}, color={cfg.IconHighlightColor}, alpha={cfg.IconHighlightAlpha:0.##}";
+                }
+            }
+            catch { }
+
+            return Vintagestory.API.Common.TextCommandResult.Success("CarryOn icon highlight — " + runtime + " | " + saved);
         }
     }
 }
