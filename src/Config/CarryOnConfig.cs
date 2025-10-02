@@ -66,6 +66,14 @@ namespace CarryOn.Config
 
         public string[] PreventSwapFromBackOnTarget { get; set; } = ["behavior::Container", "behavior::Door", "class::portals.portal"];
 
+        // Anchor background rendering options (client-visible via world config)
+        // Hex color for fill (e.g. "#e4c4a6")
+        public string AnchorBackgroundColor { get; set; } = "#e4c4a6";
+        // Alpha for fill (0.0 - 1.0)
+        public float AnchorBackgroundAlpha { get; set; } = 0.6f;
+        // Whether to draw the fill background (true = enabled)
+        public bool AnchorBackgroundEnabled { get; set; } = true;
+
     }
 
     public class DroppedBlockOptionsConfig
@@ -162,6 +170,10 @@ namespace CarryOn.Config
                 CarryOptions.PreventSwapFromBackOnTarget = previousConfig.CarryOptions.PreventSwapFromBackOnTarget != null
                     ? (string[])previousConfig.CarryOptions.PreventSwapFromBackOnTarget.Clone()
                     : [];
+                // Anchor background options
+                CarryOptions.AnchorBackgroundColor = previousConfig.CarryOptions.AnchorBackgroundColor ?? CarryOptions.AnchorBackgroundColor;
+                CarryOptions.AnchorBackgroundAlpha = previousConfig.CarryOptions.AnchorBackgroundAlpha;
+                CarryOptions.AnchorBackgroundEnabled = previousConfig.CarryOptions.AnchorBackgroundEnabled;
             }
 
             // CarryablesFilters

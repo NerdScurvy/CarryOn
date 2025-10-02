@@ -15,6 +15,11 @@ namespace CarryOn.Client.Logic
         // Stored as the enum name (L1,L2,...). "None" indicates not assigned.
         public string HandsAnchor { get; set; } = HudCarried.Anchor.None.ToString();
         public string BackAnchor { get; set; } = HudCarried.Anchor.R1.ToString();
+        
+        // Anchor background preferences (client-side persistence)
+        public bool AnchorBackgroundEnabled { get; set; } = true;
+        public string AnchorBackgroundColor { get; set; } = "#e4c4a6";
+        public float AnchorBackgroundAlpha { get; set; } = 0.6f;
 
         public CarryOnClientConfig() { }
 

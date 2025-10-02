@@ -29,6 +29,10 @@ namespace CarryOn.Client
         public static Anchor HandsAnchor { get; set; } = Anchor.None;
         public static Anchor BackAnchor { get; set; } = Anchor.R1;
 
+        public static bool AnchorBackgroundEnabled { get; set; } = true;
+        public static float AnchorBackgroundAlpha { get; set; } = 0.6f;
+        public static string AnchorBackgroundColor { get; set; } = "#e4c4a6";
+
         // Highlight timers (seconds remaining). When > 0 the corresponding icon will be tinted.
         // Trigger these from other client-side code when the player starts interacting with that carried item.
         public static float HandsHighlightSecondsRemaining { get; private set; } = 0f;
@@ -170,12 +174,22 @@ namespace CarryOn.Client
                         var posB = this.GetPositionForAnchor(handsAnchor);
 
                         float centerX = (posA.x + posB.x) / 2f;
-                        float centerY = (posA.y + posB.y) / 2f;
+                        // Move rectangle up 1 pixel, then expand height so bottom edge reaches the frame bottom
+                        float centerY = (posA.y + posB.y) / 2f + 1f;
                         float width = Math.Abs(posA.x - posB.x) + this.cachedBackgroundSize;
-                        float height = this.cachedBackgroundSize;
+                        float height = Math.Max(this.cachedBackgroundSize, 2f * (this.cachedFrameHeight - centerY));
 
-                        // Fill color: #e4c4a6 -> (228,196,166) at 60% alpha
-                        DrawRectFilled(rapi, centerX, centerY, width, height, new Vec4f(228f/255f, 196f/255f, 166f/255f, 0.60f));
+                        // Fill color from world config (hex + alpha)
+                        try
+                        {
+                            if (AnchorBackgroundEnabled)
+                            {
+                                var hex = AnchorBackgroundColor;
+                                var alpha = AnchorBackgroundAlpha;
+                                DrawRectFilled(rapi, centerX, centerY, width, height, ParseHexColor(hex, alpha));
+                            }
+                        }
+                        catch { }
                         // Outline color: #45372d -> (69,55,45)
                         DrawRectOutline(rapi, centerX, centerY, width, height, Math.Max(0.5f, this.cachedSlotSize * 0.08f), new Vec4f(69f/255f, 55f/255f, 45f/255f, 0.75f));
 
@@ -189,16 +203,38 @@ namespace CarryOn.Client
                     if (backAnchor != Anchor.None)
                     {
                         var posB = this.GetPositionForAnchor(backAnchor);
-                        DrawRectFilled(rapi, posB.x, posB.y, this.cachedBackgroundSize, this.cachedBackgroundSize, new Vec4f(228f/255f, 196f/255f, 166f/255f, 0.60f));
-                        DrawRectOutline(rapi, posB.x, posB.y, this.cachedBackgroundSize, this.cachedBackgroundSize, Math.Max(0.5f, this.cachedSlotSize * 0.08f), new Vec4f(69f/255f, 55f/255f, 45f/255f, 0.75f));
+                        float centerY = posB.y + 1f;
+                        float height = Math.Max(this.cachedBackgroundSize, 2f * (this.cachedFrameHeight - centerY));
+                        try
+                        {
+                            if (AnchorBackgroundEnabled)
+                            {
+                                var hex = AnchorBackgroundColor;
+                                var alpha = AnchorBackgroundAlpha;
+                                DrawRectFilled(rapi, posB.x, centerY, this.cachedBackgroundSize, height, ParseHexColor(hex, alpha));
+                            }
+                        }
+                        catch { }
+                        DrawRectOutline(rapi, posB.x, centerY, this.cachedBackgroundSize, height, Math.Max(0.5f, this.cachedSlotSize * 0.08f), new Vec4f(69f/255f, 55f/255f, 45f/255f, 0.75f));
                     }
 
                     // Individual rectangles (hands)
                     if (handsAnchor != Anchor.None)
                     {
                         var posH = this.GetPositionForAnchor(handsAnchor);
-                        DrawRectFilled(rapi, posH.x, posH.y, this.cachedBackgroundSize, this.cachedBackgroundSize, new Vec4f(228f/255f, 196f/255f, 166f/255f, 0.60f));
-                        DrawRectOutline(rapi, posH.x, posH.y, this.cachedBackgroundSize, this.cachedBackgroundSize, Math.Max(0.5f, this.cachedSlotSize * 0.08f), new Vec4f(69f/255f, 55f/255f, 45f/255f, 0.75f));
+                        float centerY = posH.y + 1f;
+                        float height = Math.Max(this.cachedBackgroundSize, 2f * (this.cachedFrameHeight - centerY));
+                        try
+                        {
+                            if (AnchorBackgroundEnabled)
+                            {
+                                var hex = AnchorBackgroundColor;
+                                var alpha = AnchorBackgroundAlpha;
+                                DrawRectFilled(rapi, posH.x, centerY, this.cachedBackgroundSize, height, ParseHexColor(hex, alpha));
+                            }
+                        }
+                        catch { }
+                        DrawRectOutline(rapi, posH.x, centerY, this.cachedBackgroundSize, height, Math.Max(0.5f, this.cachedSlotSize * 0.08f), new Vec4f(69f/255f, 55f/255f, 45f/255f, 0.75f));
                     }
                 }
 
@@ -483,6 +519,25 @@ namespace CarryOn.Client
                 catch (Exception ex)
                 {
                     this.api.Logger.Debug("[HudCarried] Exception in DrawIconHighlight: " + ex);
+                }
+            }
+
+            private Vec4f ParseHexColor(string hex, float alpha)
+            {
+                if (string.IsNullOrEmpty(hex)) return new Vec4f(228f/255f, 196f/255f, 166f/255f, alpha);
+                try
+                {
+                    var h = hex.Trim();
+                    if (h.StartsWith("#")) h = h.Substring(1);
+                    if (h.Length != 6) return new Vec4f(228f/255f, 196f/255f, 166f/255f, alpha);
+                    int r = int.Parse(h.Substring(0, 2), System.Globalization.NumberStyles.HexNumber);
+                    int g = int.Parse(h.Substring(2, 2), System.Globalization.NumberStyles.HexNumber);
+                    int b = int.Parse(h.Substring(4, 2), System.Globalization.NumberStyles.HexNumber);
+                    return new Vec4f(r / 255f, g / 255f, b / 255f, alpha);
+                }
+                catch
+                {
+                    return new Vec4f(228f/255f, 196f/255f, 166f/255f, alpha);
                 }
             }
 

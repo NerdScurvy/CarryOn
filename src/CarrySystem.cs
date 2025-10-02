@@ -169,6 +169,18 @@ namespace CarryOn
                     {
                         HudCarried.BackAnchor = backAnchor;
                     }
+
+                    // Apply client anchor background preferences (persisted client-side)
+                    try
+                    {
+                        HudCarried.AnchorBackgroundEnabled = cfg.AnchorBackgroundEnabled;
+                        if (!string.IsNullOrEmpty(cfg.AnchorBackgroundColor))
+                        {
+                            HudCarried.AnchorBackgroundColor = cfg.AnchorBackgroundColor;
+                        }
+                        HudCarried.AnchorBackgroundAlpha = cfg.AnchorBackgroundAlpha;
+                    }
+                    catch { }
                 }
             }
             catch (Exception ex)

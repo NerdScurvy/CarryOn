@@ -25,6 +25,32 @@ namespace CarryOn.Client
                             .WithDescription("Toggle CarryOn GUI debug icons (alias)")
                             .HandleWith(this.CmdCarryOnGuiToggle)
                         .EndSubCommand()
+                            // .carryon gui bg ... (background fill settings)
+                            .BeginSubCommand("bg")
+                                .WithDescription("Configure anchor background fill (enable/disable/color/alpha/show)")
+                                .BeginSubCommand("enable")
+                                    .WithDescription("Enable anchor background fill")
+                                    .HandleWith(this.CmdCarryOnGuiBgEnable)
+                                .EndSubCommand()
+                                .BeginSubCommand("disable")
+                                    .WithDescription("Disable anchor background fill")
+                                    .HandleWith(this.CmdCarryOnGuiBgDisable)
+                                .EndSubCommand()
+                                .BeginSubCommand("color")
+                                    .WithDescription("Set anchor background fill color as hex (e.g. #e4c4a6)")
+                                    .WithArgs(api.ChatCommands.Parsers.Word("hex"))
+                                    .HandleWith(this.CmdCarryOnGuiBgColor)
+                                .EndSubCommand()
+                                .BeginSubCommand("alpha")
+                                    .WithDescription("Set anchor background alpha (0.0 - 1.0)")
+                                    .WithArgs(api.ChatCommands.Parsers.Float("alpha"))
+                                    .HandleWith(this.CmdCarryOnGuiBgAlpha)
+                                .EndSubCommand()
+                                .BeginSubCommand("show")
+                                    .WithDescription("Show current anchor background settings (runtime and saved)")
+                                    .HandleWith(this.CmdCarryOnGuiBgShow)
+                                .EndSubCommand()
+                            .EndSubCommand()
                         // .carryon gui show
                         .BeginSubCommand("show")
                             .WithDescription("Show current CarryOn GUI anchor assignments")
@@ -225,6 +251,112 @@ namespace CarryOn.Client
 
             string msg = $"CarryOn GUI anchors — Runtime: Hands={hands}, Back={back}" + (saved != null ? " | " + saved : "");
             return Vintagestory.API.Common.TextCommandResult.Success(msg);
+        }
+
+        // === Background subcommand handlers ===
+        protected Vintagestory.API.Common.TextCommandResult CmdCarryOnGuiBgEnable(Vintagestory.API.Common.TextCommandCallingArgs args)
+        {
+            try
+            {
+                // Update runtime and client config
+                HudCarried.AnchorBackgroundEnabled = true;
+                // runtime value updated (HudCarried) and saved to client config below
+                if (this.carrySystem?.ClientConfig != null)
+                {
+                    this.carrySystem.ClientConfig.Config.AnchorBackgroundEnabled = true;
+                    this.carrySystem.ClientConfig.Save(this.api);
+                }
+            }
+            catch { }
+
+            return Vintagestory.API.Common.TextCommandResult.Success("CarryOn anchor background: enabled");
+        }
+
+        protected Vintagestory.API.Common.TextCommandResult CmdCarryOnGuiBgDisable(Vintagestory.API.Common.TextCommandCallingArgs args)
+        {
+            try
+            {
+                HudCarried.AnchorBackgroundEnabled = false;
+                // runtime value updated (HudCarried) and saved to client config below
+                if (this.carrySystem?.ClientConfig != null)
+                {
+                    this.carrySystem.ClientConfig.Config.AnchorBackgroundEnabled = false;
+                    this.carrySystem.ClientConfig.Save(this.api);
+                }
+            }
+            catch { }
+
+            return Vintagestory.API.Common.TextCommandResult.Success("CarryOn anchor background: disabled");
+        }
+
+        protected Vintagestory.API.Common.TextCommandResult CmdCarryOnGuiBgColor(Vintagestory.API.Common.TextCommandCallingArgs args)
+        {
+            string hex = ((string)args[0])?.Trim();
+            if (string.IsNullOrEmpty(hex)) return Vintagestory.API.Common.TextCommandResult.Error("Usage: .carryon gui bg color #rrggbb");
+
+            // Normalize: ensure leading '#'
+            if (!hex.StartsWith("#")) hex = "#" + hex;
+
+            try
+            {
+                // Apply to runtime and persist
+                HudCarried.AnchorBackgroundColor = hex;
+                // runtime value updated (HudCarried) and saved to client config below
+                if (this.carrySystem?.ClientConfig != null)
+                {
+                    this.carrySystem.ClientConfig.Config.AnchorBackgroundColor = hex;
+                    this.carrySystem.ClientConfig.Save(this.api);
+                }
+            }
+            catch { }
+
+            return Vintagestory.API.Common.TextCommandResult.Success($"CarryOn anchor background color set to {hex}");
+        }
+
+        protected Vintagestory.API.Common.TextCommandResult CmdCarryOnGuiBgAlpha(Vintagestory.API.Common.TextCommandCallingArgs args)
+        {
+            float a = 0f;
+            try
+            {
+                a = (float)args[0];
+            }
+            catch
+            {
+                return Vintagestory.API.Common.TextCommandResult.Error("Usage: .carryon gui bg alpha 0.0-1.0");
+            }
+
+            if (a < 0f || a > 1f) return Vintagestory.API.Common.TextCommandResult.Error("Alpha must be between 0.0 and 1.0");
+
+            try
+            {
+                HudCarried.AnchorBackgroundAlpha = a;
+                // runtime value updated (HudCarried) and saved to client config below
+                if (this.carrySystem?.ClientConfig != null)
+                {
+                    this.carrySystem.ClientConfig.Config.AnchorBackgroundAlpha = a;
+                    this.carrySystem.ClientConfig.Save(this.api);
+                }
+            }
+            catch { }
+
+            return Vintagestory.API.Common.TextCommandResult.Success($"CarryOn anchor background alpha set to {a:0.##}");
+        }
+
+        protected Vintagestory.API.Common.TextCommandResult CmdCarryOnGuiBgShow(Vintagestory.API.Common.TextCommandCallingArgs args)
+        {
+            string runtime = $"Runtime: enabled={HudCarried.AnchorBackgroundEnabled}, color={HudCarried.AnchorBackgroundColor}, alpha={HudCarried.AnchorBackgroundAlpha:0.##}";
+            string saved = "Saved: (none)";
+            try
+            {
+                var cfg = this.carrySystem?.ClientConfig?.Config;
+                if (cfg != null)
+                {
+                    saved = $"Saved: enabled={cfg.AnchorBackgroundEnabled}, color={cfg.AnchorBackgroundColor}, alpha={cfg.AnchorBackgroundAlpha:0.##}";
+                }
+            }
+            catch { }
+
+            return Vintagestory.API.Common.TextCommandResult.Success("CarryOn anchor background — " + runtime + " | " + saved);
         }
     }
 }
