@@ -79,6 +79,7 @@ namespace CarryOn.Client
             private float cachedFrameWidth = -1f;
             private float cachedFrameHeight = -1f;
             private float cachedSlotSize;
+            private float cachedBackgroundSize;
             private float cachedHotbarWidth;
             private float cachedHotbarCenterX;
             private float cachedHotbarY;
@@ -133,11 +134,15 @@ namespace CarryOn.Client
 
                 // Render carried back item (for now, just show in first right position)
                 var carriedBack = player.Entity?.GetCarried(CarrySlot.Back);
+
                 // Draw bounding rect for back anchor if selected
                 if (HudCarried.BackAnchor != Anchor.None)
                 {
                     var posB = this.GetPositionForAnchor(HudCarried.BackAnchor);
-                    DrawRectOutline(rapi, posB.x, posB.y, this.cachedSlotSize, this.cachedSlotSize, Math.Max(1f, this.cachedSlotSize * 0.08f), new Vec4f(0.4f, 0.8f, 1f, 0.6f));
+                    // Fill color: #e4c4a6 -> (228,196,166) at 60% alpha
+                    DrawRectFilled(rapi, posB.x, posB.y, this.cachedBackgroundSize, this.cachedBackgroundSize, new Vec4f(228f/255f, 196f/255f, 166f/255f, 0.60f));
+                    // Outline color: #45372d -> (69,55,45)
+                    DrawRectOutline(rapi, posB.x, posB.y, this.cachedBackgroundSize, this.cachedBackgroundSize, Math.Max(0.5f, this.cachedSlotSize * 0.08f), new Vec4f(69f/255f, 55f/255f, 45f/255f, 0.75f));
                 }
                 if (carriedBack != null)
                 {
@@ -150,7 +155,10 @@ namespace CarryOn.Client
                 if (HudCarried.HandsAnchor != Anchor.None)
                 {
                     var posH = this.GetPositionForAnchor(HudCarried.HandsAnchor);
-                    DrawRectOutline(rapi, posH.x, posH.y, this.cachedSlotSize, this.cachedSlotSize, Math.Max(1f, this.cachedSlotSize * 0.08f), new Vec4f(0.6f, 1f, 0.6f, 0.6f));
+                    // Fill color: #e4c4a6 -> (228,196,166) at 60% alpha
+                    DrawRectFilled(rapi, posH.x, posH.y, this.cachedBackgroundSize, this.cachedBackgroundSize, new Vec4f(228f/255f, 196f/255f, 166f/255f, 0.60f));
+                    // Outline color: #45372d -> (69,55,45)
+                    DrawRectOutline(rapi, posH.x, posH.y, this.cachedBackgroundSize, this.cachedBackgroundSize, Math.Max(0.5f, this.cachedSlotSize * 0.08f), new Vec4f(69f/255f, 55f/255f, 45f/255f, 0.75f));
                 }
                 if (carriedHands != null)
                 {
@@ -334,6 +342,40 @@ namespace CarryOn.Client
                 }
             }
 
+            private void DrawRectFilled(IRenderAPI rapi, float centerX, float centerY, float width, float height, Vec4f color)
+            {
+                EnsureRectMesh();
+
+                var shader = rapi.CurrentActiveShader;
+
+                try
+                {
+#pragma warning disable CS0618
+                    rapi.GlPushMatrix();
+#pragma warning restore CS0618
+
+                    rapi.GlTranslate((int)centerX, (int)centerY, 0);
+                    rapi.GlScale(width, height, 0);
+                    shader.UniformMatrix("modelViewMatrix", rapi.CurrentModelviewMatrix);
+                    shader.Uniform("rgbaIn", color);
+                    shader.Uniform("applyColor", 1);
+                    shader.Uniform("noTexture", 1.0F);
+                    rapi.RenderMesh(this.rectMesh);
+
+                    // Reset shader toggles
+                    shader.Uniform("applyColor", 0);
+                    shader.Uniform("noTexture", 0.0F);
+
+#pragma warning disable CS0618
+                    rapi.GlPopMatrix();
+#pragma warning restore CS0618
+                }
+                catch (Exception ex)
+                {
+                    this.api.Logger.Debug("[HudCarried] Exception in DrawRectFilled: " + ex);
+                }
+            }
+
             private void DrawIconHighlight(IRenderAPI rapi, float secondsRemaining, float duration, float centerX, float centerY)
             {
                 if (duration <= 0f) return;
@@ -441,6 +483,9 @@ namespace CarryOn.Client
                 // Vertical positioning: place the center of icons at 36 pixels from bottom (GUI-scaled)
                 // Note: RenderItemstackToGui expects center coordinates, so cachedHotbarY represents the icon center Y
                 this.cachedHotbarY = frameHeight - (float)GuiElement.scaled(36.0);
+
+                // Cache background size for anchor outlines
+                this.cachedBackgroundSize = (float)GuiElement.scaled(64.0);
 
                 // Calculate positions to the left of hotbar (right to left: closest to farthest)
                 // Start from the left edge of hotbar, move left by margin, then place icons
