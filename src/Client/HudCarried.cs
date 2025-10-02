@@ -135,15 +135,7 @@ namespace CarryOn.Client
                 // Render carried back item (for now, just show in first right position)
                 var carriedBack = player.Entity?.GetCarried(CarrySlot.Back);
 
-                // Draw bounding rect for back anchor if selected
-                if (HudCarried.BackAnchor != Anchor.None)
-                {
-                    var posB = this.GetPositionForAnchor(HudCarried.BackAnchor);
-                    // Fill color: #e4c4a6 -> (228,196,166) at 60% alpha
-                    DrawRectFilled(rapi, posB.x, posB.y, this.cachedBackgroundSize, this.cachedBackgroundSize, new Vec4f(228f/255f, 196f/255f, 166f/255f, 0.60f));
-                    // Outline color: #45372d -> (69,55,45)
-                    DrawRectOutline(rapi, posB.x, posB.y, this.cachedBackgroundSize, this.cachedBackgroundSize, Math.Max(0.5f, this.cachedSlotSize * 0.08f), new Vec4f(69f/255f, 55f/255f, 45f/255f, 0.75f));
-                }
+                // Render carried back item (for now, just show in first right position)
                 if (carriedBack != null)
                 {
                     RenderCarriedBlock(rapi, carriedBack, HudCarried.BackAnchor, HudCarried.BackHighlightSecondsRemaining, false);
@@ -151,18 +143,63 @@ namespace CarryOn.Client
 
                 // Render carried hands item (default position L1 -> first left position)
                 var carriedHands = player.Entity?.GetCarried(CarrySlot.Hands);
-                // Draw bounding rect for hands anchor if selected
-                if (HudCarried.HandsAnchor != Anchor.None)
-                {
-                    var posH = this.GetPositionForAnchor(HudCarried.HandsAnchor);
-                    // Fill color: #e4c4a6 -> (228,196,166) at 60% alpha
-                    DrawRectFilled(rapi, posH.x, posH.y, this.cachedBackgroundSize, this.cachedBackgroundSize, new Vec4f(228f/255f, 196f/255f, 166f/255f, 0.60f));
-                    // Outline color: #45372d -> (69,55,45)
-                    DrawRectOutline(rapi, posH.x, posH.y, this.cachedBackgroundSize, this.cachedBackgroundSize, Math.Max(0.5f, this.cachedSlotSize * 0.08f), new Vec4f(69f/255f, 55f/255f, 45f/255f, 0.75f));
-                }
                 if (carriedHands != null)
                 {
                     RenderCarriedBlock(rapi, carriedHands, HudCarried.HandsAnchor, HudCarried.HandsHighlightSecondsRemaining, true);
+                }
+
+                // Draw bounding rect(s) for anchors. If both anchors are active and adjacent on the same side,
+                // draw a single combined rectangle that covers both areas. Otherwise draw individual fills/outlines.
+                var backAnchor = HudCarried.BackAnchor;
+                var handsAnchor = HudCarried.HandsAnchor;
+
+                bool drewCombined = false;
+                if (backAnchor != Anchor.None && handsAnchor != Anchor.None)
+                {
+                    int a = (int)backAnchor;
+                    int b = (int)handsAnchor;
+
+                    // Left anchors are 1..3, right anchors are 4..6 according to enum ordering
+                    bool bothLeft = (a >= (int)Anchor.L1 && a <= (int)Anchor.L3) && (b >= (int)Anchor.L1 && b <= (int)Anchor.L3);
+                    bool bothRight = (a >= (int)Anchor.R1 && a <= (int)Anchor.R3) && (b >= (int)Anchor.R1 && b <= (int)Anchor.R3);
+
+                    if ((bothLeft || bothRight) && Math.Abs(a - b) == 1)
+                    {
+                        // Adjacent on same side - draw combined rectangle
+                        var posA = this.GetPositionForAnchor(backAnchor);
+                        var posB = this.GetPositionForAnchor(handsAnchor);
+
+                        float centerX = (posA.x + posB.x) / 2f;
+                        float centerY = (posA.y + posB.y) / 2f;
+                        float width = Math.Abs(posA.x - posB.x) + this.cachedBackgroundSize;
+                        float height = this.cachedBackgroundSize;
+
+                        // Fill color: #e4c4a6 -> (228,196,166) at 60% alpha
+                        DrawRectFilled(rapi, centerX, centerY, width, height, new Vec4f(228f/255f, 196f/255f, 166f/255f, 0.60f));
+                        // Outline color: #45372d -> (69,55,45)
+                        DrawRectOutline(rapi, centerX, centerY, width, height, Math.Max(0.5f, this.cachedSlotSize * 0.08f), new Vec4f(69f/255f, 55f/255f, 45f/255f, 0.75f));
+
+                        drewCombined = true;
+                    }
+                }
+
+                if (!drewCombined)
+                {
+                    // Individual rectangles (back)
+                    if (backAnchor != Anchor.None)
+                    {
+                        var posB = this.GetPositionForAnchor(backAnchor);
+                        DrawRectFilled(rapi, posB.x, posB.y, this.cachedBackgroundSize, this.cachedBackgroundSize, new Vec4f(228f/255f, 196f/255f, 166f/255f, 0.60f));
+                        DrawRectOutline(rapi, posB.x, posB.y, this.cachedBackgroundSize, this.cachedBackgroundSize, Math.Max(0.5f, this.cachedSlotSize * 0.08f), new Vec4f(69f/255f, 55f/255f, 45f/255f, 0.75f));
+                    }
+
+                    // Individual rectangles (hands)
+                    if (handsAnchor != Anchor.None)
+                    {
+                        var posH = this.GetPositionForAnchor(handsAnchor);
+                        DrawRectFilled(rapi, posH.x, posH.y, this.cachedBackgroundSize, this.cachedBackgroundSize, new Vec4f(228f/255f, 196f/255f, 166f/255f, 0.60f));
+                        DrawRectOutline(rapi, posH.x, posH.y, this.cachedBackgroundSize, this.cachedBackgroundSize, Math.Max(0.5f, this.cachedSlotSize * 0.08f), new Vec4f(69f/255f, 55f/255f, 45f/255f, 0.75f));
+                    }
                 }
 
             }
