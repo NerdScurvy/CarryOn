@@ -93,10 +93,10 @@ namespace CarryOn.Client
             if (this.renderer != null)
             {
                 this.api.Event.UnregisterRenderer(this.renderer, EnumRenderStage.Ortho);
+                ((HudCarriedRenderer)this.renderer).Dispose();
                 this.renderer = null;
             }
         }
-
         private class HudCarriedRenderer : IRenderer
         {
             private readonly ICoreClientAPI api;

@@ -7,10 +7,11 @@ namespace CarryOn.Client
 
         public Commands(CarrySystem carrySystem)
         {
+            if (carrySystem == null)
+                throw new System.ArgumentNullException(nameof(carrySystem));
             this.carrySystem = carrySystem;
             this.api = carrySystem.ClientAPI;
         }
-
         /// <summary>
         /// Register client-side chat commands for the CarryOn mod.
         /// </summary>
@@ -308,7 +309,7 @@ namespace CarryOn.Client
                 return Vintagestory.API.Common.TextCommandResult.Error("Failed to reset CarryOn GUI anchors due to an error.");
             }
 
-            string msg = "CarryOn GUI anchors reset to defaults (Hands cleared, Back -> R1)";
+            string msg = $"CarryOn GUI anchors reset to defaults (Hands -> {HudCarried.HandsAnchor}, Back -> {HudCarried.BackAnchor})";
             return Vintagestory.API.Common.TextCommandResult.Success(msg);
         }
 
@@ -350,8 +351,8 @@ namespace CarryOn.Client
             }
             catch (System.Exception ex)
             {
-                this.api.Logger.Error("Error resetting CarryOn anchor background: " + ex);
-                return Vintagestory.API.Common.TextCommandResult.Error("Failed to reset CarryOn anchor background due to an error.");
+                this.api.Logger.Error("Error enabling CarryOn anchor background: " + ex);
+                return Vintagestory.API.Common.TextCommandResult.Error("Failed to enable CarryOn anchor background due to an error.");
             }
 
             return Vintagestory.API.Common.TextCommandResult.Success("CarryOn anchor background: enabled");
@@ -371,8 +372,8 @@ namespace CarryOn.Client
             }
             catch (System.Exception ex)
             {
-                this.api.Logger.Error("Error resetting CarryOn anchor background: " + ex);
-                return Vintagestory.API.Common.TextCommandResult.Error("Failed to reset CarryOn anchor background due to an error.");
+                this.api.Logger.Error("Error disabling CarryOn anchor background: " + ex);
+                return Vintagestory.API.Common.TextCommandResult.Error("Failed to disable CarryOn anchor background due to an error.");
             }
 
             return Vintagestory.API.Common.TextCommandResult.Success("CarryOn anchor background: disabled");

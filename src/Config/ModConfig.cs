@@ -203,7 +203,9 @@ namespace CarryOn.Config
                 var preventSwap = new TreeArrayAttribute();
                 // Use a List to accumulate TreeAttribute items then assign back to the array
                 var list = new List<TreeAttribute>(preventSwap.value ?? Array.Empty<TreeAttribute>());
-                foreach (var entry in ServerConfig.CarryOptions.PreventSwapFromBackOnTarget)
+                // Guard against null PreventSwapFromBackOnTarget by using a safe empty array if necessary
+                var entries = ServerConfig?.CarryOptions?.PreventSwapFromBackOnTarget ?? Array.Empty<string>();
+                foreach (var entry in entries)
                 {
                     // Create a TreeAttribute representing the entry
                     var attr = new TreeAttribute();
