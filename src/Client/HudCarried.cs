@@ -25,23 +25,36 @@ namespace CarryOn.Client
             R3
         }
 
+        public static readonly Anchor HandsAnchorDefault = Anchor.L1;
+        public static readonly Anchor BackAnchorDefault = Anchor.R1;
+
+        public static readonly float AnchorBackgroundAlphaDefault = 0.6f;
+        public static readonly string AnchorBackgroundColorDefault = "#E4C4A6";
+
+        public static readonly float AnchorBorderAlphaDefault = 0.75f;
+        public static readonly string AnchorBorderColorDefault = "#45372D";
+
+        public static readonly string IconHighlightColorDefault = "#FFFFFF";
+        public static readonly float IconHighlightAlphaDefault = 0.8f;
+
+
         // Current assignments for hands and back; defaults: Hands -> None (blank), Back -> R1
-        public static Anchor HandsAnchor { get; set; } = Anchor.L1;
-        public static Anchor BackAnchor { get; set; } = Anchor.R1;
+        public static Anchor HandsAnchor { get; set; } = HandsAnchorDefault;
+        public static Anchor BackAnchor { get; set; } = BackAnchorDefault;
 
         public static bool AnchorBackgroundEnabled { get; set; } = true;
-        public static float AnchorBackgroundAlpha { get; set; } = 0.6f;
-        public static string AnchorBackgroundColor { get; set; } = "#E4C4A6";
+        public static float AnchorBackgroundAlpha { get; set; } = AnchorBackgroundAlphaDefault;
+        public static string AnchorBackgroundColor { get; set; } = AnchorBackgroundColorDefault;
 
         // Border (outline) options
         public static bool AnchorBorderEnabled { get; set; } = true;
-        public static float AnchorBorderAlpha { get; set; } = 0.75f;
-        public static string AnchorBorderColor { get; set; } = "#45372D";
+        public static float AnchorBorderAlpha { get; set; } = AnchorBorderAlphaDefault;
+        public static string AnchorBorderColor { get; set; } = AnchorBorderColorDefault;
 
         // Icon highlight options
         public static bool IconHighlightEnabled { get; set; } = true;
-        public static string IconHighlightColor { get; set; } = "#FFFFFF";
-        public static float IconHighlightAlpha { get; set; } = 0.6f;
+        public static string IconHighlightColor { get; set; } = IconHighlightColorDefault;
+        public static float IconHighlightAlpha { get; set; } = IconHighlightAlphaDefault;
 
         // Highlight timers (seconds remaining). When > 0 the corresponding icon will be tinted.
         // Trigger these from other client-side code when the player starts interacting with that carried item.
@@ -570,12 +583,17 @@ namespace CarryOn.Client
                 var slot = new DummySlot(carriedBlock.ItemStack);
                 var pos = this.GetPositionForAnchor(anchor);
 
+
+
                 // If highlight active, draw highlight. Note: we pass the main duration (DefaultHighlightDuration)
                 // but the triggers include the extra fade time, so DrawIconHighlight expects the total passed
                 if (highlightSecondsRemaining > 0f)
                 {
                     DrawIconHighlight(rapi, highlightSecondsRemaining, DefaultHighlightDuration + HighlightFadeExtra, pos.x, pos.y);
                 }
+
+                var shader = rapi.CurrentActiveShader;
+                shader.Uniform("noTexture", 0.0F);
 
                 // Render the item. For hands we allow the 'true' flag for the special rendering parameter the code used.
                 rapi.RenderItemstackToGui(slot, pos.x, pos.y, 100, this.cachedSlotSize, -1, isHands, false, true);
