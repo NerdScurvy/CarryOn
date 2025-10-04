@@ -174,7 +174,7 @@ namespace CarryOn.Client
             // Parse anchor
             if (!System.Enum.TryParse<HudCarried.Anchor>(anchorStr, true, out var anchor))
             {
-                return Vintagestory.API.Common.TextCommandResult.Error("Invalid anchor. Use L3,L2,L1,R1,R2,R3");
+                return Vintagestory.API.Common.TextCommandResult.Error("Invalid anchor. Use L1,L2,L3,R1,R2,R3");
             }
 
             // Determine action: assign Hands, Back, or clear
