@@ -255,7 +255,6 @@ namespace CarryOn.Client
                 // Render carried back item (for now, just show in first right position)
                 var carriedBack = player.Entity?.GetCarried(CarrySlot.Back);
 
-                // Render carried back item (for now, just show in first right position)
                 if (carriedBack != null)
                 {
                     RenderCarriedBlock(rapi, carriedBack, HudCarried.BackAnchor, HudCarried.BackHighlightSecondsRemaining, false);
