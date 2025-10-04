@@ -582,8 +582,6 @@ namespace CarryOn.Client
                 var slot = new DummySlot(carriedBlock.ItemStack);
                 var pos = this.GetPositionForAnchor(anchor);
 
-
-
                 // If highlight active, draw highlight. Note: we pass the main duration (DefaultHighlightDuration)
                 // but the triggers include the extra fade time, so DrawIconHighlight expects the total passed
                 if (highlightSecondsRemaining > 0f)
