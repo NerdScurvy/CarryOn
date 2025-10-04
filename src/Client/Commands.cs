@@ -476,7 +476,6 @@ namespace CarryOn.Client
 
         protected Vintagestory.API.Common.TextCommandResult CmdCarryOnGuiBgReset(Vintagestory.API.Common.TextCommandCallingArgs args)
         {
-
             try
             {
                 HudCarried.AnchorBackgroundEnabled = true;
