@@ -21,7 +21,7 @@ using Vintagestory.GameContent;
 
 [assembly: ModInfo("Carry On",
     modID: "carryon",
-    Version = "1.11.0",
+    Version = "1.12.0",
     Description = "Adds the capability to carry various things",
     Website = "https://github.com/NerdScurvy/CarryOn",
     Authors = new[] { "copygirl", "NerdScurvy" })]
@@ -168,6 +168,34 @@ namespace CarryOn
                     if (!string.IsNullOrEmpty(cfg.BackAnchor) && Enum.TryParse<HudCarried.Anchor>(cfg.BackAnchor, true, out var backAnchor))
                     {
                         HudCarried.BackAnchor = backAnchor;
+                    }
+
+                    // Apply client anchor background preferences (persisted client-side)
+                    try
+                    {
+                        HudCarried.AnchorBackgroundEnabled = cfg.AnchorBackgroundEnabled;
+                        if (!string.IsNullOrEmpty(cfg.AnchorBackgroundColor))
+                        {
+                            HudCarried.AnchorBackgroundColor = cfg.AnchorBackgroundColor;
+                        }
+                        HudCarried.AnchorBackgroundAlpha = cfg.AnchorBackgroundAlpha;
+                        HudCarried.AnchorBorderEnabled = cfg.AnchorBorderEnabled;
+                        if (!string.IsNullOrEmpty(cfg.AnchorBorderColor))
+                        {
+                            HudCarried.AnchorBorderColor = cfg.AnchorBorderColor;
+                        }
+                        HudCarried.AnchorBorderAlpha = cfg.AnchorBorderAlpha;
+                        HudCarried.IconHighlightEnabled = cfg.IconHighlightEnabled;
+                        if (!string.IsNullOrEmpty(cfg.IconHighlightColor))
+                        {
+                            HudCarried.IconHighlightColor = cfg.IconHighlightColor;
+                        }
+                        HudCarried.IconHighlightAlpha = cfg.IconHighlightAlpha;
+                        
+                    }
+                    catch (Exception ex)
+                    {
+                        api.Logger.Warning("CarryOn: Failed to apply anchor background settings: " + ex.Message);
                     }
                 }
             }

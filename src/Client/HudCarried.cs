@@ -25,9 +25,36 @@ namespace CarryOn.Client
             R3
         }
 
+        public static readonly Anchor HandsAnchorDefault = Anchor.L1;
+        public static readonly Anchor BackAnchorDefault = Anchor.R1;
+
+        public static readonly float AnchorBackgroundAlphaDefault = 0.4f;
+        public static readonly string AnchorBackgroundColorDefault = "#E4C4A6";
+
+        public static readonly float AnchorBorderAlphaDefault = 0.75f;
+        public static readonly string AnchorBorderColorDefault = "#45372D";
+
+        public static readonly string IconHighlightColorDefault = "#FFFFFF";
+        public static readonly float IconHighlightAlphaDefault = 0.8f;
+
+
         // Current assignments for hands and back; defaults: Hands -> None (blank), Back -> R1
-        public static Anchor HandsAnchor { get; set; } = Anchor.None;
-        public static Anchor BackAnchor { get; set; } = Anchor.R1;
+        public static Anchor HandsAnchor { get; set; } = HandsAnchorDefault;
+        public static Anchor BackAnchor { get; set; } = BackAnchorDefault;
+
+        public static bool AnchorBackgroundEnabled { get; set; } = true;
+        public static float AnchorBackgroundAlpha { get; set; } = AnchorBackgroundAlphaDefault;
+        public static string AnchorBackgroundColor { get; set; } = AnchorBackgroundColorDefault;
+
+        // Border (outline) options
+        public static bool AnchorBorderEnabled { get; set; } = true;
+        public static float AnchorBorderAlpha { get; set; } = AnchorBorderAlphaDefault;
+        public static string AnchorBorderColor { get; set; } = AnchorBorderColorDefault;
+
+        // Icon highlight options
+        public static bool IconHighlightEnabled { get; set; } = true;
+        public static string IconHighlightColor { get; set; } = IconHighlightColorDefault;
+        public static float IconHighlightAlpha { get; set; } = IconHighlightAlphaDefault;
 
         // Highlight timers (seconds remaining). When > 0 the corresponding icon will be tinted.
         // Trigger these from other client-side code when the player starts interacting with that carried item.
@@ -66,10 +93,10 @@ namespace CarryOn.Client
             if (this.renderer != null)
             {
                 this.api.Event.UnregisterRenderer(this.renderer, EnumRenderStage.Ortho);
+                ((HudCarriedRenderer)this.renderer).Dispose();
                 this.renderer = null;
             }
         }
-
         private class HudCarriedRenderer : IRenderer
         {
             private readonly ICoreClientAPI api;
@@ -79,6 +106,7 @@ namespace CarryOn.Client
             private float cachedFrameWidth = -1f;
             private float cachedFrameHeight = -1f;
             private float cachedSlotSize;
+            private float cachedBackgroundSize;
             private float cachedHotbarWidth;
             private float cachedHotbarCenterX;
             private float cachedHotbarY;
@@ -87,6 +115,7 @@ namespace CarryOn.Client
             private readonly (int x, int y)[] cachedLeftPositions = new (int, int)[3];
             private readonly (int x, int y)[] cachedRightPositions = new (int, int)[3];
             private MeshRef highlightMesh = null;
+            private MeshRef rectMesh = null;
 
             public HudCarriedRenderer(ICoreClientAPI api)
             {
@@ -130,8 +159,102 @@ namespace CarryOn.Client
                     HudCarried.BackHighlightSecondsRemaining = Math.Max(0f, HudCarried.BackHighlightSecondsRemaining - deltaTime);
                 }
 
+                // Draw bounding rect(s) for anchors BEFORE rendering items so highlights render on top of backgrounds
+                var backAnchorRect = HudCarried.BackAnchor;
+                var handsAnchorRect = HudCarried.HandsAnchor;
+
+                bool drewCombinedRect = false;
+                if (backAnchorRect != Anchor.None && handsAnchorRect != Anchor.None)
+                {
+                    int a = (int)backAnchorRect;
+                    int b = (int)handsAnchorRect;
+
+                    bool bothLeft = (a >= (int)Anchor.L1 && a <= (int)Anchor.L3) && (b >= (int)Anchor.L1 && b <= (int)Anchor.L3);
+                    bool bothRight = (a >= (int)Anchor.R1 && a <= (int)Anchor.R3) && (b >= (int)Anchor.R1 && b <= (int)Anchor.R3);
+
+                    if ((bothLeft || bothRight) && Math.Abs(a - b) == 1)
+                    {
+                        var posA = this.GetPositionForAnchor(backAnchorRect);
+                        var posB = this.GetPositionForAnchor(handsAnchorRect);
+
+                        float centerX = (posA.x + posB.x) / 2f;
+                        float centerY = (posA.y + posB.y) / 2f + 1f;
+                        float width = Math.Abs(posA.x - posB.x) + this.cachedBackgroundSize;
+                        float height = Math.Max(this.cachedBackgroundSize, 2f * (this.cachedFrameHeight - centerY));
+
+                        try
+                        {
+                            if (AnchorBackgroundEnabled)
+                            {
+                                var hex = AnchorBackgroundColor;
+                                var alpha = AnchorBackgroundAlpha;
+                                DrawRectFilled(rapi, centerX, centerY, width, height, ParseHexColor(hex, alpha));
+                            }
+                        }
+                        catch { }
+
+                        if (AnchorBorderEnabled)
+                        {
+                            var borderCol = ParseHexColor(AnchorBorderColor, AnchorBorderAlpha);
+                            DrawRectOutline(rapi, centerX, centerY, width, height, Math.Max(0.5f, this.cachedSlotSize * 0.08f), borderCol);
+                        }
+
+                        drewCombinedRect = true;
+                    }
+                }
+
+                if (!drewCombinedRect)
+                {
+                    if (backAnchorRect != Anchor.None)
+                    {
+                        var posB = this.GetPositionForAnchor(backAnchorRect);
+                        float centerY = posB.y + 1f;
+                        float height = Math.Max(this.cachedBackgroundSize, 2f * (this.cachedFrameHeight - centerY));
+                        try
+                        {
+                            if (AnchorBackgroundEnabled)
+                            {
+                                var hex = AnchorBackgroundColor;
+                                var alpha = AnchorBackgroundAlpha;
+                                DrawRectFilled(rapi, posB.x, centerY, this.cachedBackgroundSize, height, ParseHexColor(hex, alpha));
+                            }
+                        }
+                        catch { }
+
+                        if (AnchorBorderEnabled)
+                        {
+                            var borderCol = ParseHexColor(AnchorBorderColor, AnchorBorderAlpha);
+                            DrawRectOutline(rapi, posB.x, centerY, this.cachedBackgroundSize, height, Math.Max(0.5f, this.cachedSlotSize * 0.08f), borderCol);
+                        }
+                    }
+
+                    if (handsAnchorRect != Anchor.None)
+                    {
+                        var posH = this.GetPositionForAnchor(handsAnchorRect);
+                        float centerY = posH.y + 1f;
+                        float height = Math.Max(this.cachedBackgroundSize, 2f * (this.cachedFrameHeight - centerY));
+                        try
+                        {
+                            if (AnchorBackgroundEnabled)
+                            {
+                                var hex = AnchorBackgroundColor;
+                                var alpha = AnchorBackgroundAlpha;
+                                DrawRectFilled(rapi, posH.x, centerY, this.cachedBackgroundSize, height, ParseHexColor(hex, alpha));
+                            }
+                        }
+                        catch { }
+
+                        if (AnchorBorderEnabled)
+                        {
+                            var borderCol = ParseHexColor(AnchorBorderColor, AnchorBorderAlpha);
+                            DrawRectOutline(rapi, posH.x, centerY, this.cachedBackgroundSize, height, Math.Max(0.5f, this.cachedSlotSize * 0.08f), borderCol);
+                        }
+                    }
+                }
+
                 // Render carried back item (for now, just show in first right position)
                 var carriedBack = player.Entity?.GetCarried(CarrySlot.Back);
+
                 if (carriedBack != null)
                 {
                     RenderCarriedBlock(rapi, carriedBack, HudCarried.BackAnchor, HudCarried.BackHighlightSecondsRemaining, false);
@@ -143,6 +266,8 @@ namespace CarryOn.Client
                 {
                     RenderCarriedBlock(rapi, carriedHands, HudCarried.HandsAnchor, HudCarried.HandsHighlightSecondsRemaining, true);
                 }
+
+                // ... bounding rectangles were moved earlier to render behind highlights/items
 
             }
 
@@ -231,9 +356,134 @@ namespace CarryOn.Client
                 this.highlightMesh = this.api.Render.UploadMesh(mesh);
             }
 
+            private void EnsureRectMesh()
+            {
+                if (this.rectMesh != null) return;
+
+                // Unit quad centered at origin (-0.5..0.5)
+                var mesh = new MeshData(4, 6, false, false, true, true);
+                mesh.AddVertexSkipTex(-0.5f, -0.5f, 0f);
+                mesh.AddVertexSkipTex(0.5f, -0.5f, 0f);
+                mesh.AddVertexSkipTex(0.5f, 0.5f, 0f);
+                mesh.AddVertexSkipTex(-0.5f, 0.5f, 0f);
+
+                mesh.AddIndices(new[] { 0, 1, 2, 0, 2, 3 });
+
+                // UVs and colors not needed for solid color quads
+                var uvs = new float[8];
+                mesh.Uv = uvs;
+                var rgba = new byte[16];
+                for (int i = 0; i < 4; i++) { rgba[i * 4 + 0] = 255; rgba[i * 4 + 1] = 255; rgba[i * 4 + 2] = 255; rgba[i * 4 + 3] = 255; }
+                mesh.Rgba = rgba;
+
+                this.rectMesh = this.api.Render.UploadMesh(mesh);
+            }
+
+            private void DrawRectOutline(IRenderAPI rapi, float centerX, float centerY, float width, float height, float thickness, Vec4f color)
+            {
+                EnsureRectMesh();
+
+                var shader = rapi.CurrentActiveShader;
+
+                try
+                {
+#pragma warning disable CS0618
+                    rapi.GlPushMatrix();
+#pragma warning restore CS0618
+
+                    // We'll draw four quads: top, bottom, left, right
+                    // Top
+#pragma warning disable CS0618
+                    rapi.GlTranslate((int)centerX, (int)centerY, 0);
+#pragma warning restore CS0618
+
+                    // Top bar
+                    rapi.GlPushMatrix();
+                    rapi.GlTranslate(0, -(height / 2f - thickness / 2f), 0);
+                    rapi.GlScale(width, thickness, 0);
+                    shader.UniformMatrix("modelViewMatrix", rapi.CurrentModelviewMatrix);
+                    shader.Uniform("rgbaIn", color);
+                    shader.Uniform("applyColor", 1);
+                    shader.Uniform("noTexture", 1.0F);
+                    rapi.RenderMesh(this.rectMesh);
+                    rapi.GlPopMatrix();
+
+                    // Bottom bar
+                    rapi.GlPushMatrix();
+                    rapi.GlTranslate(0, (height / 2f - thickness / 2f), 0);
+                    rapi.GlScale(width, thickness, 0);
+                    shader.UniformMatrix("modelViewMatrix", rapi.CurrentModelviewMatrix);
+                    rapi.RenderMesh(this.rectMesh);
+                    rapi.GlPopMatrix();
+
+                    // Left bar
+                    rapi.GlPushMatrix();
+                    rapi.GlTranslate(-(width / 2f - thickness / 2f), 0, 0);
+                    rapi.GlScale(thickness, height, 0);
+                    shader.UniformMatrix("modelViewMatrix", rapi.CurrentModelviewMatrix);
+                    rapi.RenderMesh(this.rectMesh);
+                    rapi.GlPopMatrix();
+
+                    // Right bar
+                    rapi.GlPushMatrix();
+                    rapi.GlTranslate((width / 2f - thickness / 2f), 0, 0);
+                    rapi.GlScale(thickness, height, 0);
+                    shader.UniformMatrix("modelViewMatrix", rapi.CurrentModelviewMatrix);
+                    rapi.RenderMesh(this.rectMesh);
+                    rapi.GlPopMatrix();
+
+                    // Reset shader toggles
+                    shader.Uniform("applyColor", 0);
+                    shader.Uniform("noTexture", 0.0F);
+
+#pragma warning disable CS0618
+                    rapi.GlPopMatrix();
+#pragma warning restore CS0618
+                }
+                catch (Exception ex)
+                {
+                    this.api.Logger.Debug("[HudCarried] Exception in DrawRectOutline: " + ex);
+                }
+            }
+
+            private void DrawRectFilled(IRenderAPI rapi, float centerX, float centerY, float width, float height, Vec4f color)
+            {
+                EnsureRectMesh();
+
+                var shader = rapi.CurrentActiveShader;
+
+                try
+                {
+#pragma warning disable CS0618
+                    rapi.GlPushMatrix();
+#pragma warning restore CS0618
+
+                    rapi.GlTranslate((int)centerX, (int)centerY, 0);
+                    rapi.GlScale(width, height, 0);
+                    shader.UniformMatrix("modelViewMatrix", rapi.CurrentModelviewMatrix);
+                    shader.Uniform("rgbaIn", color);
+                    shader.Uniform("applyColor", 1);
+                    shader.Uniform("noTexture", 1.0F);
+                    rapi.RenderMesh(this.rectMesh);
+
+                    // Reset shader toggles
+                    shader.Uniform("applyColor", 0);
+                    shader.Uniform("noTexture", 0.0F);
+
+#pragma warning disable CS0618
+                    rapi.GlPopMatrix();
+#pragma warning restore CS0618
+                }
+                catch (Exception ex)
+                {
+                    this.api.Logger.Debug("[HudCarried] Exception in DrawRectFilled: " + ex);
+                }
+            }
+
             private void DrawIconHighlight(IRenderAPI rapi, float secondsRemaining, float duration, float centerX, float centerY)
             {
                 if (duration <= 0f) return;
+                if (!IconHighlightEnabled) return;
 
                 // We separate the animation into two phases:
                 // 1) Shrink phase: duration seconds (progressShrink 0->1)
@@ -262,8 +512,8 @@ namespace CarryOn.Client
                     progressFade = Math.Max(0f, Math.Min(1f, (timeElapsed - mainDuration) / Math.Max(0.0001f, fadeDuration)));
                 }
 
-                // Alpha eases out during the fade phase; base alpha before fade
-                float baseAlpha = 0.6f;
+                // Alpha eases out during the fade phase; use configured IconHighlightAlpha as base
+                float baseAlpha = IconHighlightAlpha;
                 float alpha = baseAlpha * (1f - progressFade);
 
                 EnsureHighlightMesh();
@@ -282,8 +532,11 @@ namespace CarryOn.Client
                     shader.UniformMatrix("modelViewMatrix", rapi.CurrentModelviewMatrix);
 #pragma warning restore CS0618
 
-                    // Tint white with alpha
-                    var col = new Vec4f(1f, 1f, 1f, alpha);
+                    // Tint using configured color and computed alpha
+                    var baseColor = ParseHexColor(IconHighlightColor, 1f);
+                    // combine parsed color alpha (if any) with configured/animated alpha
+                    float finalAlpha = Math.Max(0f, Math.Min(1f, baseColor.W * alpha));
+                    var col = new Vec4f(baseColor.X, baseColor.Y, baseColor.Z, finalAlpha);
                     shader.Uniform("rgbaIn", col);
                     shader.Uniform("applyColor", 1);
                     shader.Uniform("noTexture", 1.0F);
@@ -304,6 +557,25 @@ namespace CarryOn.Client
                 }
             }
 
+            private Vec4f ParseHexColor(string hex, float alpha)
+            {
+                if (string.IsNullOrEmpty(hex)) return new Vec4f(228f/255f, 196f/255f, 166f/255f, alpha);
+                try
+                {
+                    var h = hex.Trim();
+                    if (h.StartsWith("#")) h = h.Substring(1);
+                    if (h.Length != 6) return new Vec4f(228f/255f, 196f/255f, 166f/255f, alpha);
+                    int r = int.Parse(h.Substring(0, 2), System.Globalization.NumberStyles.HexNumber);
+                    int g = int.Parse(h.Substring(2, 2), System.Globalization.NumberStyles.HexNumber);
+                    int b = int.Parse(h.Substring(4, 2), System.Globalization.NumberStyles.HexNumber);
+                    return new Vec4f(r / 255f, g / 255f, b / 255f, alpha);
+                }
+                catch
+                {
+                    return new Vec4f(228f/255f, 196f/255f, 166f/255f, alpha);
+                }
+            }
+
             // Helper to render a carried block (draw highlight then the item)
             private void RenderCarriedBlock(IRenderAPI rapi, CarriedBlock carriedBlock, Anchor anchor, float highlightSecondsRemaining, bool isHands)
             {
@@ -316,6 +588,9 @@ namespace CarryOn.Client
                 {
                     DrawIconHighlight(rapi, highlightSecondsRemaining, DefaultHighlightDuration + HighlightFadeExtra, pos.x, pos.y);
                 }
+
+                var shader = rapi.CurrentActiveShader;
+                shader.Uniform("noTexture", 0.0F);
 
                 // Render the item. For hands we allow the 'true' flag for the special rendering parameter the code used.
                 rapi.RenderItemstackToGui(slot, pos.x, pos.y, 100, this.cachedSlotSize, -1, isHands, false, true);
@@ -338,6 +613,9 @@ namespace CarryOn.Client
                 // Vertical positioning: place the center of icons at 36 pixels from bottom (GUI-scaled)
                 // Note: RenderItemstackToGui expects center coordinates, so cachedHotbarY represents the icon center Y
                 this.cachedHotbarY = frameHeight - (float)GuiElement.scaled(36.0);
+
+                // Cache background size for anchor outlines
+                this.cachedBackgroundSize = (float)GuiElement.scaled(64.0);
 
                 // Calculate positions to the left of hotbar (right to left: closest to farthest)
                 // Start from the left edge of hotbar, move left by margin, then place icons
@@ -405,6 +683,11 @@ namespace CarryOn.Client
                 {
                     this.api.Render.DeleteMesh(this.highlightMesh);
                     this.highlightMesh = null;
+                }
+                if (this.rectMesh != null)
+                {
+                    this.api.Render.DeleteMesh(this.rectMesh);
+                    this.rectMesh = null;
                 }
             }
         }
