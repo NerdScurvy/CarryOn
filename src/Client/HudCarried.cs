@@ -28,7 +28,7 @@ namespace CarryOn.Client
         public static readonly Anchor HandsAnchorDefault = Anchor.L1;
         public static readonly Anchor BackAnchorDefault = Anchor.R1;
 
-        public static readonly float AnchorBackgroundAlphaDefault = 0.6f;
+        public static readonly float AnchorBackgroundAlphaDefault = 0.4f;
         public static readonly string AnchorBackgroundColorDefault = "#E4C4A6";
 
         public static readonly float AnchorBorderAlphaDefault = 0.75f;
