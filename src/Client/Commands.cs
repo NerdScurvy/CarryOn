@@ -21,11 +21,6 @@ namespace CarryOn.Client
             {
                 api.ChatCommands.Create("carryon")
                     .BeginSubCommand("gui")
-                        //  .carryon gui debug
-                        .BeginSubCommand("debug")
-                            .WithDescription("Toggle CarryOn GUI debug icons (alias)")
-                            .HandleWith(this.CmdCarryOnGuiToggle)
-                        .EndSubCommand()
                             // .carryon gui bg ... (background fill settings)
                             .BeginSubCommand("bg")
                                 .WithDescription("Configure anchor background fill (enable/disable/color/alpha/show)")
@@ -294,12 +289,42 @@ namespace CarryOn.Client
             HudCarried.HandsAnchor = HudCarried.HandsAnchorDefault;
             HudCarried.BackAnchor = HudCarried.BackAnchorDefault;
 
+            // Reset background settings
+            HudCarried.AnchorBackgroundEnabled = true;
+            HudCarried.AnchorBackgroundColor = HudCarried.AnchorBackgroundColorDefault;
+            HudCarried.AnchorBackgroundAlpha = HudCarried.AnchorBackgroundAlphaDefault;
+
+            // Reset border settings
+            HudCarried.AnchorBorderEnabled = true;
+            HudCarried.AnchorBorderColor = HudCarried.AnchorBorderColorDefault;
+            HudCarried.AnchorBorderAlpha = HudCarried.AnchorBorderAlphaDefault;
+
+            // Reset icon highlight settings
+            HudCarried.IconHighlightEnabled = true;
+            HudCarried.IconHighlightColor = HudCarried.IconHighlightColorDefault;
+            HudCarried.IconHighlightAlpha = HudCarried.IconHighlightAlphaDefault;
+
             try
             {
-                if (this.carrySystem?.ClientConfig != null)
+                var cfg = this.carrySystem?.ClientConfig?.Config;
+
+                if (cfg != null)
                 {
-                    this.carrySystem.ClientConfig.Config.HandsAnchor = HudCarried.HandsAnchor.ToString();
-                    this.carrySystem.ClientConfig.Config.BackAnchor = HudCarried.BackAnchor.ToString();
+                    cfg.HandsAnchor = HudCarried.HandsAnchor.ToString();
+                    cfg.BackAnchor = HudCarried.BackAnchor.ToString();
+
+                    cfg.AnchorBackgroundEnabled = HudCarried.AnchorBackgroundEnabled;
+                    cfg.AnchorBackgroundColor = HudCarried.AnchorBackgroundColor;
+                    cfg.AnchorBackgroundAlpha = HudCarried.AnchorBackgroundAlpha;
+
+                    cfg.AnchorBorderEnabled = HudCarried.AnchorBorderEnabled;
+                    cfg.AnchorBorderColor = HudCarried.AnchorBorderColor;
+                    cfg.AnchorBorderAlpha = HudCarried.AnchorBorderAlpha;
+
+                    cfg.IconHighlightEnabled = HudCarried.IconHighlightEnabled;
+                    cfg.IconHighlightColor = HudCarried.IconHighlightColor;
+                    cfg.IconHighlightAlpha = HudCarried.IconHighlightAlpha;
+
                     this.carrySystem.ClientConfig.Save(this.api);
                 }
             }
