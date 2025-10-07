@@ -146,8 +146,6 @@ namespace CarryOn.Client
                     this.UpdateCachedPositions(currentGUIScale, currentFrameWidth, currentFrameHeight);
                 }
 
-                // DEBUG: Render colored gears at all positions to visualize placement
-                if (ShowDebugIcons) this.RenderDebugPositions();
 
                 // Decrement highlight timers
                 if (HudCarried.HandsHighlightSecondsRemaining > 0f)
@@ -252,55 +250,22 @@ namespace CarryOn.Client
                     }
                 }
 
-                // Render carried back item (for now, just show in first right position)
-                var carriedBack = player.Entity?.GetCarried(CarrySlot.Back);
-
-                if (carriedBack != null)
-                {
-                    RenderCarriedBlock(rapi, carriedBack, HudCarried.BackAnchor, HudCarried.BackHighlightSecondsRemaining, false);
-                }
 
                 // Render carried hands item (default position L1 -> first left position)
                 var carriedHands = player.Entity?.GetCarried(CarrySlot.Hands);
                 if (carriedHands != null)
                 {
-                    RenderCarriedBlock(rapi, carriedHands, HudCarried.HandsAnchor, HudCarried.HandsHighlightSecondsRemaining, true);
+                    RenderCarriedBlock(rapi, carriedHands, HudCarried.HandsAnchor, HudCarried.HandsHighlightSecondsRemaining);
                 }
 
-                // ... bounding rectangles were moved earlier to render behind highlights/items
+                // Render carried back item (for now, just show in first right position)
+                var carriedBack = player.Entity?.GetCarried(CarrySlot.Back);
 
-            }
-
-            private void RenderDebugPositions()
-            {
-                // Create a simple item for debug visualization
-                var gearItem = this.api.World.GetItem(new AssetLocation("game:gear-rusty"));
-                if (gearItem == null) return;
-
-                var rapi = this.api.Render;
-
-                // Render debug "icons" as colored squares for each position
-                // Left positions (red tinted)
-                for (int i = 0; i < 3; i++)
+                if (carriedBack != null)
                 {
-                    var pos = this.cachedLeftPositions[i];
-                    var dummyItem = new ItemStack(gearItem, 1);
-                    var dummySlot = new DummySlot(dummyItem);
-                    // Render with red tint to distinguish left positions
-                    rapi.RenderItemstackToGui(dummySlot, pos.x, pos.y, 102, this.cachedSlotSize,
-                        ColorUtil.ToRgba(200, 255, 100, 100), true, false, false);
+                    RenderCarriedBlock(rapi, carriedBack, HudCarried.BackAnchor, HudCarried.BackHighlightSecondsRemaining);
                 }
 
-                // Right positions (blue tinted) 
-                for (int i = 0; i < 3; i++)
-                {
-                    var pos = this.cachedRightPositions[i];
-                    var dummyItem = new ItemStack(gearItem, 1);
-                    var dummySlot = new DummySlot(dummyItem);
-                    // Render with blue tint to distinguish right positions
-                    rapi.RenderItemstackToGui(dummySlot, pos.x, pos.y, 102, this.cachedSlotSize,
-                        ColorUtil.ToRgba(200, 100, 100, 255), true, false, false);
-                }
 
             }
 
@@ -577,7 +542,7 @@ namespace CarryOn.Client
             }
 
             // Helper to render a carried block (draw highlight then the item)
-            private void RenderCarriedBlock(IRenderAPI rapi, CarriedBlock carriedBlock, Anchor anchor, float highlightSecondsRemaining, bool isHands)
+            private void RenderCarriedBlock(IRenderAPI rapi, CarriedBlock carriedBlock, Anchor anchor, float highlightSecondsRemaining)
             {
                 var slot = new DummySlot(carriedBlock.ItemStack);
                 var pos = this.GetPositionForAnchor(anchor);
@@ -593,7 +558,7 @@ namespace CarryOn.Client
                 shader.Uniform("noTexture", 0.0F);
 
                 // Render the item. For hands we allow the 'true' flag for the special rendering parameter the code used.
-                rapi.RenderItemstackToGui(slot, pos.x, pos.y, 100, this.cachedSlotSize, -1, isHands, false, true);
+                rapi.RenderItemstackToGui(slot, pos.x, pos.y, 100, this.cachedSlotSize, -1, true, false, true);
             }
 
             private void UpdateCachedPositions(float guiScale, float frameWidth, float frameHeight)
