@@ -80,7 +80,8 @@ namespace CarryOn.API.Common
             if (playSound) carried.PlaySound(pos, entity.World, entity as EntityPlayer);
             if (entity.Api.Side == EnumAppSide.Server)
             {
-                entity.World.Logger.Audit($"[{CarrySystem.ModId}] {entity.GetName()} picked up block {carried.Block.Code.GetName()} at {pos}");
+                var entityName = entity?.GetName() ?? "Unknown Entity";
+                entity.World.Logger.Audit($"[{CarrySystem.ModId}] {entityName} picked up block {carried.Block.Code.GetName()} at {pos}");
             }            
             return true;
         }

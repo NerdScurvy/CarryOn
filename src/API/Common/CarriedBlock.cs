@@ -252,7 +252,8 @@ namespace CarryOn.API.Common
 
             if (world.Side == EnumAppSide.Server)
             {
-                logger.Audit($"[{CarrySystem.ModId}] {entity.GetName()} {(dropped ? "dropped" : "placed down")} block {Block.Code.GetName()} at {selection.Position}");
+                var entityName = entity?.GetName() ?? "Unknown Entity";
+                logger.Audit($"[{CarrySystem.ModId}] {entityName} {(dropped ? "dropped" : "placed down")} block {Block.Code.GetName()} at {selection.Position}");
             }            
 
             return true;
