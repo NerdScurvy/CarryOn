@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.AccessControl;
 using CarryOn.API.Event;
 using CarryOn.Common;
 using CarryOn.Config;
@@ -77,6 +78,10 @@ namespace CarryOn.API.Common
 
             carried.Set(entity, slot);
             if (playSound) carried.PlaySound(pos, entity.World, entity as EntityPlayer);
+            if (entity.Api.Side == EnumAppSide.Server)
+            {
+                entity.World.Logger.Audit($"[{CarrySystem.ModId}] {entity.GetName()} picked up block {carried.Block.Code.GetName()} at {pos}");
+            }            
             return true;
         }
 

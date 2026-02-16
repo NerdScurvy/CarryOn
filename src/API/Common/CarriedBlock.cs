@@ -188,9 +188,13 @@ namespace CarryOn.API.Common
             if (selection == null) throw new ArgumentNullException(nameof(selection));
             if (!world.BlockAccessor.IsValidPos(selection.Position)) return false;
 
+            var logger = world.Logger;
+
             if (entity is EntityPlayer playerEntity && !dropped)
             {
                 failureCode ??= "__ignore__";
+
+                
 
                 var shift = playerEntity.Controls.ShiftKey;
                 var ctrl = playerEntity.Controls.CtrlKey;
@@ -216,7 +220,7 @@ namespace CarryOn.API.Common
                 }
                 catch (NullReferenceException ex)
                 {
-                    world.Logger.Error("Error occured while trying to place a carried block: " + ex.Message);
+                    logger.Error("Error occured while trying to place a carried block: " + ex.Message);
                     // Workaround was for null ref with reed chest - Leaving here in case of other issues
                     world.BlockAccessor.SetBlock(Block.Id, selection.Position, ItemStack);
                 }
@@ -245,6 +249,11 @@ namespace CarryOn.API.Common
             {
                 world.GetCarryEvents()?.TriggerBlockDropped(world, selection.Position, entity, this);
             }
+
+            if (world.Side == EnumAppSide.Server)
+            {
+                logger.Audit($"[{CarrySystem.ModId}] {entity.GetName()} {(dropped ? "dropped" : "placed down")} block {Block.Code.GetName()} at {selection.Position}");
+            }            
 
             return true;
         }
