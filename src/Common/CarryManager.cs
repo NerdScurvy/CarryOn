@@ -300,7 +300,7 @@ namespace CarryOn.API.Common
             var remaining = slots
                 .Select(s => entity.GetCarried(s))
                 .Where(c => c != null)
-                .OrderBy(c => c?.Behavior?.MultiblockOffset)
+                .OrderBy(c => c?.Block.GetBehavior<BlockBehaviorMultiblock>() != null)
                 .ToList();
             if (remaining.Count == 0) return;
 

@@ -184,16 +184,32 @@ namespace CarryOn.Server.Logic
                 yield return neighbor;
         }
 
-        public List<Block> GetBlockFacings(Block block)
+        public List<(Block block, BlockFacing facing)> GetBlockFacings(Block block)
         {
             var directions = new[] { BlockFacing.NORTH, BlockFacing.EAST, BlockFacing.SOUTH, BlockFacing.WEST };
-            var facing = directions[1];
-            
-            var assetLocation = block.Code.Clone();
-            var baseCode = assetLocation.FirstCodePart();
-            assetLocation.Path = $"{baseCode}-{facing.Code}";
+            var blocks = new List<(Block, BlockFacing)>();
 
-            return null;
+            foreach (var facing in directions)
+            {
+                var assetLocation = block.Code.Clone();
+                var baseCode = assetLocation.FirstCodePart();
+                assetLocation.Path = $"{baseCode}-{facing.Code}";
+
+                var blockFound = Api.World.GetBlock(assetLocation);
+                if (blockFound != null)
+                {
+                    blocks.Add((blockFound, facing));
+                }
+            }
+
+            // Randomize the list using Fisher-Yates shuffle
+            for (int i = blocks.Count - 1; i > 0; i--)
+            {
+                int j = Rand.Next(i + 1);
+                (blocks[j], blocks[i]) = (blocks[i], blocks[j]);
+            }
+
+            return blocks;
         }
 
 
@@ -204,25 +220,30 @@ namespace CarryOn.Server.Logic
 
             var hasSupport = HasSupport(droppedBlock, position);
 
-            var multiblockBehavior = droppedBlock.GetBehavior<BlockBehaviorMultiblock>();
+            bool isMultiblock = droppedBlock.GetBehavior<BlockBehaviorMultiblock>() != null;
 
-
-            if (multiblockBehavior != null)
+            if (isMultiblock)
             {
+                var blockFacings = GetBlockFacings(droppedBlock);
 
-                var testSelection = new BlockSelection()
-                {
-                    Position = position,
-                    Face = BlockFacing.EAST
-                };
-                var failureCode = string.Empty;
+                foreach (var item in blockFacings)
+                { 
 
+                    var testSelection = new BlockSelection()
+                    {
+                        Position = position,
+                        Face = item.facing
+                    };
+                    var failureCode = string.Empty;
 
-                EnumHandling handling = EnumHandling.PreventDefault;
-                // TODO - get block IDs for each facing of multiblock and test placement.
-                if (multiblockBehavior.CanPlaceBlock(Api.World, null, testSelection, ref handling, ref failureCode))
-                {
-                    return testSelection;
+                    var multiblockBehavior = item.block.GetBehavior<BlockBehaviorMultiblock>();
+
+                    EnumHandling handling = EnumHandling.PreventDefault;
+                    if (multiblockBehavior.CanPlaceBlock(Api.World, null, testSelection, ref handling, ref failureCode))
+                    {
+                        return testSelection;
+                    }                    
+
                 }
 
                 /*                 var hole = new List<BlockPos>();

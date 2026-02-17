@@ -56,10 +56,6 @@ namespace CarryOn.Common
 
         public SlotStorage Slots { get; } = new SlotStorage();
 
-        public Vec3i MultiblockOffset { get; private set; } = null;
-        
-        public int MultiblockHeight { get; private set; } = 1;
-
         public int PatchPriority { get; private set;} = 0;
 
         public bool PreventAttaching { get; private set; } = false;
@@ -76,9 +72,6 @@ namespace CarryOn.Common
             if (JsonHelper.TryGetInt(properties, "patchPriority", out var p)) PatchPriority = p;
 
             if (JsonHelper.TryGetFloat(properties, "interactDelay", out var d)) InteractDelay = d;
-
-            if (JsonHelper.TryGetVec3i(properties, "multiblockOffset", out var o)) MultiblockOffset = o;
-            if (JsonHelper.TryGetInt(properties, "multiblockHeight", out var h)) MultiblockHeight = h;
 
             if (JsonHelper.TryGetBool(properties, "preventAttaching", out var a)) PreventAttaching = a;
 
