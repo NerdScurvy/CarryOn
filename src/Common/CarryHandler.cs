@@ -1138,7 +1138,7 @@ namespace CarryOn.Common
         {
             CarrySlot[] fromHands = new[] { CarrySlot.Hands, CarrySlot.Shoulder };
 
-            player.Entity.DropCarried(fromHands, 1, 2);
+            CarrySystem.CarryManager?.DropCarried(player.Entity, fromHands, 2);
 
         }
 
@@ -1245,7 +1245,7 @@ namespace CarryOn.Common
         }
 
         /// <summary>Create a new block selection pointing to the main block within a multiblock structure</summary>
-        private BlockSelection GetMultiblockOriginSelection(BlockSelection blockSelection)
+        public BlockSelection GetMultiblockOriginSelection(BlockSelection blockSelection)
         {
             if (blockSelection?.Block is BlockMultiblock multiblock)
             {

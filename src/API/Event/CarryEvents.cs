@@ -9,7 +9,7 @@ namespace CarryOn.API.Event
 {
     public class CarryEvents
     {
-        public BlockEntityDataDelegate OnRestoreEntityBlockData;
+        public BlockEntityDataDelegate BeforeRestoreBlockEntityData;
 
         public CheckPermissionToCarryDelegate OnCheckPermissionToCarry;
 
@@ -17,7 +17,7 @@ namespace CarryOn.API.Event
 
         public event EventHandler<BlockRemovedEventArgs> BlockRemoved;
 
-        public void TriggerBlockDropped(IWorldAccessor world, BlockPos position, Entity entity, CarriedBlock carriedBlock, bool destroyed = false, bool hadContents = false)
+        public void TriggerBlockDropped(IWorldAccessor world, BlockPos position, Entity entity, CarriedBlock carriedBlock, bool destroyed = false, bool hadContents = false, bool blockPlaced = true)
         {
             var args = new BlockDroppedEventArgs
             {
@@ -26,7 +26,8 @@ namespace CarryOn.API.Event
                 Position = position,
                 CarriedBlock = carriedBlock,
                 Destroyed = destroyed,
-                HadContents = hadContents
+                HadContents = hadContents,
+                BlockPlaced = blockPlaced
             };
 
             OnBlockDropped(args);

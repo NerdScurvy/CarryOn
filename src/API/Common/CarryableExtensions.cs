@@ -352,7 +352,12 @@ namespace CarryOn.API.Common
         /// <exception cref="ArgumentNullException"> Thrown if entity is null. </exception>
         /// <exception cref="ArgumentOutOfRangeException"> Thrown if hSize or vSize is negative. </exception>
         public static void DropAllCarried(this Entity entity, int hSize = 4, int vSize = 4)
-            => DropCarried(entity, Enum.GetValues(typeof(CarrySlot)).Cast<CarrySlot>(), hSize, vSize);
+        {
+            var api = entity.Api;
+            var carryManager = CarrySystem.GetCarryManager(api);
+            carryManager?.DropCarried(entity, Enum.GetValues(typeof(CarrySlot)).Cast<CarrySlot>(), hSize);
+        }
+                     
 
         /// <summary>
         ///   Attempts to swap the <see cref="CarriedBlock"/>s currently carried in the

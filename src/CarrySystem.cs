@@ -79,7 +79,14 @@ namespace CarryOn
 
         public CarryEvents CarryEvents { get; private set; }
 
+        public CarryManager CarryManager { get; private set; }
+
         private Harmony _harmony;
+
+        public static CarryManager GetCarryManager(ICoreAPI api)
+        {
+            return api.ModLoader.GetModSystem<CarrySystem>()?.CarryManager;
+        }
 
         public override void StartPre(ICoreAPI api)
         {
@@ -128,6 +135,8 @@ namespace CarryOn
 
             CarryHandler = new CarryHandler(this);
             CarryEvents = new CarryEvents();
+
+            CarryManager = new CarryManager(api, this);
         }
 
         public override void StartClientSide(ICoreClientAPI api)

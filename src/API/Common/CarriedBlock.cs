@@ -283,9 +283,9 @@ namespace CarryOn.API.Common
 
             var blockEntity = world.BlockAccessor.GetBlockEntity(pos);
 
-            var delegates = world.GetCarryEvents()?.OnRestoreEntityBlockData?.GetInvocationList();
+            var delegates = world.GetCarryEvents()?.BeforeRestoreBlockEntityData?.GetInvocationList();
 
-            // Handle OnRestoreBlockEntityData events
+            // Handle BeforeRestoreBlockEntityData events
             if (delegates != null)
             {
                 foreach (var blockEntityDataDelegate in delegates.Cast<BlockEntityDataDelegate>())

@@ -1,3 +1,4 @@
+using System;
 using CarryOn.API.Common;
 using CarryOn.API.Event.Data;
 using CarryOn.Config;
@@ -49,11 +50,20 @@ namespace CarryOn.Events
             if (loggingEnabled) world.Logger.Debug($"No dropped block found at '{pos}'");
         }
 
+        /// <summary>
+        /// Called when a block is dropped while being carried.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         public void OnCarriedBlockDropped(object sender, BlockDroppedEventArgs e)
         {
+            if (e == null) throw new ArgumentNullException(nameof(e));
+
             if (e.Entity is EntityPlayer entityPlayer)
             {
-                DroppedBlockInfo.Create(e.Position, entityPlayer.Player, e.CarriedBlock.BlockEntityData);
+                // Only track if block was placed in world, not if it was destroyed or dropped as an item.
+                if (e.BlockPlaced)
+                    DroppedBlockInfo.Create(e.Position, entityPlayer.Player, e.CarriedBlock.BlockEntityData);
             }
         }
 
