@@ -57,7 +57,7 @@ namespace CarryOn.Events
         /// <param name="e"></param>
         public void OnCarriedBlockDropped(object sender, BlockDroppedEventArgs e)
         {
-            if (e == null) throw new ArgumentNullException(nameof(e));
+            if (e == null) return;
 
             if (e.Entity is EntityPlayer entityPlayer)
             {
