@@ -121,6 +121,12 @@ namespace CarryOn.Server.Logic
 
             var multiblockOrigin = BlockUtils.GetMultiblockOriginSelection(BlockAccessor, new BlockSelection() { Position = pos, Block = block });
 
+            // Shouldn't be null since we are passing in the block and position, but just in case
+            if (multiblockOrigin?.Position == null)
+            {
+                return false;
+            }
+
             var testBlock = multiblockOrigin?.Block ?? block;
 
             if (testBlock.HasBehavior<BlockBehaviorDoor>())
@@ -295,22 +301,6 @@ namespace CarryOn.Server.Logic
                 return false;
             }
             return true;
-        }
-
-
-        private BlockFacing GetFacingForMultiblock(BlockPos mainPos, BlockPos neighborPos)
-        {
-            int dx = neighborPos.X - mainPos.X;
-            int dz = neighborPos.Z - mainPos.Z;
-
-            // Only horizontal directions
-            if (dx == 1 && dz == 0) return BlockFacing.NORTH;
-            if (dx == -1 && dz == 0) return BlockFacing.SOUTH;
-            if (dx == 0 && dz == 1) return BlockFacing.EAST;
-            if (dx == 0 && dz == -1) return BlockFacing.WEST;
-
-            // Fallback
-            return BlockFacing.NORTH;
         }
 
         private BlockFacing GetRandomFacing()

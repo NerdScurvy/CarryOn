@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CarryOn.API.Event;
-using CarryOn.Common;
 using CarryOn.Server.Logic;
 using CarryOn.Utility;
 using Vintagestory.API.Common;
@@ -386,32 +385,5 @@ namespace CarryOn.API.Common
             CarryEvents?.TriggerBlockDropped(world, centerBlock, entity, carriedBlock, blockDestroyed, hadContents, blockPlaced: false);
 
         }
-
-        /// <summary>
-        /// Checks if the block is carryable in the specified slot.
-        /// </summary>
-        /// <param name="block"></param>
-        /// <param name="slot"></param>
-        /// <returns></returns>
-        public bool IsCarryable(Block block, CarrySlot slot)
-            => block.GetBehavior<BlockBehaviorCarryable>()?.Slots?[slot] != null;
-
-        /// <summary>
-        /// Checks if the block is carryable.
-        /// </summary>
-        /// <param name="block"></param>
-        /// <returns></returns>
-        public bool IsCarryable(Block block)
-            => block.HasBehavior<BlockBehaviorCarryable>();
-
-        /// <summary>
-        /// Checks if the entity can interact with block while carrying a block in their hands
-        /// </summary>
-        /// <param name="block"></param>
-        /// <returns></returns>
-        public bool CanInteractWhileCarrying(Block block)
-            => block.HasBehavior<BlockBehaviorCarryableInteract>();
-
-
     }
 }
