@@ -8,7 +8,6 @@
       "name": "Carryable",
       "properties": {
         "translation": [ 0.0625, 0, -0.5 ],
-        "rotation": [ 0, 0, 0 ],
         "scale": 0.6,
         "slots": {
           "Hands": {
@@ -29,7 +28,6 @@
       "name": "Carryable",
       "properties": {
         "translation": [ 0.0625, 0, -0.5 ],
-        
         "scale": 0.6,
         "slots": {
           "Hands": {
@@ -53,8 +51,6 @@
     "value": {
       "name": "Carryable",
       "properties": {
-        "translation": [ 0, 0, 0 ],
-        "rotation": [ 0, 0, 0 ],
         "scale": 0.6,
         "slots": {
           "Hands": {
