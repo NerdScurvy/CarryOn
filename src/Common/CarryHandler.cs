@@ -902,8 +902,8 @@ namespace CarryOn.Common
                 bool isOccupied = false;
                 if (seatableBehavior != null)
                 {
-                    var seatId = seatableBehavior.SeatConfigs.Where(s => s.APName == apname).FirstOrDefault()?.SeatId;
-                    isOccupied = seatableBehavior.Seats.Where(s => s.SeatId == seatId).FirstOrDefault()?.Passenger != null;
+                    var seatId = seatableBehavior.SeatConfigs.FirstOrDefault(s => s.APName == apname)?.SeatId;
+                    isOccupied = seatableBehavior.Seats.FirstOrDefault(s => s.SeatId == seatId)?.Passenger != null;
                 }
 
 
@@ -969,6 +969,7 @@ namespace CarryOn.Common
 
                     var sound = block?.Sounds.Place ?? new AssetLocation("sounds/player/build");
                     CarrySystem.Api.World.PlaySoundAt(sound, targetEntity, null, true, 16);
+                    CarrySystem.Api.World.Logger.Audit($"[{CarrySystem.ModId}] Player {player?.PlayerName} attached block {carriedBlock.Block.Code} to entity {targetEntity.EntityId} {targetEntity.GetName()} slot {message.SlotIndex} at position {targetEntity.ServerPos.AsBlockPos}");
 
                 }
                 else
@@ -1129,6 +1130,7 @@ namespace CarryOn.Common
 
                 targetEntity.MarkShapeModified();
                 targetEntity.World.BlockAccessor.GetChunkAtBlockPos(targetEntity.ServerPos.AsBlockPos).MarkModified();
+                CarrySystem.Api.World.Logger.Audit($"[{CarrySystem.ModId}] Player {player?.PlayerName} detached block {block.Code} from entity {targetEntity.EntityId} {targetEntity.GetName()} slot {message.SlotIndex} at position {targetEntity.ServerPos.AsBlockPos}");
             }
 
         }

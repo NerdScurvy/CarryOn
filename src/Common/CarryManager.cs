@@ -272,6 +272,7 @@ namespace CarryOn.API.Common
                 CarryEvents?.TriggerBlockDropped(world, selection.Position, entity, carriedBlock);
             }
 
+            CarrySystem.Api.World.Logger.Audit($"[{CarrySystem.ModId}] Player {entity?.GetName()} dropped carried block {carriedBlock.Block.Code} at {selection.Position}");
             return true;
         }
 
@@ -319,8 +320,6 @@ namespace CarryOn.API.Common
 
                 if (TryPlaceDown(entity, carriedBlock, blockSelection, dropped: true))
                 {
-                    RemoveCarried(entity, carriedBlock.Slot);
-                    Api.World.Logger.Audit($"Player {player?.PlayerName} dropped carried block {carriedBlock.Block.Code} at {blockSelection.Position}");
                     continue;
                 }
                 DropBlockAsItem(carriedBlock, centerBlock, player, entity);
@@ -380,9 +379,9 @@ namespace CarryOn.API.Common
             RemoveCarried(entity, carriedBlock.Slot);
 
             if (blockDestroyed)
-                world.Logger.Audit($"Player {player?.PlayerName} dropped carried block {carriedBlock.Block.Code} at {centerBlock} and it was destroyed dropping {dropCount} items.");
+                world.Logger.Audit($"[{CarrySystem.ModId}] Player {player?.PlayerName} dropped carried block {carriedBlock.Block.Code} at {centerBlock} and it was destroyed dropping {dropCount} items.");
             else
-                world.Logger.Audit($"Player {player?.PlayerName} dropped carried block {carriedBlock.Block.Code} as item at {centerBlock} spilling {dropCount} items from its contents.");
+                world.Logger.Audit($"[{CarrySystem.ModId}] Player {player?.PlayerName} dropped carried block {carriedBlock.Block.Code} as item at {centerBlock} spilling {dropCount} items from its contents.");
 
             CarryEvents?.TriggerBlockDropped(world, centerBlock, entity, carriedBlock, blockDestroyed, hadContents, blockPlaced: false);
 
