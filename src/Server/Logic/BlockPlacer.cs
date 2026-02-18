@@ -116,7 +116,7 @@ namespace CarryOn.Server.Logic
         /// </summary>
         /// <param name="block"></param>
         /// <returns></returns>
-        private bool IsPassable(Block block , BlockPos pos)
+        private bool IsPassable(Block block, BlockPos pos)
         {
 
             var multiblockOrigin = BlockUtils.GetMultiblockOriginSelection(BlockAccessor, new BlockSelection() { Position = pos, Block = block });
