@@ -15,8 +15,7 @@
             "animation": "carryon:holdheavy",
             "walkSpeedModifier": -0.75
           }
-        },
-        "multiblockOffset": [0, 0, 1]
+        }
       }
     },
     "dependsOn": [ { "modid": "japanesearchitecture" } ]
@@ -41,8 +40,7 @@
             "walkSpeedModifier": -0.2,
             "rotation": [ 0, 180, 0 ]
           }          
-        },
-        "multiblockOffset": [0, 0, 1]
+        }
       }
     },
     "dependsOn": [ { "modid": "japanesearchitecture" } ]

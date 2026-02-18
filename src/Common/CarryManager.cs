@@ -232,29 +232,29 @@ namespace CarryOn.API.Common
                     }
                 }
             }
-                else
-                {
-                    var meshFacing = selection.Clone().Face;
-                    var assetLocation = carriedBlock.Block.Code.Clone();
-                    var baseCode = assetLocation.FirstCodePart();
-                    assetLocation.Path = $"{baseCode}-{selection.Face.Code}";
+            else
+            {
+                var meshFacing = selection.Clone().Face;
+                var assetLocation = carriedBlock.Block.Code.Clone();
+                var baseCode = assetLocation.FirstCodePart();
+                assetLocation.Path = $"{baseCode}-{selection.Face.Code}";
 
-                    // Check for cardinal version of block
-                    var droppedBlock = world.GetBlock(assetLocation) ?? carriedBlock.Block;
+                // Check for cardinal version of block
+                var droppedBlock = world.GetBlock(assetLocation) ?? carriedBlock.Block;
 
-                    world.BlockAccessor.ExchangeBlock(droppedBlock.Id, selection.Position);
-                    world.BlockAccessor.SpawnBlockEntity(droppedBlock.EntityClass, selection.Position, carriedBlock.ItemStack);
+                world.BlockAccessor.ExchangeBlock(droppedBlock.Id, selection.Position);
+                world.BlockAccessor.SpawnBlockEntity(droppedBlock.EntityClass, selection.Position, carriedBlock.ItemStack);
 
-                    // Will trigger placement of multiblock sections
-                    droppedBlock?.OnBlockPlaced(world, selection.Position, carriedBlock.ItemStack);
+                // Will trigger placement of multiblock sections
+                droppedBlock?.OnBlockPlaced(world, selection.Position, carriedBlock.ItemStack);
 
-                    droppedBlockEntity = world.BlockAccessor.GetBlockEntity(selection.Position);
-                    placementSucceeded = true;
+                droppedBlockEntity = world.BlockAccessor.GetBlockEntity(selection.Position);
+                placementSucceeded = true;
 
-                    // Set mesh angle opposite to block facing
-                    carriedBlock.BlockEntityData?.SetFloat("meshAngle", -GetMeshAngle(meshFacing));
+                // Set mesh angle opposite to block facing
+                carriedBlock.BlockEntityData?.SetFloat("meshAngle", -GetMeshAngle(meshFacing));
 
-                }
+            }
             
             if (!placementSucceeded) return false;
             RestoreBlockEntityData(world, carriedBlock, selection.Position, dropped: dropped);
