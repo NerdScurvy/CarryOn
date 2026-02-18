@@ -223,7 +223,12 @@ namespace CarryOn.Server.Logic
             var testBlock = BlockAccessor.GetBlock(position);
             if (!testBlock.IsReplacableBy(droppedBlock)) return null;
 
-            var hasSupport = HasSupport(droppedBlock, position);
+            // Check support for main position - for multiblocks this will be the controller.
+            // TODO: optimise check for multiblock support
+            if (!HasSupport(droppedBlock, position))
+            {
+                return null;
+            }
 
             bool isMultiblock = droppedBlock.GetBehavior<BlockBehaviorMultiblock>() != null;
 
@@ -231,50 +236,32 @@ namespace CarryOn.Server.Logic
             {
                 var blockFacings = GetBlockFacings(droppedBlock);
 
-                foreach (var neighborBlockPos in GetNeighbors(position, onlyHorizontal: true))
+                foreach (var item in blockFacings)
                 {
-                    testBlock = BlockAccessor.GetBlock(neighborBlockPos);
-                    if (!testBlock.IsReplacableBy(droppedBlock)) continue; 
-                    
-                    BlockSelection testSelection = null;
-
-                    foreach (var item in blockFacings)
+                    var testSelection = new BlockSelection()
                     {
-                        testSelection = new BlockSelection()
-                        {
-                            Position = neighborBlockPos.Copy(),
-                            Face = item.facing,
-                            HitPosition = new Vec3d(0.5, 0.5, 0.5), // Center hit position
-                        };
+                        Position = position.Copy(),
+                        Face = item.facing,
+                        HitPosition = new Vec3d(0.5, 0.5, 0.5), // Center hit position
+                    };
 
-                        var failureCode = string.Empty;
+                    var failureCode = string.Empty;
 
-                        var multiblockBehavior = item.block.GetBehavior<BlockBehaviorMultiblock>();
+                    var multiblockBehavior = item.block.GetBehavior<BlockBehaviorMultiblock>();
 
-                        EnumHandling handling = EnumHandling.PreventDefault;
-                        if (!multiblockBehavior.CanPlaceBlock(Api.World, null, testSelection, ref handling, ref failureCode))
-                        {
-                            continue;
-                        }
-
-                        // If not supported in either position, skip
-                        if (!hasSupport && !HasSupport(droppedBlock, neighborBlockPos))
-                        {
-                            continue;
-                        }  
-                        return testSelection;                      
-
+                    EnumHandling handling = EnumHandling.PreventDefault;
+                    if (!multiblockBehavior.CanPlaceBlock(Api.World, null, testSelection, ref handling, ref failureCode))
+                    {
+                        continue;
                     }
-                } 
+
+                    return testSelection;                      
+                }
+                
                 return null;
             }
             else
             {
-                // Single block: just check support for main position
-                if (!HasSupport(droppedBlock, position))
-                {
-                    return null;
-                }
                 return new BlockSelection
                 {
                     Position = position,
