@@ -116,7 +116,7 @@ namespace CarryOn.Server.Logic
         /// </summary>
         /// <param name="block"></param>
         /// <returns></returns>
-        private bool IsPassable(Block block , BlockPos pos)
+        private bool IsPassable(Block block, BlockPos pos)
         {
 
             var multiblockOrigin = BlockUtils.GetMultiblockOriginSelection(BlockAccessor, new BlockSelection() { Position = pos, Block = block });
@@ -138,7 +138,7 @@ namespace CarryOn.Server.Logic
                 return doorBehavior?.Opened == true;
             }
 
-           if (testBlock.HasBehavior<BlockBehaviorTrapDoor>())
+            if (testBlock.HasBehavior<BlockBehaviorTrapDoor>())
             {
                 var blockEntity = BlockAccessor.GetBlockEntity(multiblockOrigin.Position);
                 if (blockEntity == null) return false;
