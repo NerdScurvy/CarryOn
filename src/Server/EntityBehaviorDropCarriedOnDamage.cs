@@ -20,7 +20,7 @@ namespace CarryOn.Server
         public override void OnEntityReceiveDamage(DamageSource damageSource, ref float damage)
         {
             if (damageSource.Type != EnumDamageType.Heal)
-                entity.DropCarried(DropFrom, 1, 2);
+                CarrySystem.GetCarryManager(entity?.Api)?.DropCarried(entity, DropFrom, 2);
         }
     }
 }

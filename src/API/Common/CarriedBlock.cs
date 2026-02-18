@@ -252,7 +252,8 @@ namespace CarryOn.API.Common
 
             if (world.Side == EnumAppSide.Server)
             {
-                logger.Audit($"[{CarrySystem.ModId}] {entity.GetName()} {(dropped ? "dropped" : "placed down")} block {Block.Code.GetName()} at {selection.Position}");
+                var entityName = entity?.GetName() ?? "Unknown Entity";
+                logger.Audit($"[{CarrySystem.ModId}] {entityName} {(dropped ? "dropped" : "placed down")} block {Block.Code.GetName()} at {selection.Position}");
             }            
 
             return true;
@@ -282,9 +283,9 @@ namespace CarryOn.API.Common
 
             var blockEntity = world.BlockAccessor.GetBlockEntity(pos);
 
-            var delegates = world.GetCarryEvents()?.OnRestoreEntityBlockData?.GetInvocationList();
+            var delegates = world.GetCarryEvents()?.BeforeRestoreBlockEntityData?.GetInvocationList();
 
-            // Handle OnRestoreBlockEntityData events
+            // Handle BeforeRestoreBlockEntityData events
             if (delegates != null)
             {
                 foreach (var blockEntityDataDelegate in delegates.Cast<BlockEntityDataDelegate>())

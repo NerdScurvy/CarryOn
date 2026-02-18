@@ -21,7 +21,7 @@ using Vintagestory.GameContent;
 
 [assembly: ModInfo("Carry On",
     modID: "carryon",
-    Version = "1.12.2",
+    Version = "1.13.0-pre.1",
     Description = "Adds the capability to carry various things",
     Website = "https://github.com/NerdScurvy/CarryOn",
     Authors = new[] { "copygirl", "NerdScurvy" })]
@@ -79,7 +79,14 @@ namespace CarryOn
 
         public CarryEvents CarryEvents { get; private set; }
 
+        public CarryManager CarryManager { get; private set; }
+
         private Harmony _harmony;
+
+        public static CarryManager GetCarryManager(ICoreAPI api)
+        {
+            return api.ModLoader.GetModSystem<CarrySystem>()?.CarryManager;
+        }
 
         public override void StartPre(ICoreAPI api)
         {
@@ -128,6 +135,8 @@ namespace CarryOn
 
             CarryHandler = new CarryHandler(this);
             CarryEvents = new CarryEvents();
+
+            CarryManager = new CarryManager(api, this);
         }
 
         public override void StartClientSide(ICoreClientAPI api)

@@ -1,0 +1,69 @@
+[
+  { 
+    "file": "japanesearchitecture:blocktypes/furniture/tansu3.json",
+    "side": "Server",
+    "op": "add",
+    "path": "/behaviors/-",
+    "value": {
+      "name": "Carryable",
+      "properties": {
+        "translation": [ 0.0625, 0, -0.5 ],
+        "scale": 0.6,
+        "slots": {
+          "Hands": {
+            "animation": "carryon:holdheavy",
+            "walkSpeedModifier": -0.75
+          }
+        }
+      }
+    },
+    "dependsOn": [ { "modid": "japanesearchitecture" } ]
+  },
+  { 
+    "file": "japanesearchitecture:blocktypes/furniture/tansu2.json",
+    "side": "Server",
+    "op": "add",
+    "path": "/behaviors/-",
+    "value": {
+      "name": "Carryable",
+      "properties": {
+        "translation": [ 0.0625, 0, -0.5 ],
+        "scale": 0.6,
+        "slots": {
+          "Hands": {
+            "animation": "carryon:holdheavy",
+            "walkSpeedModifier": -0.3
+          },
+          "Back": {
+            "walkSpeedModifier": -0.2,
+            "rotation": [ 0, 180, 0 ]
+          }          
+        }
+      }
+    },
+    "dependsOn": [ { "modid": "japanesearchitecture" } ]
+  },
+  { 
+    "file": "japanesearchitecture:blocktypes/furniture/tansu.json",
+    "side": "Server",
+    "op": "add",
+    "path": "/behaviors/-",
+    "value": {
+      "name": "Carryable",
+      "properties": {
+        "scale": 0.6,
+        "slots": {
+          "Hands": {
+            "animation": "carryon:holdheavy",
+            "walkSpeedModifier": -0.1
+          },
+          "Back": {
+            "walkSpeedModifier": -0.2,
+            "rotation": [ 0, 180, 0 ]
+          }          
+        }
+      }
+    },
+    "dependsOn": [ { "modid": "japanesearchitecture" } ]
+  }
+]

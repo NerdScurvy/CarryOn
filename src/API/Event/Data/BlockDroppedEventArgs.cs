@@ -14,5 +14,6 @@ namespace CarryOn.API.Event.Data
         public CarriedBlock CarriedBlock { get; set; }
         public bool Destroyed { get; set; }
         public bool HadContents { get; set; }
+        public bool BlockPlaced { get; set; }
     }
 }
