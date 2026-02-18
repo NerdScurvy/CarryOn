@@ -138,7 +138,7 @@ namespace CarryOn.Server.Logic
                 return doorBehavior?.Opened == true;
             }
 
-           if (testBlock.HasBehavior<BlockBehaviorTrapDoor>())
+            if (testBlock.HasBehavior<BlockBehaviorTrapDoor>())
             {
                 var blockEntity = BlockAccessor.GetBlockEntity(multiblockOrigin.Position);
                 if (blockEntity == null) return false;
