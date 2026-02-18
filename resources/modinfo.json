@@ -9,6 +9,6 @@
 	"authors": [ "copygirl","NerdScurvy" ],
 
 	"dependencies": {
-		"game": "1.21.0"
+		"game": "1.22.0-pre.2"
 	}
 }
