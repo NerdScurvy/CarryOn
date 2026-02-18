@@ -294,9 +294,6 @@ namespace CarryOn.API.Common
 
             IServerPlayer player = (entity is EntityPlayer entityPlayer) ? (IServerPlayer)entityPlayer.Player : null;
 
-            var world = Api.World;
-            var blockAccessor = world.BlockAccessor;
-
             var remaining = slots
                 .Select(s => entity.GetCarried(s))
                 .Where(c => c != null)
