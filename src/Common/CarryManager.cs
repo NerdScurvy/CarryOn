@@ -55,7 +55,7 @@ namespace CarryOn.API.Common
             const float SOUND_RANGE = 16.0F;
             const float SOUND_VOLUME = 1.0F;
 
-            var sound = block.Sounds?.Place ?? new AssetLocation("sounds/player/build");
+            var sound = block.Sounds?.Place.Location ?? new AssetLocation("sounds/player/build");
 
             if (sound == null) return;
 
@@ -370,7 +370,7 @@ namespace CarryOn.API.Common
                 }
             }
 
-            var breakSound = carriedBlock.Block.Sounds.GetBreakSound(player) ?? new AssetLocation("game:sounds/block/planks");
+            var breakSound = carriedBlock.Block.Sounds.GetBreakSound(player).Location ?? new AssetLocation("game:sounds/block/planks");
             world.PlaySoundAt(breakSound, (double)centerBlock.X, (double)centerBlock.Y, (double)centerBlock.Z);
             RemoveCarried(entity, carriedBlock.Slot);
 

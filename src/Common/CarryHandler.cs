@@ -858,7 +858,7 @@ namespace CarryOn.Common
                 return;
             }
             // If target entity is null or too far away, do nothing
-            if (targetEntity.SidedPos?.DistanceTo(player.Entity.Pos) > MaxInteractionDistance)
+            if (targetEntity.Pos?.DistanceTo(player.Entity.Pos) > MaxInteractionDistance)
             {
                 CarrySystem.ServerAPI.SendIngameError(player, "entity-out-of-reach", Lang.Get(ModId + ":entity-out-of-reach"));
                 CarrySystem.Api.Logger.Debug("Target entity is too far away!");
@@ -962,14 +962,14 @@ namespace CarryOn.Common
                     attachableBehavior.storeInv();
 
                     targetEntity.MarkShapeModified();
-                    targetEntity.World.BlockAccessor.GetChunkAtBlockPos(targetEntity.ServerPos.AsBlockPos).MarkModified();
+                    targetEntity.World.BlockAccessor.GetChunkAtBlockPos(targetEntity.Pos.AsBlockPos).MarkModified();
 
                     // Remove held block from player
                     CarriedBlock.Remove(player.Entity, CarrySlot.Hands);
 
-                    var sound = block?.Sounds.Place ?? new AssetLocation("sounds/player/build");
+                    var sound = block?.Sounds?.Place.Location ?? new AssetLocation("sounds/player/build");
                     CarrySystem.Api.World.PlaySoundAt(sound, targetEntity, null, true, 16);
-                    CarrySystem.Api.World.Logger.Audit($"[{CarrySystem.ModId}] Player {player?.PlayerName} attached block {carriedBlock.Block.Code} to entity {targetEntity.EntityId} {targetEntity.GetName()} slot {message.SlotIndex} at position {targetEntity.ServerPos.AsBlockPos}");
+                    CarrySystem.Api.World.Logger.Audit($"[{CarrySystem.ModId}] Player {player?.PlayerName} attached block {carriedBlock.Block.Code} to entity {targetEntity.EntityId} {targetEntity.GetName()} slot {message.SlotIndex} at position {targetEntity.Pos.AsBlockPos}");
 
                 }
                 else
@@ -1041,7 +1041,7 @@ namespace CarryOn.Common
             }
 
             // Validate distance
-            if (targetEntity.SidedPos?.DistanceTo(player.Entity.Pos) > MaxInteractionDistance)
+            if (targetEntity.Pos?.DistanceTo(player.Entity.Pos) > MaxInteractionDistance)
             {
                 CarrySystem.ServerAPI.SendIngameError(player, "entity-out-of-reach", Lang.Get(ModId + ":entity-out-of-reach"));
                 return;
@@ -1119,7 +1119,7 @@ namespace CarryOn.Common
                 carriedBlock = new CarriedBlock(CarrySlot.Hands, itemstackCopy, blockEntityData);
                 carriedBlock.Set(player.Entity, CarrySlot.Hands);
 
-                var sound = block?.Sounds.Place ?? new AssetLocation("sounds/player/build");
+                var sound = block?.Sounds?.Place.Location ?? new AssetLocation("sounds/player/build");
                 CarrySystem.Api.World.PlaySoundAt(sound, targetEntity, null, true, 16);
 
                 itemstack?.Collectible.GetCollectibleInterface<IAttachedListener>()?.OnDetached(sourceSlot, message.SlotIndex, targetEntity, player.Entity);
@@ -1129,8 +1129,8 @@ namespace CarryOn.Common
                 attachableBehavior.storeInv();
 
                 targetEntity.MarkShapeModified();
-                targetEntity.World.BlockAccessor.GetChunkAtBlockPos(targetEntity.ServerPos.AsBlockPos).MarkModified();
-                CarrySystem.Api.World.Logger.Audit($"[{CarrySystem.ModId}] Player {player?.PlayerName} detached block {block.Code} from entity {targetEntity.EntityId} {targetEntity.GetName()} slot {message.SlotIndex} at position {targetEntity.ServerPos.AsBlockPos}");
+                targetEntity.World.BlockAccessor.GetChunkAtBlockPos(targetEntity.Pos.AsBlockPos).MarkModified();
+                CarrySystem.Api.World.Logger.Audit($"[{CarrySystem.ModId}] Player {player?.PlayerName} detached block {block.Code} from entity {targetEntity.EntityId} {targetEntity.GetName()} slot {message.SlotIndex} at position {targetEntity.Pos.AsBlockPos}");
             }
 
         }

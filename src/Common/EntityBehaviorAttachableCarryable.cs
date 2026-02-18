@@ -125,7 +125,7 @@ namespace CarryOn.Common
             
             entity.MarkShapeModified();
             // Tell server to save this chunk to disk again
-            entity.World.BlockAccessor.GetChunkAtBlockPos(entity.ServerPos.AsBlockPos).MarkModified();
+            entity.World.BlockAccessor.GetChunkAtBlockPos(entity.Pos.AsBlockPos).MarkModified();
             if (!isAttached)
             {
                 ClearCachedSlotStorage(Api, targetSlotIndex, itemslot, entity);
