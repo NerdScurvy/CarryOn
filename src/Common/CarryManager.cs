@@ -242,7 +242,12 @@ namespace CarryOn.API.Common
                 var droppedBlock = world.GetBlock(assetLocation) ?? carriedBlock.Block;
 
                 world.BlockAccessor.ExchangeBlock(droppedBlock.Id, selection.Position);
-                world.BlockAccessor.SpawnBlockEntity(droppedBlock.EntityClass, selection.Position, carriedBlock.ItemStack);
+
+                // Only spawn block entity if the block has one defined.
+                if (droppedBlock.EntityClass != null)
+                {
+                    world.BlockAccessor.SpawnBlockEntity(droppedBlock.EntityClass, selection.Position, carriedBlock.ItemStack);
+                }
 
                 // Will trigger placement of multiblock sections
                 droppedBlock?.OnBlockPlaced(world, selection.Position, carriedBlock.ItemStack);
