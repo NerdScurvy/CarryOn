@@ -264,8 +264,9 @@ namespace CarryOn.API.Common
             RestoreBlockEntityData(world, carriedBlock, selection.Position, dropped: dropped);
 
             // Notify the dropped block entity that it has been placed
-            droppedBlockEntity?.OnBlockPlaced(carriedBlock.ItemStack);
-
+            // TODO: Is this required for some block entitues? It can empty crates
+            // droppedBlockEntity?.OnBlockPlaced(carriedBlock.ItemStack);
+            world.BlockAccessor.MarkBlockDirty(selection.Position);
             world.BlockAccessor.TriggerNeighbourBlockUpdate(selection.Position);
 
             RemoveCarried(entity, carriedBlock.Slot);
