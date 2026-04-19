@@ -1,0 +1,29 @@
+{
+	"editor": {
+		"collapsedPaths": "",
+		"allAngles": false,
+		"entityTextureMode": false
+	},
+	"textureWidth": 16,
+	"textureHeight": 16,
+	"textureSizes": {},
+	"textures": {
+		"strap": "carryon:item/strap"
+	},
+	"elements": [
+		{
+			"name": "Cube2",
+			"from": [ 7.5, 7.75, 8.0 ],
+			"to": [ 8.5, 8.25, 24.0 ],
+			"rotationOrigin": [ 8.0, 8.0, 8.0 ],
+			"faces": {
+				"north": {"texture": "#strap", "uv": [ 0.0, 0.0, 1.0, 1.25 ], "autoUv": false},
+				"east": {"texture": "#strap", "uv": [ 1.0, 1.0, 4.0, 2.5 ], "autoUv": false},
+				"south": {"texture": "#strap", "uv": [ 0.0, 0.0, 1.0, 1.25 ], "autoUv": false},
+				"west": {"texture": "#strap", "uv": [ 1.0, 1.0, 4.0, 2.5 ], "autoUv": false},
+				"up": {"texture": "#strap", "uv": [ 3.38, 0.27, 0.38, 3.0 ], "rotation": 90, "autoUv": false},
+				"down": {"texture": "#strap", "uv": [ 3.28, 0.27, 0.38, 3.0 ], "rotation": 90, "autoUv": false}
+			}
+		}
+	]
+}

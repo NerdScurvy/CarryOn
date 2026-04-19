@@ -1,28 +1,23 @@
 [
-  {
-    "file": "game:blocktypes/legacy/crate",
-    "side": "Server",
-    "op": "add",
-    "path": "/behaviors",
-    "value": [
-      {
-        "name": "Carryable",
-        "properties": {
-          "enabledCondition": "carryon.Carryables.Crate",
-          "translation": [
-            -0.0625,
-            0,
-            0
-          ],
-          "slots": {
-            "Hands": {},
-            "Back": {
-              "walkSpeedModifier": -0.2,
-              "enabledCondition": "carryon.CarryOptions.AllowCratesOnBack"           
-            }
-          }
-        }        
-      }
-    ]
-  }
+	{
+		"file": "game:blocktypes/legacy/crate",
+		"side": "Server",
+		"op": "add",
+		"path": "/behaviors",
+		"value": [
+			{
+				"name": "Carryable",
+				"properties": {
+					"enabledCondition": "carryon.Carryables.Crate",
+					"slots": {
+						"Hands": {},
+						"Back": {
+							"walkSpeedModifier": -0.2,
+							"enabledCondition": "carryon.CarryablesOnBack.Crate"
+						}
+					}
+				}
+			}
+		]
+	}
 ]

@@ -1,15 +1,26 @@
 [
-  {
-    "file": "game:blocktypes/clay/fired/planter",
-    "side": "Server",
-    "op": "add",
-    "path": "/behaviors/-",
-    "value": {
-      "name": "Carryable",
-      "properties": {
-        "enabledCondition": "carryon.Carryables.Planter",
-        "scale": 0.6
-      }
-    }
-  }
+	{
+		"file": "game:blocktypes/clay/fired/planter",
+		"side": "Server",
+		"op": "add",
+		"path": "/behaviors/-",
+		"value": {
+			"name": "Carryable",
+			"properties": {
+				"enabledCondition": "carryon.Carryables.Planter",
+				"transformTemplates": [
+					"carryon:plants-large",
+					"carryon:carry-planter"
+				],
+				"renderRootFirst": true,
+				"renderTransformResolver": "plant-container",
+				"slots": {
+					"Hands": {},
+					"Back": {
+						"enabledCondition": "carryon.CarryablesOnBack.Planter"
+					}
+				}
+			}
+		}
+	}
 ]

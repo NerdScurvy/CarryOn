@@ -1,14 +1,26 @@
+using System;
 using CarryOn.Utility;
 using Vintagestory.API.Common;
 using Vintagestory.API.Server;
 
 namespace CarryOn.Common.Handlers
 {
-    public class DeathHandler
-    {
-        public DeathHandler(ICoreServerAPI api)
-            => api.Event.PlayerDeath += OnPlayerDeath;
 
+    public class DeathHandler : IDisposable
+    {
+        private readonly ICoreServerAPI api;
+
+        public DeathHandler(ICoreServerAPI api)
+        {
+            this.api = api;
+            api.Event.PlayerDeath += OnPlayerDeath;
+        }
+
+        public void Dispose()
+        {
+            api.Event.PlayerDeath -= OnPlayerDeath;
+        }
+        
         /// <summary>
         /// <para>
         ///   Only drop carried blocks if "deathPunishment" isn't set to "keep".

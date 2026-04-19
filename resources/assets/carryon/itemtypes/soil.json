@@ -1,0 +1,18 @@
+{
+	"code": "soil",
+	"variantgroups": [
+		{
+			"code": "type",
+			"states": [ "flowerpot", "planter" ]
+		}
+	],
+	"shape": {
+		"base": "carryon:item/soil/{type}-soil"
+	},
+	"creativeinventory": {},
+	"attributes": {
+		"handbook": {
+			"exclude": true
+		}
+	}
+}

@@ -1,5 +1,4 @@
 using ProtoBuf;
-using Vintagestory.API.MathTools;
 
 namespace CarryOn.Common.Network
 {

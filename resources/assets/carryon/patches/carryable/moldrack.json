@@ -1,28 +1,192 @@
 [
-  {
-    "file": "game:blocktypes/wood/moldrack",
-    "side": "Server",
-    "op": "add",
-    "path": "/behaviors/-",
-    "value": {
-      "name": "Carryable",
-      "properties": {
-        "enabledCondition": "carryon.Carryables.MoldRack",
-        "translation": [
-          0.0625,
-          0,
-          0
-        ],
-        "rotation": [
-          0,
-          180,
-          0
-        ],
-        "slots": {
-          "Hands": {},
-          "Back": {}
-        }
-      }
-    }
-  }
+	{
+		"file": "game:blocktypes/wood/moldrack",
+		"side": "Server",
+		"op": "add",
+		"path": "/behaviors/-",
+		"value": {
+			"name": "Carryable",
+			"properties": {
+				"enabledCondition": "carryon.Carryables.MoldRack",
+				"renderTransformResolver": "moldrack",
+				"transformGroups": {
+					"hands": [
+						{
+							"id": "root",
+							"translationY": 0.2
+						}
+					],
+					"moldrack-slot0": [
+						{
+							"id": "slot0",
+							"translation": [ 0.0, 0.5, -0.312 ],
+							"rotation": [ -90.0, -90.0, 0.0 ],
+							"originY": 0.0,
+							"scale": 1.0
+						}
+					],
+					"moldrack-slot1": [
+						{
+							"id": "slot1",
+							"translation": [ 0.0, 0.5, -0.125 ],
+							"rotation": [ -90.0, -90.0, 0.0 ],
+							"originY": 0.0,
+							"scale": 1.0
+						}
+					],
+					"moldrack-slot2": [
+						{
+							"id": "slot2",
+							"translation": [ 0.0, 0.5, 0.062 ],
+							"rotation": [ -90.0, -90.0, 0.0 ],
+							"originY": 0.0,
+							"scale": 1.0
+						}
+					],
+					"moldrack-slot3": [
+						{
+							"id": "slot3",
+							"translation": [ 0.0, 0.5, 0.25 ],
+							"rotation": [ -90.0, -90.0, 0.0 ],
+							"originY": 0.0,
+							"scale": 1.0
+						}
+					],
+					"moldrack-slot4": [
+						{
+							"id": "slot4",
+							"translation": [ 0.0, 0.5, 0.437 ],
+							"rotation": [ -90.0, -90.0, 0.0 ],
+							"originY": 0.0,
+							"scale": 1.0
+						}
+					],
+					"moldrack-slot0-shield": {
+						"extends": "moldrack-slot0",
+						"overrides": [
+							{
+								"id": "slot0",
+								"translationX": 0.39,
+								"translationZ": -0.074,
+								"rotationX": -8.0,
+								"rotationY": 0.0,
+								"scale": 1.01
+							}
+						]
+					},
+					"moldrack-slot1-shield": {
+						"extends": "moldrack-slot1",
+						"overrides": [
+							{
+								"id": "slot1",
+								"translationX": 0.39,
+								"translationZ": 0.113,
+								"rotationX": -8.0,
+								"rotationY": 0.0,
+								"scale": 1.01
+							}
+						]
+					},
+					"moldrack-slot2-shield": {
+						"extends": "moldrack-slot2",
+						"overrides": [
+							{
+								"id": "slot2",
+								"translationX": 0.39,
+								"translationZ": 0.3,
+								"rotationX": -8.0,
+								"rotationY": 0.0,
+								"scale": 1.01
+							}
+						]
+					},
+					"moldrack-slot3-shield": {
+						"extends": "moldrack-slot3",
+						"overrides": [
+							{
+								"id": "slot3",
+								"translationX": 0.39,
+								"translationZ": 0.487,
+								"rotationX": -8.0,
+								"rotationY": 0.0,
+								"scale": 1.01
+							}
+						]
+					},
+					"moldrack-slot4-shield": {
+						"extends": "moldrack-slot4",
+						"overrides": [
+							{
+								"id": "slot4",
+								"translationX": 0.39,
+								"translationZ": 0.674,
+								"rotationX": -8.0,
+								"rotationY": 0.0,
+								"scale": 1.01
+							}
+						]
+					},
+					"moldrack-slot0-shield-crude": {
+						"extends": "moldrack-slot0-shield",
+						"overrides": [
+							{
+								"id": "slot0",
+								"translationX": 0.45,
+								"translationZ": 0.002,
+								"scale": 1.2
+							}
+						]
+					},
+					"moldrack-slot1-shield-crude": {
+						"extends": "moldrack-slot1-shield",
+						"overrides": [
+							{
+								"id": "slot1",
+								"translationX": 0.45,
+								"translationZ": 0.187,
+								"scale": 1.2
+							}
+						]
+					},
+					"moldrack-slot2-shield-crude": {
+						"extends": "moldrack-slot2-shield",
+						"overrides": [
+							{
+								"id": "slot2",
+								"translationX": 0.45,
+								"translationZ": 0.374,
+								"scale": 1.2
+							}
+						]
+					},
+					"moldrack-slot3-shield-crude": {
+						"extends": "moldrack-slot3-shield",
+						"overrides": [
+							{
+								"id": "slot3",
+								"translationX": 0.45,
+								"translationZ": 0.562,
+								"scale": 1.2
+							}
+						]
+					},
+					"moldrack-slot4-shield-crude": {
+						"extends": "moldrack-slot4-shield",
+						"overrides": [
+							{
+								"id": "slot4",
+								"translationX": 0.45,
+								"translationZ": 0.749,
+								"scale": 1.2
+							}
+						]
+					}
+				},
+				"slots": {
+					"Hands": {},
+					"disabled--Back": {}
+				}
+			}
+		}
+	}
 ]

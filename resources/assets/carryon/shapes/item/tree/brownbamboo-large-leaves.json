@@ -1,0 +1,77 @@
+{
+	"editor": {
+		"allAngles": false,
+		"entityTextureMode": false
+	},
+	"textureWidth": 16,
+	"textureHeight": 16,
+	"textureSizes": {},
+	"textures": {
+		"foliage-planter": "game:block/plant/bamboo/foliage-planter"
+	},
+	"elements": [
+		{
+			"name": "bamboo-stem1",
+			"from": [ 7.5, 0.0, 7.5 ],
+			"to": [ 8.5, 14.0, 8.5 ],
+			"rotationOrigin": [ 8.5, 0.0, 8.5 ],
+			"faces": {},
+			"children": [
+				{
+					"name": "bamboo-leafW",
+					"from": [ -7.5, 4.5, 0.5 ],
+					"to": [ 8.5, 20.5, 0.5 ],
+					"shade": false,
+					"gradientShade": true,
+					"climateColorMap": "climatePlantTint",
+					"renderPass": 1,
+					"rotationOrigin": [ 0.3, 10.5, 0.5 ],
+					"faces": {
+						"north": {"texture": "#foliage-planter", "uv": [ 0.0, 0.0, 16.0, 16.0 ], "windMode": [ 1, 0, 1, 0 ], "windData": [ 0, 1, 1, 0 ]}
+					}
+				},
+				{
+					"name": "bamboo-leafN",
+					"from": [ 0.5, 4.5, -7.5 ],
+					"to": [ 0.5, 20.5, 8.5 ],
+					"shade": false,
+					"gradientShade": true,
+					"climateColorMap": "climatePlantTint",
+					"renderPass": 1,
+					"rotationOrigin": [ 0.5, 10.5, 0.0 ],
+					"faces": {
+						"west": {"texture": "#foliage-planter", "uv": [ 0.0, 0.0, 16.0, 16.0 ], "windMode": [ 0, 1, 0, 1 ], "windData": [ 0, 0, 1, 1 ]}
+					}
+				},
+				{
+					"name": "bamboo-leafNE",
+					"from": [ 0.5, 5.0, -7.5 ],
+					"to": [ 0.5, 21.0, 8.5 ],
+					"shade": false,
+					"gradientShade": true,
+					"climateColorMap": "climatePlantTint",
+					"renderPass": 1,
+					"rotationOrigin": [ 0.5, 11.0, 0.5 ],
+					"rotationY": 45.0,
+					"faces": {
+						"east": {"texture": "#foliage-planter", "uv": [ 0.0, 0.0, 16.0, 16.0 ], "windMode": [ 1, 0, 1, 0 ], "windData": [ 0, 1, 1, 0 ]}
+					}
+				},
+				{
+					"name": "bamboo-leafSW",
+					"from": [ -7.5, 5.0, 0.5 ],
+					"to": [ 8.5, 21.0, 0.5 ],
+					"shade": false,
+					"gradientShade": true,
+					"climateColorMap": "climatePlantTint",
+					"renderPass": 1,
+					"rotationOrigin": [ 0.5, 11.0, 0.5 ],
+					"rotationY": 45.0,
+					"faces": {
+						"south": {"texture": "#foliage-planter", "uv": [ 0.0, 0.0, 16.0, 16.0 ], "windMode": [ 0, 1, 0, 1 ], "windData": [ 0, 0, 1, 1 ]}
+					}
+				}
+			]
+		}
+	]
+}

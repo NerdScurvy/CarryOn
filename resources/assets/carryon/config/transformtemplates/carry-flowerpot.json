@@ -1,0 +1,55 @@
+{
+	"code": "carry-flowerpot",
+	"transformGroups": {
+		"default": [
+			{
+				"id": "root",
+				"scale": 0.6
+			}
+		],
+		"hands": {
+			"extends": "default"
+		},
+		"backpack-none": {
+			"extends": "default"
+		},
+		"backpack-small": {
+			"extends": "default"
+		},
+		"backpack-large": {
+			"extends": "default"
+		},
+		"default-planted": [
+			{
+				"id": "root",
+				"rotation": [ 7.4, 1.7, -11.0 ],
+				"scale": 0.6
+			},
+			{
+				"id": "soil",
+				"item": "carryon:soil-flowerpot",
+				"translation": [ 0.372, 0.065, 0.375 ],
+				"scale": 1.0
+			}
+		],
+		"hands-planted": {
+			"extends": "default-planted",
+			"overrides": [
+				{
+					"id": "root",
+					"translation": [ -0.01, 0.08, -0.03 ],
+					"rotation": [ -12.6, 41.7, -21.0 ]
+				}
+			]
+		},
+		"backpack-none-planted": {
+			"extends": "default-planted"
+		},
+		"backpack-small-planted": {
+			"extends": "default-planted"
+		},
+		"backpack-large-planted": {
+			"extends": "default-planted"
+		}
+	}
+}

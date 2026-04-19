@@ -7,6 +7,8 @@ using CarryOn.Utility;
 using CarryOn.Common.Network;
 using Vintagestory.API.Datastructures;
 using CarryOn.API.Common.Models;
+using System.Linq;
+using CarryOn.API.Common.Interfaces;
 
 namespace CarryOn.Common.Logic
 {
@@ -19,6 +21,49 @@ namespace CarryOn.Common.Logic
         {
             this.api = api ?? throw new ArgumentNullException(nameof(api));
             this.carrySystem = carrySystem ?? throw new ArgumentNullException(nameof(carrySystem));
+        }
+
+        /// <summary>
+        /// Initializes the transfer behaviors for carryable blocks.
+        /// </summary>
+        /// <param name="api"></param>
+        public static void InitTransferBehaviors(ICoreAPI api)
+        {
+
+            var ignoreMods = new[] { "game", "creative", "survival" };
+
+            var assemblies = api.ModLoader.Mods.Where(m => !ignoreMods.Contains(m.Info.ModID))
+                                               .Select(s => s.Systems)
+                                               .SelectMany(o => o.ToArray())
+                                               .Select(t => t.GetType().Assembly)
+                                               .Distinct();
+
+            foreach (var assembly in assemblies)
+            {
+                foreach (Type type in assembly.GetTypes().Where(t => t.GetInterfaces().Contains(typeof(ICarryableTransfer))))
+                {
+                    foreach (var block in api.World.Blocks.Where(b => b.IsCarryable()))
+                    {
+                        if (block.HasBehavior(type))
+                        {
+                            try
+                            {
+                                var carryableBehavior = block.GetBehavior<BlockBehaviorCarryable>();
+                                if (carryableBehavior != null)
+                                {
+                                    carryableBehavior.ConfigureTransferBehavior(type, api);
+
+                                }
+                            }
+                            catch (Exception e)
+                            {
+                                api.Logger.Error($"CarryOn: Failed to set TransferHandlerType for block {block.Code}: {e.Message}");
+                            }
+                        }
+                    }
+                }
+            }
+
         }
 
         /// <summary>
@@ -87,7 +132,7 @@ namespace CarryOn.Common.Logic
             }
 
             return false;
-        }        
+        }
 
         /// <summary>
         /// Try to put a carryable item into the targeted block's slot
@@ -99,6 +144,9 @@ namespace CarryOn.Common.Logic
         /// <returns></returns>
         public bool TryPutCarryable(IPlayer player, PutMessage message, out string failureCode, out string onScreenErrorMessage)
         {
+            player = player ?? throw new ArgumentNullException(nameof(player));
+            message = message ?? throw new ArgumentNullException(nameof(message));
+            
             const string methodName = "TryPutCarryable";
 
             failureCode = null;
@@ -181,6 +229,8 @@ namespace CarryOn.Common.Logic
         /// <returns></returns>
         public bool TryTakeCarryable(IPlayer player, TakeMessage message, out string failureCode, out string onScreenErrorMessage)
         {
+            player = player ?? throw new ArgumentNullException(nameof(player));
+            message = message ?? throw new ArgumentNullException(nameof(message));
 
             const string methodName = "TryTakeCarryable";
 
@@ -254,7 +304,7 @@ namespace CarryOn.Common.Logic
                 failureCode = FailureCode.Internal;
             }
             return false;
-        }     
+        }
 
     }
 }

@@ -1,0 +1,33 @@
+{
+	"editor": {
+		"allAngles": true,
+		"entityTextureMode": false
+	},
+	"textureWidth": 16,
+	"textureHeight": 16,
+	"textureSizes": {
+		"reeds": [ 16, 16 ],
+		"cob": [ 8, 8 ],
+		"stem": [ 4, 32 ]
+	},
+	"textures": {
+		"stem": "game:block/plant/reeds/stem"
+	},
+	"elements": [
+		{
+			"name": "Stem2",
+			"from": [ 7.5, 0.0, 8.0 ],
+			"to": [ 8.0, 14.0, 8.5 ],
+			"rotationOrigin": [ 7.5, 0.0, 8.0 ],
+			"rotationX": -4.0,
+			"rotationZ": 9.0,
+			"faces": {
+				"north": {"texture": "#stem", "uv": [ 0.0, 0.0, 0.5, 14.0 ]},
+				"east": {"texture": "#stem", "uv": [ 0.0, 0.0, 0.5, 14.0 ]},
+				"south": {"texture": "#stem", "uv": [ 0.0, 0.0, 0.5, 14.0 ]},
+				"west": {"texture": "#stem", "uv": [ 0.0, 0.0, 0.5, 14.0 ]},
+				"up": {"texture": "#stem", "uv": [ 0.0, 0.0, 0.5, 0.5 ]}
+			}
+		}
+	]
+}

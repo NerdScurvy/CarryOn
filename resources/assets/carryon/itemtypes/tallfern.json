@@ -1,0 +1,29 @@
+{
+	"code": "tallfern",
+	"variantgroups": [
+		{
+			"code": "size",
+			"states": [ "", "large" ]
+		}
+	],
+	"shapeByType": {
+		"*-large": {"base": "game:block/plant/fern/tallfern/var1"},
+		"*": {"base": "game:block/plant/fern/tallfern/flowerpot/var1"}
+	},
+	"texturesByType": {
+		"*-large": {
+			"north": {"base": "game:block/plant/fern/tallfern/fern1"},
+			"south": {"base": "game:block/plant/fern/tallfern/fern1"}
+		},
+		"*": {
+			"north": {"base": "game:block/plant/fern/tallfern/flowerpot/var1"},
+			"south": {"base": "game:block/plant/fern/tallfern/flowerpot/var1"}
+		}
+	},
+	"creativeinventory": {},
+	"attributes": {
+		"handbook": {
+			"exclude": true
+		}
+	}
+}

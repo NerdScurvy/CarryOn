@@ -1,0 +1,23 @@
+{
+	"code": "reed-tule",
+	"variantgroups": [
+		{
+			"code": "size",
+			"states": [ "", "large" ]
+		}
+	],
+	"shapeByType": {
+		"*-large": {"base": "game:block/clay/planter/tule"},
+		"*": {"base": "game:block/clay/flowerpot/tule"}
+	},
+	"textures": {
+		"north": {"base": "game:block/plant/potted/tule"},
+		"south": {"base": "game:block/plant/potted/tule"}
+	},
+	"creativeinventory": {},
+	"attributes": {
+		"handbook": {
+			"exclude": true
+		}
+	}
+}

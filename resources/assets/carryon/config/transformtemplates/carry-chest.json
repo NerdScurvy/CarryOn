@@ -1,0 +1,132 @@
+{
+	"code": "carry-chest",
+	"transformGroups": {
+		"hands": [
+			{
+				"id": "root",
+				"translationY": 0.1,
+				"rotationY": 180.0
+			}
+		],
+		"backpack-none": [
+			{
+				"id": "root",
+				"translation": [ 0.02, 0.1, 0.0 ],
+				"rotationY": 180.0
+			},
+			{
+				"id": "strap-top-left",
+				"item": "carryon:strap",
+				"translation": [ -0.39, 0.32, -0.2 ],
+				"rotation": [ 0.0, 100.0, 10.5 ],
+				"scale": [ 0.8, 0.8, 0.87 ]
+			},
+			{
+				"id": "strap-top-right",
+				"item": "carryon:strap",
+				"translation": [ -0.39, 0.32, 0.2 ],
+				"rotation": [ 0.0, 80.0, 10.5 ],
+				"scale": [ 0.8, 0.8, 0.87 ]
+			},
+			{
+				"id": "strap-rear-right",
+				"item": "carryon:strap",
+				"translation": [ -0.39, 0.3326, 0.2 ],
+				"rotation": [ 2.0, 90.0, 271.0 ],
+				"scale": [ 0.8, 0.8, 0.79 ]
+			},
+			{
+				"id": "strap-rear-left",
+				"item": "carryon:strap",
+				"translation": [ -0.39, 0.3326, -0.2 ],
+				"rotation": [ -2.0, 90.0, 271.0 ],
+				"scale": [ 0.8, 0.8, 0.79 ]
+			},
+			{
+				"id": "strap-bottom-left",
+				"item": "carryon:strap",
+				"translation": [ -0.3913, -0.45, -0.17 ],
+				"rotation": [ 0.0, 88.0, 0.0 ],
+				"scale": [ 0.8, 0.8, 0.97 ]
+			},
+			{
+				"id": "strap-bottom-right",
+				"item": "carryon:strap",
+				"translation": [ -0.3899, -0.45, 0.1733 ],
+				"rotation": [ 0.0, 92.0, 0.0 ],
+				"scale": [ 0.8, 0.8, 0.97 ]
+			}
+		],
+		"backpack-small": {
+			"extends": "backpack-none",
+			"overrides": [
+				{
+					"id": "root",
+					"translationX": 0.04,
+					"translationY": 0.24,
+					"rotationX": 3.0,
+					"rotationZ": 24.0
+				},
+				{
+					"id": "strap-top-left",
+					"rotationY": 94.0,
+					"rotationZ": 5.5,
+					"scaleZ": 0.97
+				},
+				{
+					"id": "strap-top-right",
+					"rotationY": 87.0,
+					"rotationZ": 3.5,
+					"scaleZ": 0.97
+				},
+				{
+					"id": "strap-bottom-left",
+					"rotationY": 91.0,
+					"scaleZ": 0.83
+				},
+				{
+					"id": "strap-bottom-right",
+					"rotationY": 89.0,
+					"scaleZ": 0.83
+				}
+			]
+		},
+		"backpack-large": {
+			"extends": "backpack-none",
+			"overrides": [
+				{
+					"id": "root",
+					"translationX": 0.04,
+					"rotationX": 1.0,
+					"rotationZ": 14.0
+				},
+				{
+					"id": "strap-top-left",
+					"translationZ": -0.35,
+					"rotationY": 90.7,
+					"rotationZ": 17.3,
+					"scaleZ": 1.37
+				},
+				{
+					"id": "strap-top-right",
+					"translationZ": 0.35,
+					"rotationY": 89.7,
+					"rotationZ": 16.5,
+					"scaleZ": 1.37
+				},
+				{
+					"id": "strap-rear-right",
+					"translationZ": 0.35,
+					"rotationX": 13.0,
+					"scaleZ": 0.81
+				},
+				{
+					"id": "strap-rear-left",
+					"translationZ": -0.35,
+					"rotationX": -13.0,
+					"scaleZ": 0.81
+				}
+			]
+		}
+	}
+}

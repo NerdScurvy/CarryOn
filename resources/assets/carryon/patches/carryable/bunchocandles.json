@@ -1,27 +1,17 @@
 [
-  {
-    "file": "game:blocktypes/wax/bunchocandles",
-    "side": "Server",
-    "op": "add",
-    "path": "/behaviors/-",
-    "value": {
-      "name": "Carryable",
-      "properties": {
-        "enabledCondition": "carryon.Carryables.BunchOCandles",
-        "translation": [
-          0.0625,
-          0,
-          0
-        ],
-        "rotation": [
-          0,
-          180,
-          0
-        ],
-        "slots": {
-          "Hands": {}
-        }
-      }
-    }
-  }
+	{
+		"file": "game:blocktypes/wax/bunchocandles",
+		"side": "Server",
+		"op": "add",
+		"path": "/behaviors/-",
+		"value": {
+			"name": "Carryable",
+			"properties": {
+				"enabledCondition": "carryon.Carryables.BunchOCandles",
+				"slots": {
+					"Hands": {}
+				}
+			}
+		}
+	}
 ]

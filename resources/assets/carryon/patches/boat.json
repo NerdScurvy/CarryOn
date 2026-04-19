@@ -1,20 +1,38 @@
 [
-  {
-    "file": "game:entities/nonliving/boat-*",
-    "side": "Server",
-    "op": "add",
-    "path": "/client/behaviors/-",
-    "value": {
-      "code": "carryon:attachablecarryable"
-    }
-  },
-  {
-    "file": "game:entities/nonliving/boat-*",    
-    "side": "Server",
-    "op": "add",
-    "path": "/server/behaviors/-",
-    "value": {
-      "code": "carryon:attachablecarryable"
-    }
-  } 
+	{
+		"file": "game:entities/nonliving/boat-raft",
+		"side": "Server",
+		"op": "add",
+		"path": "/client/behaviors/-",
+		"value": {
+			"code": "carryon:attachablecarryable"
+		}
+	},
+	{
+		"file": "game:entities/nonliving/boat-raft",
+		"side": "Server",
+		"op": "add",
+		"path": "/server/behaviors/-",
+		"value": {
+			"code": "carryon:attachablecarryable"
+		}
+	},
+	{
+		"file": "game:entities/nonliving/boat-sailed",
+		"side": "Server",
+		"op": "add",
+		"path": "/client/behaviors/-",
+		"value": {
+			"code": "carryon:attachablecarryable"
+		}
+	},
+	{
+		"file": "game:entities/nonliving/boat-sailed",
+		"side": "Server",
+		"op": "add",
+		"path": "/server/behaviors/-",
+		"value": {
+			"code": "carryon:attachablecarryable"
+		}
+	}
 ]

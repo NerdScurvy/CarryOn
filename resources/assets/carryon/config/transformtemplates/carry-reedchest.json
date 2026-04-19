@@ -1,0 +1,109 @@
+{
+	"code": "carry-reedchest",
+	"transformGroups": {
+		"hands": [
+			{
+				"id": "root",
+				"translationY": 0.2,
+				"scale": 0.6
+			}
+		],
+		"backpack-none": [
+			{
+				"id": "root",
+				"translation": [ 0.1, 0.1, 0.0312 ],
+				"rotation": [ 5.0, 0.0, -90.0 ],
+				"scale": 0.6
+			},
+			{
+				"id": "strap-top-left",
+				"item": "carryon:strap",
+				"translation": [ -0.31, 0.02, 0.25 ],
+				"rotation": [ 0.0, 96.0, -100.0 ],
+				"scale": [ 0.8, 0.8, 0.56 ]
+			},
+			{
+				"id": "strap-top-right",
+				"item": "carryon:strap",
+				"translation": [ -0.31, 0.02, -0.25 ],
+				"rotation": [ 0.0, 100.0, -96.0 ],
+				"scale": [ 0.8, 0.8, 0.56 ]
+			},
+			{
+				"id": "strap-rear-left",
+				"item": "carryon:strap",
+				"translation": [ -0.32, 0.02, 0.25 ],
+				"rotation": [ 0.0, 94.0, -2.0 ],
+				"scale": [ 0.8, 0.8, 0.71 ]
+			},
+			{
+				"id": "strap-rear-right",
+				"item": "carryon:strap",
+				"translation": [ -0.32, 0.02, -0.25 ],
+				"rotation": [ 0.0, 87.0, -2.0 ],
+				"scale": [ 0.8, 0.8, 0.71 ]
+			},
+			{
+				"id": "strap-lower-left",
+				"item": "carryon:strap",
+				"translation": [ 0.38, 0.01, 0.2014 ],
+				"rotation": [ 0.0, 94.0, -88.9 ],
+				"scale": [ 0.8, 0.8, 0.81 ]
+			},
+			{
+				"id": "strap-lower-right",
+				"item": "carryon:strap",
+				"translation": [ 0.38, 0.01, -0.2116 ],
+				"rotation": [ -7.9, 94.0, -88.9 ],
+				"scale": [ 0.8, 0.8, 0.81 ]
+			}
+		],
+		"backpack-small": {
+			"extends": "backpack-none",
+			"overrides": [
+				{
+					"id": "root",
+					"translationY": 0.25,
+					"translationZ": 0.03125,
+					"rotationZ": -70.0
+				},
+				{
+					"id": "strap-top-left",
+					"rotationY": 98.0,
+					"rotationZ": -97.0,
+					"scaleZ": 0.61
+				},
+				{
+					"id": "strap-top-right",
+					"rotationY": 93.0,
+					"rotationZ": -93.0,
+					"scaleZ": 0.61
+				},
+				{
+					"id": "strap-lower-left",
+					"scaleZ": 0.51
+				},
+				{
+					"id": "strap-lower-right",
+					"scaleZ": 0.51
+				}
+			]
+		},
+		"backpack-large": {
+			"extends": "backpack-none",
+			"overrides": [
+				{
+					"id": "root",
+					"translationY": 0.166,
+					"translationZ": -0.0152,
+					"rotationX": 1.7,
+					"rotationZ": -70.0
+				},
+				{
+					"id": "strap-top-right",
+					"rotationY": 84.0
+				}
+			]
+		}
+	}
+}

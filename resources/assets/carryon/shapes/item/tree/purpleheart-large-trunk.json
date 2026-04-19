@@ -1,0 +1,83 @@
+{
+	"editor": {
+		"allAngles": false,
+		"entityTextureMode": false
+	},
+	"textureWidth": 16,
+	"textureHeight": 16,
+	"textureSizes": {
+		"leaves": [ 32, 32 ],
+		"bark": [ 16, 16 ],
+		"trunk": [ 16, 16 ]
+	},
+	"textures": {
+		"bark": "game:block/wood/bark/purpleheart",
+		"trunk": "game:block/wood/treetrunk/purpleheart"
+	},
+	"elements": [
+		{
+			"name": "trunk 1",
+			"from": [ 6.7, 0.0, 6.6 ],
+			"to": [ 9.7, 16.0, 9.6 ],
+			"rotationOrigin": [ 8.0, 0.0, 8.0 ],
+			"faces": {
+				"north": {"texture": "#bark", "uv": [ 7.0, 0.0, 10.0, 16.0 ], "windMode": [ 0, 0, 0, 0 ], "windData": [ 0, 0, 0, 0 ]},
+				"east": {"texture": "#bark", "uv": [ 5.0, 0.0, 8.0, 16.0 ], "windMode": [ 0, 0, 0, 0 ], "windData": [ 0, 0, 0, 0 ]},
+				"south": {"texture": "#bark", "uv": [ 9.0, 0.0, 12.0, 16.0 ], "windMode": [ 0, 0, 0, 0 ], "windData": [ 0, 0, 0, 0 ]},
+				"west": {"texture": "#bark", "uv": [ 3.0, 0.0, 6.0, 16.0 ], "windMode": [ 0, 0, 0, 0 ], "windData": [ 0, 0, 0, 0 ]},
+				"up": {"texture": "#trunk", "uv": [ 6.0, 6.5, 9.0, 9.5 ], "windMode": [ 0, 0, 0, 0 ], "windData": [ 0, 0, 0, 0 ]},
+				"down": {"texture": "#trunk", "uv": [ 6.0, 6.5, 9.0, 9.5 ], "windMode": [ 0, 0, 0, 0 ], "windData": [ 0, 0, 0, 0 ]}
+			},
+			"children": [
+				{
+					"name": "trunk 2",
+					"from": [ 0.0, 3.3, 0.1 ],
+					"to": [ 2.0, 12.3, 2.1 ],
+					"rotationOrigin": [ 1.0, 3.3, 1.1 ],
+					"rotationY": 15.0,
+					"rotationZ": 44.0,
+					"faces": {
+						"north": {"texture": "#bark", "uv": [ 3.0, 5.0, 5.0, 14.0 ], "windMode": [ 0, 0, 0, 0 ], "windData": [ 0, 0, 0, 0 ]},
+						"east": {"texture": "#bark", "uv": [ 10.0, 4.0, 12.0, 13.0 ], "windMode": [ 0, 0, 0, 0 ], "windData": [ 0, 0, 0, 0 ]},
+						"south": {"texture": "#bark", "uv": [ 6.5, 4.0, 8.5, 13.0 ], "windMode": [ 0, 0, 0, 0 ], "windData": [ 0, 0, 0, 0 ]},
+						"west": {"texture": "#bark", "uv": [ 8.0, 4.0, 10.0, 13.0 ], "windMode": [ 0, 0, 0, 0 ], "windData": [ 0, 0, 0, 0 ]},
+						"up": {"texture": "#trunk", "uv": [ 6.5, 7.0, 8.5, 9.0 ], "windMode": [ 0, 0, 0, 0 ], "windData": [ 0, 0, 0, 0 ]},
+						"down": {"texture": "#bark", "uv": [ 4.5, 8.0, 6.5, 10.0 ], "windMode": [ 0, 0, 0, 0 ], "windData": [ 0, 0, 0, 0 ]}
+					}
+				},
+				{
+					"name": "trunk 3",
+					"from": [ 1.0, 6.0, 0.9 ],
+					"to": [ 3.0, 16.0, 2.9 ],
+					"rotationOrigin": [ 2.0, 6.0, 1.9 ],
+					"rotationY": -17.0,
+					"rotationZ": -40.0,
+					"faces": {
+						"north": {"texture": "#bark", "uv": [ 10.0, 5.0, 12.0, 15.0 ], "windMode": [ 0, 0, 0, 0 ], "windData": [ 0, 0, 0, 0 ]},
+						"east": {"texture": "#bark", "uv": [ 10.0, 4.0, 12.0, 14.0 ], "windMode": [ 0, 0, 0, 0 ], "windData": [ 0, 0, 0, 0 ]},
+						"south": {"texture": "#bark", "uv": [ 3.5, 4.0, 5.5, 14.0 ], "windMode": [ 0, 0, 0, 0 ], "windData": [ 0, 0, 0, 0 ]},
+						"west": {"texture": "#bark", "uv": [ 4.5, 5.5, 6.5, 15.5 ], "windMode": [ 0, 0, 0, 0 ], "windData": [ 0, 0, 0, 0 ]},
+						"up": {"texture": "#trunk", "uv": [ 6.5, 6.5, 8.5, 8.5 ], "windMode": [ 0, 0, 0, 0 ], "windData": [ 0, 0, 0, 0 ]},
+						"down": {"texture": "#bark", "uv": [ 4.5, 8.0, 6.5, 10.0 ], "windMode": [ 0, 0, 0, 0 ], "windData": [ 0, 0, 0, 0 ]}
+					}
+				},
+				{
+					"name": "trunk 15",
+					"from": [ 0.7, 2.7, 0.1 ],
+					"to": [ 2.7, 5.7, 2.1 ],
+					"rotationOrigin": [ 1.7, 2.7, 1.1 ],
+					"rotationY": -71.0,
+					"rotationZ": 44.0,
+					"faces": {
+						"north": {"texture": "#bark", "uv": [ 3.0, 5.0, 5.0, 8.0 ], "windMode": [ 0, 0, 0, 0 ], "windData": [ 0, 0, 0, 0 ]},
+						"east": {"texture": "#bark", "uv": [ 10.0, 4.0, 12.0, 7.0 ], "windMode": [ 0, 0, 0, 0 ], "windData": [ 0, 0, 0, 0 ]},
+						"south": {"texture": "#bark", "uv": [ 6.5, 4.0, 8.5, 7.0 ], "windMode": [ 0, 0, 0, 0 ], "windData": [ 0, 0, 0, 0 ]},
+						"west": {"texture": "#bark", "uv": [ 8.0, 4.0, 10.0, 7.0 ], "windMode": [ 0, 0, 0, 0 ], "windData": [ 0, 0, 0, 0 ]},
+						"up": {"texture": "#trunk", "uv": [ 2.0, 13.0, 4.0, 15.0 ], "windMode": [ 0, 0, 0, 0 ], "windData": [ 0, 0, 0, 0 ]},
+						"down": {"texture": "#bark", "uv": [ 4.5, 8.0, 6.5, 10.0 ], "windMode": [ 0, 0, 0, 0 ], "windData": [ 0, 0, 0, 0 ]}
+					}
+				}
+			]
+		}
+	]
+}

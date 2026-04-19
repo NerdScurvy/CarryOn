@@ -1,0 +1,339 @@
+{
+	"code": "carry-planter",
+	"transformGroups": {
+		"default": [
+			{
+				"id": "root",
+				"rotationY": 180.0
+			}
+		],
+		"default-planted": {
+			"extends": "default",
+			"appends": [
+				{
+					"id": "soil",
+					"item": "carryon:soil-planter",
+					"translation": [ 0.185, 0.0, 0.188 ],
+					"scale": 1.0
+				}
+			]
+		},
+		"hands": {
+			"extends": "default",
+			"overrides": [
+				{
+					"id": "root",
+					"translationY": 0.2
+				}
+			]
+		},
+		"hands-planted": {
+			"extends": "default-planted",
+			"overrides": [
+				{
+					"id": "root",
+					"translationY": 0.14,
+					"rotation": [ 0.0, 160.0, -10.0 ]
+				}
+			]
+		},
+		"hands-planted-sapling": {
+			"extends": "hands-planted",
+			"overrides": [
+				{
+					"id": "root",
+					"translation": [ 0.024, 0.12, 0.048 ],
+					"rotation": [ 30.0, 25.0, -17.0 ]
+				}
+			]
+		},
+		"hands-planted-cactus-silvertorchcactus": {
+			"extends": "hands-planted-sapling"
+		},
+		"hands-planted-fern-tallfern": {
+			"extends": "hands-planted-sapling"
+		},
+		"hands-planted-reed-cattail": {
+			"extends": "hands-planted-sapling"
+		},
+		"backpack-none": [
+			{
+				"id": "root",
+				"translation": [ 0.05, 0.1, 0.01 ],
+				"rotation": [ 0.0, 197.0, -88.0 ]
+			},
+			{
+				"id": "strap-top-left",
+				"item": "carryon:strap",
+				"translation": [ 0.376, 0.076, -0.32 ],
+				"rotation": [ -99.0, 162.0, -50.0 ],
+				"scale": [ 1.0, 1.0, 0.72 ]
+			},
+			{
+				"id": "strap-top-right",
+				"item": "carryon:strap",
+				"translation": [ 0.386, 0.066, 0.2641 ],
+				"rotation": [ 90.0, -4.0, 135.0 ],
+				"scale": [ 1.0, 1.0, 0.62 ]
+			},
+			{
+				"id": "strap-rear-left-cross",
+				"item": "carryon:strap",
+				"translation": [ 0.383, 0.056, -0.32 ],
+				"rotation": [ 5.0, 50.0, 175.0 ],
+				"scale": 1.0
+			},
+			{
+				"id": "strap-rear-right-cross",
+				"item": "carryon:strap",
+				"translation": [ 0.4, 0.056, 0.276 ],
+				"rotation": [ 0.0, -133.0, 0.0 ],
+				"scale": [ 1.0, 1.0, 0.99 ]
+			},
+			{
+				"id": "strap-bottom-left",
+				"item": "carryon:strap",
+				"translation": [ -0.316, 0.0731, -0.392 ],
+				"rotation": [ 90.0, 0.0, 136.0 ],
+				"scale": [ 1.0, 1.0, 0.78 ]
+			},
+			{
+				"id": "strap-bottom-right",
+				"item": "carryon:strap",
+				"translation": [ -0.376, 0.0861, 0.32 ],
+				"rotation": [ -80.0, -180.0, 130.0 ],
+				"scale": [ 1.0, 1.0, 0.78 ]
+			}
+		],
+		"backpack-small": {
+			"extends": "backpack-none",
+			"overrides": [
+				{
+					"id": "root",
+					"translation": [ 0.08, 0.26, 0.0 ],
+					"rotation": [ 10.0, 177.0, -68.0 ]
+				},
+				{
+					"id": "strap-top-left",
+					"rotationX": -79.0,
+					"rotationZ": -90.0
+				},
+				{
+					"id": "strap-top-right",
+					"rotation": [ 100.0, 6.0, 115.0 ]
+				},
+				{
+					"id": "strap-bottom-left",
+					"scaleZ": 0.58
+				},
+				{
+					"id": "strap-bottom-right",
+					"scaleZ": 0.61
+				}
+			]
+		},
+		"backpack-large": {
+			"extends": "backpack-none",
+			"overrides": [
+				{
+					"id": "root",
+					"translation": [ 0.034, 0.3, 0.0 ],
+					"rotation": [ 9.0, 180.0, -73.0 ]
+				},
+				{
+					"id": "strap-top-left",
+					"rotationX": -89.0,
+					"rotationY": 175.0,
+					"scaleZ": 1.02
+				},
+				{
+					"id": "strap-top-right",
+					"rotationY": 3.0,
+					"scaleZ": 1.02
+				}
+			]
+		},
+		"backpack-none-planted": {
+			"extends": "default-planted",
+			"overrides": [
+				{
+					"id": "root",
+					"translationY": 0.1
+				}
+			],
+			"appends": [
+				{
+					"id": "strap-side-left",
+					"item": "carryon:strap",
+					"translation": [ -0.384, -0.324, -0.39 ],
+					"rotation": [ -93.0, 49.0, -3.0 ],
+					"scale": [ 1.0, 1.0, 1.08 ]
+				},
+				{
+					"id": "strap-side-right",
+					"item": "carryon:strap",
+					"translation": [ -0.384, -0.304, 0.3841 ],
+					"rotation": [ -92.0, -50.0, 180.0 ],
+					"scale": [ 1.0, 1.0, 1.12 ]
+				},
+				{
+					"id": "strap-rear-left",
+					"item": "carryon:strap",
+					"translation": [ -0.377, -0.314, -0.39 ],
+					"rotation": [ 27.0, 1.0, 137.0 ],
+					"scale": [ 1.0, 1.0, 0.47 ]
+				},
+				{
+					"id": "strap-rear-right",
+					"item": "carryon:strap",
+					"translation": [ -0.39, -0.294, 0.396 ],
+					"rotation": [ -40.0, 170.0, 90.0 ],
+					"scale": [ 1.0, 1.0, 0.46 ]
+				},
+				{
+					"id": "strap-bottom",
+					"item": "carryon:strap",
+					"translation": [ -0.386, -0.5039, 0.0 ],
+					"rotation": [ 0.0, 90.0, 0.0 ],
+					"scale": [ 1.0, 1.0, 0.91 ]
+				}
+			]
+		},
+		"backpack-small-planted": {
+			"extends": "backpack-none-planted",
+			"overrides": [
+				{
+					"id": "root",
+					"translationY": 0.23
+				},
+				{
+					"id": "strap-side-left",
+					"rotationY": 64.0,
+					"scaleZ": 1.18
+				},
+				{
+					"id": "strap-side-right",
+					"rotationY": -64.0,
+					"rotationZ": 181.0
+				},
+				{
+					"id": "strap-bottom",
+					"scaleZ": 0.75
+				}
+			]
+		},
+		"backpack-large-planted": {
+			"extends": "backpack-none-planted",
+			"overrides": [
+				{
+					"id": "root",
+					"translation": [ 0.02, 0.03, 0.0 ]
+				},
+				{
+					"id": "strap-side-left",
+					"rotationX": -98.0,
+					"rotationY": 60.0
+				},
+				{
+					"id": "strap-side-right",
+					"rotationY": -63.0,
+					"rotationZ": 178.0
+				}
+			]
+		},
+		"backpack-none-planted-sapling": {
+			"extends": "backpack-none-planted",
+			"overrides": [
+				{
+					"id": "root",
+					"translationX": 0.06,
+					"translationZ": -0.03,
+					"rotationX": 10.0,
+					"rotationZ": -20.0,
+					"scale": 0.5
+				},
+				{
+					"id": "soil",
+					"rotation": [ 0.0, 0.0, 0.0 ]
+				},
+				{
+					"id": "strap-side-left",
+					"rotationX": -94.0,
+					"rotationY": 64.0,
+					"scaleZ": 1.18
+				},
+				{
+					"id": "strap-side-right",
+					"rotationX": -93.0,
+					"rotationY": -65.0
+				}
+			]
+		},
+		"backpack-small-planted-sapling": {
+			"extends": "backpack-small-planted",
+			"overrides": [
+				{
+					"id": "root",
+					"translation": [ -0.01, 0.19, 0.03 ],
+					"rotation": [ 8.0, 173.0, 1.0 ]
+				},
+				{
+					"id": "strap-side-left",
+					"rotation": [ -96.0, 58.0, -6.0 ]
+				},
+				{
+					"id": "strap-side-right",
+					"rotation": [ -98.0, -66.0, 178.0 ]
+				}
+			]
+		},
+		"backpack-large-planted-sapling": {
+			"extends": "backpack-large-planted",
+			"overrides": [
+				{
+					"id": "root",
+					"translation": [ 0.004, 0.07, 0.018 ],
+					"rotation": [ 10.0, 178.0, 0.0 ]
+				},
+				{
+					"id": "strap-side-left",
+					"rotationY": 72.0,
+					"rotationZ": -2.0,
+					"scaleZ": 1.0
+				},
+				{
+					"id": "strap-side-right",
+					"rotationY": -68.0,
+					"scaleZ": 1.0
+				}
+			]
+		},
+		"backpack-large-planted-reed-cattail": {
+			"extends": "backpack-large-planted-sapling"
+		},
+		"backpack-small-planted-reed-cattail": {
+			"extends": "backpack-small-planted-sapling"
+		},
+		"backpack-none-planted-reed-cattail": {
+			"extends": "backpack-none-planted-sapling"
+		},
+		"backpack-large-planted-cactus-silvertorchcactus": {
+			"extends": "backpack-large-planted-sapling"
+		},
+		"backpack-small-planted-cactus-silvertorchcactus": {
+			"extends": "backpack-small-planted-sapling"
+		},
+		"backpack-none-planted-cactus-silvertorchcactus": {
+			"extends": "backpack-none-planted-sapling"
+		},
+		"backpack-large-planted-fern-tallfern": {
+			"extends": "backpack-large-planted-sapling"
+		},
+		"backpack-small-planted-fern-tallfern": {
+			"extends": "backpack-small-planted-sapling"
+		},
+		"backpack-none-planted-fern-tallfern": {
+			"extends": "backpack-none-planted-sapling"
+		}
+	}
+}

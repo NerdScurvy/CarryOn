@@ -1,31 +1,28 @@
 [
-  {
-    "file": "game:blocktypes/clay/fired/flowerpot",
-    "side": "Server",
-    "op": "add",
-    "path": "/behaviors/-",
-    "value": {
-      "name": "Carryable",
-      "properties": {
-        "enabledCondition": "carryon.Carryables.Flowerpot",
-        "translation": [
-          0.3175,
-          0.1,
-          0
-        ],
-        "rotation": [
-          0,
-          180,
-          0
-        ],
-        "scale": 1,
-        "slots": {
-          "Hands": {
-            "animation": "carryon:holdlight"
-          },
-          "Back": {}
-        }
-      }
-    }
-  }
+	{
+		"file": "game:blocktypes/clay/fired/flowerpot",
+		"side": "Server",
+		"op": "add",
+		"path": "/behaviors/-",
+		"value": {
+			"name": "Carryable",
+			"properties": {
+				"enabledCondition": "carryon.Carryables.Flowerpot",
+				"transformTemplates": [
+					"carryon:plants-small",
+					"carryon:carry-flowerpot"
+				],
+				"renderRootFirst": true,
+				"renderTransformResolver": "plant-container",
+				"slots": {
+					"Hands": {
+						"animation": "carryon:holdlight"
+					},
+					"Back": {
+						"enabledCondition": "carryon.CarryablesOnBack.Flowerpot"
+					}
+				}
+			}
+		}
+	}
 ]

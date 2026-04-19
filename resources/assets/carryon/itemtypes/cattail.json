@@ -1,0 +1,26 @@
+{
+	"code": "reed-cattail",
+	"variantgroups": [
+		{
+			"code": "part",
+			"states": [ "", "flower", "stem", "cob" ]
+		},
+		{
+			"code": "size",
+			"states": [ "", "large" ]
+		}
+	],
+	"shapeByType": {
+		"*-cob-large": {"base": "carryon:item/flower/cattail-cob-large"},
+		"*-large": {"base": "carryon:item/flower/cattail-large"},
+		"*-stem": {"base": "carryon:item/flower/cattail-stem"},
+		"*-cob": {"base": "carryon:item/flower/cattail-cob"},
+		"*": {"base": "carryon:item/flower/cattail"}
+	},
+	"creativeinventory": {},
+	"attributes": {
+		"handbook": {
+			"exclude": true
+		}
+	}
+}

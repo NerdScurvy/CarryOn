@@ -4,6 +4,7 @@ using System.Linq;
 using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
 using CarryOn.API.Event;
+using CarryOn.API.Event.Delegates;
 using CarryOn.Common.Behaviors;
 using CarryOn.Common.Models;
 using CarryOn.Common.Network;
@@ -30,13 +31,46 @@ namespace CarryOn.API.Common
         public CarryEvents CarryEvents => CarrySystem?.CarryEvents;
 
         private bool? allowSprintWhileCarrying;
+        private bool? ignoreCarrySpeedPenalty;
+        private readonly List<ICarriedTransformGroupResolver> transformGroupResolvers = new();
+
         public bool AllowSprintWhileCarrying => allowSprintWhileCarrying ??= CarrySystem?.Config?.CarryOptions?.AllowSprintWhileCarrying ?? false;
 
+        public bool IgnoreCarrySpeedPenalty => ignoreCarrySpeedPenalty ??= CarrySystem?.Config?.CarryOptions?.IgnoreCarrySpeedPenalty ?? false;
 
         public CarryManager(ICoreAPI api, CarrySystem carrySystem)
         {
             CarrySystem = carrySystem ?? throw new ArgumentNullException(nameof(carrySystem));
             Api = api ?? throw new ArgumentNullException(nameof(api));
+        }
+
+        public CarryOnConfig GetConfig()
+        {
+            return CarrySystem?.Config;
+        }
+
+        public void RegisterTransformGroupResolver(ICarriedTransformGroupResolver resolver)
+        {
+            if (resolver == null) throw new ArgumentNullException(nameof(resolver));
+
+            if (transformGroupResolvers.Contains(resolver))
+            {
+                return;
+            }
+
+            transformGroupResolvers.Add(resolver);
+            transformGroupResolvers.Sort((a, b) => b.Priority.CompareTo(a.Priority));
+        }
+
+        public bool UnregisterTransformGroupResolver(ICarriedTransformGroupResolver resolver)
+        {
+            if (resolver == null) return false;
+            return transformGroupResolvers.Remove(resolver);
+        }
+
+        public IReadOnlyList<ICarriedTransformGroupResolver> GetTransformGroupResolvers()
+        {
+            return transformGroupResolvers;
         }
 
 
@@ -80,9 +114,7 @@ namespace CarryOn.API.Common
                 if (stack.Block == null) return null; // Can't resolve block?
             }
 
-            var blockEntityData = (entity.World.Side == EnumAppSide.Server)
-                ? entity.Attributes.TryGet<ITreeAttribute>(entityCarriedKey, slot.ToString(), "Data")
-                : null;
+            var blockEntityData = entity.WatchedAttributes.TryGet<ITreeAttribute>(entityCarriedKey, slot.ToString(), "Data");
 
             return new CarriedBlock(slot, stack, blockEntityData);
         }
@@ -112,10 +144,16 @@ namespace CarryOn.API.Common
 
             var entityCarriedKey = AttributeKey.Watched.EntityCarried;
             entity.WatchedAttributes.Set(stack, entityCarriedKey, slot.ToString(), "Stack");
-            ((SyncedTreeAttribute)entity.WatchedAttributes).MarkPathDirty(entityCarriedKey);
 
-            if ((entity.World.Side == EnumAppSide.Server) && (blockEntityData != null))
-                entity.Attributes.Set(blockEntityData, entityCarriedKey, slot.ToString(), "Data");
+            if (blockEntityData != null)
+            {
+                entity.WatchedAttributes.Set(blockEntityData, entityCarriedKey, slot.ToString(), "Data");
+            }
+
+            // Mark the entity carried attribute as dirty so it gets synced to clients
+            if(entity.Api.Side == EnumAppSide.Server)
+                ((SyncedTreeAttribute)entity.WatchedAttributes).MarkPathDirty(entityCarriedKey);
+
 
             var behavior = stack.Block.GetBehaviorOrDefault(BlockBehaviorCarryable.Default);
             var slotSettings = behavior.Slots[slot];
@@ -125,16 +163,19 @@ namespace CarryOn.API.Common
 
             if (entity is EntityAgent agent)
             {
-                var speed = slotSettings?.WalkSpeedModifier ?? 0.0F;
+                var speed = IgnoreCarrySpeedPenalty ? 0.0f : slotSettings?.WalkSpeedModifier ?? 0.0F;
                 if (speed != 0.0F && !AllowSprintWhileCarrying)
                 {
                     agent.Stats.Set("walkspeed",
                        CarryOnCode(slot.ToString()), speed, false);
                 }
 
-                if (slot == CarrySlot.Hands) LockedItemSlot.Lock(agent.RightHandItemSlot);
-                if (slot != CarrySlot.Back) LockedItemSlot.Lock(agent.LeftHandItemSlot);
-                SendLockSlotsMessage(agent as EntityPlayer);
+                if (entity.Api.Side == EnumAppSide.Server)
+                {
+                    if (slot == CarrySlot.Hands) LockedItemSlot.Lock(agent.RightHandItemSlot);
+                    if (slot != CarrySlot.Back) LockedItemSlot.Lock(agent.LeftHandItemSlot);
+                    SendLockSlotsMessage(agent as EntityPlayer);
+                }
             }
         }
 
@@ -191,6 +232,37 @@ namespace CarryOn.API.Common
         }
 
         /// <summary>
+        /// Checks if the block at the specified position can be picked up by the entity.
+        /// </summary>
+        /// <param name="entity">The entity attempting to pick up the block.</param>
+        /// <param name="pos">The position of the block.</param>
+        /// <param name="slot">The carry slot.</param>
+        /// <param name="carried">The carried block.</param>
+        /// <returns><c>true</c> if the block can be picked up; otherwise, <c>false</c>.</returns>
+        private bool CanPickUp(Entity entity, BlockPos pos, CarrySlot slot, CarriedBlock carried, ref string failureCode)
+        {
+            var delegates = CarryEvents?.BeforePickUpBlock?.GetInvocationList();
+            if (delegates == null) return true;
+
+            foreach (var del in delegates.Cast<BeforePickUpBlockDelegate>())
+            {
+                try
+                {
+                    del(entity, pos, slot, carried, out bool? canPickUp, out string delegateFailureCode);
+
+                    if (delegateFailureCode != null) failureCode = delegateFailureCode;
+                    if (canPickUp != null) return canPickUp.Value;
+                }
+                catch (Exception e)
+                {
+                    entity.World.Logger.Error(e.Message);
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
         /// Gets a CarriedBlock from the world at the specified position and slot.
         /// The block is removed from the world.
         /// </summary>
@@ -200,16 +272,106 @@ namespace CarryOn.API.Common
         /// <returns></returns>
         public CarriedBlock GetCarriedFromWorld(BlockPos pos, CarrySlot slot, bool checkIsCarryable = false)
         {
+            var delegates = CarryEvents?.BeforeRemoveBlockFromWorld?.GetInvocationList();
+            string failureCode = FailureCode.Ignore;
+            return GetCarriedFromWorld(null, pos, slot, ref failureCode, delegates: delegates, checkIsCarryable: checkIsCarryable);
+        }
+
+
+        /// <summary>
+        /// Gets a CarriedBlock from the world at the specified position and slot.
+        /// The block is removed from the world.
+        /// </summary>
+        /// <param name="pos"></param>
+        /// <param name="slot"></param>
+        /// <param name="delegates">Optional delegates to call when removing the block from the world</param>
+        /// <param name="checkIsCarryable">If <c>true</c>, checks if the block is carryable in a particular slot.</param>
+        /// <returns></returns>
+        public CarriedBlock GetCarriedFromWorld(Entity entity, BlockPos pos, CarrySlot slot, ref string failureCode, Delegate[] delegates = null, bool checkIsCarryable = false)
+        {
             var world = Api.World;
             var carried = BlockUtils.CreateCarriedFromBlockPos(world, pos, slot);
             if (carried == null) return null;
 
             if (checkIsCarryable && !IsCarryable(carried.Block, slot)) return null;
 
+            if (entity != null && !CanPickUp(entity, pos, slot, carried, ref failureCode)) return null;
+
+            if (delegates != null)
+            {
+                foreach (var removeBlockDelegate in delegates.Cast<BeforeRemoveBlockDelegate>())
+                {
+                    try
+                    {
+                        removeBlockDelegate(carried, pos);
+                    }
+                    catch (Exception e)
+                    {
+                        world.Logger.Error(e.Message);
+                    }
+                }
+            }
+
             world.BlockAccessor.SetBlock(0, pos);
             world.Api.ModLoader.GetModSystem<ModSystemBlockReinforcement>()?.ClearReinforcement(pos);
             world.BlockAccessor.TriggerNeighbourBlockUpdate(pos);
             return carried;
+        }
+
+        /// <summary>
+        /// Restores the block at a specified position with the entity data from the carried block.
+        /// </summary>
+        /// <param name="carriedBlock"></param>
+        /// <param name="pos"></param>
+        /// <param name="dropped">Signal block was dropped to any delegates</param>
+        public void RestoreBlockEntityData(IWorldAccessor world, CarriedBlock carriedBlock, BlockPos pos, bool dropped = false)
+        {
+            if ((world.Side != EnumAppSide.Server) || (carriedBlock?.BlockEntityData == null)) return;
+
+            var delegates = CarryEvents?.BeforeRestoreBlockEntityData?.GetInvocationList();
+            RestoreBlockEntityData(world, carriedBlock, pos, delegates: delegates, dropped: dropped);            
+        }
+
+
+        /// <summary>
+        /// Restores the block at a specified position with the entity data from the carried block.
+        /// </summary>
+        /// <param name="carriedBlock"></param>
+        /// <param name="pos"></param>
+        /// <param name="delegates">Optional delegates to call when restoring block entity data</param>
+        /// <param name="dropped">Signal block was dropped to any delegates</param>
+        public void RestoreBlockEntityData(IWorldAccessor world, CarriedBlock carriedBlock, BlockPos pos, Delegate[] delegates = null, bool dropped = false)
+        {
+            if (carriedBlock?.BlockEntityData == null) return;
+
+            var blockEntityData = carriedBlock.BlockEntityData;
+            // Set the block entity's position to the new position.
+            // Without this, we get some funny behavior.
+            blockEntityData.SetInt("posx", pos.X);
+            blockEntityData.SetInt("posy", pos.Y);
+            blockEntityData.SetInt("posz", pos.Z);
+
+            // Get the block entity at the position (Likely default from block just placed)
+            var blockEntity = world.BlockAccessor.GetBlockEntity(pos);
+
+            // Handle BeforeRestoreBlockEntityData events
+            if (delegates != null)
+            {
+                foreach (var blockEntityDataDelegate in delegates.Cast<BlockEntityDataDelegate>())
+                {
+                    try
+                    {
+                        blockEntityDataDelegate(blockEntity, blockEntityData, dropped);
+                    }
+                    catch (Exception e)
+                    {
+                        world.Logger.Error(e.Message);
+                    }
+                }
+            }
+
+            blockEntity?.FromTreeAttributes(blockEntityData, world);
+            blockEntity?.MarkDirty(true);
         }
 
         /// <summary>
@@ -222,9 +384,9 @@ namespace CarryOn.API.Common
         /// <param name="checkIsCarryable"></param>
         /// <param name="playSound"></param>
         /// <returns></returns>
-        public bool TryPickUp(Entity entity, BlockPos pos,
-                                 CarrySlot slot, bool checkIsCarryable = true, bool playSound = true)
+        public bool TryPickUp(Entity entity, BlockPos pos, CarrySlot slot, ref string failureCode, bool checkIsCarryable = true, bool playSound = true)
         {
+            failureCode ??= FailureCode.Ignore;
 
             if (entity.Api.Side == EnumAppSide.Server)
             {
@@ -232,13 +394,25 @@ namespace CarryOn.API.Common
             }
 
             if (GetCarried(entity, slot) != null) return false;
-            var carried = GetCarriedFromWorld(pos, slot, checkIsCarryable);
+            var delegates = CarryEvents?.BeforeRemoveBlockFromWorld?.GetInvocationList();
+            var carried = GetCarriedFromWorld(entity, pos, slot, ref failureCode, delegates, checkIsCarryable);
             if (carried == null) return false;
 
             SetCarried(entity, carried);
             if (playSound) PlaySound(carried.Block, pos, entity as EntityPlayer);
+            if (entity.Api.Side == EnumAppSide.Server)
+            {
+                var entityName = entity?.GetName() ?? "Unknown Entity";
+                entity.World.Logger.Audit($"[{ModId}] {entityName} picked up block {carried.Block.Code.GetName()} at {pos}");
+            }            
             return true;
         }
+
+        public bool TryPickUp(Entity entity, BlockPos pos, CarrySlot slot, bool checkIsCarryable = true, bool playSound = true)
+        {
+            string failureCode = FailureCode.Ignore;
+            return TryPickUp(entity, pos, slot, ref failureCode, checkIsCarryable, playSound);
+        }        
 
         /// <summary>
         /// Tries to place the carriedBlock in the world, removing from entity if successful
@@ -275,7 +449,7 @@ namespace CarryOn.API.Common
 
             if (!world.BlockAccessor.IsValidPos(selection.Position)) return false;
 
-            BlockEntity droppedBlockEntity = null;
+            var placementSucceeded = false;
 
             if (entity is EntityPlayer playerEntity && !dropped)
             {
@@ -290,22 +464,48 @@ namespace CarryOn.API.Common
                     if (carriedBlock != null && carriedBlock.Block != null && selection != null && carriedBlock.ItemStack != null)
                     {
                         world.BlockAccessor.SetBlock(carriedBlock.Block.Id, selection.Position, carriedBlock.ItemStack);
+                        placementSucceeded = true;
                     }
-                    return false;
+                    else
+                    {
+                        return false;
+                    }
                 }
 
-                // Add phantom Item to player's active slot so any related block placement code can fire. (Workaround for creature container)
-                player.InventoryManager.ActiveHotbarSlot.Itemstack = carriedBlock.ItemStack;
-
-                // Force sneak mode for placing blocks (in case carry keybinds are different)
-                // This is a workaround for some blocks like Molds which require sneak to be placed
-                playerEntity.Controls.ShiftKey = true;
-
-                if (!carriedBlock.Block.TryPlaceBlock(world, player, carriedBlock.ItemStack, selection, ref failureCode))
+                if (!placementSucceeded)
                 {
-                    // Remove phantom item from active slot if failed to place
-                    player.InventoryManager.ActiveHotbarSlot.Itemstack = null;
-                    return false;
+
+                    var shift = playerEntity.Controls.ShiftKey;
+                    var ctrl = playerEntity.Controls.CtrlKey;
+
+                    try
+                    {
+
+                        // Add phantom Item to player's active slot so any related block placement code can fire. (Workaround for creature container)
+                        player.InventoryManager.ActiveHotbarSlot.Itemstack = carriedBlock.ItemStack;
+
+                        // Force sneak mode for placing blocks (in case carry keybinds are different)
+                        // This is a workaround for some blocks like Molds which require sneak to be placed
+                        playerEntity.Controls.ShiftKey = true;
+
+                        // Force ctrl key to be off - workaround for More Piles mod
+                        playerEntity.Controls.CtrlKey = false;
+
+                        if (!carriedBlock.Block.TryPlaceBlock(world, player, carriedBlock.ItemStack, selection, ref failureCode))
+                        {
+                            return false;
+                        }
+                        placementSucceeded = true;
+                    }
+                    finally
+                    {
+                        // Restore player controls
+                        playerEntity.Controls.ShiftKey = shift;
+                        playerEntity.Controls.CtrlKey = ctrl;
+
+                        // Remove phantom item from active slot
+                        player.InventoryManager.ActiveHotbarSlot.Itemstack = null;
+                    }
                 }
             }
             else
@@ -319,23 +519,27 @@ namespace CarryOn.API.Common
                 var droppedBlock = world.GetBlock(assetLocation) ?? carriedBlock.Block;
 
                 world.BlockAccessor.ExchangeBlock(droppedBlock.Id, selection.Position);
-                world.BlockAccessor.SpawnBlockEntity(droppedBlock.EntityClass, selection.Position, carriedBlock.ItemStack);
+                
+                // Only spawn block entity if the block has one defined.
+                if (droppedBlock.EntityClass != null)
+                {
+                    world.BlockAccessor.SpawnBlockEntity(droppedBlock.EntityClass, selection.Position, carriedBlock.ItemStack);
+                }
 
                 // Will trigger placement of multiblock sections
                 droppedBlock?.OnBlockPlaced(world, selection.Position, carriedBlock.ItemStack);
 
-                droppedBlockEntity = world.BlockAccessor.GetBlockEntity(selection.Position);
+                placementSucceeded = true;
 
                 // Set mesh angle opposite to block facing
                 carriedBlock.BlockEntityData?.SetFloat("meshAngle", -GetMeshAngle(meshFacing));
 
             }
             
-            var delegates = CarryEvents?.OnRestoreEntityBlockData?.GetInvocationList();
-            BlockUtils.RestoreBlockEntityData(world, carriedBlock, selection.Position, delegates: delegates, dropped: dropped);
+            if (!placementSucceeded) return false;
+            RestoreBlockEntityData(world, carriedBlock, selection.Position, dropped: dropped);
 
-            // Notify the dropped block entity that it has been placed
-            droppedBlockEntity?.OnBlockPlaced(carriedBlock.ItemStack);
+            world.BlockAccessor.MarkBlockDirty(selection.Position);
 
             world.BlockAccessor.TriggerNeighbourBlockUpdate(selection.Position);
 
@@ -346,7 +550,11 @@ namespace CarryOn.API.Common
             {
                 CarryEvents?.TriggerBlockDropped(selection.Position, entity, carriedBlock);
             }
-
+            if (world.Side == EnumAppSide.Server)
+            {
+                var entityName = entity?.GetName() ?? "Unknown Entity";
+                Api.World.Logger.Audit($"[{ModId}] Player {entityName}  {(dropped ? "dropped" : "placed down")}  block {carriedBlock?.Block?.Code.GetName()} at {selection.Position}");
+            }
             return true;
         }
 
@@ -414,7 +622,7 @@ namespace CarryOn.API.Common
             var isReinforced = entity.Api.ModLoader.GetModSystem<ModSystemBlockReinforcement>()?.IsReinforced(pos) ?? false;
             if (entity is EntityPlayer playerEntity)
             {
-                var delegates = entity.World.GetCarryEvents()?.OnCheckPermissionToCarry?.GetInvocationList();
+                var delegates = entity.World.GetCarryEvents()?.CheckPermissionToCarry?.GetInvocationList();
 
                 // Handle OnRestoreBlockEntityData events
                 if (delegates != null)
@@ -456,7 +664,7 @@ namespace CarryOn.API.Common
             const float SOUND_RANGE = 16.0F;
             const float SOUND_VOLUME = 1.0F;
 
-            var sound = block.Sounds?.Place ?? new AssetLocation("sounds/player/build");
+            var sound = block.Sounds?.Place.Location ?? new AssetLocation("sounds/player/build");
 
             if (sound == null) return;
 
@@ -504,15 +712,16 @@ namespace CarryOn.API.Common
             if (slots == null) throw new ArgumentNullException(nameof(slots));
             if (range < 0) throw new ArgumentOutOfRangeException(nameof(range));
 
-
             IServerPlayer player = (entity is EntityPlayer entityPlayer) ? (IServerPlayer)entityPlayer.Player : null;
 
             var world = Api.World;
             var blockAccessor = world.BlockAccessor;
 
-            var remaining = new HashSet<CarriedBlock>(
-                slots.Select(s => entity.GetCarried(s))
-                     .Where(c => c != null).OrderBy(t => t?.GetCarryableBehavior()?.MultiblockOffset));
+            var remaining = slots
+                .Select(s => entity.GetCarried(s))
+                .Where(c => c != null)
+                .OrderBy(c => c?.GetCarryableBehavior()?.MultiblockOffset)
+                .ToList();
             if (remaining.Count == 0) return;
 
             BlockPos centerBlock = entity.Pos.AsBlockPos.UpCopy();
@@ -531,7 +740,7 @@ namespace CarryOn.API.Common
                 if (TryPlaceDown(entity, carriedBlock, blockSelection, dropped: true))
                 {
                     RemoveCarried(entity, carriedBlock.Slot);
-                    Api.World.Logger.Audit($"Player {player?.PlayerName} dropped carried block {carriedBlock.Block.Code} at {blockSelection.Position}");
+                    Api.World.Logger.Audit($"[{ModId}] Player {player?.PlayerName} dropped carried block {carriedBlock.Block.Code} at {blockSelection.Position}");
                     continue;
                 }
                 DropBlockAsItem(carriedBlock, centerBlock, player, entity);
@@ -586,14 +795,14 @@ namespace CarryOn.API.Common
                 }
             }
 
-            var breakSound = carriedBlock.Block.Sounds.GetBreakSound(player) ?? new AssetLocation("game:sounds/block/planks");
+            var breakSound = carriedBlock.Block.Sounds.GetBreakSound(player).Location ?? new AssetLocation("game:sounds/block/planks");
             world.PlaySoundAt(breakSound, (double)centerBlock.X, (double)centerBlock.Y, (double)centerBlock.Z);
             RemoveCarried(entity, carriedBlock.Slot);
 
             if (blockDestroyed)
-                world.Logger.Audit($"Player {player?.PlayerName} dropped carried block {carriedBlock.Block.Code} at {centerBlock} and it was destroyed dropping {dropCount} items.");
+                world.Logger.Audit($"[{ModId}] Player {player?.PlayerName} dropped carried block {carriedBlock.Block.Code} at {centerBlock} and it was destroyed dropping {dropCount} items.");
             else
-                world.Logger.Audit($"Player {player?.PlayerName} dropped carried block {carriedBlock.Block.Code} as item at {centerBlock} spilling {dropCount} items from its contents.");
+                world.Logger.Audit($"[{ModId}] Player {player?.PlayerName} dropped carried block {carriedBlock.Block.Code} as item at {centerBlock} spilling {dropCount} items from its contents.");
 
             CarryEvents?.TriggerBlockDropped(centerBlock, entity, carriedBlock, blockDestroyed, hadContents, blockPlaced: false);
 

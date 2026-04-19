@@ -50,6 +50,12 @@ namespace CarryOn.Common.Handlers
 
         // Clientside
         private InteractionLogic interactionLogic { get; set; }
+        private TreeModifiedListener entityCarriedListener;
+        private Entity watchedClientPlayerEntity;
+        // Stored delegates so we can unsubscribe on Dispose
+        private Action clientLevelFinalizeDelegate;
+        private Vintagestory.API.Common.Func<ActiveSlotChangeEventArgs, EnumHandling> clientBeforeActiveSlotChangedDelegate;
+        private Vintagestory.API.Common.Func<IServerPlayer, ActiveSlotChangeEventArgs, EnumHandling> serverBeforeActiveSlotChangedDelegate;
 
         // Serverside
         private TransferLogic transferLogic { get; set; }
@@ -105,13 +111,12 @@ namespace CarryOn.Common.Handlers
             input.InWorldAction += OnEntityAction;
             this.gameTickListenerId = ClientApi.Event.RegisterGameTickListener(OnGameTick, 0);
 
-            ClientApi.Event.BeforeActiveSlotChanged +=
-                (_) => OnBeforeActiveSlotChanged(ClientApi.World.Player.Entity);
+            clientBeforeActiveSlotChangedDelegate = (_entity) => OnBeforeActiveSlotChanged(ClientApi.World.Player.Entity);
+            ClientApi.Event.BeforeActiveSlotChanged += clientBeforeActiveSlotChangedDelegate;
 
             ClientApi.Event.PlayerEntitySpawn += OnPlayerEntitySpawn;
 
             ClientApi.Event.IsPlayerReady += OnPlayerReady;
-
         }
 
         public void InitServer(ICoreServerAPI api)
@@ -119,8 +124,8 @@ namespace CarryOn.Common.Handlers
             this.api = api ?? throw new ArgumentNullException(nameof(api));
 
             var serverEvent = api.Event;
-            // TODO: Change this to a config value.
-            MaxInteractionDistance = 6;
+
+            MaxInteractionDistance = this.carrySystem?.Config?.CarryOptions?.MaxInteractionDistance ?? Default.MaxInteractionDistance;
 
             this.transferLogic = new TransferLogic(api, this.carrySystem);
 
@@ -148,57 +153,14 @@ namespace CarryOn.Common.Handlers
             serverEvent.OnEntitySpawn += OnServerEntitySpawn;
             serverEvent.PlayerNowPlaying += OnServerPlayerNowPlaying;
 
-            serverEvent.BeforeActiveSlotChanged +=
-                (player, _) => OnBeforeActiveSlotChanged(player.Entity);
+            serverBeforeActiveSlotChangedDelegate = (player, _) => OnBeforeActiveSlotChanged(player.Entity);
+            serverEvent.BeforeActiveSlotChanged += serverBeforeActiveSlotChangedDelegate;
 
-            InitTransferBehaviors(api);
+            if(IsCarryOnEnabled)
+                TransferLogic.InitTransferBehaviors(api);
         }        
 
-        /// <summary>
-        /// Initializes the transfer behaviors for carryable blocks.
-        /// </summary>
-        /// <param name="api"></param>
-        private void InitTransferBehaviors(ICoreAPI api)
-        {
-            if (IsCarryOnEnabled)
-            {
 
-                var ignoreMods = new[] { "game", "creative", "survival" };
-
-                var assemblies = api.ModLoader.Mods.Where(m => !ignoreMods.Contains(m.Info.ModID))
-                                                   .Select(s => s.Systems)
-                                                   .SelectMany(o => o.ToArray())
-                                                   .Select(t => t.GetType().Assembly)
-                                                   .Distinct();
-
-                foreach (var assembly in assemblies)
-                {
-                    foreach (Type type in assembly.GetTypes().Where(t => t.GetInterfaces().Contains(typeof(ICarryableTransfer))))
-                    {
-                        foreach (var block in api.World.Blocks.Where(b => b.IsCarryable()))
-                        {
-                            if (block.HasBehavior(type))
-                            {
-                                try
-                                {
-                                    var carryableBehavior = block.GetBehavior<BlockBehaviorCarryable>();
-                                    if (carryableBehavior != null)
-                                    {
-                                        carryableBehavior.ConfigureTransferBehavior(type, api);
-
-                                    }
-                                }
-                                catch (Exception e)
-                                {
-                                    api.Logger.Error($"CarryOn: Failed to set TransferHandlerType for block {block.Code}: {e.Message}");
-                                }
-                            }
-                        }
-                    }
-                }
-
-            }
-        }
 
         /// <summary> 
         /// Called when a player picks up or places down an invalid block,
@@ -271,8 +233,6 @@ namespace CarryOn.Common.Handlers
         /// <param name="message"></param>
         public void OnPickUpMessage(IServerPlayer player, PickUpMessage message)
         {
-            // FIXME: Do at least some validation of this data.
-
             var carried = player.Entity.GetCarried(message.Slot);
             if ((message.Slot == CarrySlot.Back) || (carried != null) ||
                 !player.Entity.CanInteract(requireEmptyHanded: true))
@@ -280,10 +240,28 @@ namespace CarryOn.Common.Handlers
                 InvalidCarry(player, message.Position);
             }
 
-            var didPickUp = CarryManager.TryPickUp(player.Entity, message.Position, message.Slot, checkIsCarryable: true, playSound: true);
+            string failureCode = null;
+            var didPickUp = CarryManager.TryPickUp(
+                player.Entity,
+                message.Position,
+                message.Slot,
+                ref failureCode,
+                checkIsCarryable: true,
+                playSound: true
+            );
+
             if (!didPickUp)
             {
                 InvalidCarry(player, message.Position);
+
+                if (failureCode != null && failureCode != FailureCode.Ignore)
+                {
+                    ServerApi.SendIngameError(player, failureCode, GetLang("pick-up-failed-" + failureCode));
+                }
+                else
+                {
+                    ServerApi.SendIngameError(player, "pick-up-failed", GetLang("pick-up-failed"));
+                }
             }
 
         }
@@ -364,7 +342,7 @@ namespace CarryOn.Common.Handlers
                 return;
             }
             // If target entity is null or too far away, do nothing
-            if (targetEntity.SidedPos?.DistanceTo(player.Entity.Pos) > MaxInteractionDistance)
+            if (targetEntity.Pos?.DistanceTo(player.Entity.Pos) > MaxInteractionDistance)
             {
                 api.SendIngameError(player, "entity-out-of-reach", GetLang("entity-out-of-reach"));
                 api.Logger.Debug("Target entity is too far away!");
@@ -468,13 +446,15 @@ namespace CarryOn.Common.Handlers
                     attachableBehavior.storeInv();
 
                     targetEntity.MarkShapeModified();
-                    targetEntity.World.BlockAccessor.GetChunkAtBlockPos(targetEntity.ServerPos.AsBlockPos).MarkModified();
+                    targetEntity.World.BlockAccessor.GetChunkAtBlockPos(targetEntity.Pos.AsBlockPos).MarkModified();
 
                     // Remove held block from player
                     CarryManager.RemoveCarried(player.Entity, CarrySlot.Hands);
 
-                    var sound = block?.Sounds.Place ?? new AssetLocation("sounds/player/build");
+                    var sound = block?.Sounds?.Place.Location ?? new AssetLocation("sounds/player/build");
                     api.World.PlaySoundAt(sound, targetEntity, null, true, 16);
+                    Api.World.Logger.Audit($"[{ModId}] Player {player?.PlayerName} attached block {carriedBlock.Block.Code} to entity {targetEntity.EntityId} {targetEntity.GetName()} slot {message.SlotIndex} at position {targetEntity.Pos.AsBlockPos}");
+
 
                 }
                 else
@@ -505,7 +485,7 @@ namespace CarryOn.Common.Handlers
             }
 
             // Validate distance
-            if (targetEntity.SidedPos?.DistanceTo(player.Entity.Pos) > MaxInteractionDistance)
+            if (targetEntity.Pos?.DistanceTo(player.Entity.Pos) > MaxInteractionDistance)
             {
                 api.SendIngameError(player, "entity-out-of-reach", GetLang("entity-out-of-reach"));
                 return;
@@ -583,7 +563,7 @@ namespace CarryOn.Common.Handlers
                 carriedBlock = new CarriedBlock(CarrySlot.Hands, itemstackCopy, blockEntityData);
                 carriedBlock.Set(player.Entity, CarrySlot.Hands);
 
-                var sound = block?.Sounds.Place ?? new AssetLocation("sounds/player/build");
+                var sound = block?.Sounds?.Place.Location ?? new AssetLocation("sounds/player/build");
                 api.World.PlaySoundAt(sound, targetEntity, null, true, 16);
 
                 itemstack?.Collectible.GetCollectibleInterface<IAttachedListener>()?.OnDetached(sourceSlot, message.SlotIndex, targetEntity, player.Entity);
@@ -593,7 +573,9 @@ namespace CarryOn.Common.Handlers
                 attachableBehavior.storeInv();
 
                 targetEntity.MarkShapeModified();
-                targetEntity.World.BlockAccessor.GetChunkAtBlockPos(targetEntity.ServerPos.AsBlockPos).MarkModified();
+                targetEntity.World.BlockAccessor.GetChunkAtBlockPos(targetEntity.Pos.AsBlockPos).MarkModified();
+                Api.World.Logger.Audit($"[{ModId}] Player {player?.PlayerName} detached block {block.Code} from entity {targetEntity.EntityId} {targetEntity.GetName()} slot {message.SlotIndex} at position {targetEntity.Pos.AsBlockPos}");
+                 
             }
 
         }
@@ -694,7 +676,8 @@ namespace CarryOn.Common.Handlers
         private bool OnPlayerReady(ref EnumHandling handling)
         {
             // Check if the player is ready and the carry system is enabled
-            InitTransferBehaviors(Api);
+            if (!IsCarryOnEnabled) return true;
+            TransferLogic.InitTransferBehaviors(Api);
 
             return true;
         }
@@ -707,13 +690,19 @@ namespace CarryOn.Common.Handlers
         /// <param name="byPlayer"></param>
         private void OnPlayerEntitySpawn(IClientPlayer byPlayer)
         {
-            var entityCarriedListener = new TreeModifiedListener()
+            if (watchedClientPlayerEntity?.WatchedAttributes?.OnModified != null && entityCarriedListener != null)
+            {
+                watchedClientPlayerEntity.WatchedAttributes.OnModified.Remove(entityCarriedListener);
+            }
+
+            entityCarriedListener = new TreeModifiedListener()
             {
                 path = AttributeKey.Watched.EntityCarried,
                 listener = this.interactionLogic.RefreshPlacedBlockInteractionHelp
 
             };
 
+            watchedClientPlayerEntity = byPlayer.Entity;
             byPlayer.Entity.WatchedAttributes.OnModified.Add(entityCarriedListener);
 
         }
@@ -779,6 +768,7 @@ namespace CarryOn.Common.Handlers
             }
 
             this.interactionLogic.TryContinueInteraction(deltaTime);
+            this.interactionLogic.FlushPlacedBlockInteractionHelpRefresh();
 
         }
 
@@ -817,11 +807,27 @@ namespace CarryOn.Common.Handlers
                 
                 ClientApi.Input.InWorldAction -= OnEntityAction;
                 ClientApi.Event.UnregisterGameTickListener(this.gameTickListenerId);
-
-                ClientApi.Event.BeforeActiveSlotChanged -=
-                    (_) => OnBeforeActiveSlotChanged(ClientApi.World.Player.Entity);
+                if (watchedClientPlayerEntity?.WatchedAttributes?.OnModified != null && entityCarriedListener != null)
+                {
+                    watchedClientPlayerEntity.WatchedAttributes.OnModified.Remove(entityCarriedListener);
+                    entityCarriedListener = null;
+                    watchedClientPlayerEntity = null;
+                }
+                if (clientBeforeActiveSlotChangedDelegate != null)
+                {
+                    ClientApi.Event.BeforeActiveSlotChanged -= clientBeforeActiveSlotChangedDelegate;
+                    clientBeforeActiveSlotChangedDelegate = null;
+                }
 
                 ClientApi.Event.PlayerEntitySpawn -= OnPlayerEntitySpawn;
+
+                // Unsubscribe player ready and level finalize handlers
+                try { ClientApi.Event.IsPlayerReady -= OnPlayerReady; } catch { }
+                if (clientLevelFinalizeDelegate != null)
+                {
+                    ClientApi.Event.LevelFinalize -= clientLevelFinalizeDelegate;
+                    clientLevelFinalizeDelegate = null;
+                }
             }
 
             if (ServerApi != null)
@@ -830,8 +836,11 @@ namespace CarryOn.Common.Handlers
                 ServerApi.Event.OnEntitySpawn -= OnServerEntitySpawn;
                 ServerApi.Event.PlayerNowPlaying -= OnServerPlayerNowPlaying;
 
-                ServerApi.Event.BeforeActiveSlotChanged -=
-                    (player, _) => OnBeforeActiveSlotChanged(player.Entity);
+                if (serverBeforeActiveSlotChangedDelegate != null)
+                {
+                    ServerApi.Event.BeforeActiveSlotChanged -= serverBeforeActiveSlotChangedDelegate;
+                    serverBeforeActiveSlotChangedDelegate = null;
+                }
             }
 
         }

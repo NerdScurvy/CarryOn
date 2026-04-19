@@ -1,0 +1,129 @@
+{
+	"code": "carry-crate",
+	"transformGroups": {
+		"hands": [
+			{
+				"id": "root",
+				"translation": [ 0.0, 0.1, 0.0 ],
+				"rotationY": -90.0
+			}
+		],
+		"backpack-none": [
+			{
+				"id": "root",
+				"translation": [ 0.04, 0.07, 0.002 ],
+				"rotationY": -90.0
+			},
+			{
+				"id": "strap-top-left",
+				"item": "carryon:strap",
+				"translation": [ 0.3, 0.5, -0.485 ],
+				"scale": 1.0
+			},
+			{
+				"id": "strap-top-right",
+				"item": "carryon:strap",
+				"translation": [ -0.3, 0.5, -0.485 ],
+				"rotationY": 10.0,
+				"scale": 1.0
+			},
+			{
+				"id": "strap-rear-left",
+				"item": "carryon:strap",
+				"translation": [ 0.2999, 0.516, -0.485 ],
+				"rotationX": 90.0,
+				"scale": [ 1.0, 1.0, 1.034 ]
+			},
+			{
+				"id": "strap-rear-right",
+				"item": "carryon:strap",
+				"translation": [ -0.3001, 0.516, -0.485 ],
+				"rotationX": 90.0,
+				"scale": [ 1.0, 1.0, 1.034 ]
+			},
+			{
+				"id": "strap-bottom-left",
+				"item": "carryon:strap",
+				"translation": [ 0.3, -0.5, -0.485 ],
+				"scale": 1.0
+			},
+			{
+				"id": "strap-bottom-right",
+				"item": "carryon:strap",
+				"translation": [ -0.3, -0.5, -0.485 ],
+				"scale": 1.0
+			}
+		],
+		"backpack-small": {
+			"extends": "backpack-none",
+			"overrides": [
+				{
+					"id": "root",
+					"translation": [ 0.06, 0.151, -0.012 ],
+					"rotationZ": 11.0
+				},
+				{
+					"id": "strap-top-left",
+					"scaleZ": 1.2
+				},
+				{
+					"id": "strap-top-right",
+					"rotationY": 4.8,
+					"scaleZ": 1.1
+				},
+				{
+					"id": "strap-bottom-left",
+					"scaleZ": 0.979
+				},
+				{
+					"id": "strap-bottom-right",
+					"scaleZ": 0.984
+				}
+			],
+			"appends": [
+				{
+					"id": "strap-anchor-lower-left",
+					"item": "carryon:strap",
+					"translation": [ 0.2999, -0.507, 0.48 ],
+					"rotation": [ -60.0, 10.5, 0.0 ],
+					"scale": [ 1.0, 1.0, 0.434 ]
+				},
+				{
+					"id": "strap-anchor-lower-right",
+					"item": "carryon:strap",
+					"translation": [ -0.3001, -0.507, 0.485 ],
+					"rotation": [ -60.0, 0.0, 0.0 ],
+					"scale": [ 1.0, 1.0, 0.434 ]
+				}
+			]
+		},
+		"backpack-large": {
+			"extends": "backpack-none",
+			"overrides": [
+				{
+					"id": "root",
+					"translation": [ 0.0, 0.163, 0.011 ],
+					"rotationZ": 10.1
+				},
+				{
+					"id": "strap-top-left",
+					"rotation": [ -0.8, -0.6, 0.0 ],
+					"scaleZ": 1.4
+				},
+				{
+					"id": "strap-top-right",
+					"rotation": [ -0.7, 0.2, 0.0 ],
+					"scaleZ": 1.4
+				},
+				{
+					"id": "strap-bottom-left",
+					"scaleZ": 1.1
+				},
+				{
+					"id": "strap-bottom-right",
+					"scaleZ": 1.1
+				}
+			]
+		}
+	}
+}
