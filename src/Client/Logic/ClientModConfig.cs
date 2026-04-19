@@ -17,15 +17,15 @@ namespace CarryOn.Client.Logic
         public string BackAnchor { get; set; } = HudCarried.BackAnchorDefault.ToString();
 
         // Anchor background preferences (client-side persistence)
-        public bool AnchorBackgroundEnabled { get; set; } = true;
+        public bool AnchorBackgroundEnabled { get; set; } = false;
         public string AnchorBackgroundColor { get; set; } = HudCarried.AnchorBackgroundColorDefault;
         public float AnchorBackgroundAlpha { get; set; } = HudCarried.AnchorBackgroundAlphaDefault;
         // Anchor border (outline) preferences
-        public bool AnchorBorderEnabled { get; set; } = true;
+        public bool AnchorBorderEnabled { get; set; } = false;
         public string AnchorBorderColor { get; set; } = HudCarried.AnchorBorderColorDefault;
         public float AnchorBorderAlpha { get; set; } = HudCarried.AnchorBorderAlphaDefault;
         // Icon highlight preferences
-        public bool IconHighlightEnabled { get; set; } = true;
+        public bool IconHighlightEnabled { get; set; } = false;
         public string IconHighlightColor { get; set; } = HudCarried.IconHighlightColorDefault;
         public float IconHighlightAlpha { get; set; } = HudCarried.IconHighlightAlphaDefault;
 
