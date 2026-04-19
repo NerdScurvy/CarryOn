@@ -1,0 +1,27 @@
+{
+	"code": "croton",
+	"variantgroups": [
+		{
+			"code": "plantsize",
+			"states": [ "small", "medium" ]
+		},
+		{
+			"code": "color",
+			"states": [ "crimson-brown-green", "crimson-green", "crimson-orange", "darkgreen-gold", "darkgreen-gold-crimson", "green-orange", "lemongreen", "lemongreen-crimson" ]
+		},
+		{
+			"code": "size",
+			"states": [ "", "large" ]
+		}
+	],
+	"shapeByType": {
+		"*-large": {"base": "game:block/plant/croton/medium/{color}"},
+		"*": {"base": "game:block/plant/croton/small/{color}"}
+	},
+	"creativeinventory": {},
+	"attributes": {
+		"handbook": {
+			"exclude": true
+		}
+	}
+}

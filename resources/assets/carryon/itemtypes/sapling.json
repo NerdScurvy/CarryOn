@@ -1,0 +1,101 @@
+{
+	"code": "sapling",
+	"variantgroups": [
+		{
+			"code": "wood",
+			"states": [ "greenbamboo", "brownbamboo", "greenbambooshoots", "brownbambooshoots", "crimsonkingmaple", "greenspirecypress" ],
+			"loadFromProperties": "block/wood"
+		},
+		{
+			"code": "size",
+			"states": [ "small", "large" ]
+		},
+		{
+			"code": "part",
+			"states": [ "trunk", "leaves" ]
+		}
+	],
+	"allowedVariants": [
+		"sapling-acacia-large-leaves",
+		"sapling-acacia-large-trunk",
+		"sapling-acacia-small-leaves",
+		"sapling-acacia-small-trunk",
+		"sapling-baldcypress-large-leaves",
+		"sapling-baldcypress-large-trunk",
+		"sapling-baldcypress-small-leaves",
+		"sapling-baldcypress-small-trunk",
+		"sapling-birch-large-leaves",
+		"sapling-birch-large-trunk",
+		"sapling-birch-small-leaves",
+		"sapling-birch-small-trunk",
+		"sapling-brownbamboo-large-leaves",
+		"sapling-brownbamboo-large-trunk",
+		"sapling-brownbambooshoots-large-trunk",
+		"sapling-brownbambooshoots-small-trunk",
+		"sapling-brownbamboo-small-leaves",
+		"sapling-brownbamboo-small-trunk",
+		"sapling-crimsonkingmaple-large-leaves",
+		"sapling-crimsonkingmaple-large-trunk",
+		"sapling-crimsonkingmaple-small-leaves",
+		"sapling-crimsonkingmaple-small-trunk",
+		"sapling-ebony-large-leaves",
+		"sapling-ebony-large-trunk",
+		"sapling-ebony-small-leaves",
+		"sapling-ebony-small-trunk",
+		"sapling-greenbamboo-large-leaves",
+		"sapling-greenbamboo-large-trunk",
+		"sapling-greenbambooshoots-large-trunk",
+		"sapling-greenbambooshoots-small-trunk",
+		"sapling-greenbamboo-small-leaves",
+		"sapling-greenbamboo-small-trunk",
+		"sapling-greenspirecypress-large-leaves",
+		"sapling-greenspirecypress-large-trunk",
+		"sapling-greenspirecypress-small-leaves",
+		"sapling-greenspirecypress-small-trunk",
+		"sapling-kapok-large-leaves",
+		"sapling-kapok-large-trunk",
+		"sapling-kapok-small-leaves",
+		"sapling-kapok-small-trunk",
+		"sapling-larch-large-leaves",
+		"sapling-larch-large-trunk",
+		"sapling-larch-small-leaves",
+		"sapling-larch-small-trunk",
+		"sapling-maple-large-leaves",
+		"sapling-maple-large-trunk",
+		"sapling-maple-small-leaves",
+		"sapling-maple-small-trunk",
+		"sapling-oak-large-leaves",
+		"sapling-oak-large-trunk",
+		"sapling-oak-small-leaves",
+		"sapling-oak-small-trunk",
+		"sapling-pine-large-leaves",
+		"sapling-pine-large-trunk",
+		"sapling-pine-small-leaves",
+		"sapling-pine-small-trunk",
+		"sapling-purpleheart-large-leaves",
+		"sapling-purpleheart-large-trunk",
+		"sapling-purpleheart-small-leaves",
+		"sapling-purpleheart-small-trunk",
+		"sapling-redwood-large-leaves",
+		"sapling-redwood-large-trunk",
+		"sapling-redwood-small-leaves",
+		"sapling-redwood-small-trunk",
+		"sapling-walnut-large-leaves",
+		"sapling-walnut-large-trunk",
+		"sapling-walnut-small-leaves",
+		"sapling-walnut-small-trunk"
+	],
+	"shape": {
+		"base": "carryon:item/tree/{wood}-{size}-{part}"
+	},
+	"shapeByType": {
+		"*-greenbambooshoots-small-trunk": {"base": "carryon:item/tree/greenbambooshoots-small-trunk"},
+		"*-brownbambooshoots-small-trunk": {"base": "carryon:item/tree/brownbambooshoots-small-trunk"}
+	},
+	"creativeinventory": {},
+	"attributes": {
+		"handbook": {
+			"exclude": true
+		}
+	}
+}

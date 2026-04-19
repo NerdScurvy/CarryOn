@@ -8,7 +8,7 @@
 		<Description>Vintage Story mod which adds the capability to carry various things</Description>
 		<RepositoryUrl>https://github.com/NerdScurvy/CarryOn</RepositoryUrl>
 		
-		<TargetFramework>net8.0</TargetFramework>
+		<TargetFramework>net10.0</TargetFramework>
 		<LangVersion>latest</LangVersion>
 		
 	</PropertyGroup>
@@ -25,7 +25,19 @@
 		<Reference Include="VSEssentials">
 			<HintPath>$(VINTAGE_STORY)/Mods/VSEssentials.dll</HintPath>
 			<Private>false</Private>
-		</Reference>			
+		</Reference>	
+		<Reference Include="CairoSharp">
+			<HintPath>$(VINTAGE_STORY)/Lib/cairo-sharp.dll</HintPath>
+			<Private>false</Private>	
+		</Reference>
+		<Reference Include="SkiaSharp">
+			<HintPath>$(VINTAGE_STORY)/Lib/SkiaSharp.dll</HintPath>
+			<Private>false</Private>
+		</Reference>
+		<Reference Include="OpenTK.Graphics">
+			<HintPath>$(VINTAGE_STORY)/Lib/OpenTK.Graphics.dll</HintPath>
+			<Private>false</Private>
+		</Reference>
 		<Reference Include="Newtonsoft.Json">
 			<HintPath>$(VINTAGE_STORY)/Lib/Newtonsoft.Json.dll</HintPath>
 			<Private>false</Private>
@@ -43,11 +55,11 @@
             <Private>false</Private>
         </Reference>
 		<Reference Include="CarryOnLib" Condition="'$(Configuration)' == 'Debug'">
-			<HintPath>..\CarryOnLib\bin\Debug\net8.0\CarryOnLib.dll</HintPath>
+			<HintPath>..\CarryOnLib\bin\Debug\net10.0\CarryOnLib.dll</HintPath>
 			<Private>false</Private>
 		</Reference>	
 		<Reference Include="CarryOnLib" Condition="'$(Configuration)' == 'Release'">
-			<HintPath>..\CarryOnLib\bin\Release\net8.0\CarryOnLib.dll</HintPath>
+			<HintPath>..\CarryOnLib\bin\Release\net10.0\CarryOnLib.dll</HintPath>
 			<Private>false</Private>
 		</Reference>
 	</ItemGroup>

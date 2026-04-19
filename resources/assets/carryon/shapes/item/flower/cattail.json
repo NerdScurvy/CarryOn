@@ -1,0 +1,63 @@
+{
+	"editor": {
+		"allAngles": true,
+		"entityTextureMode": false
+	},
+	"textureWidth": 16,
+	"textureHeight": 16,
+	"textureSizes": {
+		"reeds": [ 16, 16 ],
+		"cob": [ 8, 8 ],
+		"stem": [ 4, 32 ]
+	},
+	"textures": {
+		"reeds": "game:block/plant/potted/reeds",
+		"stem": "game:block/plant/reeds/stem"
+	},
+	"elements": [
+		{
+			"name": "FlowerNorth",
+			"from": [ 0.0, 0.0, 8.0 ],
+			"to": [ 16.0, 16.0, 8.0 ],
+			"shade": false,
+			"climateColorMap": "climatePlantTint",
+			"seasonColorMap": "seasonalFoliage",
+			"renderPass": 2,
+			"rotationOrigin": [ 8.0, 2.0, 8.0 ],
+			"rotationY": -45.0,
+			"faces": {
+				"north": {"texture": "#reeds", "uv": [ 0.0, 0.0, 16.0, 16.0 ], "windMode": [ 0, 1, 1, 0 ], "windData": [ 0, 1, 1, 0 ]}
+			}
+		},
+		{
+			"name": "FlowerSouth",
+			"from": [ 0.0, 0.0, 8.0 ],
+			"to": [ 16.0, 16.0, 8.0 ],
+			"shade": false,
+			"climateColorMap": "climatePlantTint",
+			"seasonColorMap": "seasonalFoliage",
+			"renderPass": 2,
+			"rotationOrigin": [ 8.0, 2.0, 8.0 ],
+			"rotationY": 45.0,
+			"faces": {
+				"north": {"texture": "#reeds", "uv": [ 0.0, 0.0, 16.0, 16.0 ], "windMode": [ 0, 1, 1, 0 ], "windData": [ 0, 1, 1, 0 ]}
+			}
+		},
+		{
+			"name": "Stem1",
+			"from": [ 8.5, 0.0, 8.0 ],
+			"to": [ 9.0, 16.0, 8.5 ],
+			"climateColorMap": "climatePlantTint",
+			"seasonColorMap": "seasonalFoliage",
+			"rotationOrigin": [ 8.5, 0.0, 8.0 ],
+			"rotationZ": -8.0,
+			"faces": {
+				"north": {"texture": "#stem", "uv": [ 0.0, 0.0, 0.5, 16.0 ], "windMode": [ 0, 1, 1, 0 ]},
+				"east": {"texture": "#stem", "uv": [ 0.0, 0.0, 0.5, 16.0 ], "windMode": [ 0, 1, 1, 0 ]},
+				"south": {"texture": "#stem", "uv": [ 0.0, 0.0, 0.5, 16.0 ], "windMode": [ 0, 0, 1, 1 ]},
+				"west": {"texture": "#stem", "uv": [ 0.0, 0.0, 0.5, 16.0 ], "windMode": [ 0, 0, 1, 1 ]},
+				"up": {"texture": "#stem", "uv": [ 0.0, 0.0, 0.5, 0.5 ], "windMode": [ 1, 1, 1, 1 ]}
+			}
+		}
+	]
+}

@@ -1,0 +1,157 @@
+{
+	"editor": {
+		"allAngles": false,
+		"entityTextureMode": false
+	},
+	"textureWidth": 16,
+	"textureHeight": 16,
+	"textureSizes": {},
+	"textures": {
+		"lilyofthevalley1": "game:block/plant/flower/petal/lilyofthevalley1",
+		"lilyofthevalley2": "game:block/plant/flower/petal/lilyofthevalley2",
+		"lilyofthevalley3": "game:block/plant/flower/petal/lilyofthevalley3"
+	},
+	"elements": [
+		{
+			"name": "plant1",
+			"from": [ 0.0, 0.0, 3.0 ],
+			"to": [ 0.0, 0.0, 3.0 ],
+			"rotationOrigin": [ 8.0, 0.0, 11.0 ],
+			"faces": {},
+			"children": [
+				{
+					"name": "flower1",
+					"from": [ 0.0, 0.0, 8.0 ],
+					"to": [ 16.0, 16.0, 8.0 ],
+					"shade": false,
+					"renderPass": 2,
+					"rotationOrigin": [ 8.0, 0.0, 8.0 ],
+					"rotationY": -75.0,
+					"faces": {
+						"north": {"texture": "#lilyofthevalley1", "uv": [ 0.0, 0.0, 16.0, 16.0 ], "windMode": [ 0, 1, 1, 0 ], "windData": [ 0, 1, 1, 0 ]}
+					}
+				},
+				{
+					"name": "flower2",
+					"from": [ 0.0, 0.0, 8.0 ],
+					"to": [ 16.0, 16.0, 8.0 ],
+					"shade": false,
+					"renderPass": 2,
+					"rotationOrigin": [ 8.0, 0.0, 8.0 ],
+					"rotationY": -22.0,
+					"faces": {
+						"north": {"texture": "#lilyofthevalley2", "uv": [ 0.0, 0.0, 16.0, 16.0 ], "autoUv": false, "windMode": [ 0, 1, 1, 0 ], "windData": [ 0, 1, 1, 0 ]}
+					}
+				},
+				{
+					"name": "flower3",
+					"from": [ 0.0, 0.0, 8.0 ],
+					"to": [ 16.0, 16.0, 8.0 ],
+					"shade": false,
+					"renderPass": 2,
+					"rotationOrigin": [ 8.0, 0.0, 8.0 ],
+					"rotationY": -135.0,
+					"faces": {
+						"north": {"texture": "#lilyofthevalley3", "uv": [ 0.0, 0.0, 16.0, 16.0 ], "autoUv": false, "windMode": [ 0, 1, 1, 0 ], "windData": [ 0, 1, 1, 0 ]}
+					}
+				}
+			]
+		},
+		{
+			"name": "plant2",
+			"from": [ 2.0, 0.0, -1.0 ],
+			"to": [ 2.0, 0.0, -1.0 ],
+			"climateColorMap": "climatePlantTint",
+			"seasonColorMap": "seasonalFoliage",
+			"rotationOrigin": [ 10.0, 0.0, 7.0 ],
+			"rotationY": -67.5,
+			"faces": {},
+			"children": [
+				{
+					"name": "flower20",
+					"from": [ 0.0, 0.0, 8.0 ],
+					"to": [ 16.0, 16.0, 8.0 ],
+					"shade": false,
+					"renderPass": 2,
+					"rotationOrigin": [ 8.0, 0.0, 8.0 ],
+					"rotationY": -75.0,
+					"faces": {
+						"north": {"texture": "#lilyofthevalley1", "uv": [ 0.0, 0.0, 16.0, 16.0 ], "windMode": [ 0, 1, 1, 0 ], "windData": [ 0, 1, 1, 0 ]}
+					}
+				},
+				{
+					"name": "flower21",
+					"from": [ 0.0, 0.0, 8.0 ],
+					"to": [ 16.0, 16.0, 8.0 ],
+					"shade": false,
+					"renderPass": 2,
+					"rotationOrigin": [ 8.0, 0.0, 8.0 ],
+					"rotationY": -22.0,
+					"faces": {
+						"north": {"texture": "#lilyofthevalley2", "uv": [ 0.0, 0.0, 16.0, 16.0 ], "autoUv": false, "windMode": [ 0, 1, 1, 0 ], "windData": [ 0, 1, 1, 0 ]}
+					}
+				},
+				{
+					"name": "flower22",
+					"from": [ 0.0, 0.0, 8.0 ],
+					"to": [ 16.0, 16.0, 8.0 ],
+					"shade": false,
+					"renderPass": 2,
+					"rotationOrigin": [ 8.0, 0.0, 8.0 ],
+					"rotationY": -135.0,
+					"faces": {
+						"north": {"texture": "#lilyofthevalley3", "uv": [ 0.0, 0.0, 16.0, 16.0 ], "autoUv": false, "windMode": [ 0, 1, 1, 0 ], "windData": [ 0, 1, 1, 0 ]}
+					}
+				}
+			]
+		},
+		{
+			"name": "plant3",
+			"from": [ -2.4, 0.0, -1.6 ],
+			"to": [ -2.4, 0.0, -1.6 ],
+			"climateColorMap": "climatePlantTint",
+			"seasonColorMap": "seasonalFoliage",
+			"rotationOrigin": [ 5.6, 0.0, 6.4 ],
+			"rotationY": -22.5,
+			"faces": {},
+			"children": [
+				{
+					"name": "flower31",
+					"from": [ 0.0, 0.0, 8.0 ],
+					"to": [ 16.0, 16.0, 8.0 ],
+					"shade": false,
+					"renderPass": 2,
+					"rotationOrigin": [ 8.0, 0.0, 8.0 ],
+					"rotationY": -75.0,
+					"faces": {
+						"north": {"texture": "#lilyofthevalley1", "uv": [ 0.0, 0.0, 16.0, 16.0 ], "windMode": [ 0, 1, 1, 0 ], "windData": [ 0, 1, 1, 0 ]}
+					}
+				},
+				{
+					"name": "flower32",
+					"from": [ 0.0, 0.0, 8.0 ],
+					"to": [ 16.0, 16.0, 8.0 ],
+					"shade": false,
+					"renderPass": 2,
+					"rotationOrigin": [ 8.0, 0.0, 8.0 ],
+					"rotationY": -22.0,
+					"faces": {
+						"north": {"texture": "#lilyofthevalley2", "uv": [ 0.0, 0.0, 16.0, 16.0 ], "autoUv": false, "windMode": [ 0, 1, 1, 0 ], "windData": [ 0, 1, 1, 0 ]}
+					}
+				},
+				{
+					"name": "flower33",
+					"from": [ 0.0, 0.0, 8.0 ],
+					"to": [ 16.0, 16.0, 8.0 ],
+					"shade": false,
+					"renderPass": 2,
+					"rotationOrigin": [ 8.0, 0.0, 8.0 ],
+					"rotationY": -135.0,
+					"faces": {
+						"north": {"texture": "#lilyofthevalley3", "uv": [ 0.0, 0.0, 16.0, 16.0 ], "autoUv": false, "windMode": [ 0, 1, 1, 0 ], "windData": [ 0, 1, 1, 0 ]}
+					}
+				}
+			]
+		}
+	]
+}

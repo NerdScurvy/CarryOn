@@ -1,20 +1,20 @@
 [
-  {
-    "file": "game:blocktypes/stone/quern",
-    "side": "Server",
-    "op": "add",
-    "path": "/behaviors/-",
-    "value": {
-      "name": "Carryable",
-      "properties": {
-        "enabledCondition": "carryon.Carryables.Quern",
-        "interactDelay": 1.0,
-        "slots": {
-          "Hands": {
-            "walkSpeedModifier": -0.4
-          }
-        }
-      }
-    }
-  }
+	{
+		"file": "game:blocktypes/stone/quern",
+		"side": "Server",
+		"op": "add",
+		"path": "/behaviors/-",
+		"value": {
+			"name": "Carryable",
+			"properties": {
+				"enabledCondition": "carryon.Carryables.Quern",
+				"interactDelay": 1.0,
+				"slots": {
+					"Hands": {
+						"walkSpeedModifier": -0.4
+					}
+				}
+			}
+		}
+	}
 ]

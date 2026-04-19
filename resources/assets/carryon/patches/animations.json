@@ -1,166 +1,373 @@
 [
-  { 
-    "file": "game:shapes/entity/humanoid/seraph-faceless", 
-    "op": "add", 
-    "path": "/elements/0/children/0/children/0/attachmentpoints/-", 
-    "value": {
-      "code": "carryon:FrontCarry",
-      "posX": 0.0, "rotationX":   0.0,
-      "posY": 0.0, "rotationY": 180.0,
-      "posZ": 3.0, "rotationZ":   0.0
-    } 
-  },
-
-  { 
-    "file": "game:shapes/entity/humanoid/seraph-faceless", 
-    "op": "add", 
-    "path": "/elements/0/children/0/children/1/attachmentpoints", 
-    "value": [ {
-      "code": "carryon:ShoulderL",
-      "posX": 1.5, "rotationX": -90.0,
-      "posY": 4.0, "rotationY":   0.0,
-      "posZ": 0.0, "rotationZ":   0.0
-    } ] 
-  },
-  
-  { 
-    "file": "game:shapes/entity/humanoid/seraph-faceless", 
-    "op": "add", 
-    "path": "/animations/-", 
-    "value": {
-      "name": "Holding Heavy Block (Carry On)",
-      "code": "carryon:holdheavy",
-      "quantityframes": 30,
-      "onActivityStopped": "Rewind",
-      "onAnimationEnd": "Repeat",
-      "keyframes": [
-        {
-          "frame": 0,
-          "elements": {
-            "LowerTorso": { "rotationX": 0.0, "rotationY": 0.0, "rotationZ": -12.0 },
-            "UpperTorso": { "rotationX": 0.0, "rotationY": 0.0, "rotationZ":  12.0 },
-            "UpperArmR":  { "offsetX": 0.0, "offsetY": -0.4, "offsetZ":  0.4, "rotationX":   6.0, "rotationY":  0.0, "rotationZ":  -8.0 },
-            "LowerArmR":  { "offsetX": 0.4, "offsetY":  0.6, "offsetZ": -0.0, "rotationX": -12.0, "rotationY":  8.0, "rotationZ": -60.0 },
-            "UpperArmL":  { "offsetX": 0.0, "offsetY": -0.4, "offsetZ": -0.4, "rotationX":  -6.0, "rotationY":  0.0, "rotationZ":  -8.0 },
-            "LowerArmL":  { "offsetX": 0.4, "offsetY":  0.6, "offsetZ":  0.0, "rotationX":  12.0, "rotationY": -8.0, "rotationZ": -60.0 },
-            "UpperFootR": { "rotationX": 0.0, "rotationY": 0.0, "rotationZ": 12.0 },
-            "UpperFootL": { "rotationX": 0.0, "rotationY": 0.0, "rotationZ": 12.0 }
-          }
-        } 
-      ]
-    } 
-  },
-
-  { "file": "game:entities/humanoid/player", 
-    "op": "add", 
-    "path": "/client/animations/-", 
-    "side": "Server",
-    "value": {
-      "code": "carryon:holdheavy",
-   
-      "animation": "carryon:holdheavy",
-      "blendMode": "Add",
-      "elementWeight": {
-        "UpperArmR": 12,
-        "LowerArmR": 12,
-        "UpperArmL": 12,
-        "LowerArmL": 12
-      },
-      "elementBlendMode": {
-        "UpperArmR": "AddAverage",
-        "LowerArmR": "AddAverage",
-        "UpperArmL": "AddAverage",
-        "LowerArmL": "AddAverage"
-      }
-    } 
-  },
-
-  { 
-    "file": "game:shapes/entity/humanoid/seraph-faceless", 
-    "op": "add", 
-    "path": "/animations/-", 
-    "value": {
-      "name": "Holding Light Block (Carry On)",
-      "code": "carryon:holdlight",
-      "quantityframes": 30,
-      "onActivityStopped": "Rewind",
-      "onAnimationEnd": "Repeat",
-      "keyframes": [ 
-        {
-          "frame": 0,
-          "elements": {
-            "UpperArmR": { "offsetX": 0.0, "offsetY": -0.4, "offsetZ":  0.4, "rotationX":   6.0, "rotationY":  0.0, "rotationZ":  -8.0 },
-            "LowerArmR": { "offsetX": 0.4, "offsetY":  0.6, "offsetZ": -0.0, "rotationX": -12.0, "rotationY":  8.0, "rotationZ": -60.0 },
-            "UpperArmL": { "offsetX": 0.0, "offsetY": -0.4, "offsetZ": -0.4, "rotationX":  -6.0, "rotationY":  0.0, "rotationZ":  -8.0 },
-            "LowerArmL": { "offsetX": 0.4, "offsetY":  0.6, "offsetZ":  0.0, "rotationX":  12.0, "rotationY": -8.0, "rotationZ": -60.0 }
-          }
-        } 
-      ]
-    } 
-  },
-
-  { 
-    "file": "game:entities/humanoid/player", 
-    "op": "add", 
-    "path": "/client/animations/-", 
-    "side": "Server",
-    "value": {
-      "code": "carryon:holdlight",
-      "animation": "carryon:holdlight",
-      "blendMode": "Add",
-      "elementWeight": {
-        "UpperArmR": 12,
-        "LowerArmR": 12,
-        "UpperArmL": 12,
-        "LowerArmL": 12
-      },
-      "elementBlendMode": {
-        "UpperArmR": "AddAverage",
-        "LowerArmR": "AddAverage",
-        "UpperArmL": "AddAverage",
-        "LowerArmL": "AddAverage"
-      }
-    } 
-  },
-
-  { 
-    "file": "game:shapes/entity/humanoid/seraph-faceless", 
-    "op": "add", 
-    "path": "/animations/-", 
-    "value": {
-      "name": "Carry on Shoulder (Carry On)",
-      "code": "carryon:shoulder",
-      "quantityframes": 30,
-      "onActivityStopped": "Rewind",
-      "onAnimationEnd": "Repeat",
-      "keyframes": [ 
-        {
-          "frame": 0,
-          "elements": {
-            "UpperArmL": { "offsetX": -1.0, "offsetY": -0.6, "offsetZ": 0.0, "rotationX": 90.0, "rotationY": 5.0, "rotationZ": -180.0 },
-            "LowerArmL": { "offsetX":  0.0, "offsetY":  0.8, "offsetZ": 0.0, "rotationX": 90.0, "rotationY": 0.0, "rotationZ":    5.0 }
-          }
-        }
-      ]
-    }
-  },
-
-  { "file": "game:entities/humanoid/player", 
-    "op": "add", 
-    "path": "/client/animations/-",
-    "side": "Server",
-    "value": {
-      "code": "carryon:shoulder",
-      "animation": "carryon:shoulder",
-      "blendMode": "Add",
-      "elementWeight": {
-        "UpperArmL": 12,
-        "LowerArmL": 12
-      },
-      "elementBlendMode": {
-        "UpperArmL": "AddAverage",
-        "LowerArmL": "AddAverage"
-      }
-    } 
-  }
+	{
+		"file": "game:shapes/entity/humanoid/seraph-faceless",
+		"op": "add",
+		"path": "/elements/0/children/0/children/0/children/1/children/0/children/-",
+		"value": {
+			"name": "HandL",
+			"from": [ 1.5, 0.5, 1.0 ],
+			"to": [ 2.5, 1.5, 2.0 ],
+			"uv": [ 0.0, 0.0 ],
+			"rotationOrigin": [ 1.0, 1.0, 1.0 ],
+			"faces": {
+				"north": {"texture": "#null", "uv": [ 0.0, 1.0, 1.0, 2.0 ], "enabled": false},
+				"east": {"texture": "#null", "uv": [ 1.0, 1.0, 2.0, 2.0 ], "enabled": false},
+				"south": {"texture": "#null", "uv": [ 2.0, 1.0, 3.0, 2.0 ], "enabled": false},
+				"west": {"texture": "#null", "uv": [ 3.0, 1.0, 4.0, 2.0 ], "enabled": false},
+				"up": {"texture": "#null", "uv": [ 0.0, 0.0, 1.0, 1.0 ], "enabled": false},
+				"down": {"texture": "#null", "uv": [ 1.0, 0.0, 2.0, 1.0 ], "enabled": false}
+			},
+			"attachmentpoints": [
+				{
+					"code": "carryon:FrontCarry",
+					"posX": -3.1134,
+					"posY": 3.0,
+					"posZ": -4.05,
+					"rotationX": 170.0,
+					"rotationY": 0.0,
+					"rotationZ": 120.0
+				}
+			]
+		}
+	},
+	{
+		"file": "game:shapes/entity/humanoid/seraph-faceless",
+		"op": "add",
+		"path": "/elements/0/children/0/children/1/attachmentpoints",
+		"value": [
+			{
+				"code": "carryon:ShoulderL",
+				"posX": 1.5,
+				"rotationX": -90.0,
+				"posY": 4.0,
+				"rotationY": 0.0,
+				"posZ": 0.0,
+				"rotationZ": 0.0
+			}
+		]
+	},
+	{
+		"file": "game:shapes/entity/humanoid/seraph-faceless",
+		"op": "add",
+		"path": "/animations/-",
+		"value": {
+			"name": "Holding Heavy Block (Carry On)",
+			"code": "carryon:holdheavy",
+			"quantityframes": 30,
+			"onActivityStopped": "Rewind",
+			"onAnimationEnd": "Repeat",
+			"keyframes": [
+				{
+					"frame": 0,
+					"elements": {
+						"LowerTorso": {"rotationX": 0.0, "rotationY": 0.0, "rotationZ": -12.0},
+						"UpperTorso": {"rotationX": 0.0, "rotationY": 0.0, "rotationZ": 12.0},
+						"UpperArmR": {"offsetX": 0.0, "offsetY": -0.4, "offsetZ": 0.4, "rotationX": 6.0, "rotationY": 0.0, "rotationZ": -8.0},
+						"LowerArmR": {"offsetX": 0.4, "offsetY": 0.6, "offsetZ": 0.0, "rotationX": -12.0, "rotationY": 8.0, "rotationZ": -60.0},
+						"UpperArmL": {"offsetX": 0.0, "offsetY": -0.4, "offsetZ": -0.4, "rotationX": -6.0, "rotationY": 0.0, "rotationZ": -8.0},
+						"LowerArmL": {"offsetX": 0.4, "offsetY": 0.6, "offsetZ": 0.0, "rotationX": 12.0, "rotationY": -8.0, "rotationZ": -60.0},
+						"UpperFootR": {"rotationX": 0.0, "rotationY": 0.0, "rotationZ": 12.0},
+						"UpperFootL": {"rotationX": 0.0, "rotationY": 0.0, "rotationZ": 12.0}
+					}
+				}
+			]
+		}
+	},
+	{
+		"file": "game:entities/humanoid/player",
+		"op": "add",
+		"path": "/client/animations/-",
+		"side": "Server",
+		"value": {
+			"code": "carryon:holdheavy",
+			"animation": "carryon:holdheavy",
+			"blendMode": "Add",
+			"elementWeight": {
+				"UpperArmR": 1000,
+				"LowerArmR": 1000,
+				"UpperArmL": 1000,
+				"LowerArmL": 1000
+			},
+			"elementBlendMode": {
+				"UpperArmR": "AddAverage",
+				"LowerArmR": "AddAverage",
+				"UpperArmL": "AddAverage",
+				"LowerArmL": "AddAverage"
+			}
+		}
+	},
+	{
+		"file": "game:shapes/entity/humanoid/seraph-faceless",
+		"op": "add",
+		"path": "/animations/-",
+		"value": {
+			"name": "Holding Heavy Block Sit (Carry On)",
+			"code": "carryon:holdheavysit",
+			"quantityframes": 30,
+			"onActivityStopped": "Rewind",
+			"onAnimationEnd": "Repeat",
+			"keyframes": [
+				{
+					"frame": 0,
+					"elements": {
+						"UpperArmR": {"offsetX": 0.0, "offsetY": -0.50, "offsetZ": 0.45, "rotationX": 6.0, "rotationY": -6.0, "rotationZ": -60.0},
+						"LowerArmR": {"offsetX": 0.42, "offsetY": 0.32, "offsetZ": 0.0, "rotationX": 0.0, "rotationY": 10.0, "rotationZ": -40.0},
+						"UpperArmL": {"offsetX": 0.0, "offsetY": -0.50, "offsetZ": -0.45, "rotationX": -6.0, "rotationY": 6.0, "rotationZ": -60.0},
+						"LowerArmL": {"offsetX": 0.42, "offsetY": 0.32, "offsetZ": 0.0, "rotationX": 10.0, "rotationY": 0.0, "rotationZ": -40.0},
+						"HandL": {"offsetX": 3, "offsetY": 0.0, "offsetZ": 0.0, "rotationX": 0.0, "rotationY": 10.0, "rotationZ": 20.0}
+					}
+				}
+			]
+		}
+	},
+	{
+		"file": "game:entities/humanoid/player",
+		"op": "add",
+		"path": "/client/animations/-",
+		"side": "Server",
+		"value": {
+			"code": "carryon:holdheavysit",
+			"animation": "carryon:holdheavysit",
+			"blendMode": "Add",
+			"elementWeight": {
+				"UpperArmR": 1000,
+				"LowerArmR": 1000,
+				"UpperArmL": 1000,
+				"LowerArmL": 1000
+			},
+			"elementBlendMode": {
+				"UpperArmR": "AddAverage",
+				"LowerArmR": "AddAverage",
+				"UpperArmL": "AddAverage",
+				"LowerArmL": "AddAverage"
+			}
+		}
+	},
+	{
+		"file": "game:shapes/entity/humanoid/seraph-faceless",
+		"op": "add",
+		"path": "/animations/-",
+		"value": {
+			"name": "Holding Heavy Block Crouch (Carry On)",
+			"code": "carryon:holdheavycrouch",
+			"quantityframes": 30,
+			"onActivityStopped": "Rewind",
+			"onAnimationEnd": "Repeat",
+			"keyframes": [
+				{
+					"frame": 0,
+					"elements": {
+						"LowerTorso": {"rotationX": 0.0, "rotationY": 0.0, "rotationZ": -10.0},
+						"UpperTorso": {"rotationX": 0.0, "rotationY": 0.0, "rotationZ": 10.0},
+						"UpperArmR": {"offsetX": 0.0, "offsetY": -0.76, "offsetZ": 0.45, "rotationX": 2.0, "rotationY": -4.0, "rotationZ": -26.0},
+						"LowerArmR": {"offsetX": 0.42, "offsetY": 0.34, "offsetZ": 0.0, "rotationX": 0.0, "rotationY": 6.0, "rotationZ": -66.0},
+						"UpperArmL": {"offsetX": 0.0, "offsetY": -0.76, "offsetZ": -0.45, "rotationX": -2.0, "rotationY": 0.0, "rotationZ": -26.0},
+						"LowerArmL": {"offsetX": 0.42, "offsetY": 0.34, "offsetZ": 0.0, "rotationX": 0.0, "rotationY": -6.0, "rotationZ": -66.0}
+					}
+				}
+			]
+		}
+	},
+	{
+		"file": "game:entities/humanoid/player",
+		"op": "add",
+		"path": "/client/animations/-",
+		"side": "Server",
+		"value": {
+			"code": "carryon:holdheavycrouch",
+			"animation": "carryon:holdheavycrouch",
+			"blendMode": "Add",
+			"elementWeight": {
+				"UpperArmR": 1000,
+				"LowerArmR": 1000,
+				"UpperArmL": 1000,
+				"LowerArmL": 1000
+			},
+			"elementBlendMode": {
+				"UpperArmR": "AddAverage",
+				"LowerArmR": "AddAverage",
+				"UpperArmL": "AddAverage",
+				"LowerArmL": "AddAverage"
+			}
+		}
+	},
+	{
+		"file": "game:shapes/entity/humanoid/seraph-faceless",
+		"op": "add",
+		"path": "/animations/-",
+		"value": {
+			"name": "Holding Light Block Sit (Carry On)",
+			"code": "carryon:holdlightsit",
+			"quantityframes": 30,
+			"onActivityStopped": "Rewind",
+			"onAnimationEnd": "Repeat",
+			"keyframes": [
+				{
+					"frame": 0,
+					"elements": {
+						"UpperArmR": {"offsetX": 0.0, "offsetY": -0.46, "offsetZ": 0.42, "rotationX": 6.0, "rotationY": -6.0, "rotationZ": -58.0},
+						"LowerArmR": {"offsetX": 0.4, "offsetY": 0.32, "offsetZ": 0.0, "rotationX": 0.0, "rotationY": 10.0, "rotationZ": -28.0},
+						"UpperArmL": {"offsetX": 0.0, "offsetY": -0.46, "offsetZ": -0.42, "rotationX": -6.0, "rotationY": 6.0, "rotationZ": -58.0},
+						"LowerArmL": {"offsetX": 0.4, "offsetY": 0.32, "offsetZ": 0.0, "rotationX": 0.0, "rotationY": -10.0, "rotationZ": -28.0},
+						"HandL": {"offsetX": -3.0, "offsetY": 2.0, "offsetZ": 0.0, "rotationX": 0.0, "rotationY": 10.0, "rotationZ": 20.0}
+					}
+				}
+			]
+		}
+	},
+	{
+		"file": "game:entities/humanoid/player",
+		"op": "add",
+		"path": "/client/animations/-",
+		"side": "Server",
+		"value": {
+			"code": "carryon:holdlightsit",
+			"animation": "carryon:holdlightsit",
+			"blendMode": "Add",
+			"elementWeight": {
+				"UpperArmR": 1000,
+				"LowerArmR": 1000,
+				"UpperArmL": 1000,
+				"LowerArmL": 1000
+			},
+			"elementBlendMode": {
+				"UpperArmR": "AddAverage",
+				"LowerArmR": "AddAverage",
+				"UpperArmL": "AddAverage",
+				"LowerArmL": "AddAverage"
+			}
+		}
+	},
+	{
+		"file": "game:shapes/entity/humanoid/seraph-faceless",
+		"op": "add",
+		"path": "/animations/-",
+		"value": {
+			"name": "Holding Light Block (Carry On)",
+			"code": "carryon:holdlight",
+			"quantityframes": 30,
+			"onActivityStopped": "Rewind",
+			"onAnimationEnd": "Repeat",
+			"keyframes": [
+				{
+					"frame": 0,
+					"elements": {
+						"UpperArmR": {"offsetX": 0.0, "offsetY": -0.4, "offsetZ": 0.4, "rotationX": 6.0, "rotationY": 0.0, "rotationZ": -8.0},
+						"LowerArmR": {"offsetX": 0.4, "offsetY": 0.6, "offsetZ": 0.0, "rotationX": -12.0, "rotationY": 8.0, "rotationZ": -60.0},
+						"UpperArmL": {"offsetX": 0.0, "offsetY": -0.4, "offsetZ": -0.4, "rotationX": -6.0, "rotationY": 0.0, "rotationZ": -8.0},
+						"LowerArmL": {"offsetX": 0.4, "offsetY": 0.6, "offsetZ": 0.0, "rotationX": 12.0, "rotationY": -8.0, "rotationZ": -60.0}
+					}
+				}
+			]
+		}
+	},
+	{
+		"file": "game:entities/humanoid/player",
+		"op": "add",
+		"path": "/client/animations/-",
+		"side": "Server",
+		"value": {
+			"code": "carryon:holdlight",
+			"animation": "carryon:holdlight",
+			"blendMode": "Add",
+			"elementWeight": {
+				"UpperArmR": 1000,
+				"LowerArmR": 1000,
+				"UpperArmL": 1000,
+				"LowerArmL": 1000
+			},
+			"elementBlendMode": {
+				"UpperArmR": "AddAverage",
+				"LowerArmR": "AddAverage",
+				"UpperArmL": "AddAverage",
+				"LowerArmL": "AddAverage"
+			}
+		}
+	},
+	{
+		"file": "game:shapes/entity/humanoid/seraph-faceless",
+		"op": "add",
+		"path": "/animations/-",
+		"value": {
+			"name": "Holding Light Block Crouch (Carry On)",
+			"code": "carryon:holdlightcrouch",
+			"quantityframes": 30,
+			"onActivityStopped": "Rewind",
+			"onAnimationEnd": "Repeat",
+			"keyframes": [
+				{
+					"frame": 0,
+					"elements": {
+						"UpperArmR": {"offsetX": 0.0, "offsetY": -0.72, "offsetZ": 0.42, "rotationX": 2.0, "rotationY": -4.0, "rotationZ": -24.0},
+						"LowerArmR": {"offsetX": 0.4, "offsetY": 0.34, "offsetZ": 0.0, "rotationX": 0.0, "rotationY": 6.0, "rotationZ": -62.0},
+						"UpperArmL": {"offsetX": 0.0, "offsetY": -0.72, "offsetZ": -0.42, "rotationX": -2.0, "rotationY": 0.0, "rotationZ": -24.0},
+						"LowerArmL": {"offsetX": 0.4, "offsetY": 0.34, "offsetZ": 0.0, "rotationX": 0.0, "rotationY": -6.0, "rotationZ": -62.0}
+					}
+				}
+			]
+		}
+	},
+	{
+		"file": "game:entities/humanoid/player",
+		"op": "add",
+		"path": "/client/animations/-",
+		"side": "Server",
+		"value": {
+			"code": "carryon:holdlightcrouch",
+			"animation": "carryon:holdlightcrouch",
+			"blendMode": "Add",
+			"elementWeight": {
+				"UpperArmR": 1000,
+				"LowerArmR": 1000,
+				"UpperArmL": 1000,
+				"LowerArmL": 1000
+			},
+			"elementBlendMode": {
+				"UpperArmR": "AddAverage",
+				"LowerArmR": "AddAverage",
+				"UpperArmL": "AddAverage",
+				"LowerArmL": "AddAverage"
+			}
+		}
+	},
+	{
+		"file": "game:shapes/entity/humanoid/seraph-faceless",
+		"op": "add",
+		"path": "/animations/-",
+		"value": {
+			"name": "Carry on Shoulder (Carry On)",
+			"code": "carryon:shoulder",
+			"quantityframes": 30,
+			"onActivityStopped": "Rewind",
+			"onAnimationEnd": "Repeat",
+			"keyframes": [
+				{
+					"frame": 0,
+					"elements": {
+						"UpperArmL": {"offsetX": -1.0, "offsetY": -0.6, "offsetZ": 0.0, "rotationX": 90.0, "rotationY": 5.0, "rotationZ": -180.0},
+						"LowerArmL": {"offsetX": 0.0, "offsetY": 0.8, "offsetZ": 0.0, "rotationX": 90.0, "rotationY": 0.0, "rotationZ": 5.0}
+					}
+				}
+			]
+		}
+	},
+	{
+		"file": "game:entities/humanoid/player",
+		"op": "add",
+		"path": "/client/animations/-",
+		"side": "Server",
+		"value": {
+			"code": "carryon:shoulder",
+			"animation": "carryon:shoulder",
+			"blendMode": "Add",
+			"elementWeight": {
+				"UpperArmL": 12,
+				"LowerArmL": 12
+			},
+			"elementBlendMode": {
+				"UpperArmL": "AddAverage",
+				"LowerArmL": "AddAverage"
+			}
+		}
+	}
 ]

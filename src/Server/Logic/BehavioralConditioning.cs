@@ -2,10 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CarryOn.API.Common.Interfaces;
+using CarryOn.API.Common.Models;
 using CarryOn.Common.Behaviors;
-using CarryOn.Config;
 using CarryOn.Utility;
+using Newtonsoft.Json.Linq;
+using Vintagestory.API.Client;
 using Vintagestory.API.Common;
+using Vintagestory.API.Datastructures;
 using Vintagestory.API.Util;
 using static CarryOn.Utility.Extensions;
 
@@ -26,6 +29,7 @@ namespace CarryOn.Server.Logic
             AutoMapSimilarCarryableInteract(api);
             RemoveExcludedCarryableBehaviors(api);
         }
+
 
         /// <summary>
         /// Removes all conditional behaviors from blocks that are not enabled by the EnabledCondition.
@@ -126,27 +130,54 @@ namespace CarryOn.Server.Logic
         private T[] RemoveOverriddenCarryableBehaviors<T>(T[] behaviours, bool removeBaseBehavior = false)
         {
             if (behaviours == null || behaviours.Length == 0) return behaviours;
+
             var behaviourList = behaviours.ToList();
-            // Only consider BlockBehaviorCarryable instances for removal
             var carryableList = behaviourList.OfType<BlockBehaviorCarryable>().ToList();
+
             if (carryableList.Count > 1)
             {
-                var maxPriority = carryableList.Max(m => m.PatchPriority);
-                var priorityCarryable = carryableList.FirstOrDefault(p => p.PatchPriority == maxPriority);
-                if (priorityCarryable != null)
+                var hasOverrides = carryableList.Any(c => c.OverrideExistingProperties);
+
+                BlockBehaviorCarryable keepBehavior;
+
+                if (!hasOverrides)
                 {
-                    if (ShouldKeepBehavior(priorityCarryable, maxPriority, removeBaseBehavior))
-                    {
-                        carryableList.Remove(priorityCarryable);
-                    }
-                    behaviourList.RemoveAll(r => carryableList.Any(c => ReferenceEquals(r, c)));
+                    var maxPriority = carryableList.Max(m => m.PatchPriority);
+                    keepBehavior = carryableList.FirstOrDefault(p => p.PatchPriority == maxPriority);
                 }
+                else
+                {
+                    var ordered = carryableList.OrderBy(c => c.PatchPriority).ToList();
+
+                    keepBehavior = ordered
+                        .Where(c => !c.OverrideExistingProperties)
+                        .OrderByDescending(c => c.PatchPriority)
+                        .FirstOrDefault()
+                        ?? ordered.Last();
+
+                    var overlays = ordered
+                        .Where(c => c.OverrideExistingProperties && c.PatchPriority >= keepBehavior.PatchPriority)
+                        .ToList();
+
+                    if (overlays.Count > 0)
+                    {
+                        var merged = MergeCarryableProperties(keepBehavior, overlays);
+                        keepBehavior.Initialize(merged);
+                    }
+                }
+
+                if (keepBehavior != null && ShouldKeepBehavior(keepBehavior, keepBehavior.PatchPriority, removeBaseBehavior))
+                {
+                    carryableList.Remove(keepBehavior);
+                }
+
+                behaviourList.RemoveAll(r => carryableList.Any(c => ReferenceEquals(r, c)));
             }
             else if (removeBaseBehavior && carryableList.Count == 1 && carryableList[0].PatchPriority == 0)
             {
-                // Remove base behavior
                 behaviourList.RemoveAll(r => carryableList.Any(c => ReferenceEquals(r, c)));
             }
+
             return behaviourList.ToArray();
         }
 
@@ -320,5 +351,27 @@ namespace CarryOn.Server.Logic
             return behavior.PatchPriority == maxPriority &&
                 !(removeBaseBehavior && behavior.PatchPriority == 0);
         }
+
+        private JsonObject MergeCarryableProperties(
+            BlockBehaviorCarryable baseBehavior,
+            List<BlockBehaviorCarryable> overlays)
+        {
+            var merged = baseBehavior?.Properties?.Token as JObject;
+            merged = merged != null ? (JObject)merged.DeepClone() : new JObject();
+
+            foreach (var overlay in overlays)
+            {
+                if (overlay?.Properties?.Token is JObject overlayObj)
+                {
+                    merged.Merge(overlayObj, new JsonMergeSettings
+                    {
+                        MergeArrayHandling = MergeArrayHandling.Replace,
+                        MergeNullValueHandling = MergeNullValueHandling.Merge
+                    });
+                }
+            }
+
+            return new JsonObject(merged);
+        }        
     }
 }

@@ -1,37 +1,24 @@
 [
-  {
-    "file": "game:blocktypes/wood/woodtyped/bookshelf",
-    "side": "Server",
-    "op": "addmerge",
-    "path": "/behaviors",
-    "value": []
-    
-  },
-
-
-  {
-    "file": "game:blocktypes/wood/woodtyped/bookshelf",
-    "side": "Server",
-    "op": "add",
-    "path": "/behaviors/-",
-    "value": {
-      "name": "Carryable",
-      "properties": {
-        "enabledCondition": "carryon.Carryables.Bookshelf",
-        "translation": [
-          0,
-          0,
-          0.2
-        ],
-        "rotation": [
-          0,
-          -90,
-          0
-        ],        
-        "slots": {
-          "Hands": {}
-        }
-      }
-    }
-  }
+	{
+		"file": "game:blocktypes/wood/woodtyped/bookshelf",
+		"side": "Server",
+		"op": "addmerge",
+		"path": "/behaviors",
+		"value": [  ]
+	},
+	{
+		"file": "game:blocktypes/wood/woodtyped/bookshelf",
+		"side": "Server",
+		"op": "add",
+		"path": "/behaviors/-",
+		"value": {
+			"name": "Carryable",
+			"properties": {
+				"enabledCondition": "carryon.Carryables.Bookshelf",
+				"slots": {
+					"Hands": {}
+				}
+			}
+		}
+	}
 ]

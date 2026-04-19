@@ -1,10 +1,9 @@
 {
 	"textureWidth": 16,
 	"textureHeight": 16,
-	"textureSizes": {
-	},
+	"textureSizes": {},
 	"textures": {
-		"handsfree": "carryon:item/handsfree"
+		"base": "carryon:item/icon-handsfree"
 	},
 	"elements": [
 		{
@@ -13,7 +12,8 @@
 			"to": [ 16.0, 15.0, 8.0 ],
 			"rotationOrigin": [ 8.0, 8.0, 8.0 ],
 			"faces": {
-				"south": { "texture": "#handsfree", "uv": [ 0.5, 63.5, 63.5, 0.5 ], "autoUv": false }
+				"south": {"texture": "#handsfree", "uv": [ 0.5, 63.5, 63.5, 0.5 ], "autoUv": false}
 			}
 		}
-	]}
+	]
+}

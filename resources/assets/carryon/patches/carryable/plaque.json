@@ -1,29 +1,42 @@
 [
-  {
-    "file": "game:blocktypes/metal/plaque",
-    "side": "Server",
-    "op": "add",
-    "path": "/behaviors",
-    "value": [
-      {
-        "name": "Carryable",
-        "properties": {
-          "enabledCondition": "carryon.Carryables.Sign",
-          "translation": [
-            0,
-            -0.25,
-            0.5
-          ],
-          "rotation": [
-            0,
-            -90,
-            0
-          ],
-          "slots": {
-            "Hands": {"walkSpeedModifier": -0.5}
-          }
-        }
-      }
-    ]
-  }
+	{
+		"file": "game:blocktypes/metal/plaque",
+		"side": "Server",
+		"op": "add",
+		"path": "/behaviors",
+		"value": [
+			{
+				"name": "Carryable",
+				"properties": {
+					"enabledCondition": "carryon.Carryables.Sign",
+					"labelRenderSettings": {
+						"transform": {
+							"translation": [ 1.335, 1.18, 0.04 ],
+							"rotation": [ 0.0, 0.0, 0.0 ],
+							"scale": [ 1.78, 1.51, 1.0 ]
+						},
+						"maxWidth": 200,
+						"maxHeight": 172,
+						"fontName": "Almendra",
+						"verticalAlign": "Middle",
+						"boldFont": true
+					},
+					"transformGroups": {
+						"hands": [
+							{
+								"id": "root",
+								"translation": [ -0.16, 0.27, 0.0 ],
+								"rotation": [ 0.0, -90.0, -40.0 ]
+							}
+						]
+					},
+					"slots": {
+						"Hands": {
+							"walkSpeedModifier": -0.5
+						}
+					}
+				}
+			}
+		]
+	}
 ]

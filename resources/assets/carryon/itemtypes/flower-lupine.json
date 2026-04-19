@@ -1,0 +1,35 @@
+{
+	"code": "flower",
+	"variantgroups": [
+		{
+			"code": "flower",
+			"states": [ "lupine" ]
+		},
+		{
+			"code": "color",
+			"states": [ "blue", "orange", "purple", "red", "white" ]
+		},
+		{
+			"code": "suffix",
+			"states": [ "free", "snow", "bloom" ]
+		},
+		{
+			"code": "size",
+			"states": [ "", "large" ]
+		}
+	],
+	"textures": {
+		"north": {"base": "game:block/plant/potted/{flower}-{color}"},
+		"south": {"base": "game:block/plant/potted/{flower}-{color}"}
+	},
+	"shapeByType": {
+		"*-bloom-large": {"base": "game:block/clay/planter/contents"},
+		"*": {"base": "game:block/clay/flowerpot/contents"}
+	},
+	"creativeinventory": {},
+	"attributes": {
+		"handbook": {
+			"exclude": true
+		}
+	}
+}

@@ -1,28 +1,18 @@
 [
-  {
-    "file": "game:blocktypes/wood/shelf",
-    "side": "Server",
-    "op": "add",
-    "path": "/behaviors/-",
-    "value": {
-      "name": "Carryable",
-      "properties": {
-        "enabledCondition": "carryon.Carryables.Shelf",
-        "translation": [
-          0.0625,
-          0,
-          0
-        ],
-        "rotation": [
-          0,
-          180,
-          0
-        ],
-        "slots": {
-          "Hands": {},
-          "Back": {}
-        }
-      }
-    }
-  }
+	{
+		"file": "game:blocktypes/wood/shelf",
+		"side": "Server",
+		"op": "add",
+		"path": "/behaviors/-",
+		"value": {
+			"name": "Carryable",
+			"properties": {
+				"enabledCondition": "carryon.Carryables.Shelf",
+				"slots": {
+					"Hands": {},
+					"disabled--Back": {}
+				}
+			}
+		}
+	}
 ]

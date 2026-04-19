@@ -1,28 +1,52 @@
 [
-  {
-    "file": "game:blocktypes/wood/chest",
-    "side": "Server",
-    "op": "add",
-    "path": "/behaviors/-",
-    "value": {
-      "name": "Carryable",
-      "properties": {
-        "enabledCondition": "carryon.Carryables.Chest",
-        "translation": [
-          0.0625,
-          0,
-          0
-        ],
-        "rotation": [
-          0,
-          180,
-          0
-        ],
-        "slots": {
-          "Hands": {},
-          "Back": {}
-        }
-      }
-    }
-  }
+	{
+		"file": "game:blocktypes/wood/chest",
+		"side": "Server",
+		"op": "add",
+		"path": "/behaviors/-",
+		"value": {
+			"name": "Carryable",
+			"properties": {
+				"enabledCondition": "carryon.Carryables.Chest",
+				"groups": {
+					"normal": [
+						"normal-generic",
+						"normal-aged"
+					],
+					"compact": [
+						"golden",
+						"owl",
+						"golden-aged",
+						"owl-aged"
+					]
+				},
+				"transformTemplates": [
+					"carryon:carry-chest",
+					"carryon:carry-chest-compact"
+				],
+				"transformGroups": {
+					"backpack-none-normal": {
+						"extends": "backpack-none"
+					},
+					"backpack-small-normal": {
+						"extends": "backpack-small"
+					},
+					"backpack-large-normal": {
+						"extends": "backpack-large"
+					}
+				},
+				"slots": {
+					"Hands": {},
+					"Back": {
+						"enabledCondition": "carryon.CarryablesOnBack.Chest",
+						"excludedTypes": [
+							"collapsed1",
+							"collapsed2",
+							"collapsed3"
+						]
+					}
+				}
+			}
+		}
+	}
 ]

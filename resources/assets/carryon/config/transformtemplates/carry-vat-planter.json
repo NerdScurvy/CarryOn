@@ -1,0 +1,76 @@
+{
+	"code": "carry-vat-planter",
+	"transformGroups": {
+		"^planted": [
+			{
+				"id": "plant1",
+				"translationY": 0.372
+			}
+		],
+		"^planted-double": [
+			{
+				"id": "plant2",
+				"translationY": 0.372
+			}
+		],
+		"^planted-sapling": [
+			{
+				"id": "plant1",
+				"translationY": 0.372
+			},
+			{
+				"id": "plant2",
+				"translationY": 0.372
+			}
+		],
+		"^planted-reed-cattail": [
+			{
+				"id": "plant3",
+				"translationY": 0.372
+			}
+		],
+		"default": [
+			{
+				"id": "root",
+				"scale": 0.6
+			}
+		],
+		"hands": {
+			"extends": "default"
+		},
+		"backpack-none": {
+			"extends": "default"
+		},
+		"backpack-small": {
+			"extends": "default"
+		},
+		"backpack-large": {
+			"extends": "default"
+		},
+		"default-planted": [
+			{
+				"translation": [ 0.0, 0.1, 0.02 ],
+				"rotation": [ 27.4, 11.7, -11.0 ],
+				"scale": 0.6
+			},
+			{
+				"id": "soil",
+				"item": "carryon:soil-flowerpot",
+				"translation": [ 0.372, 0.44, 0.375 ],
+				"scale": 1.0
+			}
+		],
+		"hands-planted": {
+			"extends": "default-planted"
+		},
+		"backpack-none-planted": {
+			"extends": "default-planted"
+		},
+		"backpack-small-planted": {
+			"extends": "default-planted"
+		},
+		"backpack-large-planted": {
+			"extends": "default-planted"
+		}
+	}
+}

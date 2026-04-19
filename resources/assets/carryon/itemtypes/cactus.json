@@ -1,0 +1,23 @@
+{
+	"code": "cactus",
+	"variantgroups": [
+		{
+			"code": "type",
+			"states": [ "silvertorchcactus", "barrelcactus" ]
+		},
+		{
+			"code": "size",
+			"states": [ "", "large" ]
+		}
+	],
+	"shapeByType": {
+		"*-large": {"base": "game:block/plant/{type}/planter/normal1"},
+		"*": {"base": "game:block/plant/{type}/flowerpot/normal1"}
+	},
+	"creativeinventory": {},
+	"attributes": {
+		"handbook": {
+			"exclude": true
+		}
+	}
+}

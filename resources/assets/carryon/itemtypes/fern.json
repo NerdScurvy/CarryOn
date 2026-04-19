@@ -1,0 +1,44 @@
+{
+	"code": "fern",
+	"variantgroups": [
+		{
+			"code": "type",
+			"states": [ "cinnamonfern", "deerfern", "eaglefern", "hartstongue" ]
+		},
+		{
+			"code": "size",
+			"states": [ "", "large" ]
+		}
+	],
+	"shapeByType": {
+		"*-large": {"base": "game:block/plant/fern/{type}/planter/var1"},
+		"*": {"base": "game:block/plant/fern/{type}/flowerpot/var1"}
+	},
+	"texturesByType": {
+		"fern-cinnamonfern*": {
+			"short": {"base": "game:block/plant/fern/cinnamonfern/short"},
+			"center1": {"base": "game:block/plant/fern/cinnamonfern/center1"},
+			"center2": {"base": "game:block/plant/fern/cinnamonfern/center2"},
+			"tall": {"base": "game:block/plant/fern/cinnamonfern/tall"}
+		},
+		"fern-hartstongue*": {
+			"straight": {"base": "game:block/plant/fern/hartstongue/straight"},
+			"curved": {"base": "game:block/plant/fern/hartstongue/curved"}
+		},
+		"fern-deerfern*": {
+			"tall1": {"base": "game:block/plant/fern/deerfern/tall1"},
+			"tall2": {"base": "game:block/plant/fern/deerfern/tall2"},
+			"center1": {"base": "game:block/plant/fern/deerfern/center1"}
+		},
+		"fern-eaglefern*": {
+			"tall2": {"base": "game:block/plant/fern/eaglefern/tall"},
+			"center1": {"base": "game:block/plant/fern/eaglefern/center1"}
+		}
+	},
+	"creativeinventory": {},
+	"attributes": {
+		"handbook": {
+			"exclude": true
+		}
+	}
+}

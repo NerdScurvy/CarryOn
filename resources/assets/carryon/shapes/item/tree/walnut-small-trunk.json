@@ -1,0 +1,64 @@
+{
+	"editor": {
+		"allAngles": false,
+		"entityTextureMode": false
+	},
+	"textureWidth": 16,
+	"textureHeight": 16,
+	"textureSizes": {},
+	"textures": {
+		"trunk": "game:block/wood/bark/walnut"
+	},
+	"elements": [
+		{
+			"name": "trunk",
+			"from": [ 7.5, 0.0, 7.5 ],
+			"to": [ 8.5, 6.0, 8.5 ],
+			"rotationOrigin": [ 0.5, 0.0, 0.5 ],
+			"faces": {
+				"north": {"texture": "#trunk", "uv": [ 1.0, 6.5, 2.0, 12.5 ], "windMode": [ 4, 4, 4, 4 ]},
+				"east": {"texture": "#trunk", "uv": [ 2.0, 6.0, 3.0, 12.0 ], "windMode": [ 4, 4, 4, 4 ]},
+				"south": {"texture": "#trunk", "uv": [ 12.5, 6.0, 13.5, 12.0 ], "windMode": [ 4, 4, 4, 4 ]},
+				"west": {"texture": "#trunk", "uv": [ 3.0, 6.0, 4.0, 12.0 ], "windMode": [ 4, 4, 4, 4 ]},
+				"up": {"texture": "#trunk", "uv": [ 14.0, 10.0, 15.0, 11.0 ], "windMode": [ 4, 4, 4, 4 ]},
+				"down": {"texture": "#trunk", "uv": [ 14.0, 9.0, 15.0, 10.0 ], "windMode": [ 4, 4, 4, 4 ]}
+			},
+			"children": [
+				{
+					"name": "north",
+					"from": [ -3.5, 3.0, 0.5 ],
+					"to": [ 4.5, 9.0, 0.5 ],
+					"climateColorMap": "climatePlantTint",
+					"seasonColorMap": "seasonalWalnut",
+					"renderPass": 1,
+					"rotationOrigin": [ 0.5, 3.0, 0.5 ],
+					"rotationY": -45.0,
+					"faces": {
+						"east": {"texture": "#trunk", "uv": [ 0.0, 0.0, 0.5, 6.0 ], "enabled": false},
+						"south": {"texture": "#trunk", "uv": [ 0.0, 0.0, 8.0, 6.0 ], "enabled": false},
+						"west": {"texture": "#trunk", "uv": [ 0.0, 0.0, 0.5, 6.0 ], "enabled": false},
+						"up": {"texture": "#trunk", "uv": [ 0.0, 0.0, 8.0, 0.5 ], "enabled": false},
+						"down": {"texture": "#trunk", "uv": [ 0.0, 0.0, 8.0, 0.5 ], "enabled": false}
+					}
+				},
+				{
+					"name": "south",
+					"from": [ -3.5, 3.0, 0.5 ],
+					"to": [ 4.5, 9.0, 0.5 ],
+					"climateColorMap": "climatePlantTint",
+					"seasonColorMap": "seasonalWalnut",
+					"renderPass": 1,
+					"rotationOrigin": [ 0.5, 3.0, 0.5 ],
+					"rotationY": 45.0,
+					"faces": {
+						"east": {"texture": "#trunk", "uv": [ 0.0, 0.0, 0.5, 6.0 ], "enabled": false},
+						"south": {"texture": "#trunk", "uv": [ 0.0, 0.0, 8.0, 6.0 ], "enabled": false},
+						"west": {"texture": "#trunk", "uv": [ 0.0, 0.0, 0.5, 6.0 ], "enabled": false},
+						"up": {"texture": "#trunk", "uv": [ 0.0, 0.0, 8.0, 0.5 ], "enabled": false},
+						"down": {"texture": "#trunk", "uv": [ 0.0, 0.0, 8.0, 0.5 ], "enabled": false}
+					}
+				}
+			]
+		}
+	]
+}

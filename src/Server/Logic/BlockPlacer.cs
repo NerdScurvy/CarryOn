@@ -69,7 +69,6 @@ namespace CarryOn.Server.Logic
                 if (!IsPassable(block, pos)) break; // Stop if we hit a non-passable block
 
                 // Check if we can place the block here
-                Api.Logger.Debug("Checking position {0}", new BlockPos(startPos.X, y, startPos.Z));
                 var blockSelection = CheckCanPlaceBlock(droppedBlock, pos);
                 if (blockSelection != null)
                 {
@@ -123,6 +122,11 @@ namespace CarryOn.Server.Logic
 
             var multiblockOrigin = BlockUtils.GetMultiblockOriginSelection(BlockAccessor, new BlockSelection() { Position = pos, Block = block });
 
+            // Shouldn't be null since we are passing in the block and position, but just in case
+            if (multiblockOrigin?.Position == null)
+            {
+                return false;
+            }
             var testBlock = multiblockOrigin?.Block ?? block;
 
             if (testBlock.HasBehavior<BlockBehaviorDoor>())
@@ -185,58 +189,78 @@ namespace CarryOn.Server.Logic
                 yield return neighbor;
         }
 
+        public List<(Block block, BlockFacing facing)> GetBlockFacings(Block block)
+        {
+            var directions = new[] { BlockFacing.NORTH, BlockFacing.EAST, BlockFacing.SOUTH, BlockFacing.WEST };
+            var blocks = new List<(Block, BlockFacing)>();
+
+            foreach (var facing in directions)
+            {
+                var assetLocation = block.Code.Clone();
+                var baseCode = assetLocation.FirstCodePart();
+                assetLocation.Path = $"{baseCode}-{facing.Code}";
+
+                var blockFound = Api.World.GetBlock(assetLocation);
+                if (blockFound != null)
+                {
+                    blocks.Add((blockFound, facing));
+                }
+            }
+
+            // Randomize the list using Fisher-Yates shuffle
+            for (int i = blocks.Count - 1; i > 0; i--)
+            {
+                int j = Rand.Next(i + 1);
+                (blocks[j], blocks[i]) = (blocks[i], blocks[j]);
+            }
+
+            return blocks;
+        }
+
+
         public BlockSelection CheckCanPlaceBlock(Block droppedBlock, BlockPos position)
         {
             var testBlock = BlockAccessor.GetBlock(position);
             if (!testBlock.IsReplacableBy(droppedBlock)) return null;
 
-            var hasSupport = HasSupport(droppedBlock, position);
-
-            var behavior = droppedBlock.GetBehavior<BlockBehaviorCarryable>();
-            var offset = behavior?.MultiblockOffset;
-            if (offset != null)
+            // Check support for main position - for multiblocks this will be the controller.
+            if (!HasSupport(droppedBlock, position))
             {
+                return null;
+            }
 
-                var hole = new List<BlockPos>();
+            bool isMultiblock = droppedBlock.GetBehavior<BlockBehaviorMultiblock>() != null;
 
-                foreach (var neighbor in GetNeighbors(position, onlyHorizontal: true))
+            if (isMultiblock)
+            {
+                var blockFacings = GetBlockFacings(droppedBlock);
+
+                foreach (var item in blockFacings)
                 {
-                    // Check if neighbor is a valid placement position
-                    testBlock = BlockAccessor.GetBlock(neighbor);
-                    if (!testBlock.IsReplacableBy(droppedBlock))
+                    var testSelection = new BlockSelection()
                     {
-                        Api.Logger.Debug("Neighbor {0} at {1} is not replacable by {2}", testBlock.Code, neighbor, droppedBlock.Code);
-                        continue;
-                    }
-
-                    // If not supported in either position, skip
-                    if (!hasSupport && !HasSupport(droppedBlock, neighbor))
-                    {
-                        Api.Logger.Warning("No support for {0} at {1} or neighbor {2}", droppedBlock.Code, position, neighbor);
-                        hole.Add(neighbor.Copy());
-                        continue;
-                    }
-
-
-                    var blockFacing = GetFacingForMultiblock(position, neighbor);
-                    Api.Logger.Debug("Using offset {0} for placement at {1} with facing {2}", offset, position, blockFacing);
-                    return new BlockSelection
-                    {
-                        Position = position,
-                        Face = blockFacing
-
+                        Position = position.Copy(),
+                        Face = item.facing,
+                        HitPosition = new Vec3d(0.5, 0.5, 0.5), // Center hit position
                     };
+
+                    var failureCode = string.Empty;
+
+                    var multiblockBehavior = item.block.GetBehavior<BlockBehaviorMultiblock>();
+
+                    EnumHandling handling = EnumHandling.PreventDefault;
+                    if (!multiblockBehavior.CanPlaceBlock(Api.World, null, testSelection, ref handling, ref failureCode))
+                    {
+                        continue;
+                    }
+
+                    return testSelection;                      
                 }
 
                 return null;
             }
             else
             {
-                // Single block: just check support for main position
-                if (!HasSupport(droppedBlock, position))
-                {
-                    return null;
-                }
                 return new BlockSelection
                 {
                     Position = position,
@@ -248,6 +272,13 @@ namespace CarryOn.Server.Logic
 
         bool HasSupport(Block droppedBlock, BlockPos pos)
         {
+            var targetBlock = BlockAccessor.GetBlock(pos);
+
+            if(targetBlock.MatterState is EnumMatterState.Liquid)
+            {
+                return true; // Block in liquid counts as having support - prevents sinking to murky depths (unless it is a block like a vessel that will sink with no block support)
+            }
+
             var below = pos.DownCopy();
             var blockBelow = BlockAccessor.GetBlock(below);
             if (blockBelow == null || blockBelow.IsReplacableBy(droppedBlock) || IsGasOrLiquid(blockBelow))
@@ -256,22 +287,6 @@ namespace CarryOn.Server.Logic
                 return false;
             }
             return true;
-        }
-
-
-        private BlockFacing GetFacingForMultiblock(BlockPos mainPos, BlockPos neighborPos)
-        {
-            int dx = neighborPos.X - mainPos.X;
-            int dz = neighborPos.Z - mainPos.Z;
-
-            // Only horizontal directions
-            if (dx == 1 && dz == 0) return BlockFacing.NORTH;
-            if (dx == -1 && dz == 0) return BlockFacing.SOUTH;
-            if (dx == 0 && dz == 1) return BlockFacing.EAST;
-            if (dx == 0 && dz == -1) return BlockFacing.WEST;
-
-            // Fallback
-            return BlockFacing.NORTH;
         }
 
         private BlockFacing GetRandomFacing()

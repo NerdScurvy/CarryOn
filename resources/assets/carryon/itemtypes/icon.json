@@ -1,0 +1,34 @@
+{
+	"code": "icon",
+	"variantgroups": [
+		{
+			"code": "type",
+			"states": [ "handsfree", "nohandsfree", "put", "take" ]
+		}
+	],
+	"texture": {
+		"base": "carryon:item/icon-{type}"
+	},
+	"shape": {
+		"base": "carryon:item/flat"
+	},
+	"guiTransform": {
+		"translation": {
+			"x": 5,
+			"y": 3,
+			"z": 0
+		},
+		"rotation": {
+			"x": 0,
+			"y": 0,
+			"z": 0
+		},
+		"scale": 1.6
+	},
+	"creativeinventory": {},
+	"attributes": {
+		"handbook": {
+			"exclude": true
+		}
+	}
+}

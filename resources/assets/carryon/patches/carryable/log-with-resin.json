@@ -1,54 +1,54 @@
 [
-  {
-    "file": "game:blocktypes/wood/woodtyped/log-withresin",
-    "side": "Server",
-    "op": "add",
-    "path": "/behaviorsByType/*/-",
-    "value": {
-      "name": "Carryable",
-      "properties": {
-        "enabledCondition": "carryon.Carryables.LogWithResin",
-        "translation": [
-          0.0625,
-          0,
-          0
-        ],
-        "rotation": [
-          0,
-          180,
-          0
-        ],
-        "slots": {
-          "Hands": {},
-          "Back": {}
-        }
-      }
-    }
-  },
-  {
-    "file": "game:blocktypes/wood/woodtyped/log-withresin",
-    "side": "Server",
-    "op": "add",
-    "path": "/behaviorsByType/log-resinharvested-*/-",
-    "value": {
-      "name": "Carryable",
-      "properties": {
-        "enabledCondition": "carryon.Carryables.LogWithResin",
-        "translation": [
-          0.0625,
-          0,
-          0
-        ],
-        "rotation": [
-          0,
-          180,
-          0
-        ],
-        "slots": {
-          "Hands": {},
-          "Back": {}
-        }
-      }
-    }
-  }
+	{
+		"file": "game:blocktypes/wood/woodtyped/log-withresin",
+		"side": "Server",
+		"op": "add",
+		"path": "/behaviorsByType/*/-",
+		"value": {
+			"name": "Carryable",
+			"properties": {
+				"enabledCondition": "carryon.Carryables.LogWithResin",
+				"slots": {
+					"Hands": {
+						"transforms": {
+							"default": [
+								{
+									"rotation": [ 0.0, 180.0, 0.0 ]
+								}
+							]
+						}
+					},
+					"Back": {
+						"enabledCondition": "carryon.CarryablesOnBack.LogWithResin"
+					}
+				}
+			}
+		}
+	},
+	{
+		"file": "game:blocktypes/wood/woodtyped/log-withresin",
+		"side": "Server",
+		"op": "add",
+		"path": "/behaviorsByType/log-resinharvested-*/-",
+		"value": {
+			"name": "Carryable",
+			"properties": {
+				"enabledCondition": "carryon.Carryables.LogWithResin",
+				"slots": {
+					"Hands": {
+						"transforms": {
+							"default": [
+								{
+									"rotation": [ 0.0, 180.0, 0.0 ]
+								}
+							]
+						}
+					},
+					"Back": {
+						"enabledCondition": "carryon.CarryablesOnBack.LogWithResin"
+					}
+				}
+			}
+		}
+	}
 ]

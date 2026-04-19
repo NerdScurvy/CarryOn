@@ -1,0 +1,29 @@
+{
+	"editor": {
+		"allAngles": false,
+		"entityTextureMode": false
+	},
+	"textureWidth": 16,
+	"textureHeight": 16,
+	"textureSizes": {},
+	"textures": {
+		"leaves": "game:block/plant/leaves/large/greenspirecypress1",
+		"trunk": "game:block/wood/treetrunk/fruit/cypress"
+	},
+	"elements": [
+		{
+			"name": "trunk",
+			"from": [ 7.5, 0.0, 7.5 ],
+			"to": [ 8.5, 6.0, 8.5 ],
+			"rotationOrigin": [ 0.5, 0.0, 0.5 ],
+			"faces": {
+				"north": {"texture": "#trunk", "uv": [ 3.0, 7.0, 9.0, 8.0 ], "rotation": 90, "windMode": [ 4, 4, 4, 4 ]},
+				"east": {"texture": "#trunk", "uv": [ 4.5, 6.0, 10.5, 7.0 ], "rotation": 90, "windMode": [ 4, 4, 4, 4 ]},
+				"south": {"texture": "#trunk", "uv": [ 4.0, 6.5, 10.0, 7.5 ], "rotation": 90, "windMode": [ 4, 4, 4, 4 ]},
+				"west": {"texture": "#trunk", "uv": [ 7.5, 6.0, 13.5, 7.0 ], "rotation": 90, "windMode": [ 4, 4, 4, 4 ]},
+				"up": {"texture": "#trunk", "uv": [ 14.0, 8.5, 15.0, 9.5 ], "windMode": [ 4, 4, 4, 4 ]},
+				"down": {"texture": "#trunk", "uv": [ 14.0, 9.0, 15.0, 10.0 ], "windMode": [ 4, 4, 4, 4 ]}
+			}
+		}
+	]
+}

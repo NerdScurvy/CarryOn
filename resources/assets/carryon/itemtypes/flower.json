@@ -1,0 +1,55 @@
+{
+	"code": "flower",
+	"variantgroups": [
+		{
+			"code": "flower",
+			"states": [  ],
+			"loadFromProperties": "block/flower"
+		},
+		{
+			"code": "suffix",
+			"states": [ "free", "snow", "stem", "bloom" ]
+		},
+		{
+			"code": "size",
+			"states": [ "", "large" ]
+		}
+	],
+	"textures": {
+		"north": {"base": "game:block/plant/potted/{flower}"},
+		"south": {"base": "game:block/plant/potted/{flower}"}
+	},
+	"shapeByType": {
+		"*-lilyofthevalley-stem-large": {"base": "carryon:item/flower/lilyofthevalley-stem-large"},
+		"*-lilyofthevalley-bloom-large": {"base": "carryon:item/flower/lilyofthevalley-flower-large"},
+		"*-lilyofthevalley-stem": {"base": "carryon:item/flower/lilyofthevalley-stem"},
+		"*-lilyofthevalley-bloom": {"base": "carryon:item/flower/lilyofthevalley-flower"},
+		"*-stem-large": {"base": "game:block/clay/planter/contents"},
+		"*-bloom-large": {"base": "game:block/clay/planter/contents"},
+		"*": {"base": "game:block/clay/flowerpot/contents"}
+	},
+	"texturesByType": {
+		"flower-lilyofthevalley-*": {
+			"north": {"base": "game:block/plant/flower/petal/lilyofthevalley1"},
+			"south": {"base": "game:block/plant/flower/petal/lilyofthevalley1"}
+		},
+		"flower-ghostpipewhite-*": {
+			"north": {"base": "game:block/plant/flower/petal/ghostpipewhite1"},
+			"south": {"base": "game:block/plant/flower/petal/ghostpipewhite1"}
+		},
+		"flower-ghostpipepink-*": {
+			"north": {"base": "game:block/plant/flower/petal/ghostpipepink1"},
+			"south": {"base": "game:block/plant/flower/petal/ghostpipepink1"}
+		},
+		"flower-ghostpipered-*": {
+			"north": {"base": "game:block/plant/flower/petal/ghostpipered1"},
+			"south": {"base": "game:block/plant/flower/petal/ghostpipered1"}
+		}
+	},
+	"creativeinventory": {},
+	"attributes": {
+		"handbook": {
+			"exclude": true
+		}
+	}
+}

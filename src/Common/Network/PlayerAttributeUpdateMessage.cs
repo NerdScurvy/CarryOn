@@ -1,6 +1,4 @@
-using System.Runtime.InteropServices;
 using ProtoBuf;
-using Vintagestory.API.Datastructures;
 
 namespace CarryOn.Common.Network
 {

@@ -11,6 +11,9 @@ using CarryOn.Common.Network;
 using HarmonyLib;
 using CarryOn.API.Common.Models;
 using static CarryOn.API.Common.Models.CarryCode;
+using System.Linq;
+using System.Reflection;
+using CarryOn.Client.Logic;
 
 namespace CarryOn.Common.Logic
 {
@@ -22,11 +25,17 @@ namespace CarryOn.Common.Logic
         public CarryInteraction Interaction { get; private set; } = new CarryInteraction();
 
         public Vintagestory.Client.NoObf.HudElementInteractionHelp HudHelp { get; set; }
+        private MethodInfo composeBlockWorldInteractionHelpMethod;
+        private bool helpRefreshRequested;
 
         private bool? allowSprintWhileCarrying;
         private bool? backSlotEnabled;
         private bool? removeInteractDelayWhileCarrying;
         private float? interactSpeedMultiplier;
+
+        private Type[] preventSwapFromBackOnBehaviors = [];
+        private string[] preventSwapFromBackOnClasses = [];
+        private string[] preventSwapFromBackOnCodes = [];
 
         private TransferLogic transferLogic;
 
@@ -41,6 +50,50 @@ namespace CarryOn.Common.Logic
             this.api = api ?? throw new ArgumentNullException(nameof(api));
             this.carrySystem = carrySystem ?? throw new ArgumentNullException(nameof(carrySystem));
             this.transferLogic = new TransferLogic(api, carrySystem);
+            composeBlockWorldInteractionHelpMethod = AccessTools.Method(typeof(Vintagestory.Client.NoObf.HudElementInteractionHelp), "ComposeBlockWorldInteractionHelp");
+            if (composeBlockWorldInteractionHelpMethod == null)
+            {
+                this.api.Logger.Error("Failed to find method ComposeBlockWorldInteractionHelp via reflection.");
+            }
+            else
+            {
+                var parameters = composeBlockWorldInteractionHelpMethod.GetParameters();
+                if (parameters.Length != 0)
+                {
+                    this.api.Logger.Error($"Unexpected method signature for ComposeBlockWorldInteractionHelp: expected 0 parameters, got {parameters.Length}");
+                    composeBlockWorldInteractionHelpMethod = null;
+                }
+            }
+
+            const string behaviorPrefix = "behavior::";
+            const string classPrefix = "class::";
+            const string codePrefix = "code::";
+
+            var config = this.carrySystem?.Config;
+
+            if (config != null)
+            {
+                var entries = config?.CarryOptions?.PreventSwapFromBackOnTarget ?? Array.Empty<string>();
+
+                preventSwapFromBackOnBehaviors = entries
+                    .Where(x => x.StartsWith(behaviorPrefix))
+                    .Select(x => api.ClassRegistry.GetBlockBehaviorClass(x.Substring(behaviorPrefix.Length)))
+                    .Where(x => x != null)
+                    .ToArray();
+
+                preventSwapFromBackOnClasses = entries
+                    .Where(x => x.StartsWith(classPrefix))
+                    .Select(x => x.Substring(classPrefix.Length))
+                    .Where(x => !string.IsNullOrWhiteSpace(x))
+                    .ToArray();
+
+                preventSwapFromBackOnCodes = entries
+                    .Where(x => x.StartsWith(codePrefix))
+                    .Select(x => x.Substring(codePrefix.Length))
+                    .Where(x => !string.IsNullOrWhiteSpace(x))
+                    .ToArray();
+            }
+
         }
 
         public void TryBeginInteraction(bool isInteracting, ref EnumHandling handled)
@@ -147,8 +200,19 @@ namespace CarryOn.Common.Logic
                         this.api.Logger.Debug("Nothing carried. Player may have dropped the block from being damaged");
                         return;
                     }
-                    // Make sure the block to swap can still be put in that slot. TODO: check code - this returns if block behaviour has no allowed slots
-                    if (carryBehavior.Slots[Interaction.CarrySlot.Value] == null) return;
+                    // Make sure the block to swap can still be put in that slot.
+                    // Replace direct Slots[] access with CanCarryInSlot to handle missing slot definitions and exclusions.
+                    try
+                    {
+                        var slotToCheck = Interaction.CarrySlot.Value;
+                        ItemStack itemForCheck = carriedTarget != null ? carriedTarget.ItemStack : (carriedBack != null ? carriedBack.ItemStack : null);
+                        if (!carryBehavior.CanCarryInSlot(slotToCheck, itemForCheck)) return;
+                    }
+                    catch (Exception ex)
+                    {
+                        this.api.Logger.Debug("Error checking carry slot during SwapBack: " + ex);
+                        return;
+                    }
 
                     break;
 
@@ -195,6 +259,13 @@ namespace CarryOn.Common.Logic
             Interaction.TimeHeld += deltaTime;
             var progress = Interaction.TimeHeld / requiredTime;
             this.carrySystem.HudOverlayRenderer.CircleProgress = progress;
+
+            HudCarried.TriggerHandsHighlight();
+
+            if (Interaction.CarryAction == CarryAction.SwapBack)
+            {
+                HudCarried.TriggerBackHighlight();
+            }
             if (progress <= 1.0F) return;
 
             string failureCode = null;
@@ -208,14 +279,30 @@ namespace CarryOn.Common.Logic
                     break;
 
                 case CarryAction.PickUp:
-                    var hasPickedUp = this.carrySystem.CarryManager.TryPickUp(player.Entity, selection.Position, Interaction.CarrySlot.Value, checkIsCarryable: true, playSound: true);
+                    failureCode ??= FailureCode.Ignore;
+                    var hasPickedUp = this.carrySystem.CarryManager.TryPickUp(
+                        player.Entity,
+                        selection.Position,
+                        Interaction.CarrySlot.Value,
+                        ref failureCode,
+                        checkIsCarryable: true,
+                        playSound: true
+                    );
+
                     if (hasPickedUp)
+                    {
                         this.carrySystem.ClientChannel.SendPacket(new PickUpMessage(selection.Position, Interaction.CarrySlot.Value));
+                    }
                     else
                     {
-                        // This else block executes when the attempt to pick up the item fails.
-                        // Showing an error message here informs the player that the pick-up action was unsuccessful.
-                        this.api.TriggerIngameError("carryon", "pick-up-failed", GetLang("pick-up-failed"));
+                        if (failureCode != null && failureCode != FailureCode.Ignore)
+                        {
+                            this.api.TriggerIngameError("carryon", failureCode, GetLang("pick-up-failed-" + failureCode));
+                        }
+                        else
+                        {
+                            this.api.TriggerIngameError("carryon", "pick-up-failed", GetLang("pick-up-failed"));
+                        }
                     }
                     break;
 
@@ -326,36 +413,32 @@ namespace CarryOn.Common.Logic
         }
 
         /// <summary>
-        /// Triggers a refresh of the block interaction help.
+        /// Requests a refresh of the block interaction help. The actual refresh is coalesced and flushed later.
         /// </summary>
         public void RefreshPlacedBlockInteractionHelp()
         {
-            if (HudHelp == null) return;
+            helpRefreshRequested = true;
+        }
+
+        /// <summary>
+        /// Flushes any pending block interaction help refresh request.
+        /// </summary>
+        public void FlushPlacedBlockInteractionHelpRefresh()
+        {
+            if (!helpRefreshRequested) return;
+            helpRefreshRequested = false;
+
+            if (HudHelp == null || composeBlockWorldInteractionHelpMethod == null) return;
+
             try
             {
-                var method = AccessTools.Method(typeof(Vintagestory.Client.NoObf.HudElementInteractionHelp), "ComposeBlockWorldInteractionHelp");
-                if (method == null)
-                {
-                    this.api.Logger.Error("Failed to find method ComposeBlockWorldInteractionHelp via reflection.");
-                    HudHelp = null;
-                    return;
-                }
-
-                // Validate method signature
-                var parameters = method.GetParameters();
-                if (parameters.Length != 0)
-                {
-                    this.api.Logger.Error($"Unexpected method signature for ComposeBlockWorldInteractionHelp: expected 0 parameters, got {parameters.Length}");
-                    HudHelp = null;
-                    return;
-                }
-
-                method.Invoke(HudHelp, null);
+                composeBlockWorldInteractionHelpMethod.Invoke(HudHelp, null);
             }
             catch (Exception e)
             {
                 this.api.Logger.Error($"Failed to refresh placed block interaction help (Disabling further calls): {e}");
                 HudHelp = null;
+                composeBlockWorldInteractionHelpMethod = null;
             }
         }
 
@@ -479,9 +562,10 @@ namespace CarryOn.Common.Logic
 
             // Get origin block if multiblock like a trunk
             var selection = BlockUtils.GetMultiblockOriginSelection(world.BlockAccessor, player?.CurrentBlockSelection);
+            ItemStack itemStack = selection?.Block?.OnPickBlock(world, selection.Position);
 
             // Can player carry target block
-            bool canCarryTarget = selection?.Block?.IsCarryable(CarrySlot.Hands) == true;
+            bool canCarryTarget = selection?.Block?.CanCarryInSlot(CarrySlot.Hands, itemStack) == true;
 
             // Swap back conditions: When carry key is held down and one of the following is true:
             // 1. The carry swap key is pressed
@@ -497,20 +581,20 @@ namespace CarryOn.Common.Logic
 
                 if (carriedHands == null && !notTargetingBlock)
                 {
-                    // Don't allow swap back operation if the player is looking at a container or ground storage with empty hands.
-                    var isContainer = selection?.Block?.HasBehavior<BlockBehaviorContainer>() ?? false;
-                    var isGroundStorage = selection?.Block?.Code == "groundstorage";
+                    // Don't allow swap back operation if the player is looking at a certain blocks.
+                    var isSwapPrevented = SelectionPreventsSwap(selection);
 
-                    if (isContainer || isGroundStorage)
+                    if (isSwapPrevented)
                     {
-                        CompleteInteraction();
-                        return true;
+                        // Allow other carry interactions (transfer/pickup) to evaluate.
+                        // This is used by blocks that reserve swap-back modifier for force-pickup.
+                        return false;
                     }
                 }
 
                 if (carriedHands != null)
                 {
-                    if (carriedHands.GetCarryableBehavior().Slots[CarrySlot.Back] == null)
+                    if (!carriedHands.GetCarryableBehavior().CanCarryInSlot(CarrySlot.Back, carriedHands.ItemStack))
                     {
                         this.api.TriggerIngameError(ModId, "cannot-swap-back", GetLang("cannot-swap-back"));
                         CompleteInteraction();
@@ -634,7 +718,9 @@ namespace CarryOn.Common.Logic
             {
                 if (selection != null) selection = BlockUtils.GetMultiblockOriginSelection(world.BlockAccessor, selection);
 
-                if ((selection?.Block != null) && (Interaction.CarrySlot = FindActionSlot(slot => selection.Block.IsCarryable(slot))) != null)
+                ItemStack itemStack = selection?.Block?.OnPickBlock(world, selection.Position);
+
+                if ((selection?.Block != null) && (Interaction.CarrySlot = FindActionSlot(slot => selection.Block.CanCarryInSlot(slot, itemStack))) != null)
                 {
                     Interaction.CarryAction = CarryAction.PickUp;
                     Interaction.TargetBlockPos = selection.Position?.Copy();
@@ -666,6 +752,13 @@ namespace CarryOn.Common.Logic
             if (selection == null)
             {
                 // Not pointing at a block, cannot transfer
+                return false;
+            }
+
+            // Some targets reserve the swap-back modifier for force-pickup.
+            // In that case, skip transfer handling so pickup logic can run.
+            if (api.Input.IsCarrySwapBackKeyPressed() && SelectionPreventsSwap(selection))
+            {
                 return false;
             }
 
@@ -750,5 +843,53 @@ namespace CarryOn.Common.Logic
 
             return false;
         }
+        
+        /// <summary>
+        /// Returns true if the selection's block should prevent swap-back based on configured behavior names or block classes.
+        /// </summary>
+        private bool SelectionPreventsSwap(BlockSelection selection)
+        {
+            if (selection?.Block == null) return false;
+
+            var block = selection.Block;
+
+            // Check class names first
+            if (preventSwapFromBackOnClasses != null && preventSwapFromBackOnClasses.Length > 0 && block.Class != null)
+            {
+                var blockClass = block.Class ?? "";
+                foreach (var cls in preventSwapFromBackOnClasses)
+                {
+                    if (string.IsNullOrEmpty(cls)) continue;
+                    if (string.Equals(blockClass, cls, StringComparison.OrdinalIgnoreCase)) return true;
+                }
+            }
+
+            // Check block codes
+            if (preventSwapFromBackOnCodes != null && preventSwapFromBackOnCodes.Length > 0 && block?.Code != null)
+            {
+                foreach (var code in preventSwapFromBackOnCodes)
+                {
+                    if (block.Code == code) return true;
+                }
+            }
+
+            // Check behavior names. The config values may be either fully qualified like "Namespace.TypeName"
+            // or formatted as "BehaviorClassName" or with a separator like "Namespace::TypeName".
+            if (preventSwapFromBackOnBehaviors != null && preventSwapFromBackOnBehaviors.Length > 0)
+            {
+                foreach (var behaviorType in preventSwapFromBackOnBehaviors)
+                {
+                    if (behaviorType == null) continue;
+                    if (block.HasBehavior(behaviorType)) return true;
+                }
+            }
+
+            // Check carryable behavior's ForcePickupOnSwapBack flag.
+            // This allows mods to opt-in programmatically or via JSON without touching server config.
+            var carryable = block.GetBehavior<BlockBehaviorCarryable>();
+            if (carryable?.ForcePickupOnSwapBack == true) return true;
+
+            return false;
+        }        
     }
 }

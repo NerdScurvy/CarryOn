@@ -7,6 +7,7 @@ using Vintagestory.API.Util;
 using Vintagestory.GameContent;
 using static CarryOn.API.Common.Models.CarryCode;
 using CarryOn.Utility;
+using CarryOn.API.Common.Models;
 
 namespace CarryOn.Common.Behaviors
 {
@@ -16,7 +17,10 @@ namespace CarryOn.Common.Behaviors
 
         public readonly ICoreAPI Api;
 
-
+            
+        private static ItemStack[] putStacks;
+        private static ItemStack[] takeStacks;
+        private static ItemStack[] nohandsfreeStacks;
         public EntityBehaviorAttachableCarryable(Entity entity) : base(entity)
         {
             Api = entity.World.Api;
@@ -26,17 +30,20 @@ namespace CarryOn.Common.Behaviors
 
         public int GetSlotIndex(int selBoxIndex)
         {
-            if (selBoxIndex <= 0) return 0;
-            this.behaviorAttachable ??= entity.GetBehavior<EntityBehaviorAttachable>();
-            if (this.behaviorAttachable == null) return -1;
-            return this.behaviorAttachable.GetSlotIndexFromSelectionBoxIndex(selBoxIndex - 1);
-        }
+            if (selBoxIndex <= 0) return -1;
 
+            var attachable = behaviorAttachable ??= entity.GetBehavior<EntityBehaviorAttachable>();
+            if (attachable == null) return -1;
+
+            return attachable.GetSlotIndexFromSelectionBoxIndex(selBoxIndex - 1);
+        }
         public ItemSlot GetItemSlot(int slotIndex)
         {
-            return (slotIndex >= 0 && slotIndex < this.behaviorAttachable?.Inventory.Count) ? this.behaviorAttachable?.Inventory[slotIndex] : null;
-        }
+            var attachable = behaviorAttachable ??= entity.GetBehavior<EntityBehaviorAttachable>();
+            if (attachable == null || slotIndex < 0 || slotIndex >= attachable.Inventory.Count) return null;
 
+            return attachable.Inventory[slotIndex];
+        }
         public bool IsItemSlotEmpty(ItemSlot itemSlot)
         {
             if (itemSlot != null)
@@ -71,22 +78,44 @@ namespace CarryOn.Common.Behaviors
             // Slot will be null for selections that don't contain storage slots - i.e. seats
             if (targetSlot == null) return null;
 
-            var carryableStacks = AttachableCarryableInteractionHelp.GetInteractionItemStacks(Api, es.Entity, slotIndex, targetSlot);
+            putStacks ??= [new ItemStack(world.GetItem(new AssetLocation("carryon:icon-put")))];
+
+            takeStacks ??= [new ItemStack(world.GetItem(new AssetLocation("carryon:icon-take")))];
+
+            nohandsfreeStacks ??= [new ItemStack(world.GetItem(new AssetLocation("carryon:icon-nohandsfree")))];
 
 
             string langCode = null;
+             ItemStack[] itemstacks = null;
 
             // If slot has an item then check if block is carryable
             if (!targetSlot.Empty)
             {
                 if (targetSlot.Itemstack.Block?.GetBehavior<BlockBehaviorCarryable>() != null)
                 {
-                    langCode = CarryOnCode(":blockhelp-detach");
+                    langCode = CarryOnCode("blockhelp-detach");
+                    if (player.Entity.CanDoCarryAction(requireEmptyHanded: true))
+                    {
+                        itemstacks = takeStacks;
+                    } 
+                    else
+                    {
+                        itemstacks = nohandsfreeStacks;
+                    }
                 }
             }
             else
             {
-                langCode = CarryOnCode(":blockhelp-attach");
+                langCode = CarryOnCode("blockhelp-attach");
+                if (player?.Entity?.GetCarried(CarrySlot.Hands) != null)
+                {
+                    itemstacks = putStacks;
+                } else
+                {
+                    itemstacks = nohandsfreeStacks;
+                    // No action available
+                    //return null;
+                }
             }
 
             if (langCode == null) return null;
@@ -94,7 +123,7 @@ namespace CarryOn.Common.Behaviors
             return [ new WorldInteraction()
                         {
                             ActionLangCode = langCode,
-                            Itemstacks = targetSlot.Empty?carryableStacks?.ToArray():null,
+                            Itemstacks = itemstacks,
                             MouseButton = EnumMouseButton.Right,
                             HotKeyCode = "carryonpickupkey",
                             RequireFreeHand = true
@@ -126,7 +155,7 @@ namespace CarryOn.Common.Behaviors
 
             entity.MarkShapeModified();
             // Tell server to save this chunk to disk again
-            entity.World.BlockAccessor.GetChunkAtBlockPos(entity.ServerPos.AsBlockPos).MarkModified();
+            entity.World.BlockAccessor.GetChunkAtBlockPos(entity.Pos.AsBlockPos).MarkModified();
             if (!isAttached)
             {
                 ClearCachedSlotStorage(Api, targetSlotIndex, itemslot, entity);
