@@ -690,21 +690,28 @@ namespace CarryOn.Common.Handlers
         /// <param name="byPlayer"></param>
         private void OnPlayerEntitySpawn(IClientPlayer byPlayer)
         {
+            // Guard: Only add listener if entity changed or not already registered
+            if (watchedClientPlayerEntity == byPlayer.Entity && entityCarriedListener != null)
+            {
+                // Already registered for this entity, do nothing
+                return;
+            }
+
+            // Cleanup previous listener if present
             if (watchedClientPlayerEntity?.WatchedAttributes?.OnModified != null && entityCarriedListener != null)
             {
                 watchedClientPlayerEntity.WatchedAttributes.OnModified.Remove(entityCarriedListener);
             }
 
+            // Assign new listener and entity
             entityCarriedListener = new TreeModifiedListener()
             {
                 path = AttributeKey.Watched.EntityCarried,
                 listener = this.interactionLogic.RefreshPlacedBlockInteractionHelp
-
             };
 
             watchedClientPlayerEntity = byPlayer.Entity;
             byPlayer.Entity.WatchedAttributes.OnModified.Add(entityCarriedListener);
-
         }
 
         /// <summary>

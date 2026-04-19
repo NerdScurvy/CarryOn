@@ -447,115 +447,113 @@ namespace CarryOn.API.Common
 
             var world = Api.World;
 
+            if (carriedBlock?.Block == null || carriedBlock.ItemStack == null) return false;
             if (!world.BlockAccessor.IsValidPos(selection.Position)) return false;
 
-            var placementSucceeded = false;
+            failureCode ??= FailureCode.Ignore;
 
-            if (entity is EntityPlayer playerEntity && !dropped)
+            var placed = (entity is EntityPlayer playerEntity && !dropped)
+                ? TryPlaceDownAsPlayer(world, playerEntity, carriedBlock, selection, ref failureCode)
+                : TryPlaceDownDirect(world, carriedBlock, selection);
+
+            if (!placed) return false;
+
+            FinalizePlacedBlock(world, entity, carriedBlock, selection.Position, dropped, playSound);
+            return true;
+        }
+
+        private bool TryPlaceDownAsPlayer(IWorldAccessor world, EntityPlayer playerEntity, CarriedBlock carriedBlock, BlockSelection selection, ref string failureCode)
+        {
+            var player = world.PlayerByUid(playerEntity.PlayerUID);
+            var activeHotbarSlot = player?.InventoryManager?.ActiveHotbarSlot;
+            if (player == null || activeHotbarSlot == null)
             {
-                failureCode ??= FailureCode.Ignore;
-
-                var player = world.PlayerByUid(playerEntity.PlayerUID);
-                // Defensive null checks
-                if (player == null || playerEntity == null || carriedBlock == null || carriedBlock.Block == null || selection == null)
-                {
-                    world.Logger.Error($"Error: Null reference detected while trying to place a carried block at {selection?.Position}. player: {player}, playerEntity: {playerEntity}, carriedBlock: {carriedBlock}, block: {carriedBlock?.Block}, selection: {selection}");
-                    // Fallback logic for known issue (e.g., reed chest)
-                    if (carriedBlock != null && carriedBlock.Block != null && selection != null && carriedBlock.ItemStack != null)
-                    {
-                        world.BlockAccessor.SetBlock(carriedBlock.Block.Id, selection.Position, carriedBlock.ItemStack);
-                        placementSucceeded = true;
-                    }
-                    else
-                    {
-                        return false;
-                    }
-                }
-
-                if (!placementSucceeded)
-                {
-
-                    var shift = playerEntity.Controls.ShiftKey;
-                    var ctrl = playerEntity.Controls.CtrlKey;
-
-                    try
-                    {
-
-                        // Add phantom Item to player's active slot so any related block placement code can fire. (Workaround for creature container)
-                        player.InventoryManager.ActiveHotbarSlot.Itemstack = carriedBlock.ItemStack;
-
-                        // Force sneak mode for placing blocks (in case carry keybinds are different)
-                        // This is a workaround for some blocks like Molds which require sneak to be placed
-                        playerEntity.Controls.ShiftKey = true;
-
-                        // Force ctrl key to be off - workaround for More Piles mod
-                        playerEntity.Controls.CtrlKey = false;
-
-                        if (!carriedBlock.Block.TryPlaceBlock(world, player, carriedBlock.ItemStack, selection, ref failureCode))
-                        {
-                            return false;
-                        }
-                        placementSucceeded = true;
-                    }
-                    finally
-                    {
-                        // Restore player controls
-                        playerEntity.Controls.ShiftKey = shift;
-                        playerEntity.Controls.CtrlKey = ctrl;
-
-                        // Remove phantom item from active slot
-                        player.InventoryManager.ActiveHotbarSlot.Itemstack = null;
-                    }
-                }
+                world.Logger.Error($"CarryOn: Failed to resolve player inventory while placing carried block at {selection.Position}. Falling back to direct placement.");
+                return TryPlaceDownFallback(world, carriedBlock, selection);
             }
-            else
+
+            var shift = playerEntity.Controls.ShiftKey;
+            var ctrl = playerEntity.Controls.CtrlKey;
+
+            try
             {
-                var meshFacing = selection.Clone().Face;
+                // Add a phantom item so block placement callbacks see an expected active slot.
+                activeHotbarSlot.Itemstack = carriedBlock.ItemStack;
+
+                // Force sneak placement for blocks that require it and disable ctrl-specific alternate placement.
+                playerEntity.Controls.ShiftKey = true;
+                playerEntity.Controls.CtrlKey = false;
+
+                return carriedBlock.Block.TryPlaceBlock(world, player, carriedBlock.ItemStack, selection, ref failureCode);
+            }
+            finally
+            {
+                playerEntity.Controls.ShiftKey = shift;
+                playerEntity.Controls.CtrlKey = ctrl;
+                activeHotbarSlot.Itemstack = null;
+            }
+        }
+
+        private bool TryPlaceDownFallback(IWorldAccessor world, CarriedBlock carriedBlock, BlockSelection selection)
+        {
+            if (carriedBlock?.Block == null || carriedBlock.ItemStack == null) return false;
+
+            world.BlockAccessor.SetBlock(carriedBlock.Block.Id, selection.Position, carriedBlock.ItemStack);
+            return true;
+        }
+
+        private bool TryPlaceDownDirect(IWorldAccessor world, CarriedBlock carriedBlock, BlockSelection selection)
+        {
+            var meshFacing = selection.Face;
+            var droppedBlock = carriedBlock.Block;
+
+            if (meshFacing != null)
+            {
                 var assetLocation = carriedBlock.Block.Code.Clone();
                 var baseCode = assetLocation.FirstCodePart();
-                assetLocation.Path = $"{baseCode}-{selection.Face.Code}";
-
-                // Check for cardinal version of block
-                var droppedBlock = world.GetBlock(assetLocation) ?? carriedBlock.Block;
-
-                world.BlockAccessor.ExchangeBlock(droppedBlock.Id, selection.Position);
-                
-                // Only spawn block entity if the block has one defined.
-                if (droppedBlock.EntityClass != null)
-                {
-                    world.BlockAccessor.SpawnBlockEntity(droppedBlock.EntityClass, selection.Position, carriedBlock.ItemStack);
-                }
-
-                // Will trigger placement of multiblock sections
-                droppedBlock?.OnBlockPlaced(world, selection.Position, carriedBlock.ItemStack);
-
-                placementSucceeded = true;
-
-                // Set mesh angle opposite to block facing
-                carriedBlock.BlockEntityData?.SetFloat("meshAngle", -GetMeshAngle(meshFacing));
-
+                assetLocation.Path = $"{baseCode}-{meshFacing.Code}";
+                droppedBlock = world.GetBlock(assetLocation) ?? carriedBlock.Block;
             }
-            
-            if (!placementSucceeded) return false;
-            RestoreBlockEntityData(world, carriedBlock, selection.Position, dropped: dropped);
 
-            world.BlockAccessor.MarkBlockDirty(selection.Position);
+            world.BlockAccessor.ExchangeBlock(droppedBlock.Id, selection.Position);
 
-            world.BlockAccessor.TriggerNeighbourBlockUpdate(selection.Position);
+            if (droppedBlock.EntityClass != null)
+            {
+                world.BlockAccessor.SpawnBlockEntity(droppedBlock.EntityClass, selection.Position, carriedBlock.ItemStack);
+            }
+
+            droppedBlock.OnBlockPlaced(world, selection.Position, carriedBlock.ItemStack);
+
+            if (meshFacing != null)
+            {
+                carriedBlock.BlockEntityData?.SetFloat("meshAngle", -GetMeshAngle(meshFacing));
+            }
+
+            return true;
+        }
+
+        private void FinalizePlacedBlock(IWorldAccessor world, Entity entity, CarriedBlock carriedBlock, BlockPos position, bool dropped, bool playSound)
+        {
+            RestoreBlockEntityData(world, carriedBlock, position, dropped: dropped);
+
+            world.BlockAccessor.MarkBlockDirty(position);
+            world.BlockAccessor.TriggerNeighbourBlockUpdate(position);
 
             RemoveCarried(entity, carriedBlock.Slot);
-            if (playSound) PlaySound(carriedBlock.Block, selection.Position, dropped ? null : entity as EntityPlayer);
+            if (playSound)
+            {
+                PlaySound(carriedBlock.Block, position, dropped ? null : entity as EntityPlayer);
+            }
 
             if (dropped)
             {
-                CarryEvents?.TriggerBlockDropped(selection.Position, entity, carriedBlock);
+                CarryEvents?.TriggerBlockDropped(position, entity, carriedBlock);
             }
             if (world.Side == EnumAppSide.Server)
             {
                 var entityName = entity?.GetName() ?? "Unknown Entity";
-                Api.World.Logger.Audit($"[{ModId}] Player {entityName}  {(dropped ? "dropped" : "placed down")}  block {carriedBlock?.Block?.Code.GetName()} at {selection.Position}");
+                Api.World.Logger.Audit($"[{ModId}] Player {entityName}  {(dropped ? "dropped" : "placed down")}  block {carriedBlock?.Block?.Code.GetName()} at {position}");
             }
-            return true;
         }
 
         /// <summary>
