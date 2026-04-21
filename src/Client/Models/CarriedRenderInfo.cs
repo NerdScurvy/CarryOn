@@ -12,7 +12,7 @@ namespace CarryOn.Client.Models
 
         public Vec4f TintColor { get; set; } = null;
 
-        public string SeasonalTintMap { get; set; } = null;
+        public Vec4f RgbGlowIntensity { get; set; } = null;
 
         public bool EnableVertexWarp { get; set; } = false;
 

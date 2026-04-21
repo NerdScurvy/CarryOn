@@ -43,6 +43,8 @@ namespace CarryOn.Client.Models
 
         public string SeasonalTintMap { get; set; } = null;
 
+        public float? GlowIntensity { get; set; } = null;
+
         public bool Enabled { get; set; } = true;
 
         public void SetTranslation(float? x, float? y, float? z)
@@ -157,6 +159,12 @@ namespace CarryOn.Client.Models
                 Enabled = Enabled
             };
 
+            // Convert single value GlowIntensity to RGB format for TransformSettings, applying it to all channels equally. 
+            if(GlowIntensity.HasValue)
+            {
+                outSetting.RgbGlowIntensity = new Vec4f(GlowIntensity.Value, GlowIntensity.Value, GlowIntensity.Value, GlowIntensity.Value);
+            }
+
             bool hasTransform =
                 TranslationX.HasValue || TranslationY.HasValue || TranslationZ.HasValue ||
                 RotationX.HasValue || RotationY.HasValue || RotationZ.HasValue ||
@@ -237,12 +245,13 @@ namespace CarryOn.Client.Models
             if (overlay.TintColor != null) m.TintColor = overlay.TintColor;
             if (!string.IsNullOrEmpty(overlay.ClimateTintMap)) m.ClimateTintMap = overlay.ClimateTintMap;
             if (!string.IsNullOrEmpty(overlay.SeasonalTintMap)) m.SeasonalTintMap = overlay.SeasonalTintMap;
+            if (overlay.GlowIntensity.HasValue) m.GlowIntensity = overlay.GlowIntensity;
 
             // Note: TransformGroupSettings.Enabled is non-nullable bool, so we just apply the overlay value directly without checking for HasValue like the other properties.
             m.Enabled = overlay.Enabled;
 
             return m;
-        }    
+        }
 
         /// <summary>
         /// Merges the current TransformGroupSettings instance with the relative values from the overlay settings. This is used for "tilde" prefixed adjustment groups where the values are meant to be added on top of the current instance rather than replacing them.
@@ -269,9 +278,10 @@ namespace CarryOn.Client.Models
             if (relative.OriginX.HasValue) m.OriginX = (m.OriginX ?? 0f) + relative.OriginX.Value;
             if (relative.OriginY.HasValue) m.OriginY = (m.OriginY ?? 0f) + relative.OriginY.Value;
             if (relative.OriginZ.HasValue) m.OriginZ = (m.OriginZ ?? 0f) + relative.OriginZ.Value;
+            if (relative.GlowIntensity.HasValue) m.GlowIntensity = (m.GlowIntensity ?? 0f) + relative.GlowIntensity.Value;
 
             return m;
-        }        
+        }
 
         public TransformGroupSettings Clone()
         {
@@ -300,10 +310,11 @@ namespace CarryOn.Client.Models
                 TintColor = TintColor,
                 ClimateTintMap = ClimateTintMap,
                 SeasonalTintMap = SeasonalTintMap,
+                GlowIntensity = GlowIntensity,
                 Enabled = Enabled
             };
         }
 
     }
-    
+
 }

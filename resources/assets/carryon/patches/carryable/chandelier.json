@@ -8,6 +8,17 @@
 			"name": "Carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Chandelier",
+				"transformGroups": {
+					"hands": 
+						[
+							{
+								"id": "root",
+								"glowIntensity": 1.0
+							}
+						]
+					
+
+				},
 				"slots": {
 					"Hands": {}
 				}

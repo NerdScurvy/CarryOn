@@ -144,6 +144,7 @@ namespace CarryOn.Client.Logic.TransformTemplates
 
             if (JsonHelper.TryGetString(settingsJson, "climateTintMap", out var climateTintMap)) settings.ClimateTintMap = climateTintMap;
             if (JsonHelper.TryGetString(settingsJson, "seasonalTintMap", out var seasonalTintMap)) settings.SeasonalTintMap = seasonalTintMap;
+            if (JsonHelper.TryGetFloat(settingsJson, "glowIntensity", out var glowIntensity)) settings.GlowIntensity = glowIntensity;
             if (JsonHelper.TryGetBool(settingsJson, "enabled", out var enabled)) settings.Enabled = enabled;
 
             return settings;

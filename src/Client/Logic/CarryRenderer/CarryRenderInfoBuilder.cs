@@ -130,6 +130,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
                 {
                     RenderInfo = targetRenderInfo,
                     TintColor = customTint ?? setting.TintColor,
+                    RgbGlowIntensity = setting.RgbGlowIntensity ?? new Vec4f(0, 0, 0, 0),
                     EnableVertexWarp = effective.EnableVertexWarp,
                     AlphaTestOpaque = setting.AlphaTestOpaque,
                     AlphaTestBlend = setting.AlphaTestBlend,
