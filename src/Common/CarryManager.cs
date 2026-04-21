@@ -23,7 +23,7 @@ namespace CarryOn.API.Common
 {
     public class CarryManager : ICarryManager
     {
-        
+
         public ICoreAPI Api { get; private set; }
 
         public CarrySystem CarrySystem { get; private set; }
@@ -151,7 +151,7 @@ namespace CarryOn.API.Common
             }
 
             // Mark the entity carried attribute as dirty so it gets synced to clients
-            if(entity.Api.Side == EnumAppSide.Server)
+            if (entity.Api.Side == EnumAppSide.Server)
                 ((SyncedTreeAttribute)entity.WatchedAttributes).MarkPathDirty(entityCarriedKey);
 
 
@@ -329,7 +329,7 @@ namespace CarryOn.API.Common
             if ((world.Side != EnumAppSide.Server) || (carriedBlock?.BlockEntityData == null)) return;
 
             var delegates = CarryEvents?.BeforeRestoreBlockEntityData?.GetInvocationList();
-            RestoreBlockEntityData(world, carriedBlock, pos, delegates: delegates, dropped: dropped);            
+            RestoreBlockEntityData(world, carriedBlock, pos, delegates: delegates, dropped: dropped);
         }
 
 
@@ -404,7 +404,7 @@ namespace CarryOn.API.Common
             {
                 var entityName = entity?.GetName() ?? "Unknown Entity";
                 entity.World.Logger.Audit($"[{ModId}] {entityName} picked up block {carried.Block.Code.GetName()} at {pos}");
-            }            
+            }
             return true;
         }
 
@@ -412,7 +412,7 @@ namespace CarryOn.API.Common
         {
             string failureCode = FailureCode.Ignore;
             return TryPickUp(entity, pos, slot, ref failureCode, checkIsCarryable, playSound);
-        }        
+        }
 
         /// <summary>
         /// Tries to place the carriedBlock in the world, removing from entity if successful
@@ -861,7 +861,5 @@ namespace CarryOn.API.Common
         /// <returns></returns>
         public bool CanInteractWhileCarrying(Block block)
             => block.HasBehavior<BlockBehaviorCarryableInteract>();
-
-
     }
 }

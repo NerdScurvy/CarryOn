@@ -1,4 +1,3 @@
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -33,10 +32,6 @@ namespace CarryOn.Client.Logic.CarryRenderer
 			public RenderPhaseMask Phases { get; init; }
 			public float AlphaTestOpaque { get; init; }
 			public float AlphaTestBlend { get; init; }
-
-			// Optional future toggles for crystals, etc.
-			public bool? NormalShadedOverride { get; init; }
-			public float? SsaoAttnOverride { get; init; }
 		}
 
 		private class SlotRenderSettings
@@ -78,8 +73,8 @@ namespace CarryOn.Client.Logic.CarryRenderer
 
 		public EntityCarryRenderer(ICoreClientAPI api, CarrySystem carrySystem)
 		{
-			if (api == null) throw new ArgumentNullException(nameof(api));
-			if (carrySystem == null) throw new ArgumentNullException(nameof(carrySystem));
+            ArgumentNullException.ThrowIfNull(api);
+            ArgumentNullException.ThrowIfNull(carrySystem);
 
 			this.carrySystem = carrySystem;
 			this.api = api;
@@ -253,6 +248,13 @@ namespace CarryOn.Client.Logic.CarryRenderer
 		/// <summary> Renders all carried blocks of the specified entity. </summary>
 		private void RenderAllCarried(EntityAgent entity, float deltaTime, EnumRenderStage stage, bool isShadowPass)
 		{
+			var config = this.carrySystem.ClientConfig.Config;
+			if (config.CarriedLightEnabled)
+			{
+				// Reset light so carried block light can be added later
+				entity.LightHsv = new ThreeBytes(0);
+			}
+
 			var allCarried = entity.GetCarried().ToList();
 			if (allCarried.Count == 0) return; // Entity is not carrying anything.
 
@@ -266,6 +268,25 @@ namespace CarryOn.Client.Logic.CarryRenderer
 
 			// Rendered not ready?
 			if (renderer == null) return;
+
+			if (config.CarriedLightEnabled)
+			{
+				// Merge carried block light into entity light so that it applies to the entity and all carried blocks, without needing to modify each CarriedRenderInfo.
+				var lightHsv = entity.LightHsv;
+				foreach (var carried in allCarried)
+				{
+					switch (carried.ItemStack?.Collectible)
+					{
+						case Block block:
+							lightHsv = ColorUtil.MergeLightHSV(block.LightHsv, lightHsv);
+							break;
+						case Item item:
+							lightHsv = ColorUtil.MergeLightHSV(item.LightHsv, lightHsv);
+							break;
+					}
+				}
+				entity.LightHsv = lightHsv;
+			}
 
 			foreach (var carried in allCarried)
 			{
@@ -325,10 +346,9 @@ namespace CarryOn.Client.Logic.CarryRenderer
 						// Phase-specific alpha threshold
 						prog.AlphaTest = translucentPhase ? d.AlphaTestBlend : d.AlphaTestOpaque;
 
-						// Optional targeted overrides (for crystal look matching placed blocks)
-						prog.NormalShaded = d.NormalShadedOverride.HasValue ? (d.NormalShadedOverride.Value ? 1 : 0) : 1;
-						prog.SsaoAttn = d.SsaoAttnOverride ?? 0f;
-
+						prog.NormalShaded = info.NormalShaded.HasValue ? (info.NormalShaded.Value ? 1 : 0) : 1;
+						prog.RgbaGlowIn = info.RgbGlowIntensity ?? new Vec4f(0f, 0f, 0f, 0f);
+						
 						rapi.RenderMultiTextureMesh(info.RenderInfo.ModelRef, "tex");
 					}
 					finally
@@ -481,8 +501,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
 						IsRoot = info.SkipTransform,
 						Phases = CarryRenderHelpers.ResolveDefaultPhases(info),
 						AlphaTestOpaque = info.AlphaTestOpaque ?? 0.5f,
-						AlphaTestBlend = info.AlphaTestBlend ?? 0.15f,
-						NormalShadedOverride = info.NormalShaded
+						AlphaTestBlend = info.AlphaTestBlend ?? 0.15f
 					});
 				}
 

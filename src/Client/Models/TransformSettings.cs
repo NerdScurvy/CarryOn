@@ -28,6 +28,7 @@ namespace CarryOn.Client.Models
         public string ClimateTintMap { get; set; } = null;
 
         public string SeasonalTintMap { get; set; } = null;
+        public Vec4f RgbGlowIntensity { get; set; } = new Vec4f(0, 0, 0, 0);
 
         public bool? Enabled { get; set; } = true;
 
@@ -47,6 +48,7 @@ namespace CarryOn.Client.Models
                 TintColor = this.TintColor,
                 ClimateTintMap = this.ClimateTintMap,
                 SeasonalTintMap = this.SeasonalTintMap,
+                RgbGlowIntensity = this.RgbGlowIntensity?.Clone(),
                 Enabled = this.Enabled,
             };
         }

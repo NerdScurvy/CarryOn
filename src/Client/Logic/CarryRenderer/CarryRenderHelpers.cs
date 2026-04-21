@@ -92,11 +92,11 @@ namespace CarryOn.Client.Logic.CarryRenderer
                     RenderInfo = s.RenderInfo,
                     RenderEnabled = s.RenderEnabled,
                     TintColor = s.TintColor,
-                    SeasonalTintMap = s.SeasonalTintMap,
                     EnableVertexWarp = s.EnableVertexWarp,
                     AlphaTestOpaque = s.AlphaTestOpaque,
                     AlphaTestBlend = s.AlphaTestBlend,
                     NormalShaded = s.NormalShaded,
+                    RgbGlowIntensity = s.RgbGlowIntensity?.Clone(),
                     RenderPass = s.RenderPass,
                     SecondaryTransform = s.SecondaryTransform?.Clone(),
                     SkipTransform = false

@@ -1,7 +1,11 @@
 namespace CarryOn.Client.Logic
 {
     using CarryOn.Utility;
+    using Vintagestory.API.Common;
+    using Vintagestory.API.MathTools;
+
     public class ClientCommands
+
     {
         private readonly CarrySystem carrySystem;
         private readonly Vintagestory.API.Client.ICoreClientAPI api;
@@ -21,6 +25,11 @@ namespace CarryOn.Client.Logic
             try
             {
                 api.ChatCommands.Create("carryon")
+                    .BeginSubCommand("carriedlight")
+                        .WithDescription("Enable or disable carried block lighting for all players. Usage: .carryon carriedlight true|false")
+                        .WithArgs(api.ChatCommands.Parsers.Bool("enabled"))
+                        .HandleWith(this.CmdCarryOnCarriedLight)
+                    .EndSubCommand()
                     .BeginSubCommand("gui")
                         // .carryon gui bg ... (background fill settings)
                         .BeginSubCommand("bg")
@@ -136,20 +145,55 @@ namespace CarryOn.Client.Logic
             }
         }
 
-        protected Vintagestory.API.Common.TextCommandResult CmdCarryOnGuiSet(Vintagestory.API.Common.TextCommandCallingArgs args)
+        protected TextCommandResult CmdCarryOnCarriedLight(TextCommandCallingArgs args)
+        {
+            bool enabled = (bool)args[0];
+
+            var clientConfig = this.carrySystem?.ClientConfig;
+
+            if (clientConfig == null)
+            {
+                return TextCommandResult.Error("Client config not available. Cannot update carried block lighting setting.");
+            }
+
+            clientConfig.Config.CarriedLightEnabled = enabled;
+
+            clientConfig.Save(this.api);
+
+            if (!enabled)
+            {
+                // Reset LightHsv for all player entities
+                foreach (var player in api.World.AllPlayers)
+                {
+                    var entity = player.Entity;
+                    if (entity != null)
+                    {
+                        entity.LightHsv = new ThreeBytes(0);
+                    }
+                }
+                return TextCommandResult.Success("Carried block lighting disabled. All player lights reset.");
+            }
+            else
+            {
+                // Optionally, re-enable by triggering attribute update (if needed)
+                return TextCommandResult.Success("Carried block lighting enabled.");
+            }
+        }
+
+        protected TextCommandResult CmdCarryOnGuiSet(TextCommandCallingArgs args)
         {
             string anchorStr = ((string)args[0])?.ToUpperInvariant();
             string slotStr = ((string)args[1])?.ToLowerInvariant();
 
             if (string.IsNullOrEmpty(anchorStr) || string.IsNullOrEmpty(slotStr))
             {
-                return Vintagestory.API.Common.TextCommandResult.Error("Usage: .carryon gui set L1 hands | R2 back | R1 clear");
+                return TextCommandResult.Error("Usage: .carryon gui set L1 hands | R2 back | R1 clear");
             }
 
             // Parse anchor
             if (!System.Enum.TryParse<HudCarried.Anchor>(anchorStr, true, out var anchor))
             {
-                return Vintagestory.API.Common.TextCommandResult.Error("Invalid anchor. Use L1,L2,L3,R1,R2,R3");
+                return TextCommandResult.Error("Invalid anchor. Use L1,L2,L3,R1,R2,R3");
             }
 
             // Determine action: assign Hands, Back, or clear
@@ -161,7 +205,7 @@ namespace CarryOn.Client.Logic
                     // If moving to same anchor, do nothing
                     if (HudCarried.HandsAnchor == anchor)
                     {
-                        return Vintagestory.API.Common.TextCommandResult.Success($"Hands already at {anchor}");
+                        return TextCommandResult.Success($"Hands already at {anchor}");
                     }
                     HudCarried.HandsAnchor = HudCarried.Anchor.None;
                 }
@@ -183,10 +227,10 @@ namespace CarryOn.Client.Logic
                 catch (System.Exception ex)
                 {
                     this.api.Logger.Error("Error moving Hands anchor: " + ex);
-                    return Vintagestory.API.Common.TextCommandResult.Error("Failed to move Hands anchor due to an error.");
+                    return TextCommandResult.Error("Failed to move Hands anchor due to an error.");
                 }
 
-                return Vintagestory.API.Common.TextCommandResult.Success($"Hands moved to {anchor}");
+                return TextCommandResult.Success($"Hands moved to {anchor}");
             }
 
             if (slotStr == "back")
@@ -195,7 +239,7 @@ namespace CarryOn.Client.Logic
                 {
                     if (HudCarried.BackAnchor == anchor)
                     {
-                        return Vintagestory.API.Common.TextCommandResult.Success($"Back already at {anchor}");
+                        return TextCommandResult.Success($"Back already at {anchor}");
                     }
                     HudCarried.BackAnchor = HudCarried.Anchor.None;
                 }
@@ -216,10 +260,10 @@ namespace CarryOn.Client.Logic
                 catch (System.Exception ex)
                 {
                     this.api.Logger.Error("Error moving Back anchor: " + ex);
-                    return Vintagestory.API.Common.TextCommandResult.Error("Failed to move Back anchor due to an error.");
+                    return TextCommandResult.Error("Failed to move Back anchor due to an error.");
                 }
 
-                return Vintagestory.API.Common.TextCommandResult.Success($"Back moved to {anchor}");
+                return TextCommandResult.Success($"Back moved to {anchor}");
             }
 
             if (slotStr == "clear")
@@ -251,19 +295,19 @@ namespace CarryOn.Client.Logic
                     catch (System.Exception ex)
                     {
                         this.api.Logger.Error("Error clearing anchor: " + ex);
-                        return Vintagestory.API.Common.TextCommandResult.Error("Failed to clear anchor due to an error.");
+                        return TextCommandResult.Error("Failed to clear anchor due to an error.");
                     }
 
-                    return Vintagestory.API.Common.TextCommandResult.Success($"Cleared anchor {anchor}");
+                    return TextCommandResult.Success($"Cleared anchor {anchor}");
                 }
 
-                return Vintagestory.API.Common.TextCommandResult.Error($"Anchor {anchor} was already empty");
+                return TextCommandResult.Error($"Anchor {anchor} was already empty");
             }
 
-            return Vintagestory.API.Common.TextCommandResult.Error("Invalid slot. Use 'hands', 'back', or 'clear'");
+            return TextCommandResult.Error("Invalid slot. Use 'hands', 'back', or 'clear'");
         }
 
-        protected Vintagestory.API.Common.TextCommandResult CmdCarryOnGuiReset(Vintagestory.API.Common.TextCommandCallingArgs args)
+        protected TextCommandResult CmdCarryOnGuiReset(Vintagestory.API.Common.TextCommandCallingArgs args)
         {
             // Reset anchors to defaults and reset all GUI visuals (background, border, highlight) to defaults
             HudCarried.HandsAnchor = HudCarried.HandsAnchorDefault;
@@ -313,14 +357,14 @@ namespace CarryOn.Client.Logic
             catch (System.Exception ex)
             {
                 this.api.Logger.Error("Error resetting CarryOn GUI anchors and visuals: " + ex);
-                return Vintagestory.API.Common.TextCommandResult.Error("Failed to reset CarryOn GUI anchors and visuals due to an error.");
+                return TextCommandResult.Error("Failed to reset CarryOn GUI anchors and visuals due to an error.");
             }
 
             string msg = $"CarryOn GUI reset: Anchors -> Hands={HudCarried.HandsAnchor}, Back={HudCarried.BackAnchor}; visuals reset to defaults";
-            return Vintagestory.API.Common.TextCommandResult.Success(msg);
+            return TextCommandResult.Success(msg);
         }
 
-        protected Vintagestory.API.Common.TextCommandResult CmdCarryOnGuiShow(Vintagestory.API.Common.TextCommandCallingArgs args)
+        protected TextCommandResult CmdCarryOnGuiShow(Vintagestory.API.Common.TextCommandCallingArgs args)
         {
             // Show the effective anchors (runtime values)
             var hands = HudCarried.HandsAnchor.ToString();
@@ -342,11 +386,11 @@ namespace CarryOn.Client.Logic
             }
 
             string msg = $"CarryOn GUI anchors — Runtime: Hands={hands}, Back={back}" + (saved != null ? " | " + saved : "");
-            return Vintagestory.API.Common.TextCommandResult.Success(msg);
+            return TextCommandResult.Success(msg);
         }
 
         // === Background subcommand handlers ===
-        protected Vintagestory.API.Common.TextCommandResult CmdCarryOnGuiBgEnable(Vintagestory.API.Common.TextCommandCallingArgs args)
+        protected TextCommandResult CmdCarryOnGuiBgEnable(Vintagestory.API.Common.TextCommandCallingArgs args)
         {
             try
             {
@@ -364,13 +408,13 @@ namespace CarryOn.Client.Logic
             catch (System.Exception ex)
             {
                 this.api.Logger.Error("Error enabling CarryOn anchor background: " + ex);
-                return Vintagestory.API.Common.TextCommandResult.Error("Failed to enable CarryOn anchor background due to an error.");
+                return TextCommandResult.Error("Failed to enable CarryOn anchor background due to an error.");
             }
 
-            return Vintagestory.API.Common.TextCommandResult.Success("CarryOn anchor background: enabled");
+            return TextCommandResult.Success("CarryOn anchor background: enabled");
         }
 
-        protected Vintagestory.API.Common.TextCommandResult CmdCarryOnGuiBgDisable(Vintagestory.API.Common.TextCommandCallingArgs args)
+        protected TextCommandResult CmdCarryOnGuiBgDisable(Vintagestory.API.Common.TextCommandCallingArgs args)
         {
             try
             {
@@ -387,26 +431,26 @@ namespace CarryOn.Client.Logic
             catch (System.Exception ex)
             {
                 this.api.Logger.Error("Error disabling CarryOn anchor background: " + ex);
-                return Vintagestory.API.Common.TextCommandResult.Error("Failed to disable CarryOn anchor background due to an error.");
+                return TextCommandResult.Error("Failed to disable CarryOn anchor background due to an error.");
             }
 
-            return Vintagestory.API.Common.TextCommandResult.Success("CarryOn anchor background: disabled");
+            return TextCommandResult.Success("CarryOn anchor background: disabled");
         }
 
-        protected Vintagestory.API.Common.TextCommandResult CmdCarryOnGuiBgColor(Vintagestory.API.Common.TextCommandCallingArgs args)
+        protected TextCommandResult CmdCarryOnGuiBgColor(Vintagestory.API.Common.TextCommandCallingArgs args)
         {
             string hex = ((string)args[0])?.Trim();
-            if (string.IsNullOrEmpty(hex)) return Vintagestory.API.Common.TextCommandResult.Error("Usage: .carryon gui bg color #rrggbb");
+            if (string.IsNullOrEmpty(hex)) return TextCommandResult.Error("Usage: .carryon gui bg color #rrggbb");
             if (!ColorHelper.TryNormalizeHex(hex, out hex))
             {
-                return Vintagestory.API.Common.TextCommandResult.Error("Invalid hex color. Expected formats: #RRGGBB, RRGGBB, #RGB, or RGB");
+                return TextCommandResult.Error("Invalid hex color. Expected formats: #RRGGBB, RRGGBB, #RGB, or RGB");
             }
 
             try
             {
                 // Apply to runtime and persist
                 HudCarried.AnchorBackgroundColor = hex;
-                HudCarried.UpdateParsedColors();                
+                HudCarried.UpdateParsedColors();
 
                 // runtime value updated (HudCarried) and saved to client config below
                 if (this.carrySystem?.ClientConfig != null)
@@ -418,13 +462,13 @@ namespace CarryOn.Client.Logic
             catch (System.Exception ex)
             {
                 this.api.Logger.Error("Error setting CarryOn anchor background color: " + ex);
-                return Vintagestory.API.Common.TextCommandResult.Error("Failed to set CarryOn anchor background color due to an error.");
+                return TextCommandResult.Error("Failed to set CarryOn anchor background color due to an error.");
             }
 
-            return Vintagestory.API.Common.TextCommandResult.Success($"CarryOn anchor background color set to {hex}");
+            return TextCommandResult.Success($"CarryOn anchor background color set to {hex}");
         }
 
-        protected Vintagestory.API.Common.TextCommandResult CmdCarryOnGuiBgAlpha(Vintagestory.API.Common.TextCommandCallingArgs args)
+        protected TextCommandResult CmdCarryOnGuiBgAlpha(Vintagestory.API.Common.TextCommandCallingArgs args)
         {
             float a = 0f;
             try
@@ -433,15 +477,15 @@ namespace CarryOn.Client.Logic
             }
             catch
             {
-                return Vintagestory.API.Common.TextCommandResult.Error("Usage: .carryon gui bg alpha 0.0-1.0");
+                return TextCommandResult.Error("Usage: .carryon gui bg alpha 0.0-1.0");
             }
 
-            if (a < 0f || a > 1f) return Vintagestory.API.Common.TextCommandResult.Error("Alpha must be between 0.0 and 1.0");
+            if (a < 0f || a > 1f) return TextCommandResult.Error("Alpha must be between 0.0 and 1.0");
 
             try
             {
                 HudCarried.AnchorBackgroundAlpha = a;
-                HudCarried.UpdateParsedColors();                
+                HudCarried.UpdateParsedColors();
 
                 // runtime value updated (HudCarried) and saved to client config below
                 if (this.carrySystem?.ClientConfig != null)
@@ -453,13 +497,13 @@ namespace CarryOn.Client.Logic
             catch (System.Exception ex)
             {
                 this.api.Logger.Error("Error setting CarryOn anchor background alpha: " + ex);
-                return Vintagestory.API.Common.TextCommandResult.Error("Failed to set CarryOn anchor background alpha due to an error.");
+                return TextCommandResult.Error("Failed to set CarryOn anchor background alpha due to an error.");
             }
 
-            return Vintagestory.API.Common.TextCommandResult.Success($"CarryOn anchor background alpha set to {a:0.##}");
+            return TextCommandResult.Success($"CarryOn anchor background alpha set to {a:0.##}");
         }
 
-        protected Vintagestory.API.Common.TextCommandResult CmdCarryOnGuiBgShow(Vintagestory.API.Common.TextCommandCallingArgs args)
+        protected TextCommandResult CmdCarryOnGuiBgShow(Vintagestory.API.Common.TextCommandCallingArgs args)
         {
             string runtime = $"Runtime: enabled={HudCarried.AnchorBackgroundEnabled}, color={HudCarried.AnchorBackgroundColor}, alpha={HudCarried.AnchorBackgroundAlpha:0.##}";
             string saved = "Saved: (none)";
@@ -476,10 +520,10 @@ namespace CarryOn.Client.Logic
                 this.api.Logger.Error("Error showing CarryOn GUI anchor background settings: " + ex);
             }
 
-            return Vintagestory.API.Common.TextCommandResult.Success("CarryOn anchor background — " + runtime + " | " + saved);
+            return TextCommandResult.Success("CarryOn anchor background — " + runtime + " | " + saved);
         }
 
-        protected Vintagestory.API.Common.TextCommandResult CmdCarryOnGuiBgReset(Vintagestory.API.Common.TextCommandCallingArgs args)
+        protected TextCommandResult CmdCarryOnGuiBgReset(Vintagestory.API.Common.TextCommandCallingArgs args)
         {
             try
             {
@@ -499,14 +543,14 @@ namespace CarryOn.Client.Logic
             catch (System.Exception ex)
             {
                 this.api.Logger.Error("Error resetting CarryOn anchor background: " + ex);
-                return Vintagestory.API.Common.TextCommandResult.Error("Failed to reset CarryOn anchor background due to an error.");
+                return TextCommandResult.Error("Failed to reset CarryOn anchor background due to an error.");
             }
 
-            return Vintagestory.API.Common.TextCommandResult.Success($"CarryOn anchor background reset to defaults: enabled={HudCarried.AnchorBackgroundEnabled}, color={HudCarried.AnchorBackgroundColor}, alpha={HudCarried.AnchorBackgroundAlpha:0.##}");
+            return TextCommandResult.Success($"CarryOn anchor background reset to defaults: enabled={HudCarried.AnchorBackgroundEnabled}, color={HudCarried.AnchorBackgroundColor}, alpha={HudCarried.AnchorBackgroundAlpha:0.##}");
         }
 
         // === Border subcommand handlers ===
-        protected Vintagestory.API.Common.TextCommandResult CmdCarryOnGuiBorderEnable(Vintagestory.API.Common.TextCommandCallingArgs args)
+        protected TextCommandResult CmdCarryOnGuiBorderEnable(TextCommandCallingArgs args)
         {
             try
             {
@@ -522,12 +566,12 @@ namespace CarryOn.Client.Logic
             catch (System.Exception ex)
             {
                 this.api.Logger.Error("Error enabling CarryOn anchor border: " + ex);
-                return Vintagestory.API.Common.TextCommandResult.Error("Failed to enable CarryOn anchor border due to an error.");
+                return TextCommandResult.Error("Failed to enable CarryOn anchor border due to an error.");
             }
-            return Vintagestory.API.Common.TextCommandResult.Success("CarryOn anchor border: enabled");
+            return TextCommandResult.Success("CarryOn anchor border: enabled");
         }
 
-        protected Vintagestory.API.Common.TextCommandResult CmdCarryOnGuiBorderDisable(Vintagestory.API.Common.TextCommandCallingArgs args)
+        protected TextCommandResult CmdCarryOnGuiBorderDisable(TextCommandCallingArgs args)
         {
             try
             {
@@ -543,18 +587,18 @@ namespace CarryOn.Client.Logic
             catch (System.Exception ex)
             {
                 this.api.Logger.Error("Error disabling CarryOn anchor border: " + ex);
-                return Vintagestory.API.Common.TextCommandResult.Error("Failed to disable CarryOn anchor border due to an error.");
+                return TextCommandResult.Error("Failed to disable CarryOn anchor border due to an error.");
             }
-            return Vintagestory.API.Common.TextCommandResult.Success("CarryOn anchor border: disabled");
+            return TextCommandResult.Success("CarryOn anchor border: disabled");
         }
 
-        protected Vintagestory.API.Common.TextCommandResult CmdCarryOnGuiBorderColor(Vintagestory.API.Common.TextCommandCallingArgs args)
+        protected TextCommandResult CmdCarryOnGuiBorderColor(TextCommandCallingArgs args)
         {
             string hex = ((string)args[0])?.Trim();
-            if (string.IsNullOrEmpty(hex)) return Vintagestory.API.Common.TextCommandResult.Error("Usage: .carryon gui border color #rrggbb");
+            if (string.IsNullOrEmpty(hex)) return TextCommandResult.Error("Usage: .carryon gui border color #rrggbb");
             if (!ColorHelper.TryNormalizeHex(hex, out hex))
             {
-                return Vintagestory.API.Common.TextCommandResult.Error("Invalid hex color. Expected formats: #RRGGBB, RRGGBB, #RGB, or RGB");
+                return TextCommandResult.Error("Invalid hex color. Expected formats: #RRGGBB, RRGGBB, #RGB, or RGB");
             }
 
             try
@@ -571,19 +615,19 @@ namespace CarryOn.Client.Logic
             catch (System.Exception ex)
             {
                 this.api.Logger.Error("Error setting CarryOn anchor border color: " + ex);
-                return Vintagestory.API.Common.TextCommandResult.Error("Failed to set CarryOn anchor border color due to an error.");
+                return TextCommandResult.Error("Failed to set CarryOn anchor border color due to an error.");
             }
 
-            return Vintagestory.API.Common.TextCommandResult.Success($"CarryOn anchor border color set to {hex}");
+            return TextCommandResult.Success($"CarryOn anchor border color set to {hex}");
         }
 
-        protected Vintagestory.API.Common.TextCommandResult CmdCarryOnGuiBorderAlpha(Vintagestory.API.Common.TextCommandCallingArgs args)
+        protected TextCommandResult CmdCarryOnGuiBorderAlpha(TextCommandCallingArgs args)
         {
             float a = 0f;
             try { a = (float)args[0]; }
-            catch { return Vintagestory.API.Common.TextCommandResult.Error("Usage: .carryon gui border alpha 0.0-1.0"); }
+            catch { return TextCommandResult.Error("Usage: .carryon gui border alpha 0.0-1.0"); }
 
-            if (a < 0f || a > 1f) return Vintagestory.API.Common.TextCommandResult.Error("Alpha must be between 0.0 and 1.0");
+            if (a < 0f || a > 1f) return TextCommandResult.Error("Alpha must be between 0.0 and 1.0");
 
             try
             {
@@ -599,13 +643,13 @@ namespace CarryOn.Client.Logic
             catch (System.Exception ex)
             {
                 this.api.Logger.Error("Error setting CarryOn anchor border alpha: " + ex);
-                return Vintagestory.API.Common.TextCommandResult.Error("Failed to set CarryOn anchor border alpha due to an error.");
+                return TextCommandResult.Error("Failed to set CarryOn anchor border alpha due to an error.");
             }
 
-            return Vintagestory.API.Common.TextCommandResult.Success($"CarryOn anchor border alpha set to {a:0.##}");
+            return TextCommandResult.Success($"CarryOn anchor border alpha set to {a:0.##}");
         }
 
-        protected Vintagestory.API.Common.TextCommandResult CmdCarryOnGuiBorderReset(Vintagestory.API.Common.TextCommandCallingArgs args)
+        protected TextCommandResult CmdCarryOnGuiBorderReset(TextCommandCallingArgs args)
         {
             try
             {
@@ -625,13 +669,13 @@ namespace CarryOn.Client.Logic
             catch (System.Exception ex)
             {
                 this.api.Logger.Error("Error resetting CarryOn anchor border: " + ex);
-                return Vintagestory.API.Common.TextCommandResult.Error("Failed to reset CarryOn anchor border due to an error.");
+                return TextCommandResult.Error("Failed to reset CarryOn anchor border due to an error.");
             }
 
-            return Vintagestory.API.Common.TextCommandResult.Success($"CarryOn anchor border reset to defaults: enabled={HudCarried.AnchorBorderEnabled}, color={HudCarried.AnchorBorderColor}, alpha={HudCarried.AnchorBorderAlpha:0.##}");
+            return TextCommandResult.Success($"CarryOn anchor border reset to defaults: enabled={HudCarried.AnchorBorderEnabled}, color={HudCarried.AnchorBorderColor}, alpha={HudCarried.AnchorBorderAlpha:0.##}");
         }
 
-        protected Vintagestory.API.Common.TextCommandResult CmdCarryOnGuiBorderShow(Vintagestory.API.Common.TextCommandCallingArgs args)
+        protected TextCommandResult CmdCarryOnGuiBorderShow(TextCommandCallingArgs args)
         {
             string runtime = $"Runtime: enabled={HudCarried.AnchorBorderEnabled}, color={HudCarried.AnchorBorderColor}, alpha={HudCarried.AnchorBorderAlpha:0.##}";
             string saved = "Saved: (none)";
@@ -648,11 +692,11 @@ namespace CarryOn.Client.Logic
                 this.api.Logger.Error("Error showing CarryOn GUI anchor border settings: " + ex);
             }
 
-            return Vintagestory.API.Common.TextCommandResult.Success("CarryOn anchor border — " + runtime + " | " + saved);
+            return TextCommandResult.Success("CarryOn anchor border — " + runtime + " | " + saved);
         }
 
         // === Highlight subcommand handlers ===
-        protected Vintagestory.API.Common.TextCommandResult CmdCarryOnGuiHighlightEnable(Vintagestory.API.Common.TextCommandCallingArgs args)
+        protected TextCommandResult CmdCarryOnGuiHighlightEnable(TextCommandCallingArgs args)
         {
             try
             {
@@ -668,17 +712,17 @@ namespace CarryOn.Client.Logic
             catch (System.Exception ex)
             {
                 this.api.Logger.Error("Error enabling CarryOn icon highlight: " + ex);
-                return Vintagestory.API.Common.TextCommandResult.Error("Failed to enable CarryOn icon highlight due to an error.");
+                return TextCommandResult.Error("Failed to enable CarryOn icon highlight due to an error.");
             }
-            return Vintagestory.API.Common.TextCommandResult.Success("CarryOn icon highlight: enabled");
+            return TextCommandResult.Success("CarryOn icon highlight: enabled");
         }
 
-        protected Vintagestory.API.Common.TextCommandResult CmdCarryOnGuiHighlightDisable(Vintagestory.API.Common.TextCommandCallingArgs args)
+        protected TextCommandResult CmdCarryOnGuiHighlightDisable(TextCommandCallingArgs args)
         {
             try
             {
                 HudCarried.IconHighlightEnabled = false;
-                HudCarried.UpdateParsedColors();                
+                HudCarried.UpdateParsedColors();
 
                 if (this.carrySystem?.ClientConfig != null)
                 {
@@ -689,24 +733,24 @@ namespace CarryOn.Client.Logic
             catch (System.Exception ex)
             {
                 this.api.Logger.Error("Error disabling CarryOn icon highlight: " + ex);
-                return Vintagestory.API.Common.TextCommandResult.Error("Failed to disable CarryOn icon highlight due to an error.");
+                return TextCommandResult.Error("Failed to disable CarryOn icon highlight due to an error.");
             }
-            return Vintagestory.API.Common.TextCommandResult.Success("CarryOn icon highlight: disabled");
+            return TextCommandResult.Success("CarryOn icon highlight: disabled");
         }
 
-        protected Vintagestory.API.Common.TextCommandResult CmdCarryOnGuiHighlightColor(Vintagestory.API.Common.TextCommandCallingArgs args)
+        protected TextCommandResult CmdCarryOnGuiHighlightColor(TextCommandCallingArgs args)
         {
             string hex = ((string)args[0])?.Trim();
-            if (string.IsNullOrEmpty(hex)) return Vintagestory.API.Common.TextCommandResult.Error("Usage: .carryon gui highlight color #rrggbb");
+            if (string.IsNullOrEmpty(hex)) return TextCommandResult.Error("Usage: .carryon gui highlight color #rrggbb");
             if (!ColorHelper.TryNormalizeHex(hex, out hex))
             {
-                return Vintagestory.API.Common.TextCommandResult.Error("Invalid hex color. Expected formats: #RRGGBB, RRGGBB, #RGB, or RGB");
+                return TextCommandResult.Error("Invalid hex color. Expected formats: #RRGGBB, RRGGBB, #RGB, or RGB");
             }
 
             try
             {
                 HudCarried.IconHighlightColor = hex;
-                HudCarried.UpdateParsedColors();                
+                HudCarried.UpdateParsedColors();
 
                 if (this.carrySystem?.ClientConfig != null)
                 {
@@ -717,18 +761,18 @@ namespace CarryOn.Client.Logic
             catch (System.Exception ex)
             {
                 this.api.Logger.Error("Error setting CarryOn icon highlight color: " + ex);
-                return Vintagestory.API.Common.TextCommandResult.Error("Failed to set CarryOn icon highlight color due to an error.");
+                return TextCommandResult.Error("Failed to set CarryOn icon highlight color due to an error.");
             }
 
-            return Vintagestory.API.Common.TextCommandResult.Success($"CarryOn icon highlight color set to {hex}");
+            return TextCommandResult.Success($"CarryOn icon highlight color set to {hex}");
         }
 
-        protected Vintagestory.API.Common.TextCommandResult CmdCarryOnGuiHighlightAlpha(Vintagestory.API.Common.TextCommandCallingArgs args)
+        protected TextCommandResult CmdCarryOnGuiHighlightAlpha(TextCommandCallingArgs args)
         {
             float a = 0f;
             try { a = (float)args[0]; }
-            catch { return Vintagestory.API.Common.TextCommandResult.Error("Usage: .carryon gui highlight alpha 0.0-1.0"); }
-            if (a < 0f || a > 1f) return Vintagestory.API.Common.TextCommandResult.Error("Alpha must be between 0.0 and 1.0");
+            catch { return TextCommandResult.Error("Usage: .carryon gui highlight alpha 0.0-1.0"); }
+            if (a < 0f || a > 1f) return TextCommandResult.Error("Alpha must be between 0.0 and 1.0");
 
             try
             {
@@ -744,13 +788,13 @@ namespace CarryOn.Client.Logic
             catch (System.Exception ex)
             {
                 this.api.Logger.Error("Error setting CarryOn icon highlight alpha: " + ex);
-                return Vintagestory.API.Common.TextCommandResult.Error("Failed to set CarryOn icon highlight alpha due to an error.");
+                return TextCommandResult.Error("Failed to set CarryOn icon highlight alpha due to an error.");
             }
 
-            return Vintagestory.API.Common.TextCommandResult.Success($"CarryOn icon highlight alpha set to {a:0.##}");
+            return TextCommandResult.Success($"CarryOn icon highlight alpha set to {a:0.##}");
         }
 
-        protected Vintagestory.API.Common.TextCommandResult CmdCarryOnGuiHighlightReset(Vintagestory.API.Common.TextCommandCallingArgs args)
+        protected TextCommandResult CmdCarryOnGuiHighlightReset(TextCommandCallingArgs args)
         {
             try
             {
@@ -771,13 +815,13 @@ namespace CarryOn.Client.Logic
             {
                 // Handle any errors that occur during the reset process
                 this.api.Logger.Error("Error resetting CarryOn icon highlight to defaults: " + ex);
-                return Vintagestory.API.Common.TextCommandResult.Error("Failed to reset CarryOn icon highlight to defaults due to an error.");
+                return TextCommandResult.Error("Failed to reset CarryOn icon highlight to defaults due to an error.");
             }
 
-            return Vintagestory.API.Common.TextCommandResult.Success($"CarryOn icon highlight reset to defaults: enabled={HudCarried.IconHighlightEnabled}, color={HudCarried.IconHighlightColor}, alpha={HudCarried.IconHighlightAlpha:0.##}");
+            return TextCommandResult.Success($"CarryOn icon highlight reset to defaults: enabled={HudCarried.IconHighlightEnabled}, color={HudCarried.IconHighlightColor}, alpha={HudCarried.IconHighlightAlpha:0.##}");
         }
 
-        protected Vintagestory.API.Common.TextCommandResult CmdCarryOnGuiHighlightShow(Vintagestory.API.Common.TextCommandCallingArgs args)
+        protected TextCommandResult CmdCarryOnGuiHighlightShow(TextCommandCallingArgs args)
         {
             string runtime = $"Runtime: enabled={HudCarried.IconHighlightEnabled}, color={HudCarried.IconHighlightColor}, alpha={HudCarried.IconHighlightAlpha:0.##}";
             string saved = "Saved: (none)";
@@ -794,7 +838,7 @@ namespace CarryOn.Client.Logic
                 this.api.Logger.Error("Error showing CarryOn GUI icon highlight settings: " + ex);
             }
 
-            return Vintagestory.API.Common.TextCommandResult.Success("CarryOn icon highlight — " + runtime + " | " + saved);
+            return TextCommandResult.Success("CarryOn icon highlight — " + runtime + " | " + saved);
         }
     }
 }
