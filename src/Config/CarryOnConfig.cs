@@ -64,7 +64,7 @@ namespace CarryOn.Config
         public bool AllowLargeChestsOnBack { get; set; } = false;
         public bool AllowCratesOnBack { get; set; } = false;
 
-        public string[] PreventSwapFromBackOnTarget { get; set; } = ["behavior::Container", "behavior::Door", "class::portals.portal"];
+        public string[] PreventSwapFromBackOnTarget { get; set; } = ["behavior::Container", "behavior::Door", "class::portals.portal", "class::BlockGroundStorage"];
     }
 
     public class DroppedBlockOptionsConfig

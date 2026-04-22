@@ -170,7 +170,6 @@ namespace CarryOn.API.Common
 
             if (!world.BlockAccessor.IsValidPos(selection.Position)) return false;
 
-            BlockEntity droppedBlockEntity = null;
             var placementSucceeded = false;
 
             if (entity is EntityPlayer playerEntity && !dropped)
@@ -186,7 +185,6 @@ namespace CarryOn.API.Common
                     if (carriedBlock != null && carriedBlock.Block != null && selection != null && carriedBlock.ItemStack != null)
                     {
                         world.BlockAccessor.SetBlock(carriedBlock.Block.Id, selection.Position, carriedBlock.ItemStack);
-                        droppedBlockEntity = world.BlockAccessor.GetBlockEntity(selection.Position);
                         placementSucceeded = true;
                     }
                     else
@@ -252,7 +250,6 @@ namespace CarryOn.API.Common
                 // Will trigger placement of multiblock sections
                 droppedBlock?.OnBlockPlaced(world, selection.Position, carriedBlock.ItemStack);
 
-                droppedBlockEntity = world.BlockAccessor.GetBlockEntity(selection.Position);
                 placementSucceeded = true;
 
                 // Set mesh angle opposite to block facing
@@ -263,9 +260,6 @@ namespace CarryOn.API.Common
             if (!placementSucceeded) return false;
             RestoreBlockEntityData(world, carriedBlock, selection.Position, dropped: dropped);
 
-            // Notify the dropped block entity that it has been placed
-            // TODO: Is this required for some block entitues? It can empty crates
-            // droppedBlockEntity?.OnBlockPlaced(carriedBlock.ItemStack);
             world.BlockAccessor.MarkBlockDirty(selection.Position);
             world.BlockAccessor.TriggerNeighbourBlockUpdate(selection.Position);
 
