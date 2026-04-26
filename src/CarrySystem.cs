@@ -21,7 +21,7 @@ using Vintagestory.GameContent;
 
 [assembly: ModInfo("Carry On",
     modID: "carryon",
-    Version = "1.14.0-rc.1",
+    Version = "1.14.0",
     Description = "Adds the capability to carry various things",
     Website = "https://github.com/NerdScurvy/CarryOn",
     Authors = new[] { "copygirl", "NerdScurvy" })]
@@ -283,6 +283,22 @@ namespace CarryOn
 
         private void RemoveExcludedCarryableBehaviours(ICoreAPI api)
         {
+            if (ModConfig.ServerConfig == null)
+            {
+                api.Logger.Error("CarryOn: ServerConfig is null in RemoveExcludedCarryableBehaviours");
+                return;
+            }
+            if (ModConfig.ServerConfig.DebuggingOptions == null)
+            {
+                api.Logger.Error("CarryOn: DebuggingOptions is null in RemoveExcludedCarryableBehaviours");
+                return;
+            }
+            if (ModConfig.ServerConfig.CarryablesFilters == null)
+            {
+                api.Logger.Error("CarryOn: CarryablesFilters is null in RemoveExcludedCarryableBehaviours");
+                return;
+            }
+
             var loggingEnabled = ModConfig.ServerConfig.DebuggingOptions.LoggingEnabled;
             var filters = ModConfig.ServerConfig.CarryablesFilters;
 
@@ -313,7 +329,22 @@ namespace CarryOn
 
         private void ResolveMultipleCarryableBehaviors(ICoreAPI api)
         {
+            if (ModConfig.ServerConfig == null)
+            {
+                api.Logger.Error("CarryOn: ServerConfig is null in ResolveMultipleCarryableBehaviors");
+                return;
+            }
+            if (ModConfig.ServerConfig.CarryablesFilters == null)
+            {
+                api.Logger.Error("CarryOn: CarryablesFilters is null in ResolveMultipleCarryableBehaviors");
+                return;
+            }
             var filters = ModConfig.ServerConfig.CarryablesFilters;
+            if (filters.RemoveBaseCarryableBehaviour == null)
+            {
+                api.Logger.Error("CarryOn: RemoveBaseCarryableBehaviour is null in ResolveMultipleCarryableBehaviors");
+                return;
+            }            
             
             foreach (var block in api.World.Blocks)
             {
@@ -383,10 +414,41 @@ namespace CarryOn
 
         private void AutoMapSimilarCarryableInteract(ICoreAPI api)
         {
+            if (ModConfig.ServerConfig == null)
+            {
+                api.Logger.Error("CarryOn: ServerConfig is null in AutoMapSimilarCarryableInteract");
+                return;
+            }
+            if (ModConfig.ServerConfig.DebuggingOptions == null)
+            {
+                api.Logger.Error("CarryOn: DebuggingOptions is null in AutoMapSimilarCarryableInteract");
+                return;
+            }
+            if (ModConfig.ServerConfig.CarryablesFilters == null)
+            {
+                api.Logger.Error("CarryOn: CarryablesFilters is null in AutoMapSimilarCarryableInteract");
+                return;
+            }
+
             var loggingEnabled = ModConfig.ServerConfig.DebuggingOptions.LoggingEnabled;
             var filters = ModConfig.ServerConfig.CarryablesFilters;
 
-            if (!filters.AutoMapSimilar) return;
+            if (!filters.AutoMapSimilar)
+            {
+                api.Logger.Debug("CarryOn: AutoMapSimilar is false in AutoMapSimilarCarryableInteract");
+                return;
+            }
+            if (filters.AutoMatchIgnoreMods == null)
+            {
+                api.Logger.Error("CarryOn: AutoMatchIgnoreMods is null in AutoMapSimilarCarryableInteract");
+                return;
+            }
+
+            if (api.World == null || api.World.Blocks == null)
+            {
+                api.Logger.Error("CarryOn: World or Blocks is null in AutoMapSimilarCarryableInteract");
+                return;
+            }
 
             var matchKeys = new List<string>();
             foreach (var interactBlock in api.World.Blocks.Where(b => b.IsCarryableInteract()))
@@ -411,6 +473,22 @@ namespace CarryOn
 
         private void AutoMapSimilarCarryables(ICoreAPI api)
         {
+            if (ModConfig.ServerConfig == null)
+            {
+                api.Logger.Error("CarryOn: ServerConfig is null in AutoMapSimilarCarryables");
+                return;
+            }
+            if (ModConfig.ServerConfig.DebuggingOptions == null)
+            {
+                api.Logger.Error("CarryOn: DebuggingOptions is null in AutoMapSimilarCarryables");
+                return;
+            }
+            if (ModConfig.ServerConfig.CarryablesFilters == null)
+            {
+                api.Logger.Error("CarryOn: CarryablesFilters is null in AutoMapSimilarCarryables");
+                return;
+            }
+
             var loggingEnabled = ModConfig.ServerConfig.DebuggingOptions.LoggingEnabled;
 
             var filters = ModConfig.ServerConfig.CarryablesFilters;
