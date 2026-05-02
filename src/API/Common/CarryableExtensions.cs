@@ -151,11 +151,30 @@ namespace CarryOn.API.Common
             var carriedSecond = CarriedBlock.Get(entity, second);
             if ((carriedFirst == null) && (carriedSecond == null)) return false;
 
+            // Check if the carried blocks can be swapped in their new slots
+            bool canSetFirst = carriedFirst == null || carriedFirst.Block.GetBehavior<BlockBehaviorCarryable>()?.Slots?[second] != null;
+            bool canSetSecond = carriedSecond == null || carriedSecond.Block.GetBehavior<BlockBehaviorCarryable>()?.Slots?[first] != null;
+
+            if (!canSetFirst || !canSetSecond)
+                return false;
+
             CarriedBlock.Remove(entity, first);
             CarriedBlock.Remove(entity, second);
 
-            carriedFirst?.Set(entity, second);
-            carriedSecond?.Set(entity, first);
+            try
+            {
+                carriedFirst?.Set(entity, second);
+                carriedSecond?.Set(entity, first);
+            }
+            catch (Exception ex)
+            {
+                // Rollback: restore original state if anything fails
+                carriedFirst?.Set(entity, first);
+                carriedSecond?.Set(entity, second);
+
+                entity.World.Logger.Error($"[{CarrySystem.ModId}] Failed to swap carried blocks for entity {entity.GetName()}. Rolling back changes. {ex}");
+                return false;
+            }
 
             return true;
         }
