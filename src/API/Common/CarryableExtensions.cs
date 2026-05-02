@@ -81,7 +81,7 @@ namespace CarryOn.API.Common
             {
                 var entityName = entity?.GetName() ?? "Unknown Entity";
                 entity.World.Logger.Audit($"[{CarrySystem.ModId}] {entityName} picked up block {carried.Block.Code.GetName()} at {pos}");
-            }            
+            }
             return true;
         }
 
@@ -135,7 +135,7 @@ namespace CarryOn.API.Common
             var carryManager = CarrySystem.GetCarryManager(api);
             carryManager?.DropCarried(entity, Enum.GetValues(typeof(CarrySlot)).Cast<CarrySlot>(), hSize);
         }
-                     
+
 
         /// <summary>
         ///   Attempts to swap the <see cref="CarriedBlock"/>s currently carried in the
@@ -145,6 +145,8 @@ namespace CarryOn.API.Common
         public static bool Swap(this Entity entity, CarrySlot first, CarrySlot second)
         {
             if (first == second) throw new ArgumentException("Slots can't be the same");
+
+            bool isServer = entity.Api.Side == EnumAppSide.Server;
 
             var carriedFirst = CarriedBlock.Get(entity, first);
             var carriedSecond = CarriedBlock.Get(entity, second);
@@ -177,21 +179,21 @@ namespace CarryOn.API.Common
             }
             catch (Exception ex)
             {
-                bool isServer = entity.Api.Side == EnumAppSide.Server;
 
                 entity.World.Logger.Error($"[{CarrySystem.ModId}] Failed to swap carried blocks for entity {entity.GetName()}. {ex}");
-
-                var message = Lang.Get(CarrySystem.ModId + ":cannot-swap-back");
 
                 if (isServer)
                 {
                     var serverPlayer = (entity as EntityPlayer)?.Player as IServerPlayer;
-                    serverPlayer?.SendIngameError("carryon", "cannot-swap-back", message);
+                    serverPlayer?.SendIngameError("carryon", "swap-back-error", Lang.Get(CarrySystem.ModId + ":swap-back-error-server"));
                 }
                 else
                 {
+                    // Client side error - player may need to relog to fix desync
                     var capi = entity.Api as ICoreClientAPI;
-                    capi?.TriggerIngameError("carryon", "cannot-swap-back", message);
+                    capi?.TriggerIngameError("carryon", "swap-back-error", Lang.Get(CarrySystem.ModId + ":swap-back-error-client"));
+                    return false;
+
                 }
 
                 // Rollback: restore original state if anything fails (client and server)
@@ -223,7 +225,7 @@ namespace CarryOn.API.Common
                 success = false;
             }
 
-            entity.WatchedAttributes.MarkPathDirty(CarriedBlock.AttributeId);
+            if (isServer) entity.WatchedAttributes.MarkPathDirty(CarriedBlock.AttributeId);
             return success;
         }
 

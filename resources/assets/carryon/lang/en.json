@@ -39,5 +39,7 @@
   
   "double-tap-dismount-enabled": "Double Tap Dismount Enabled",
   "double-tap-dismount-disabled": "Double Tap Dismount Disabled",
-  "toggle-double-tap-dismount-hotkey": "CarryOn - Toggle Double Tap Dismount"
+  "toggle-double-tap-dismount-hotkey": "CarryOn - Toggle Double Tap Dismount",
+  "swap-back-error-client": "Unknown error while swapping the carried item to/from your back. Item may be desynced, please relog to fix it. Check client logs for details.",
+  "swap-back-error-server": "Unknown error while swapping the carried item to/from your back. Check server logs for details."
 }
