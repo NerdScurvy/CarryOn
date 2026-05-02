@@ -291,6 +291,7 @@ namespace CarryOn.API.Common
             if (slots == null) throw new ArgumentNullException(nameof(slots));
             if (range < 0) throw new ArgumentOutOfRangeException(nameof(range));
 
+            if (entity.World.Side != EnumAppSide.Server) return;
 
             IServerPlayer player = (entity is EntityPlayer entityPlayer) ? (IServerPlayer)entityPlayer.Player : null;
 
@@ -315,7 +316,9 @@ namespace CarryOn.API.Common
             if (carriedBlock == null) return;
 
             ArgumentNullException.ThrowIfNull(entity);
-            
+
+            if (entity.World.Side != EnumAppSide.Server) return;
+
             if (range < 0) throw new ArgumentOutOfRangeException(nameof(range));
 
             IServerPlayer player = (entity is EntityPlayer entityPlayer) ? (IServerPlayer)entityPlayer.Player : null;
