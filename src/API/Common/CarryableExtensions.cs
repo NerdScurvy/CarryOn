@@ -8,6 +8,7 @@ using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
 using Vintagestory.API.Config;
+using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Server;
 using Vintagestory.GameContent;
@@ -147,67 +148,83 @@ namespace CarryOn.API.Common
 
             var carriedFirst = CarriedBlock.Get(entity, first);
             var carriedSecond = CarriedBlock.Get(entity, second);
-            if ((carriedFirst == null) && (carriedSecond == null)) return false;
+            bool success;
+
+            if ((carriedFirst == null) && (carriedSecond == null))
+            {
+                entity.WatchedAttributes.MarkPathDirty(CarriedBlock.AttributeId);
+                return false;
+            }
 
             // Check if the carried blocks can be swapped in their new slots
             bool canSetFirst = carriedFirst == null || carriedFirst.Block.GetBehavior<BlockBehaviorCarryable>()?.Slots?[second] != null;
             bool canSetSecond = carriedSecond == null || carriedSecond.Block.GetBehavior<BlockBehaviorCarryable>()?.Slots?[first] != null;
 
             if (!canSetFirst || !canSetSecond)
+            {
+                entity.WatchedAttributes.MarkPathDirty(CarriedBlock.AttributeId);
                 return false;
+            }
 
-            CarriedBlock.Remove(entity, first);
-            CarriedBlock.Remove(entity, second);
+            CarriedBlock.Remove(entity, first, markDirty: false);
+            CarriedBlock.Remove(entity, second, markDirty: false);
 
             try
             {
-                carriedFirst?.Set(entity, second);
-                carriedSecond?.Set(entity, first);
+                carriedFirst?.Set(entity, second, markDirty: false);
+                carriedSecond?.Set(entity, first, markDirty: false);
+                success = true;
             }
             catch (Exception ex)
             {
-                if (entity.Api is ICoreClientAPI capi)
-                {
-                    entity.World.Logger.Error($"[{CarrySystem.ModId}] Failed to swap carried blocks for entity {entity.GetName()}. {ex}");
-                    capi.TriggerIngameError("carryon", "cannot-swap-back", Lang.Get(CarrySystem.ModId + ":cannot-swap-back"));
-                    return false;
-                }
-                if(entity is EntityPlayer player && player.Player is IServerPlayer serverPlayer)
-                {
-                    serverPlayer.SendIngameError("carryon", "cannot-swap-back", Lang.Get(CarrySystem.ModId + ":cannot-swap-back"));
-                }
-                entity.World.Logger.Error($"[{CarrySystem.ModId}] Failed to swap carried blocks for entity {entity.GetName()}. Rolling back changes. {ex}");
+                bool isServer = entity.Api.Side == EnumAppSide.Server;
 
-                // Rollback: restore original state if anything fails
+                entity.World.Logger.Error($"[{CarrySystem.ModId}] Failed to swap carried blocks for entity {entity.GetName()}. {ex}");
+
+                var message = Lang.Get(CarrySystem.ModId + ":cannot-swap-back");
+
+                if (isServer)
+                {
+                    var serverPlayer = ((EntityPlayer)entity).Player as IServerPlayer;
+                    serverPlayer?.SendIngameError("carryon", "cannot-swap-back", message);
+                }
+                else
+                {
+                    var capi = (ICoreClientAPI)entity.Api;
+                    capi.TriggerIngameError("carryon", "cannot-swap-back", message);
+                }
+
+                // Rollback: restore original state if anything fails (client and server)
                 try
                 {
-                    carriedFirst?.Set(entity, first);
-                    carriedSecond?.Set(entity, second);
+                    carriedFirst?.Set(entity, first, markDirty: false);
+                    carriedSecond?.Set(entity, second, markDirty: false);
                 }
                 catch (Exception rollbackEx)
                 {
                     entity.World.Logger.Error($"[{CarrySystem.ModId}] Rollback also failed for entity {entity.GetName()}. Attempting to drop carried blocks: {rollbackEx}");
-                    CarriedBlock.Remove(entity, first);
-                    CarriedBlock.Remove(entity, second);
+                    CarriedBlock.Remove(entity, first, markDirty: false);
+                    CarriedBlock.Remove(entity, second, markDirty: false);
 
-                    // Last resort: drop the blocks if we can't restore them to their original state
-                    var manager = CarrySystem.GetCarryManager(entity.Api);
-
-                    if (carriedFirst != null)
+                    // Only server drops blocks as last resort
+                    if (isServer)
                     {
-                        manager?.DropCarriedBlock(entity, carriedFirst);
+                        var manager = CarrySystem.GetCarryManager(entity.Api);
+                        if (carriedFirst != null)
+                        {
+                            manager?.DropCarriedBlock(entity, carriedFirst);
+                        }
+                        if (carriedSecond != null)
+                        {
+                            manager?.DropCarriedBlock(entity, carriedSecond);
+                        }
                     }
-                    if (carriedSecond != null)
-                    {
-                        manager?.DropCarriedBlock(entity, carriedSecond);
-                    }
-
-                } 
-
-                return false;
+                }
+                success = false;
             }
 
-            return true;
+            entity.WatchedAttributes.MarkPathDirty(CarriedBlock.AttributeId);
+            return success;
         }
 
         public static bool IsCarryKeyHeld(this Entity entity)

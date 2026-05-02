@@ -66,12 +66,12 @@ namespace CarryOn.API.Common
         /// <summary> Stores the specified stack and blockEntityData (may be null)
         ///           as the <see cref="CarriedBlock"/> of the entity in that slot. </summary>
         /// <exception cref="ArgumentNullException"> Thrown if entity is null. </exception>
-        public static void Set(Entity entity, CarrySlot slot, ItemStack stack, ITreeAttribute blockEntityData)
+        public static void Set(Entity entity, CarrySlot slot, ItemStack stack, ITreeAttribute blockEntityData, bool markDirty = true)
         {
             if (entity == null) throw new ArgumentNullException(nameof(entity));
 
             entity.WatchedAttributes.Set(stack, AttributeId, slot.ToString(), "Stack");
-            ((SyncedTreeAttribute)entity.WatchedAttributes).MarkPathDirty(AttributeId);
+            if (markDirty) entity.WatchedAttributes.MarkPathDirty(AttributeId);
 
             if ((entity.World.Side == EnumAppSide.Server) && (blockEntityData != null))
                 entity.Attributes.Set(blockEntityData, AttributeId, slot.ToString(), "Data");
@@ -100,13 +100,13 @@ namespace CarryOn.API.Common
         /// <summary> Stores this <see cref="CarriedBlock"/> as the
         ///           specified entity's carried block in that slot. </summary>
         /// <exception cref="ArgumentNullException"> Thrown if entity is null. </exception>
-        public void Set(Entity entity, CarrySlot slot)
-            => Set(entity, slot, ItemStack, BlockEntityData);
+        public void Set(Entity entity, CarrySlot slot, bool markDirty = true)
+            => Set(entity, slot, ItemStack, BlockEntityData, markDirty);
 
         /// <summary> Removes the <see cref="CarriedBlock"/>
         ///           carried by the specified entity in that slot. </summary>
         /// <exception cref="ArgumentNullException"> Thrown if entity is null. </exception>
-        public static void Remove(Entity entity, CarrySlot slot)
+        public static void Remove(Entity entity, CarrySlot slot, bool markDirty = true)
         {
             if (entity == null) throw new ArgumentNullException(nameof(entity));
 
@@ -123,7 +123,7 @@ namespace CarryOn.API.Common
             }
 
             entity.WatchedAttributes.Remove(AttributeId, slot.ToString());
-            ((SyncedTreeAttribute)entity.WatchedAttributes).MarkPathDirty(AttributeId);
+            if (markDirty) entity.WatchedAttributes.MarkPathDirty(AttributeId);
             entity.Attributes.Remove(AttributeId, slot.ToString());
         }
 
