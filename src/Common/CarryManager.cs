@@ -293,8 +293,6 @@ namespace CarryOn.API.Common
 
             if (entity.World.Side != EnumAppSide.Server) return;
 
-            IServerPlayer player = (entity is EntityPlayer entityPlayer) ? (IServerPlayer)entityPlayer.Player : null;
-
             var remaining = slots
                 .Select(s => entity.GetCarried(s))
                 .Where(c => c != null)
@@ -311,6 +309,15 @@ namespace CarryOn.API.Common
             }
         }
 
+        /// <summary>
+        /// Drops a specified carried block into the world as if the player entity had dropped it.
+        /// If the block cannot be placed within the specified range, it will be dropped as an item instead.
+        /// </summary>
+        /// <param name="entity"> The entity that is performing the action. </param>
+        /// <param name="carriedBlock"> The carried block to be dropped. </param>
+        /// <param name="range"> The range within which the block can be placed. </param>
+        /// <param name="blockPlacer"> The block placer to use for placing the block. </param>
+        /// <exception cref="ArgumentOutOfRangeException"> Thrown if the range is negative. </exception>
         public void DropCarriedBlock(Entity entity, CarriedBlock carriedBlock, int range = 4, BlockPlacer blockPlacer = null)
         {
             if (carriedBlock == null) return;
@@ -331,7 +338,7 @@ namespace CarryOn.API.Common
             {
                 DropBlockAsItem(carriedBlock, centerBlock, player, entity);
                 return;
-            }          
+            }
 
             if (TryPlaceDown(entity, carriedBlock, blockSelection, dropped: true))
             {

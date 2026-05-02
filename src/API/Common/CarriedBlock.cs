@@ -63,8 +63,27 @@ namespace CarryOn.API.Common
             return new CarriedBlock(slot, stack, blockEntityData);
         }
 
-        /// <summary> Stores the specified stack and blockEntityData (may be null)
-        ///           as the <see cref="CarriedBlock"/> of the entity in that slot. </summary>
+        /// <summary> 
+        /// Stores the specified stack and blockEntityData (may be null)
+        /// as the <see cref="CarriedBlock"/> of the entity in that slot. 
+        /// </summary>
+        /// <param name="entity"> The entity whose carried block is being set. </param>
+        /// <param name="slot"> The slot in which to set the carried block. </param>
+        /// <param name="stack"> The item stack to set as the carried block. </param>
+        /// <param name="blockEntityData"> The block entity data to set (may be null). </param>
+        /// <exception cref="ArgumentNullException"> Thrown if entity is null. </exception>
+        public static void Set(Entity entity, CarrySlot slot, ItemStack stack, ITreeAttribute blockEntityData)
+            => Set(entity, slot, stack, blockEntityData, true);
+
+        /// <summary>
+        ///  Stores the specified stack and blockEntityData (may be null)
+        ///  as the <see cref="CarriedBlock"/> of the entity in that slot. 
+        /// </summary>
+        /// <param name="entity"> The entity whose carried block is being set. </param>
+        /// <param name="slot"> The slot in which to set the carried block. </param>
+        /// <param name="stack"> The item stack to set as the carried block. </param>
+        /// <param name="blockEntityData"> The block entity data to set (may be null). </param>
+        /// <param name="markDirty"> Whether to mark the entity's watched attributes as dirty after setting. If false, the caller must manually mark dirty for changes to sync. </param>
         /// <exception cref="ArgumentNullException"> Thrown if entity is null. </exception>
         public static void Set(Entity entity, CarrySlot slot, ItemStack stack, ITreeAttribute blockEntityData, bool markDirty = true)
         {

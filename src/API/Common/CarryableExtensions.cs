@@ -185,13 +185,13 @@ namespace CarryOn.API.Common
 
                 if (isServer)
                 {
-                    var serverPlayer = ((EntityPlayer)entity).Player as IServerPlayer;
+                    var serverPlayer = (entity as EntityPlayer)?.Player as IServerPlayer;
                     serverPlayer?.SendIngameError("carryon", "cannot-swap-back", message);
                 }
                 else
                 {
-                    var capi = (ICoreClientAPI)entity.Api;
-                    capi.TriggerIngameError("carryon", "cannot-swap-back", message);
+                    var capi = entity.Api as ICoreClientAPI;
+                    capi?.TriggerIngameError("carryon", "cannot-swap-back", message);
                 }
 
                 // Rollback: restore original state if anything fails (client and server)
