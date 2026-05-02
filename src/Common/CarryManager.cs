@@ -306,20 +306,35 @@ namespace CarryOn.API.Common
 
             foreach (var carriedBlock in remaining)
             {
-                var blockSelection = blockPlacer.FindBlockPlacement(carriedBlock.Block, centerBlock, range);
-
-                if (blockSelection == null)
-                {
-                    DropBlockAsItem(carriedBlock, centerBlock, player, entity);
-                    continue;
-                }
-
-                if (TryPlaceDown(entity, carriedBlock, blockSelection, dropped: true))
-                {
-                    continue;
-                }
-                DropBlockAsItem(carriedBlock, centerBlock, player, entity);
+                DropCarriedBlock(entity, carriedBlock, range, blockPlacer);
             }
+        }
+
+        public void DropCarriedBlock(Entity entity, CarriedBlock carriedBlock, int range = 4, BlockPlacer blockPlacer = null)
+        {
+            if (carriedBlock == null) return;
+
+            ArgumentNullException.ThrowIfNull(entity);
+            
+            if (range < 0) throw new ArgumentOutOfRangeException(nameof(range));
+
+            IServerPlayer player = (entity is EntityPlayer entityPlayer) ? (IServerPlayer)entityPlayer.Player : null;
+
+            BlockPos centerBlock = entity.Pos.AsBlockPos.UpCopy();
+            blockPlacer ??= new BlockPlacer(entity.Api);
+
+            var blockSelection = blockPlacer.FindBlockPlacement(carriedBlock.Block, centerBlock, range);
+            if (blockSelection == null)
+            {
+                DropBlockAsItem(carriedBlock, centerBlock, player, entity);
+                return;
+            }          
+
+            if (TryPlaceDown(entity, carriedBlock, blockSelection, dropped: true))
+            {
+                return;
+            }
+            DropBlockAsItem(carriedBlock, centerBlock, player, entity);
         }
 
         /// <summary>

@@ -2,14 +2,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.AccessControl;
 using CarryOn.API.Event;
 using CarryOn.Common;
-using CarryOn.Config;
-using CarryOn.Utility;
+using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
-using Vintagestory.API.Datastructures;
+using Vintagestory.API.Config;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Server;
 using Vintagestory.GameContent;
@@ -168,11 +166,44 @@ namespace CarryOn.API.Common
             }
             catch (Exception ex)
             {
-                // Rollback: restore original state if anything fails
-                carriedFirst?.Set(entity, first);
-                carriedSecond?.Set(entity, second);
-
+                if (entity.Api is ICoreClientAPI capi)
+                {
+                    entity.World.Logger.Error($"[{CarrySystem.ModId}] Failed to swap carried blocks for entity {entity.GetName()}. {ex}");
+                    capi.TriggerIngameError("carryon", "cannot-swap-back", Lang.Get(CarrySystem.ModId + ":cannot-swap-back"));
+                    return false;
+                }
+                if(entity is EntityPlayer player && player.Player is IServerPlayer serverPlayer)
+                {
+                    serverPlayer.SendIngameError("carryon", "cannot-swap-back", Lang.Get(CarrySystem.ModId + ":cannot-swap-back"));
+                }
                 entity.World.Logger.Error($"[{CarrySystem.ModId}] Failed to swap carried blocks for entity {entity.GetName()}. Rolling back changes. {ex}");
+
+                // Rollback: restore original state if anything fails
+                try
+                {
+                    carriedFirst?.Set(entity, first);
+                    carriedSecond?.Set(entity, second);
+                }
+                catch (Exception rollbackEx)
+                {
+                    entity.World.Logger.Error($"[{CarrySystem.ModId}] Rollback also failed for entity {entity.GetName()}. Attempting to drop carried blocks: {rollbackEx}");
+                    CarriedBlock.Remove(entity, first);
+                    CarriedBlock.Remove(entity, second);
+
+                    // Last resort: drop the blocks if we can't restore them to their original state
+                    var manager = CarrySystem.GetCarryManager(entity.Api);
+
+                    if (carriedFirst != null)
+                    {
+                        manager?.DropCarriedBlock(entity, carriedFirst);
+                    }
+                    if (carriedSecond != null)
+                    {
+                        manager?.DropCarriedBlock(entity, carriedSecond);
+                    }
+
+                } 
+
                 return false;
             }
 
