@@ -44,8 +44,11 @@ namespace CarryOn.Common
 
         /// <summary> Tracks the last resync grant time (in server elapsed ms) per player UID
         ///           to prevent clients from flooding the server with resync requests. </summary>
-        private readonly Dictionary<string, long> _resyncCooldowns = new();
+        private readonly Dictionary<string, long> resyncCooldowns = new();
         private const long ResyncCooldownMs = 2000;
+        private const long ResyncCooldownPruneIntervalMs = 60_000;
+        private const long ResyncCooldownMaxAgeMs = 10 * 60_000;
+        private long nextResyncCooldownPruneAtMs;
 
         /// <summary> How long (ms) the client waits before sending a resync request, giving
         ///           the normal watched-attribute replication a chance to arrive first. </summary>
@@ -151,14 +154,29 @@ namespace CarryOn.Common
         private void OnCarryResyncRequestMessage(IServerPlayer player, CarryResyncRequestMessage message)
         {
             var now = player.Entity.World.ElapsedMilliseconds;
-            if (_resyncCooldowns.TryGetValue(player.PlayerUID, out var last) && now - last < ResyncCooldownMs)
+            PruneResyncCooldowns(now);
+
+            if (this.resyncCooldowns.TryGetValue(player.PlayerUID, out var last) && now - last < ResyncCooldownMs)
                 return;
 
-            _resyncCooldowns[player.PlayerUID] = now;
+            this.resyncCooldowns[player.PlayerUID] = now;
             CarrySystem.Api.Logger.Debug(
                 $"[{CarrySystem.ModId}] Carry resync requested by {player.PlayerName} " +
                 $"(client rev={message.LocalRevision}, server rev={CarriedBlock.GetCarriedRevision(player.Entity)})");
             player.Entity.WatchedAttributes.MarkPathDirty(CarriedBlock.AttributeId);
+        }
+
+        private void PruneResyncCooldowns(long now)
+        {
+            if (now < this.nextResyncCooldownPruneAtMs) return;
+
+            this.nextResyncCooldownPruneAtMs = now + ResyncCooldownPruneIntervalMs;
+            if (this.resyncCooldowns.Count == 0) return;
+
+            foreach (var uid in this.resyncCooldowns.Where(entry => now - entry.Value > ResyncCooldownMaxAgeMs).Select(entry => entry.Key).ToList())
+            {
+                this.resyncCooldowns.Remove(uid);
+            }
         }
 
         private void OnDismountMessage(IServerPlayer player, DismountMessage message)
