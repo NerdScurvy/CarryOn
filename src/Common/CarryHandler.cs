@@ -60,6 +60,7 @@ namespace CarryOn.Common
             input.SetHotKeyHandler(ToggleDoubleTapDismountKeyCode, TriggerToggleDoubleTapDismountKeyPressed);
 
             CarrySystem.ClientChannel.SetMessageHandler<LockSlotsMessage>(OnLockSlotsMessage);
+            CarrySystem.ClientChannel.SetMessageHandler<CarryRevisionMessage>(OnCarryRevisionMessage);
 
             cApi.Input.InWorldAction += OnEntityAction;
             cApi.Event.RegisterGameTickListener(OnGameTick, 0);
@@ -744,6 +745,18 @@ namespace CarryOn.Common
                 : EnumHandling.PassThrough;
         }
 
+        public void OnCarryRevisionMessage(CarryRevisionMessage message)
+        {
+            var player = CarrySystem.ClientAPI.World.Player;
+            var localRevision = CarriedBlock.GetCarriedRevision(player.Entity);
+            if (localRevision < message.Revision)
+            {
+                // Local carry state is behind the server's — cancel any in-progress
+                // carry interaction. Authoritative state will arrive via watched attributes.
+                CancelInteraction(resetTimeHeld: true);
+            }
+        }
+
         public void OnLockSlotsMessage(LockSlotsMessage message)
         {
             var player = CarrySystem.ClientAPI.World.Player;
@@ -767,6 +780,21 @@ namespace CarryOn.Common
             if ((player == null) || (player.World.PlayerByUid(player.PlayerUID) is not IServerPlayer serverPlayer)) return;
             var system = player.World.Api.ModLoader.GetModSystem<CarrySystem>();
             system.CarryHandler.SendLockSlotsMessage(serverPlayer);
+        }
+
+        /// <summary> Sends the current carried revision to the specified player so they
+        ///           can detect if their local carry state is stale. </summary>
+        public void SendCarryRevision(IServerPlayer player)
+        {
+            var revision = CarriedBlock.GetCarriedRevision(player.Entity);
+            CarrySystem.ServerChannel.SendPacket(new CarryRevisionMessage(revision), player);
+        }
+
+        public static void SendCarryRevision(EntityPlayer player)
+        {
+            if ((player == null) || (player.World.PlayerByUid(player.PlayerUID) is not IServerPlayer serverPlayer)) return;
+            var system = player.World.Api.ModLoader.GetModSystem<CarrySystem>();
+            system.CarryHandler.SendCarryRevision(serverPlayer);
         }
 
         private void OnInteractMessage(IServerPlayer player, InteractMessage message)
@@ -801,6 +829,10 @@ namespace CarryOn.Common
             {
                 InvalidCarry(player, message.Position);
             }
+            else
+            {
+                SendCarryRevision(player);
+            }
         }
 
         public void OnPlaceDownMessage(IServerPlayer player, PlaceDownMessage message)
@@ -826,9 +858,11 @@ namespace CarryOn.Common
             }
             // If succeeded, but by chance the client's projected placement isn't
             // the same as the server's, re-sync the block at the client's position.
-            else if (placedAt != message.PlacedAt)
+            else
             {
-                player.Entity.World.BlockAccessor.MarkBlockDirty(message.PlacedAt);
+                if (placedAt != message.PlacedAt)
+                    player.Entity.World.BlockAccessor.MarkBlockDirty(message.PlacedAt);
+                SendCarryRevision(player);
             }
         }
 
@@ -842,7 +876,8 @@ namespace CarryOn.Common
                 if (player.Entity.Swap(message.First, message.Second))
                 {
                     CarrySystem.Api.World.PlaySoundAt(new AssetLocation("sounds/player/throw"), player.Entity);
-                    player.Entity.WatchedAttributes.MarkPathDirty(CarriedBlock.AttributeId);
+                    CarriedBlock.TouchCarriedAttributes(player.Entity);
+                    SendCarryRevision(player);
                 }
             }
         }
@@ -1131,6 +1166,7 @@ namespace CarryOn.Common
                 targetEntity.MarkShapeModified();
                 targetEntity.World.BlockAccessor.GetChunkAtBlockPos(targetEntity.Pos.AsBlockPos).MarkModified();
                 CarrySystem.Api.World.Logger.Audit($"[{CarrySystem.ModId}] Player {player?.PlayerName} detached block {block.Code} from entity {targetEntity.EntityId} {targetEntity.GetName()} slot {message.SlotIndex} at position {targetEntity.Pos.AsBlockPos}");
+                SendCarryRevision(player);
             }
 
         }
@@ -1210,9 +1246,11 @@ namespace CarryOn.Common
         private void InvalidCarry(IServerPlayer player, BlockPos pos)
         {
             player.Entity.World.BlockAccessor.MarkBlockDirty(pos);
-            player.Entity.WatchedAttributes.MarkPathDirty(CarriedBlock.AttributeId);
+            CarriedBlock.TouchCarriedAttributes(player.Entity);
             player.Entity.WatchedAttributes.MarkPathDirty("stats/walkspeed");
             SendLockSlotsMessage(player);
+            // Tell the client to re-check the carried block's validity
+            SendCarryRevision(player);
         }
 
         /// <summary> Returns the position that the specified block would

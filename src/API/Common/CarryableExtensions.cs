@@ -154,7 +154,7 @@ namespace CarryOn.API.Common
 
             if ((carriedFirst == null) && (carriedSecond == null))
             {
-                entity.WatchedAttributes.MarkPathDirty(CarriedBlock.AttributeId);
+                if (isServer) CarriedBlock.TouchCarriedAttributes(entity);
                 return false;
             }
 
@@ -164,7 +164,7 @@ namespace CarryOn.API.Common
 
             if (!canSetFirst || !canSetSecond)
             {
-                entity.WatchedAttributes.MarkPathDirty(CarriedBlock.AttributeId);
+                if (isServer) CarriedBlock.TouchCarriedAttributes(entity);
                 return false;
             }
 
@@ -225,7 +225,7 @@ namespace CarryOn.API.Common
                 success = false;
             }
 
-            if (isServer) entity.WatchedAttributes.MarkPathDirty(CarriedBlock.AttributeId);
+            if (isServer) CarriedBlock.TouchCarriedAttributes(entity);
             return success;
         }
 

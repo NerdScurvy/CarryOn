@@ -18,6 +18,9 @@ namespace CarryOn.API.Common
         public static string AttributeId { get; }
             = $"{CarrySystem.ModId}:Carried";
 
+        /// <summary> Revision key under <see cref="AttributeId"/>. </summary>
+        public static string RevisionAttributeKey { get; } = "Rev";
+
         public CarrySlot Slot { get; }
 
         public ItemStack ItemStack { get; }
@@ -90,7 +93,7 @@ namespace CarryOn.API.Common
             if (entity == null) throw new ArgumentNullException(nameof(entity));
 
             entity.WatchedAttributes.Set(stack, AttributeId, slot.ToString(), "Stack");
-            if (markDirty) entity.WatchedAttributes.MarkPathDirty(AttributeId);
+            if (markDirty) TouchCarriedAttributes(entity);
 
             if ((entity.World.Side == EnumAppSide.Server) && (blockEntityData != null))
                 entity.Attributes.Set(blockEntityData, AttributeId, slot.ToString(), "Data");
@@ -142,8 +145,30 @@ namespace CarryOn.API.Common
             }
 
             entity.WatchedAttributes.Remove(AttributeId, slot.ToString());
-            if (markDirty) entity.WatchedAttributes.MarkPathDirty(AttributeId);
+            if (markDirty) TouchCarriedAttributes(entity);
             entity.Attributes.Remove(AttributeId, slot.ToString());
+        }
+
+        /// <summary>
+        /// Increments the carried-state revision and marks the carried root dirty.
+        /// </summary>
+        public static int TouchCarriedAttributes(Entity entity)
+        {
+            if (entity == null) throw new ArgumentNullException(nameof(entity));
+
+            var carriedRoot = entity.WatchedAttributes.TryGet<ITreeAttribute>(AttributeId) ?? new TreeAttribute();
+            var revision = carriedRoot.GetInt(RevisionAttributeKey, 0) + 1;
+            carriedRoot.SetInt(RevisionAttributeKey, revision);
+            entity.WatchedAttributes.Set(carriedRoot, AttributeId);
+            entity.WatchedAttributes.MarkPathDirty(AttributeId);
+            return revision;
+        }
+
+        public static int GetCarriedRevision(Entity entity)
+        {
+            if (entity == null) throw new ArgumentNullException(nameof(entity));
+            var carriedRoot = entity.WatchedAttributes.TryGet<ITreeAttribute>(AttributeId);
+            return carriedRoot?.GetInt(RevisionAttributeKey, 0) ?? 0;
         }
 
         /// <summary> Creates a <see cref="CarriedBlock"/> from the specified world

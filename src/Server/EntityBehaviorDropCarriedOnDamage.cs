@@ -1,6 +1,8 @@
 using CarryOn.API.Common;
+using CarryOn.Common;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
+using Vintagestory.GameContent;
 
 namespace CarryOn.Server
 {
@@ -20,7 +22,10 @@ namespace CarryOn.Server
         public override void OnEntityReceiveDamage(DamageSource damageSource, ref float damage)
         {
             if (damageSource.Type != EnumDamageType.Heal)
+            {
                 CarrySystem.GetCarryManager(entity?.Api)?.DropCarried(entity, DropFrom, 2);
+                CarryHandler.SendCarryRevision(entity as EntityPlayer);
+            }
         }
     }
 }
