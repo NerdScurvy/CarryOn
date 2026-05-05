@@ -394,9 +394,17 @@ namespace CarryOn.API.Common
                 }
             }
 
-            var breakSound = carriedBlock.Block.Sounds.GetBreakSound(player).Location ?? new AssetLocation("game:sounds/block/planks");
-            world.PlaySoundAt(breakSound, (double)centerBlock.X, (double)centerBlock.Y, (double)centerBlock.Z);
             RemoveCarried(entity, carriedBlock.Slot);
+            
+            try
+            {
+                var breakSound = carriedBlock.Block.Sounds.GetBreakSound(player).Location ?? new AssetLocation("game:sounds/block/planks");
+                world.PlaySoundAt(breakSound, (double)centerBlock.X, (double)centerBlock.Y, (double)centerBlock.Z);
+            }
+            catch (Exception ex)
+            {
+                world.Logger.Error($"[{CarrySystem.ModId}] Failed to play block break sound for block {carriedBlock.Block.Code} at {centerBlock}. {ex}");
+            }
 
             if (blockDestroyed)
                 world.Logger.Audit($"[{CarrySystem.ModId}] Player {player?.PlayerName} dropped carried block {carriedBlock.Block.Code} at {centerBlock} and it was destroyed dropping {dropCount} items.");
