@@ -42,6 +42,15 @@ namespace CarryOn.Common
         private Type[] preventSwapFromBackOnBehaviors = [];
         private string[] preventSwapFromBackOnClasses = [];
 
+        /// <summary> Tracks the last resync grant time (in server elapsed ms) per player UID
+        ///           to prevent clients from flooding the server with resync requests. </summary>
+        private readonly Dictionary<string, long> _resyncCooldowns = new();
+        private const long ResyncCooldownMs = 2000;
+
+        /// <summary> How long (ms) the client waits before sending a resync request, giving
+        ///           the normal watched-attribute replication a chance to arrive first. </summary>
+        private const int ResyncRequestDelayMs = 500;
+
         public void InitClient()
         {
             var cApi = CarrySystem.ClientAPI;
@@ -129,13 +138,27 @@ namespace CarryOn.Common
                 .SetMessageHandler<DetachMessage>(OnDetachMessage)
                 .SetMessageHandler<QuickDropMessage>(OnQuickDropMessage)
                 .SetMessageHandler<DismountMessage>(OnDismountMessage)
-                .SetMessageHandler<PlayerAttributeUpdateMessage>(OnPlayerAttributeUpdateMessage);
+                .SetMessageHandler<PlayerAttributeUpdateMessage>(OnPlayerAttributeUpdateMessage)
+                .SetMessageHandler<CarryResyncRequestMessage>(OnCarryResyncRequestMessage);
 
             CarrySystem.ServerAPI.Event.OnEntitySpawn += OnServerEntitySpawn;
             CarrySystem.ServerAPI.Event.PlayerNowPlaying += OnServerPlayerNowPlaying;
 
             CarrySystem.ServerAPI.Event.BeforeActiveSlotChanged +=
                 (player, _) => OnBeforeActiveSlotChanged(player.Entity);
+        }
+
+        private void OnCarryResyncRequestMessage(IServerPlayer player, CarryResyncRequestMessage message)
+        {
+            var now = player.Entity.World.ElapsedMilliseconds;
+            if (_resyncCooldowns.TryGetValue(player.PlayerUID, out var last) && now - last < ResyncCooldownMs)
+                return;
+
+            _resyncCooldowns[player.PlayerUID] = now;
+            CarrySystem.Api.Logger.Debug(
+                $"[{CarrySystem.ModId}] Carry resync requested by {player.PlayerName} " +
+                $"(client rev={message.LocalRevision}, server rev={CarriedBlock.GetCarriedRevision(player.Entity)})");
+            player.Entity.WatchedAttributes.MarkPathDirty(CarriedBlock.AttributeId);
         }
 
         private void OnDismountMessage(IServerPlayer player, DismountMessage message)
@@ -754,6 +777,16 @@ namespace CarryOn.Common
                 // Local carry state is behind the server's — cancel any in-progress
                 // carry interaction. Authoritative state will arrive via watched attributes.
                 CancelInteraction(resetTimeHeld: true);
+
+                // Schedule a delayed re-check so normal watched-attribute replication can arrive first.
+                CarrySystem.ClientAPI.Event.RegisterCallback(
+                    _ =>
+                    {
+                        var delayedLocalRevision = CarriedBlock.GetCarriedRevision(player.Entity);
+                        if (delayedLocalRevision < message.Revision)
+                            CarrySystem.ClientChannel.SendPacket(new CarryResyncRequestMessage(delayedLocalRevision));
+                    },
+                    ResyncRequestDelayMs);
             }
         }
 

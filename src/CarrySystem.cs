@@ -153,7 +153,8 @@ namespace CarryOn
                 .RegisterMessageType<QuickDropMessage>()
                 .RegisterMessageType<DismountMessage>()
                 .RegisterMessageType<PlayerAttributeUpdateMessage>()
-                .RegisterMessageType<CarryRevisionMessage>();
+                .RegisterMessageType<CarryRevisionMessage>()
+                .RegisterMessageType<CarryResyncRequestMessage>();
 
             EntityCarryRenderer = new EntityCarryRenderer(api);
             HudOverlayRenderer = new HudOverlayRenderer(api);
@@ -238,7 +239,8 @@ namespace CarryOn
                 .RegisterMessageType<QuickDropMessage>()
                 .RegisterMessageType<DismountMessage>()
                 .RegisterMessageType<PlayerAttributeUpdateMessage>()
-                .RegisterMessageType<CarryRevisionMessage>();
+                .RegisterMessageType<CarryRevisionMessage>()
+                .RegisterMessageType<CarryResyncRequestMessage>();
 
             DeathHandler = new DeathHandler(api);
             CarryHandler.InitServer();
