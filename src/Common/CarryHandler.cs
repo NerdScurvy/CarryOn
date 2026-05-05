@@ -774,17 +774,17 @@ namespace CarryOn.Common
             var localRevision = CarriedBlock.GetCarriedRevision(player.Entity);
             if (localRevision < message.Revision)
             {
-                // Local carry state is behind the server's — cancel any in-progress
-                // carry interaction. Authoritative state will arrive via watched attributes.
-                CancelInteraction(resetTimeHeld: true);
-
                 // Schedule a delayed re-check so normal watched-attribute replication can arrive first.
                 CarrySystem.ClientAPI.Event.RegisterCallback(
                     _ =>
                     {
                         var delayedLocalRevision = CarriedBlock.GetCarriedRevision(player.Entity);
                         if (delayedLocalRevision < message.Revision)
+                        {
+                            // Client is still out of sync, likely due to a missed packet or similar. Cancel the current interaction if any, and request a full re-sync.
+                            CancelInteraction(resetTimeHeld: true);
                             CarrySystem.ClientChannel.SendPacket(new CarryResyncRequestMessage(delayedLocalRevision));
+                        }
                     },
                     ResyncRequestDelayMs);
             }
@@ -909,7 +909,6 @@ namespace CarryOn.Common
                 if (player.Entity.Swap(message.First, message.Second))
                 {
                     CarrySystem.Api.World.PlaySoundAt(new AssetLocation("sounds/player/throw"), player.Entity);
-                    CarriedBlock.TouchCarriedAttributes(player.Entity);
                     SendCarryRevision(player);
                 }
             }
