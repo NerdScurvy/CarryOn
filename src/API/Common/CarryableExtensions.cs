@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CarryOn.API.Event;
 using CarryOn.Common;
+using CarryOn.Common.Network;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
@@ -181,17 +182,23 @@ namespace CarryOn.API.Common
             {
 
                 entity.World.Logger.Error($"[{CarrySystem.ModId}] Failed to swap carried blocks for entity {entity.GetName()}. {ex}");
+                var message = Lang.Get(CarrySystem.ModId + ":swap-back-error");
 
                 if (isServer)
                 {
                     var serverPlayer = (entity as EntityPlayer)?.Player as IServerPlayer;
-                    serverPlayer?.SendIngameError("carryon", "swap-back-error", Lang.Get(CarrySystem.ModId + ":swap-back-error-server"));
+                    serverPlayer?.SendIngameError("carryon", "swap-back-error", message);
                 }
                 else
                 {
-                    // Client side error - player may need to relog to fix desync
+                    // Client side error - try to request a resync
                     var capi = entity.Api as ICoreClientAPI;
-                    capi?.TriggerIngameError("carryon", "swap-back-error", Lang.Get(CarrySystem.ModId + ":swap-back-error-client"));
+                    capi?.TriggerIngameError("carryon", "swap-back-error", message);
+                    // Request a resync of carryon watched attributes in case of client desync
+                    var localRevision = CarriedBlock.GetCarriedRevision(entity);
+                    var manager = CarrySystem.GetCarryManager(capi);
+                    manager.CarrySystem.ClientChannel.SendPacket(new CarryResyncRequestMessage(localRevision));
+
                     return false;
 
                 }

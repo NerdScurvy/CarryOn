@@ -150,17 +150,26 @@ namespace CarryOn.API.Common
         }
 
         /// <summary>
-        /// Increments the carried-state revision and marks the carried root dirty.
+        /// Increments the carried-state revision and marks the carried root dirty if necessary.
+        /// Client side only returns the current revision, while server side increments and returns the new revision.
         /// </summary>
+        /// <param name="entity">The entity whose carried attributes are being touched.</param>
+        /// <returns> The new revision number. </returns>
         public static int TouchCarriedAttributes(Entity entity)
         {
             if (entity == null) throw new ArgumentNullException(nameof(entity));
 
             var carriedRoot = entity.WatchedAttributes.TryGet<ITreeAttribute>(AttributeId) ?? new TreeAttribute();
-            var revision = carriedRoot.GetInt(RevisionAttributeKey, 0) + 1;
-            carriedRoot.SetInt(RevisionAttributeKey, revision);
-            entity.WatchedAttributes.Set(carriedRoot, AttributeId);
-            entity.WatchedAttributes.MarkPathDirty(AttributeId);
+            var revision = carriedRoot.GetInt(RevisionAttributeKey, 0);
+
+            // Only server has authority to update the revision 
+            if (entity.World.Side == EnumAppSide.Server)
+            {
+                carriedRoot.SetInt(RevisionAttributeKey, ++revision);
+                entity.WatchedAttributes.Set(carriedRoot, AttributeId);
+                entity.WatchedAttributes.MarkPathDirty(AttributeId);
+            }
+
             return revision;
         }
 
