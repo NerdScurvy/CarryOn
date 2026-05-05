@@ -196,8 +196,8 @@ namespace CarryOn.API.Common
                     capi?.TriggerIngameError("carryon", "swap-back-error", message);
                     // Request a resync of carryon watched attributes in case of client desync
                     var localRevision = CarriedBlock.GetCarriedRevision(entity);
-                    var manager = CarrySystem.GetCarryManager(capi);
-                    manager.CarrySystem.ClientChannel.SendPacket(new CarryResyncRequestMessage(localRevision));
+                    CarrySystem.GetCarryManager(capi)?.CarrySystem.ClientChannel
+                        .SendPacket(new CarryResyncRequestMessage(localRevision));
 
                     return false;
 
