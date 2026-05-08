@@ -1,0 +1,38 @@
+[
+  { 
+    "file": "eternalstew:blocktypes/eternalstewstove",
+    "side": "Server",
+    "op": "add",
+    "path": "/behaviors/-",
+    "value": {
+      "name": "Carryable",
+      "properties": {
+        "interactDelay": 1.5,
+        "slots": {
+          "Hands": {
+            "animation": "carryon:holdheavy",
+            "walkSpeedModifier": -0.2,
+            "rotation": [ 0, 90, 0 ]
+          }
+        }
+      }
+    },
+    "dependsOn": [ { "modid": "eternalstew" } ]
+  },
+  { 
+    "file": "eternalstew:blocktypes/eternalstewpot",
+    "side": "Server",
+    "op": "add",
+    "path": "/behaviors/-",
+    "value": {
+      "name": "Carryable",
+      "properties": {
+        "slots": {
+          "Hands": {
+          }
+        }
+      }
+    },
+    "dependsOn": [ { "modid": "eternalstew" } ]
+  }  
+]
