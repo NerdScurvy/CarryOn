@@ -160,15 +160,19 @@ namespace CarryOn.API.Common
         {
             if (first == second) throw new ArgumentException("Slots can't be the same");
 
+            bool isServer = entity.Api.Side == EnumAppSide.Server;
+
             var carriedFirst = CarriedBlock.Get(entity, first);
             var carriedSecond = CarriedBlock.Get(entity, second);
             if ((carriedFirst == null) && (carriedSecond == null)) return false;
 
-            CarriedBlock.Remove(entity, first);
-            CarriedBlock.Remove(entity, second);
+            CarriedBlock.Remove(entity, first, markDirty: false);
+            CarriedBlock.Remove(entity, second, markDirty: false);
 
-            carriedFirst?.Set(entity, second);
-            carriedSecond?.Set(entity, first);
+            carriedFirst?.Set(entity, second, markDirty: false);
+            carriedSecond?.Set(entity, first, markDirty: false);
+
+            if (isServer) CarriedBlock.TouchCarriedAttributes(entity);
 
             return true;
         }

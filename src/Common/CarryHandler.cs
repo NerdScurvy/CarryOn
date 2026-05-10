@@ -842,7 +842,7 @@ namespace CarryOn.Common
                 if (player.Entity.Swap(message.First, message.Second))
                 {
                     CarrySystem.Api.World.PlaySoundAt(new AssetLocation("sounds/player/throw"), player.Entity);
-                    player.Entity.WatchedAttributes.MarkPathDirty(CarriedBlock.AttributeId);
+                    CarriedBlock.TouchCarriedAttributes(player.Entity);
                 }
             }
         }
@@ -1210,7 +1210,7 @@ namespace CarryOn.Common
         private void InvalidCarry(IServerPlayer player, BlockPos pos)
         {
             player.Entity.World.BlockAccessor.MarkBlockDirty(pos);
-            player.Entity.WatchedAttributes.MarkPathDirty(CarriedBlock.AttributeId);
+            CarriedBlock.TouchCarriedAttributes(player.Entity);
             player.Entity.WatchedAttributes.MarkPathDirty("stats/walkspeed");
             SendLockSlotsMessage(player);
         }
