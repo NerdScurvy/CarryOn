@@ -7,7 +7,7 @@
     "value": {
       "name": "Carryable",
       "properties": {
-        "interactDelay": 1.5,
+        "interactDelay": 1.7,
         "slots": {
           "Hands": {
             "animation": "carryon:holdheavy",
@@ -27,8 +27,11 @@
     "value": {
       "name": "Carryable",
       "properties": {
+        "optimisticPickup": false,
         "slots": {
           "Hands": {
+            "rotation": [ 0, 90, 0 ],
+            "translation": [ 0, -0.15, 0 ]
           }
         }
       }

@@ -60,6 +60,8 @@ namespace CarryOn.Common
 
         public bool PreventAttaching { get; private set; } = false;
 
+        public bool OptimisticPickup { get; private set; } = true;
+
         public BlockBehaviorCarryable(Block block)
             : base(block) { }
 
@@ -74,6 +76,8 @@ namespace CarryOn.Common
             if (JsonHelper.TryGetFloat(properties, "interactDelay", out var d)) InteractDelay = d;
 
             if (JsonHelper.TryGetBool(properties, "preventAttaching", out var a)) PreventAttaching = a;
+
+            if (JsonHelper.TryGetBool(properties, "optimisticPickup", out var o)) OptimisticPickup = o;
 
             DefaultTransform = JsonHelper.GetTransform(properties, DefaultBlockTransform);
             Slots.Initialize(properties["slots"], DefaultTransform);

@@ -306,7 +306,7 @@ namespace CarryOn.API.Common
         }
 
         public void PlaySound(BlockPos pos, IWorldAccessor world,
-                        EntityPlayer entityPlayer = null)
+                        EntityPlayer entityPlayer = null, bool dualCall = true)
         {
             const float SOUND_RANGE = 16.0F;
             const float SOUND_VOLUME = 1.0F;
@@ -316,7 +316,7 @@ namespace CarryOn.API.Common
             // TODO: In 1.7.0, Block.Sounds should not be null anymore.
             if (placeSound == null) return;
 
-            var player = (entityPlayer != null) && (world.Side == EnumAppSide.Server)
+            var player = dualCall && (entityPlayer != null) && (world.Side == EnumAppSide.Server)
                 ? entityPlayer?.Player : null;
 
             world.PlaySoundAt(location: placeSound.Value.Location,
