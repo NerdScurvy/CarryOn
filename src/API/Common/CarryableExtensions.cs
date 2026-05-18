@@ -73,16 +73,29 @@ namespace CarryOn.API.Common
         {
             if (!HasPermissionToCarry(entity, pos)) return false;
             if (CarriedBlock.Get(entity, slot) != null) return false;
+
+            var block = entity.World.BlockAccessor.GetBlock(pos);
+            if (checkIsCarryable && !block.IsCarryable(slot)) return false;
+
+            var carryBehavior = block.GetBehavior<BlockBehaviorCarryable>();
+            if ((entity.Api.Side == EnumAppSide.Client) && (carryBehavior != null) && !carryBehavior.OptimisticPickup)
+            {
+                // Let the server perform the pickup when optimistic client pickup is disabled.
+                return true;
+            }
+
+            var optimisticPickup = carryBehavior?.OptimisticPickup ?? true;
+
             var carried = CarriedBlock.PickUp(entity.World, pos, slot, checkIsCarryable);
             if (carried == null) return false;
 
             carried.Set(entity, slot);
-            if (playSound) carried.PlaySound(pos, entity.World, entity as EntityPlayer);
+            if (playSound) carried.PlaySound(pos, entity.World, entity as EntityPlayer, dualCall: optimisticPickup);
             if (entity.Api.Side == EnumAppSide.Server)
             {
                 var entityName = entity?.GetName() ?? "Unknown Entity";
                 entity.World.Logger.Audit($"[{CarrySystem.ModId}] {entityName} picked up block {carried.Block.Code.GetName()} at {pos}");
-            }            
+            }
             return true;
         }
 
@@ -147,15 +160,19 @@ namespace CarryOn.API.Common
         {
             if (first == second) throw new ArgumentException("Slots can't be the same");
 
+            bool isServer = entity.Api.Side == EnumAppSide.Server;
+
             var carriedFirst = CarriedBlock.Get(entity, first);
             var carriedSecond = CarriedBlock.Get(entity, second);
             if ((carriedFirst == null) && (carriedSecond == null)) return false;
 
-            CarriedBlock.Remove(entity, first);
-            CarriedBlock.Remove(entity, second);
+            CarriedBlock.Remove(entity, first, markDirty: false);
+            CarriedBlock.Remove(entity, second, markDirty: false);
 
-            carriedFirst?.Set(entity, second);
-            carriedSecond?.Set(entity, first);
+            carriedFirst?.Set(entity, second, markDirty: false);
+            carriedSecond?.Set(entity, first, markDirty: false);
+
+            if (isServer) CarriedBlock.TouchCarriedAttributes(entity);
 
             return true;
         }

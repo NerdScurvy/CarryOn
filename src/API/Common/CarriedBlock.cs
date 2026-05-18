@@ -18,6 +18,8 @@ namespace CarryOn.API.Common
         public static string AttributeId { get; }
             = $"{CarrySystem.ModId}:Carried";
 
+        public static string RevisionAttributeKey { get; } = "Rev";
+
         public CarrySlot Slot { get; }
 
         public ItemStack ItemStack { get; }
@@ -63,15 +65,35 @@ namespace CarryOn.API.Common
             return new CarriedBlock(slot, stack, blockEntityData);
         }
 
-        /// <summary> Stores the specified stack and blockEntityData (may be null)
-        ///           as the <see cref="CarriedBlock"/> of the entity in that slot. </summary>
+
+        /// <summary> 
+        /// Stores the specified stack and blockEntityData (may be null)
+        /// as the <see cref="CarriedBlock"/> of the entity in that slot. 
+        /// </summary>
+        /// <param name="entity"> The entity whose carried block is being set. </param>
+        /// <param name="slot"> The slot in which to set the carried block. </param>
+        /// <param name="stack"> The item stack to set as the carried block. </param>
+        /// <param name="blockEntityData"> The block entity data to set (may be null). </param>
         /// <exception cref="ArgumentNullException"> Thrown if entity is null. </exception>
         public static void Set(Entity entity, CarrySlot slot, ItemStack stack, ITreeAttribute blockEntityData)
+            => Set(entity, slot, stack, blockEntityData, true);
+
+        /// <summary>
+        ///  Stores the specified stack and blockEntityData (may be null)
+        ///  as the <see cref="CarriedBlock"/> of the entity in that slot. 
+        /// </summary>
+        /// <param name="entity"> The entity whose carried block is being set. </param>
+        /// <param name="slot"> The slot in which to set the carried block. </param>
+        /// <param name="stack"> The item stack to set as the carried block. </param>
+        /// <param name="blockEntityData"> The block entity data to set (may be null). </param>
+        /// <param name="markDirty"> Whether to mark the entity's watched attributes as dirty after setting. If false, the caller must manually mark dirty for changes to sync. </param>
+        /// <exception cref="ArgumentNullException"> Thrown if entity is null. </exception>
+        public static void Set(Entity entity, CarrySlot slot, ItemStack stack, ITreeAttribute blockEntityData, bool markDirty = true)
         {
             if (entity == null) throw new ArgumentNullException(nameof(entity));
 
             entity.WatchedAttributes.Set(stack, AttributeId, slot.ToString(), "Stack");
-            ((SyncedTreeAttribute)entity.WatchedAttributes).MarkPathDirty(AttributeId);
+            if (markDirty) TouchCarriedAttributes(entity);
 
             if ((entity.World.Side == EnumAppSide.Server) && (blockEntityData != null))
                 entity.Attributes.Set(blockEntityData, AttributeId, slot.ToString(), "Data");
@@ -103,10 +125,16 @@ namespace CarryOn.API.Common
         public void Set(Entity entity, CarrySlot slot)
             => Set(entity, slot, ItemStack, BlockEntityData);
 
+        public void Set(Entity entity, CarrySlot slot, bool markDirty = true)
+            => Set(entity, slot, ItemStack, BlockEntityData, markDirty);            
+
+        public static void Remove(Entity entity, CarrySlot slot)
+            => Remove(entity, slot, true);
+
         /// <summary> Removes the <see cref="CarriedBlock"/>
         ///           carried by the specified entity in that slot. </summary>
         /// <exception cref="ArgumentNullException"> Thrown if entity is null. </exception>
-        public static void Remove(Entity entity, CarrySlot slot)
+        public static void Remove(Entity entity, CarrySlot slot, bool markDirty = true)
         {
             if (entity == null) throw new ArgumentNullException(nameof(entity));
 
@@ -123,9 +151,41 @@ namespace CarryOn.API.Common
             }
 
             entity.WatchedAttributes.Remove(AttributeId, slot.ToString());
-            ((SyncedTreeAttribute)entity.WatchedAttributes).MarkPathDirty(AttributeId);
+            if (markDirty) TouchCarriedAttributes(entity);
             entity.Attributes.Remove(AttributeId, slot.ToString());
         }
+
+        /// <summary>
+        /// Increments the carried-state revision and marks the carried root dirty if necessary.
+        /// Client side only returns the current revision, while server side increments and returns the new revision.
+        /// </summary>
+        /// <param name="entity">The entity whose carried attributes are being touched.</param>
+        /// <returns> The new revision number. </returns>
+        public static int TouchCarriedAttributes(Entity entity)
+        {
+            if (entity == null) throw new ArgumentNullException(nameof(entity));
+
+            var carriedRoot = entity.WatchedAttributes.TryGet<ITreeAttribute>(AttributeId) ?? new TreeAttribute();
+            var revision = carriedRoot.GetInt(RevisionAttributeKey, 0);
+
+            // Only server has authority to update the revision 
+            if (entity.World.Side == EnumAppSide.Server)
+            {
+                carriedRoot.SetInt(RevisionAttributeKey, ++revision);
+                entity.WatchedAttributes.Set(carriedRoot, AttributeId);
+                entity.WatchedAttributes.MarkPathDirty(AttributeId);
+            }
+
+            return revision;
+        }
+
+        public static int GetCarriedRevision(Entity entity)
+        {
+            if (entity == null) throw new ArgumentNullException(nameof(entity));
+            var carriedRoot = entity.WatchedAttributes.TryGet<ITreeAttribute>(AttributeId);
+            return carriedRoot?.GetInt(RevisionAttributeKey, 0) ?? 0;
+        }
+
 
         /// <summary> Creates a <see cref="CarriedBlock"/> from the specified world
         ///           and position, but doesn't remove it. Returns null if unsuccessful. </summary>
@@ -306,7 +366,7 @@ namespace CarryOn.API.Common
         }
 
         public void PlaySound(BlockPos pos, IWorldAccessor world,
-                        EntityPlayer entityPlayer = null)
+                        EntityPlayer entityPlayer = null, bool dualCall = true)
         {
             const float SOUND_RANGE = 16.0F;
             const float SOUND_VOLUME = 1.0F;
@@ -316,7 +376,7 @@ namespace CarryOn.API.Common
             // TODO: In 1.7.0, Block.Sounds should not be null anymore.
             if (placeSound == null) return;
 
-            var player = (entityPlayer != null) && (world.Side == EnumAppSide.Server)
+            var player = dualCall && (entityPlayer != null) && (world.Side == EnumAppSide.Server)
                 ? entityPlayer?.Player : null;
 
             world.PlaySoundAt(location: placeSound.Value.Location,
