@@ -1,0 +1,21 @@
+[
+  { 
+    "file": "game:blocktypes/wood/woodtyped/cabinet",
+    "side": "Server",
+    "op": "add",
+    "path": "/behaviors/-",
+    "value": {
+      "name": "Carryable",
+      "properties": {
+        "slots": {
+          "Hands": {
+            "animation": "carryon:holdheavy",
+            "walkSpeedModifier": -0.15,
+            "rotation": [ 0, -90, 0 ],
+            "translation": [ 0, -0.3, 0.2 ]
+          }
+        }
+      }
+    }
+  }
+]

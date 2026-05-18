@@ -1,0 +1,144 @@
+[
+  { 
+    "file": "kevinsfurniture:blocktypes/chairs/floorcushion",
+    "side": "Server",
+    "op": "add",
+    "path": "/behaviors/-",
+    "value": {
+      "name": "Carryable",
+      "properties": {
+        "slots": {
+          "Hands": {}
+        }
+      }
+    },
+    "dependsOn": [ { "modid": "kevinsfurniture" } ]
+  },
+  { 
+    "file": "kevinsfurniture:blocktypes/chairs/primitivestool",
+    "side": "Server",
+    "op": "add",
+    "path": "/behaviors/-",
+    "value": {
+      "name": "Carryable",
+      "properties": {
+        "slots": {
+          "Hands": {
+            "rotation": [ 0, 90, 0 ],
+            "translation": [ 0, -0.4, 0.2]
+          }
+        }
+      }
+    },
+    "dependsOn": [ { "modid": "kevinsfurniture" } ]
+  },
+  { 
+    "file": "kevinsfurniture:blocktypes/tables/coffeetable",
+    "side": "Server",
+    "op": "add",
+    "path": "/behaviors/-",
+    "value": {
+      "name": "Carryable",
+      "properties": {
+        "slots": {
+          "Hands": {
+            "translation": [ 0, -0.4, 0]
+          }
+        }
+      }
+    },
+    "dependsOn": [ { "modid": "kevinsfurniture" } ]
+  },
+  { 
+    "file": "kevinsfurniture:blocktypes/stoveblock",
+    "side": "Server",
+    "op": "add",
+    "path": "/behaviors/-",
+    "value": {
+      "name": "Carryable",
+      "properties": {
+        "slots": {
+          "Hands": {
+            "animation": "carryon:holdheavy",
+            "walkSpeedModifier": -0.1,
+            "rotation": [ 0, -90, 0 ],
+            "translation": [ 0, -0.4, 0 ]
+          }
+        }
+      }
+    },
+    "dependsOn": [ { "modid": "kevinsfurniture" } ]
+  },
+  { 
+    "file": "kevinsfurniture:blocktypes/containers/anightstand",
+    "side": "Server",
+    "op": "add",
+    "path": "/behaviors/-",
+    "value": {
+      "name": "Carryable",
+      "properties": {
+        "slots": {
+          "Hands": {
+            "translation": [ 0, -0.4, 0]
+          }
+        }
+      }
+    },
+    "dependsOn": [ { "modid": "kevinsfurniture" } ]
+  },
+  { 
+    "file": "kevinsfurniture:blocktypes/containers/nightstand-fancy",
+    "side": "Server",
+    "op": "add",
+    "path": "/behaviors/-",
+    "value": {
+      "name": "Carryable",
+      "properties": {
+        "slots": {
+          "Hands": {
+            "translation": [ 0, -0.4, 0]
+          }
+        }
+      }
+    },
+    "dependsOn": [ { "modid": "kevinsfurniture" } ]
+  },
+  { 
+    "file": "kevinsfurniture:blocktypes/containers/cabinet",
+    "side": "Server",
+    "op": "add",
+    "path": "/behaviors/-",
+    "value": {
+      "name": "Carryable",
+      "properties": {
+        "slots": {
+          "Hands": {
+            "translation": [ 0, -0.4, 0],
+            "rotation": [ 0, -90, 0 ],
+            "walkSpeedModifier": -0.2
+          }
+        }
+      }
+    },
+    "dependsOn": [ { "modid": "kevinsfurniture" } ]
+  },
+  { 
+    "file": "kevinsfurniture:blocktypes/containers/doorlesscabinet",
+    "side": "Server",
+    "op": "add",
+    "path": "/behaviors/-",
+    "value": {
+      "name": "Carryable",
+      "properties": {
+        "slots": {
+          "Hands": {
+            "translation": [ 0, -0.4, 0],
+            "rotation": [ 0, -90, 0 ],
+            "walkSpeedModifier": -0.2
+          }
+        }
+      }
+    },
+    "dependsOn": [ { "modid": "kevinsfurniture" } ]
+  }       
+]
