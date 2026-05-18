@@ -842,7 +842,6 @@ namespace CarryOn.Common
                 if (player.Entity.Swap(message.First, message.Second))
                 {
                     CarrySystem.Api.World.PlaySoundAt(new AssetLocation("sounds/player/throw"), player.Entity);
-                    CarriedBlock.TouchCarriedAttributes(player.Entity);
                 }
             }
         }
