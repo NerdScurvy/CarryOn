@@ -877,6 +877,14 @@ namespace CarryOn.Common
             if (attachableBehavior != null)
             {
 
+                var ownableBehavior = targetEntity.GetBehavior<EntityBehaviorOwnable>();
+                if (ownableBehavior != null && !ownableBehavior.IsOwner(player.Entity))
+                {
+                    // Player is not the owner of the entity, prevent attaching
+                    CarrySystem.ServerAPI.SendIngameError(player, "requiersownership", Lang.Get("mount-interact-requiresownership"));
+                    return;
+                }                
+
                 // Check player is carrying block
                 var carriedBlock = player.Entity.GetCarried(CarrySlot.Hands);
 
@@ -1068,6 +1076,14 @@ namespace CarryOn.Common
                 if (!block.HasBehavior<BlockBehaviorCarryable>())
                 {
                     CarrySystem.ServerAPI.SendIngameError(player, "slot-not-carryable", Lang.Get(ModId + ":slot-not-carryable"));
+                    return;
+                }
+
+                var ownableBehavior = targetEntity.GetBehavior<EntityBehaviorOwnable>();
+                if (ownableBehavior != null && !ownableBehavior.IsOwner(player.Entity))
+                {
+                    // Player is not the owner of the entity, prevent detaching
+                    CarrySystem.ServerAPI.SendIngameError(player, "requiersownership", Lang.Get("mount-interact-requiresownership"));
                     return;
                 }
 
