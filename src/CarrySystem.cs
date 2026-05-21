@@ -21,7 +21,7 @@ using Vintagestory.GameContent;
 
 [assembly: ModInfo("Carry On",
     modID: "carryon",
-    Version = "1.14.1",
+    Version = "1.14.2",
     Description = "Adds the capability to carry various things",
     Website = "https://github.com/NerdScurvy/CarryOn",
     Authors = new[] { "copygirl", "NerdScurvy" })]
@@ -514,7 +514,7 @@ namespace CarryOn
                 }
 
                 string classKey = null;
-                if (carryableBlock.Class != "Block")
+                if (carryableBlock.Class is not "Block" and not "BlockGeneric")
                 {
                     classKey = $"Class:{carryableBlock.Class}";
                     if (!matchBehaviors.ContainsKey(classKey))
