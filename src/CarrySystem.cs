@@ -514,7 +514,7 @@ namespace CarryOn
                 }
 
                 string classKey = null;
-                if (carryableBlock.Class != "Block")
+                if (carryableBlock.Class is not "Block" and not "BlockGeneric")
                 {
                     classKey = $"Class:{carryableBlock.Class}";
                     if (!matchBehaviors.ContainsKey(classKey))
