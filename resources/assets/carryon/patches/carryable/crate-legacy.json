@@ -10,9 +10,11 @@
 				"properties": {
 					"enabledCondition": "carryon.Carryables.Crate",
 					"slots": {
-						"Hands": {},
+						"Hands": {
+							"walkSpeedModifier": -0.3
+						},
 						"Back": {
-							"walkSpeedModifier": -0.2,
+							"walkSpeedModifier": -0.3,
 							"enabledCondition": "carryon.CarryablesOnBack.Crate"
 						}
 					}

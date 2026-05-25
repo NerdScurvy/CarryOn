@@ -30,7 +30,7 @@ namespace CarryOn.Common.Behaviors
 
         public bool RenderRootFirst { get; set; } = false;
 
-        public string RenderTransformResolver { get; set; } = null;
+        public string TransformGroupResolver { get; set; } = null;
 
         public bool HasLocalTransformGroups { get; private set; } = false;
 
@@ -74,19 +74,22 @@ namespace CarryOn.Common.Behaviors
 
         public SlotStorage Slots { get; } = new SlotStorage();
 
-        public Vec3i MultiblockOffset { get; private set; } = null;
-
         public int PatchPriority { get; private set; } = 0;
 
         public bool OverrideExistingProperties { get; private set; } = false;
 
         public bool PreventAttaching { get; private set; } = false;
 
-        /// <summary>
+        public bool OptimisticPickup { get; private set; } = true;
+
         /// When true, looking at this block while the swap-back modifier is held will trigger force-pickup
         /// instead of the back-slot swap. Set via JSON properties or programmatically in OnLoaded.
-        /// </summary>
         public bool ForcePickupOnSwapBack { get; set; } = false;
+
+
+        /// When true, while swap-back modifier is held and player targets this block,
+        /// CarryOn yields input so the underlying block interaction can handle it.
+        public bool SwapBackKeyPassthrough { get; private set; } = false;
 
         public bool TransferEnabled { get; private set; } = false;
 
@@ -126,11 +129,15 @@ namespace CarryOn.Common.Behaviors
 
             if (JsonHelper.TryGetFloat(properties, "transferDelay", out var t)) TransferDelay = t;
 
-            if (JsonHelper.TryGetVec3i(properties, "multiblockOffset", out var o)) MultiblockOffset = o;
-
             if (JsonHelper.TryGetBool(properties, "preventAttaching", out var a)) PreventAttaching = a;
 
+            if (JsonHelper.TryGetBool(properties, "optimisticPickup", out var o)) OptimisticPickup = o;
+
             if (JsonHelper.TryGetBool(properties, "forcePickupOnSwapBack", out var fp)) ForcePickupOnSwapBack = fp;
+
+            if (JsonHelper.TryGetBool(properties, "swapBackKeyPassthrough", out var sbkp)) SwapBackKeyPassthrough = sbkp;
+            // Backward-compatible alias, only applied if new key was not provided.
+            if (!SwapBackKeyPassthrough && JsonHelper.TryGetBool(properties, "preventSwapBack", out var psb)) SwapBackKeyPassthrough = psb;
 
             if (JsonHelper.TryGetString(properties, "enabledCondition", out var e)) EnabledCondition = e;
 
@@ -139,7 +146,7 @@ namespace CarryOn.Common.Behaviors
                 RenderRootFirst = rootFirst;
             }
 
-            if (JsonHelper.TryGetString(properties, "renderTransformResolver", out var rt)) RenderTransformResolver = rt;
+            if (JsonHelper.TryGetString(properties, "transformGroupResolver", out var g)) TransformGroupResolver = g;
 
             // Record transformTemplates for later processing (client-side asset finalization)
             if (properties.KeyExists("transformTemplates"))
@@ -209,7 +216,7 @@ namespace CarryOn.Common.Behaviors
             var hasAnyValue = false;
 
             var transformJson = transformInChildObject ? json["transform"] : json;
-            if (HasAnyTransformValue(transformJson))
+            if (JsonHelper.HasAnyTransformValue(transformJson))
             {
                 settings.Transform = JsonHelper.GetTransform(transformJson, null);
                 hasAnyValue = true;
@@ -239,6 +246,12 @@ namespace CarryOn.Common.Behaviors
                 hasAnyValue = true;
             }
 
+            if (JsonHelper.TryGetBool(json, "iconFromInventory", out var iconFromInventory))
+            {
+                settings.IconFromInventory = iconFromInventory;
+                hasAnyValue = true;
+            }
+
             if (JsonHelper.TryGetString(json, "fontName", out var fontName))
             {
                 settings.FontName = fontName;
@@ -257,29 +270,28 @@ namespace CarryOn.Common.Behaviors
                 hasAnyValue = true;
             }
 
-            return hasAnyValue ? settings : null;
-        }
-
-        private static bool HasAnyTransformValue(JsonObject json)
-        {
-            if (json == null || !json.Exists)
+            if (json.KeyExists("additionalTransforms"))
             {
-                return false;
+                var arr = json["additionalTransforms"]?.AsArray();
+                if (arr != null && arr.Length > 0)
+                {
+                    var additional = new List<ModelTransform>(arr.Length);
+                    foreach (var entry in arr)
+                    {
+                        if (JsonHelper.HasAnyTransformValue(entry))
+                        {
+                            additional.Add(JsonHelper.GetTransform(entry, null));
+                        }
+                    }
+                    if (additional.Count > 0)
+                    {
+                        settings.AdditionalTransforms = additional;
+                        hasAnyValue = true;
+                    }
+                }
             }
 
-            return json.KeyExists("translation")
-                || json.KeyExists("rotation")
-                || json.KeyExists("origin")
-                || json.KeyExists("scale")
-                || json.KeyExists("translationX")
-                || json.KeyExists("translationY")
-                || json.KeyExists("translationZ")
-                || json.KeyExists("rotationX")
-                || json.KeyExists("rotationY")
-                || json.KeyExists("rotationZ")
-                || json.KeyExists("scaleX")
-                || json.KeyExists("scaleY")
-                || json.KeyExists("scaleZ");
+            return hasAnyValue ? settings : null;
         }
 
         public void ResolveTransformGroups(TransformTemplateManager manager)

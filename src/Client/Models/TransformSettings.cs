@@ -1,55 +1,64 @@
+using CarryOn.API.Common.Models;
 using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
 
 namespace CarryOn.Client.Models
 {
-    public class TransformSettings
+    public record TransformSettings(
+        string AssetName = null,
+        string Id = null,
+        EnumAssetType AssetType = EnumAssetType.None,
+        string DisableIfItemStackPath = null,
+        string BlockEntityDataItemStackPath = null,
+        ModelTransform Transform = null,
+        bool? CullFaces = null,
+        float? AlphaTestOpaque = null,
+        float? AlphaTestBlend = null,
+        bool? NormalShaded = null,
+        string RenderPass = null,
+        Vec4f TintColor = null,
+        string ClimateTintMap = null,
+        string SeasonalTintMap = null,
+        Vec4f RgbGlowIntensity = null,
+        bool? Enabled = true
+        )
     {
-        public string AssetName { get; set; }
-
-        public string Id { get; set; }
-
-        public EnumAssetType AssetType { get; set; } = EnumAssetType.None;
-
-        public ModelTransform Transform { get; set; }
-
-        public bool? CullFaces { get; set; } = null;
-
-        public float? AlphaTestOpaque { get; set; } = null;
-
-        public float? AlphaTestBlend { get; set; } = null;
-
-        public bool? NormalShaded { get; set; } = null;
-
-        public string RenderPass { get; set; } = null;
-
-        public Vec4f TintColor { get; set; } = null;
-
-        public string ClimateTintMap { get; set; } = null;
-
-        public string SeasonalTintMap { get; set; } = null;
-        public Vec4f RgbGlowIntensity { get; set; } = new Vec4f(0, 0, 0, 0);
-
-        public bool? Enabled { get; set; } = true;
-
-        public TransformSettings Clone()
+        public TransformSettings DeepClone() => this with
         {
-            return new TransformSettings
+            Transform = this.Transform?.Clone(),
+            RgbGlowIntensity = this.RgbGlowIntensity?.Clone(),
+            TintColor = this.TintColor?.Clone()
+        };
+
+
+        public TransformSettings DeepCloneWithDefaults(
+            string defaultAssetName,
+            CarriedGroupAssetType defaultAssetType)
+        {
+            // Determine the new AssetType and AssetName up front
+            var assetType = this.AssetType;
+            var assetName = this.AssetName;
+
+            if (this.AssetType == EnumAssetType.None
+                && !string.IsNullOrEmpty(defaultAssetName)
+                && defaultAssetType != CarriedGroupAssetType.None)
             {
-                AssetType = this.AssetType,
-                AssetName = this.AssetName,
-                Id = this.Id,
+                assetName = defaultAssetName;
+                assetType = defaultAssetType == CarriedGroupAssetType.Item
+                    ? EnumAssetType.Item
+                    : EnumAssetType.Block;
+            }
+
+            // Return a new record with all deep-cloned reference types and updated values
+            return this with
+            {
+                AssetName = assetName,
+                AssetType = assetType,
+                DisableIfItemStackPath = this.DisableIfItemStackPath,
+                BlockEntityDataItemStackPath = this.BlockEntityDataItemStackPath,
                 Transform = this.Transform?.Clone(),
-                CullFaces = this.CullFaces,
-                AlphaTestOpaque = this.AlphaTestOpaque,
-                AlphaTestBlend = this.AlphaTestBlend,
-                NormalShaded = this.NormalShaded,
-                RenderPass = this.RenderPass,
-                TintColor = this.TintColor,
-                ClimateTintMap = this.ClimateTintMap,
-                SeasonalTintMap = this.SeasonalTintMap,
                 RgbGlowIntensity = this.RgbGlowIntensity?.Clone(),
-                Enabled = this.Enabled,
+                TintColor = this.TintColor?.Clone()
             };
         }
     }

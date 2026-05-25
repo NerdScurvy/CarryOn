@@ -21,7 +21,7 @@
 						"hands": [
 							{
 								"id": "root",
-								"translation": [ 0.04, -0.13, 0.0 ],
+								"translation": [ 0.04, -0.05, 0.0 ],
 								"rotation": [ 0.0, -90.0, -40.0 ]
 							}
 						]

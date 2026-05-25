@@ -9,20 +9,14 @@
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Chest",
 				"override": true,
+				"transformTemplates": [
+					"carryon:carry-chest"
+				],
 				"slots": {
-					"Hands": {
-						"copyTransforms": {
-							"from": "game:chest-east"
-						}
-					},
+					"Hands": {},
 					"Back": {
 						"enabledCondition": "carryon.Carryables.Chest&&carryon.CarryOptions.AllowHighCapacityStorageOnBack",
-						"walkSpeedModifier": -0.2,
-						"copyTransforms": {
-							"from": "game:chest-east",
-							"sourceGroup": "normal",
-							"targetGroup": null
-						}
+						"walkSpeedModifier": -0.2
 					}
 				},
 				"patchPriority": 1
@@ -43,25 +37,22 @@
 			"name": "Carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Chest",
-				"labelTransform": {
-					"translation": [ -0.9, 0.61, 0.57 ],
-					"rotation": [ 0.0, -90.0, 0.0 ],
-					"scale": 0.97
+				"labelRenderSettings": {
+					"transform": {
+						"translation": [ -0.907, 0.627, 0.59 ],
+						"rotation": [ 0.0, -90.0, 0.0 ],
+						"scale": 1.0
+					}
 				},
 				"override": true,
+				"transformTemplates": [
+					"carryon:carry-chest"
+				],
 				"slots": {
-					"Hands": {
-						"copyTransforms": {
-							"from": "game:chest-east"
-						}
-					},
+					"Hands": {},
 					"Back": {
 						"enabledCondition": "carryon.Carryables.Chest&&carryon.CarryOptions.AllowHighCapacityStorageOnBack",
-						"walkSpeedModifier": -0.2,
-						"copyTransforms": {
-							"from": "game:chest-east",
-							"sourceGroup": "normal"
-						}
+						"walkSpeedModifier": -0.2
 					}
 				},
 				"patchPriority": 1

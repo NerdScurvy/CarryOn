@@ -8,8 +8,8 @@
 			"name": "Carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.TorchHolder",
-				"transformGroups":{
-					"hands":[
+				"transformGroups": {
+					"hands": [
 						{
 							"id": "root",
 							"glowIntensity": 0.86

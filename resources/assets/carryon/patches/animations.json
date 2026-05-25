@@ -209,7 +209,7 @@
 						"LowerArmR": {"offsetX": 0.4, "offsetY": 0.32, "offsetZ": 0.0, "rotationX": 0.0, "rotationY": 10.0, "rotationZ": -28.0},
 						"UpperArmL": {"offsetX": 0.0, "offsetY": -0.46, "offsetZ": -0.42, "rotationX": -6.0, "rotationY": 6.0, "rotationZ": -58.0},
 						"LowerArmL": {"offsetX": 0.4, "offsetY": 0.32, "offsetZ": 0.0, "rotationX": 0.0, "rotationY": -10.0, "rotationZ": -28.0},
-						"HandL": {"offsetX": -3.0, "offsetY": 2.0, "offsetZ": 0.0, "rotationX": 0.0, "rotationY": 10.0, "rotationZ": 20.0}
+						"HandL": {"offsetX": 1.0, "offsetY": 2.0, "offsetZ": -0.5, "rotationX": 0.0, "rotationY": 20.0, "rotationZ": 20.0}
 					}
 				}
 			]

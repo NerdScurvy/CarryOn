@@ -13,7 +13,7 @@
 					"carryon:carry-planter"
 				],
 				"renderRootFirst": true,
-				"renderTransformResolver": "plant-container",
+				"transformGroupResolver": "plant-container",
 				"slots": {
 					"Hands": {},
 					"Back": {
@@ -42,7 +42,7 @@
 					"carryon:plants-small"
 				],
 				"renderRootFirst": true,
-				"renderTransformResolver": "plant-container",
+				"transformGroupResolver": "plant-container",
 				"slots": {
 					"Hands": {},
 					"Back": {
@@ -71,7 +71,7 @@
 					"carryon:plants-large"
 				],
 				"renderRootFirst": true,
-				"renderTransformResolver": "plant-container",
+				"transformGroupResolver": "plant-container",
 				"slots": {
 					"Back": {},
 					"Hands": {
@@ -100,7 +100,7 @@
 					"carryon:plants-small"
 				],
 				"renderRootFirst": true,
-				"renderTransformResolver": "plant-container",
+				"transformGroupResolver": "plant-container",
 				"slots": {
 					"Hands": {
 						"animation": "carryon:holdlight"

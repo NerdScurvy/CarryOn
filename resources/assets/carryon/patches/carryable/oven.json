@@ -8,18 +8,15 @@
 			"name": "Carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Oven",
-				"slots": {
-					"Hands": {
-						"transforms": {
-							"default": [
-								{
-									"translation": [ -0.2, 0.0, 0.0 ],
-									"rotation": [ 0.0, -90.0, 0.0 ],
-									"scale": 0.5
-								}
-							]
+				"transformGroups": {
+					"hands": [
+						{
+							"rotationY": -90.0
 						}
-					}
+					]
+				},
+				"slots": {
+					"Hands": {}
 				}
 			}
 		}

@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using CarryOn.Common.Behaviors;
 using CarryOn.Utility;
 using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;

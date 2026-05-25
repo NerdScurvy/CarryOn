@@ -13,7 +13,7 @@
 					"carryon:carry-planter"
 				],
 				"renderRootFirst": true,
-				"renderTransformResolver": "plant-container",
+				"transformGroupResolver": "plant-container",
 				"slots": {
 					"Hands": {},
 					"Back": {

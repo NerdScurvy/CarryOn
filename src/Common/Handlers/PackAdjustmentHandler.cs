@@ -11,6 +11,7 @@ using System.Text.RegularExpressions;
 using Vintagestory.API.MathTools;
 using CarryOn.Client.Models;
 using CarryOn.Common.Behaviors;
+using Vintagestory.API.Datastructures;
 
 namespace CarryOn.Common.Handlers
 {
@@ -34,6 +35,8 @@ namespace CarryOn.Common.Handlers
     /// This class is responsible for adjusting the placement of straps and other items on the player's back.
     /// The class will check the backpackType the player is carrying and select the group of transforms on the carried block behavior for that backpack type.
     /// Any change to values, mode or strap index will be confirmed on screen using the on screen error trigger
+    /// 
+    /// This is only a development tool and not intended for use by players. Use with caution.
     /// </summary>
 
     public class PackAdjustmentHandler(ICoreClientAPI api, CarrySystem carrySystem)
@@ -60,6 +63,7 @@ namespace CarryOn.Common.Handlers
 
         private TransformSettings[] transformSettings = null;
         private ModelTransform selectedLabelTransform = null;
+        private int selectedLabelTransformIndex = 0;
         private readonly List<string> availableChildGroups = new();
         private int childGroupIndex = -1;
         private string selectedChildGroup = null;
@@ -68,6 +72,17 @@ namespace CarryOn.Common.Handlers
         {
             // Initialize client-side specific functionality here
             RegisterKeybinds();
+            RegisterChatCommands();
+        }
+
+        public void RegisterChatCommands()
+        {
+            api.ChatCommands.Create("packadj")
+                .BeginSubCommand("setid")
+                    .WithDescription("Set the id of the currently selected transform")
+                    .WithArgs(api.ChatCommands.Parsers.Word("id"))
+                    .HandleWith(args => SetCurrentTransformId((string)args[0]))
+                .EndSubCommand();
         }
 
         private void RegisterKeybinds()
@@ -118,6 +133,26 @@ namespace CarryOn.Common.Handlers
             api.Event.RegisterGameTickListener(OnGameTick, 100);
         }
 
+        private TextCommandResult SetCurrentTransformId(string newId)
+        {
+            if (currentTransformScope == TransformScope.Label)
+                return TextCommandResult.Error("Cannot set id for labelTransform.");
+            if (transformSettings == null || transformSettings.Length == 0)
+                return TextCommandResult.Error("No transform selected.");
+
+            transformSettings[transformIndex] = transformSettings[transformIndex] with { Id = newId };
+
+            var behavior = GetCarryableBehavior(this.carrySlot);
+            if (behavior != null)
+            {
+                behavior.ResolvedTransformGroups[this.transformsGroup] = transformSettings;
+                InvalidateCarryRendererCaches();
+            }
+
+            ShowOnScreen($"Transform {transformIndex + 1} id set to '{newId}'");
+            return TextCommandResult.Success();
+        }
+
         private void ToggleCarrySlot()
         {
             switch (currentTarget)
@@ -151,8 +186,8 @@ namespace CarryOn.Common.Handlers
         private void ToggleTransformScope()
         {
             var includeLabelScope = false;
-            CarriedBlock carried = null;
-            BlockBehaviorCarryable carryBehavior = null;
+            CarriedBlock carried;
+            BlockBehaviorCarryable carryBehavior;
             var entityPlayer = api?.World?.Player?.Entity;
 
             if (TryGetCurrentCarried(out carried, out carryBehavior))
@@ -195,6 +230,7 @@ namespace CarryOn.Common.Handlers
             if (currentTransformScope != TransformScope.Label)
             {
                 selectedLabelTransform = null;
+                selectedLabelTransformIndex = 0;
             }
 
             ShowOnScreen($"Transform Scope: {currentTransformScope} | {GetCurrentTransformInfo()}");
@@ -221,6 +257,24 @@ namespace CarryOn.Common.Handlers
                 return true;
             }
 
+            // Check for iconFromInventory
+            var labelSettings = carryBehavior.LabelRenderSettings;
+            if (labelSettings?.IconFromInventory == true && beData?["inventory"] is TreeAttribute inventory && inventory["slots"] is TreeAttribute slots)
+            {
+                foreach (var slotValue in slots.Values)
+                {
+                    if (slotValue is ItemstackAttribute itemAttr)
+                    {
+                        var stack = itemAttr.GetValue() as ItemStack;
+                        if (stack?.Collectible != null)
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            // Fallback to labelStack
             var labelStack = beData?.GetItemstack("labelStack", null);
             labelStack?.ResolveBlockOrItem(api.World);
             return labelStack?.Collectible != null;
@@ -238,7 +292,7 @@ namespace CarryOn.Common.Handlers
             var transformGroupResolvers = carrySystem?.CarryManager?.GetTransformGroupResolvers();
             if (transformGroupResolvers != null)
             {
-                var requestedResolverCode = carryBehavior?.RenderTransformResolver;
+                var requestedResolverCode = carryBehavior?.TransformGroupResolver;
                 foreach (var resolver in transformGroupResolvers)
                 {
                     if (resolver == null) continue;
@@ -320,6 +374,7 @@ namespace CarryOn.Common.Handlers
                 var labelItem = "unavailable";
                 var carried = api?.World?.Player?.Entity?.GetCarried(this.carrySlot);
                 var behavior = carried?.GetCarryableBehavior();
+                var labelCount = GetLabelTransformCount(behavior?.LabelRenderSettings);
                 if (HasCarriedLabel(carried, behavior))
                 {
                     var text = carried?.BlockEntityData?.GetString("text", null);
@@ -327,8 +382,8 @@ namespace CarryOn.Common.Handlers
                 }
 
                 return selectedLabelTransform == null
-                    ? "id: labelTransform, item: unavailable"
-                    : $"id: labelTransform, item: {labelItem}";
+                    ? $"id: labelTransform {selectedLabelTransformIndex + 1}/{Math.Max(1, labelCount)}, item: unavailable"
+                    : $"id: labelTransform {selectedLabelTransformIndex + 1}/{Math.Max(1, labelCount)}, item: {labelItem}";
             }
 
             if (currentTransformScope == TransformScope.Child && !string.IsNullOrEmpty(selectedChildGroup))
@@ -387,12 +442,26 @@ namespace CarryOn.Common.Handlers
                 {
                     currentTransformScope = TransformScope.Parent;
                     selectedLabelTransform = null;
+                    selectedLabelTransformIndex = 0;
                     this.transformsGroup = null;
                     ShowOnScreen("Label transform unavailable, switched to Parent scope");
                 }
                 else
                 {
-                    selectedLabelTransform = carryBehavior.LabelRenderSettings?.Transform;
+                    var labelSettings = carryBehavior.LabelRenderSettings;
+                    var labelCount = GetLabelTransformCount(labelSettings);
+                    if (labelCount <= 0)
+                    {
+                        currentTransformScope = TransformScope.Parent;
+                        selectedLabelTransform = null;
+                        selectedLabelTransformIndex = 0;
+                        this.transformsGroup = null;
+                        ShowOnScreen("Label transform unavailable, switched to Parent scope");
+                        return;
+                    }
+
+                    selectedLabelTransformIndex = Math.Clamp(selectedLabelTransformIndex, 0, labelCount - 1);
+                    selectedLabelTransform = GetLabelTransformAt(labelSettings, selectedLabelTransformIndex);
                     transformSettings = null;
 
                     if (this.transformsGroup != "labelTransform")
@@ -403,7 +472,7 @@ namespace CarryOn.Common.Handlers
 
                     if (hasChanged)
                     {
-                        SetTransformIndex(0);
+                        SetTransformIndex(selectedLabelTransformIndex);
                     }
 
                     return;
@@ -458,7 +527,7 @@ namespace CarryOn.Common.Handlers
             var transformGroupResolvers = carrySystem?.CarryManager?.GetTransformGroupResolvers();
             if (transformGroupResolvers != null)
             {
-                var requestedResolverCode = carryBehavior?.RenderTransformResolver;
+                var requestedResolverCode = carryBehavior?.TransformGroupResolver;
                 foreach (var resolver in transformGroupResolvers)
                 {
                     if (resolver == null)
@@ -584,7 +653,11 @@ namespace CarryOn.Common.Handlers
 
             if (transformSettings != null && transformSettings.Length > 0)
             {
-                transformSettings[transformIndex].Enabled = !transformSettings[transformIndex].Enabled;
+                // Toggle the Enabled property for the selected transform index
+                transformSettings[transformIndex] = transformSettings[transformIndex] with
+                {
+                    Enabled = !(transformSettings[transformIndex].Enabled ?? true)
+                };
                 InvalidateCarryRendererCaches();
 
                 var enabledState = transformSettings[transformIndex].Enabled ?? true ? "enabled" : "disabled";
@@ -677,9 +750,13 @@ namespace CarryOn.Common.Handlers
                 // If a transform entry omitted translation/rotation/scale/origin in JSON,
                 // it can flatten to null. Seed from defaults so adjustment can edit it.
                 var currentBehavior = api?.World?.Player?.Entity?.GetCarried(this.carrySlot)?.GetCarryableBehavior();
-                var defaultTransform = currentBehavior?.DefaultTransform ?? BlockBehaviorCarryable.DefaultBlockTransform;
+                var defaultTransform = currentBehavior?.DefaultTransform ?? DefaultBlockTransform;
+
                 transform = defaultTransform.Clone();
-                setting.Transform = transform;
+                transformSettings[transformIndex] = transformSettings[transformIndex] with
+                {
+                    Transform = transform
+                };
             }
 
             float amount;
@@ -841,7 +918,7 @@ namespace CarryOn.Common.Handlers
                 if (isLabelScope)
                 {
                     behavior.LabelRenderSettings ??= new LabelRenderSettings();
-                    behavior.LabelRenderSettings.Transform = selectedLabelTransform;
+                    SetLabelTransformAt(behavior.LabelRenderSettings, selectedLabelTransformIndex, selectedLabelTransform);
                 }
                 else
                 {
@@ -862,7 +939,16 @@ namespace CarryOn.Common.Handlers
         private void AdjustTransformIndex(int direction)
         {
             if (currentTarget == AdjustmentTarget.FrontCarryAttachment) { ShowOnScreen("No transform index in FrontCarry mode"); return; }
-            if (currentTransformScope == TransformScope.Label) { ShowOnScreen("Label scope has a single transform"); return; }
+            if (currentTransformScope == TransformScope.Label)
+            {
+                var behavior = api?.World?.Player?.Entity?.GetCarried(this.carrySlot)?.GetCarryableBehavior();
+                var labelCount = GetLabelTransformCount(behavior?.LabelRenderSettings);
+                if (labelCount <= 0) { ShowOnScreen("No label transform available"); return; }
+
+                SetTransformIndex(Math.Clamp(selectedLabelTransformIndex + direction, 0, labelCount - 1));
+                return;
+            }
+
             if (this.transformSettings == null || this.transformSettings.Length == 0) return;
             SetTransformIndex(Math.Clamp(this.transformIndex + direction, 0, this.transformSettings.Length - 1));
         }
@@ -871,13 +957,83 @@ namespace CarryOn.Common.Handlers
         {
             if (currentTransformScope == TransformScope.Label)
             {
-                this.transformIndex = 0;
-                ShowOnScreen($"Transform: 1/1 | {GetCurrentTransformInfo()}");
+                var behavior = api?.World?.Player?.Entity?.GetCarried(this.carrySlot)?.GetCarryableBehavior();
+                var labelSettings = behavior?.LabelRenderSettings;
+                var labelCount = GetLabelTransformCount(labelSettings);
+
+                if (labelCount <= 0)
+                {
+                    selectedLabelTransformIndex = 0;
+                    selectedLabelTransform = null;
+                    ShowOnScreen("Transform: 1/1 | id: labelTransform, item: unavailable");
+                    return;
+                }
+
+                selectedLabelTransformIndex = Math.Clamp(index, 0, labelCount - 1);
+                selectedLabelTransform = GetLabelTransformAt(labelSettings, selectedLabelTransformIndex);
+                this.transformIndex = selectedLabelTransformIndex;
+                ShowOnScreen($"Transform: {selectedLabelTransformIndex + 1}/{labelCount} | {GetCurrentTransformInfo()}");
                 return;
             }
 
             this.transformIndex = Math.Clamp(index, 0, this.transformSettings.Length - 1);
             ShowOnScreen($"Transform: {this.transformIndex + 1}/{this.transformSettings.Length} | {GetCurrentTransformInfo()}");
+        }
+
+        private static int GetLabelTransformCount(LabelRenderSettings settings)
+        {
+            if (settings?.Transform == null)
+            {
+                return 0;
+            }
+
+            return 1 + (settings.AdditionalTransforms?.Count ?? 0);
+        }
+
+        private static ModelTransform GetLabelTransformAt(LabelRenderSettings settings, int index)
+        {
+            if (settings == null || index < 0)
+            {
+                return null;
+            }
+
+            if (index == 0)
+            {
+                return settings.Transform;
+            }
+
+            var additional = settings.AdditionalTransforms;
+            var additionalIndex = index - 1;
+            if (additional == null || additionalIndex < 0 || additionalIndex >= additional.Count)
+            {
+                return null;
+            }
+
+            return additional[additionalIndex];
+        }
+
+        private static void SetLabelTransformAt(LabelRenderSettings settings, int index, ModelTransform transform)
+        {
+            if (settings == null || index < 0)
+            {
+                return;
+            }
+
+            if (index == 0)
+            {
+                settings.Transform = transform;
+                return;
+            }
+
+            settings.AdditionalTransforms ??= new List<ModelTransform>();
+
+            var additionalIndex = index - 1;
+            while (settings.AdditionalTransforms.Count <= additionalIndex)
+            {
+                settings.AdditionalTransforms.Add(null);
+            }
+
+            settings.AdditionalTransforms[additionalIndex] = transform;
         }
 
 
@@ -1153,7 +1309,7 @@ namespace CarryOn.Common.Handlers
                 // Duplicate the current transform
                 var currentSettings = this.transformSettings[this.transformIndex];
 
-                transformSetting = currentSettings.Clone();
+                transformSetting = currentSettings.DeepClone();
             }
             else
             {
@@ -1166,7 +1322,14 @@ namespace CarryOn.Common.Handlers
                     Origin = new Vec3f(0.5F, 0.5F, 0.5F)
                 };
 
-                transformSetting = new TransformSettings() { AssetName = "carryon:strap", Transform = transform, Enabled = true };
+                transformSetting = new TransformSettings()
+                {
+                    Id = $"strap{this.transformSettings.Length + 1}",
+                    AssetName = "carryon:strap",
+                    AssetType = EnumAssetType.Item,
+                    Transform = transform,
+                    Enabled = true
+                };
             }
 
             Array.Resize(ref this.transformSettings, this.transformSettings.Length + 1);
@@ -1183,7 +1346,7 @@ namespace CarryOn.Common.Handlers
 
             behavior.ResolvedTransformGroups[this.transformsGroup] = transformSettings;
             InvalidateCarryRendererCaches();
-            ShowOnScreen($"Transform added as index {this.transformSettings.Length - 1}");
+            ShowOnScreen($"Transform added as index {this.transformSettings.Length}");
         }
 
         private void RemoveTransform()

@@ -17,7 +17,7 @@
 						"walkSpeedModifier": -0.5
 					},
 					"Back": {
-						"walkSpeedModifier": -0.2,
+						"walkSpeedModifier": -0.3,
 						"enabledCondition": "carryon.CarryablesOnBack.ChestTrunk",
 						"excludedTypes": [
 							"collapsed1",

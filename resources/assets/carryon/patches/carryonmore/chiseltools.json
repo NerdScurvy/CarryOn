@@ -8,8 +8,31 @@
 			"name": "Carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Chest",
-				"translation": [ 0.0625, 0, 0 ],
-				"rotation": [ 0, 180, 0 ],
+				"transformGroups": {
+					"hands": [
+						{
+							"id": "root",
+							"disableIfItemStackPath": "itemstack",
+							"rotationY": 180.0
+						},
+						{
+							"id": "chiseled",
+							"renderPass": "both",
+							"cullFaces": false,
+							"blockEntityDataItemStackPath": "itemstack",
+							"scale": 1.0
+						}
+					],
+					"backpack-none": {
+						"extends": "hands"
+					},
+					"backpack-small": {
+						"extends": "backpack-none"
+					},
+					"backpack-large": {
+						"extends": "backpack-none"
+					}
+				},
 				"slots": {
 					"Hands": {},
 					"Back": {
@@ -51,7 +74,34 @@
 			"name": "Carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Barrel",
-				"translation": [ -0.0625, 0, 0 ],
+				"transformGroups": {
+					"hands": [
+						{
+							"id": "root",
+							"disableIfItemStackPath": "itemstack",
+							"translation": [ -0.07, 0.06, 0.0 ]
+						},
+						{
+							"id": "chiseled",
+							"renderPass": "both",
+							"cullFaces": false,
+							"blockEntityDataItemStackPath": "itemstack",
+							"scale": 1.0
+						}
+					],
+					"backpack-none": {
+						"extends": "hands",
+						"translation": [ 0.0, 0.06, 0.0 ]
+					},
+					"backpack-small": {
+						"extends": "backpack-none",
+						"translationX": 0.1
+					},
+					"backpack-large": {
+						"extends": "backpack-none",
+						"translation": [ 0.07, -0.07, 0.0 ]
+					}
+				},
 				"slots": {
 					"Hands": {},
 					"Back": {
@@ -76,8 +126,22 @@
 			"name": "Carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Forge",
-				"translation": [ 0.0625, 0, 0 ],
-				"rotation": [ 0, 180, 0 ],
+				"transformGroups": {
+					"hands": [
+						{
+							"id": "root",
+							"disableIfItemStackPath": "itemstack",
+							"rotationY": 90.0
+						},
+						{
+							"id": "chiseled",
+							"renderPass": "both",
+							"cullFaces": false,
+							"blockEntityDataItemStackPath": "itemstack",
+							"scale": 1.0
+						}
+					]
+				},
 				"slots": {
 					"Hands": {}
 				},
@@ -100,9 +164,25 @@
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Anvil",
 				"interactDelay": 1.5,
-				"translation": [ 0.05, -0.1, -0.25 ],
-				"rotation": [ 0, 90, 10 ],
-				"scale": 0.8,
+				"transformGroups": {
+					"hands": [
+						{
+							"id": "root",
+							"disableIfItemStackPath": "itemstack",
+							"translationY": 0.1,
+							"rotationY": -90.0,
+							"rotationZ": 10.0,
+							"scale": 0.8
+						},
+						{
+							"id": "chiseled",
+							"renderPass": "both",
+							"cullFaces": false,
+							"blockEntityDataItemStackPath": "itemstack",
+							"scale": 1.0
+						}
+					]
+				},
 				"slots": {
 					"Hands": {
 						"walkSpeedModifier": -0.5
@@ -126,9 +206,109 @@
 			"name": "Carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Flowerpot",
-				"translation": [ 0.3175, 0.1, 0 ],
-				"rotation": [ 0, 180, 0 ],
-				"scale": 1,
+				"transformTemplates": [
+					"carryon:plants-small"
+				],
+				"transformGroups": {
+					"hands": [
+						{
+							"id": "root",
+							"disableIfItemStackPath": "itemstack",
+							"scale": 0.7
+						},
+						{
+							"id": "displayflowerpot",
+							"renderPass": "both",
+							"cullFaces": false,
+							"blockEntityDataItemStackPath": "itemstack",
+							"scale": 1.0
+						}
+					],
+					"hands-planted": {
+						"extends": "hands",
+						"overrides": [
+							{
+								"id": "root",
+								"translation": [ -0.01, 0.08, -0.04 ],
+								"rotation": [ -12.6, 21.7, -21.0 ]
+							}
+						],
+						"appends": [
+							{
+								"id": "soil",
+								"disableIfItemStackPath": "itemstack",
+								"item": "carryon:soil-flowerpot",
+								"translation": [ 0.372, 0.065, 0.375 ],
+								"scale": 1.0
+							}
+						]
+					},
+					"backpack-none": {
+						"extends": "hands",
+						"overrides": [
+							{
+								"id": "root",
+								"translation": [ -0.06, 0.15, 0.0 ]
+							}
+						]
+					},
+					"backpack-none-planted": {
+						"extends": "hands-planted",
+						"overrides": [
+							{
+								"id": "root",
+								"translation": [ 0.02, 0.15, 0.03 ],
+								"rotation": [ 12.0, -3.0, -18.0 ]
+							}
+						]
+					},
+					"backpack-small": {
+						"extends": "backpack-none",
+						"overrides": [
+							{
+								"id": "root",
+								"translationX": -0.03,
+								"translationY": 0.28,
+								"rotationZ": 10.0
+							}
+						]
+					},
+					"backpack-small-planted": {
+						"extends": "backpack-none-planted",
+						"overrides": [
+							{
+								"id": "root",
+								"translationY": 0.25,
+								"translationZ": 0.04,
+								"rotationZ": 2.0
+							}
+						]
+					},
+					"backpack-large": {
+						"extends": "backpack-none",
+						"overrides": [
+							{
+								"id": "root",
+								"translation": [ 0.04, 0.02, 0.02 ],
+								"rotationX": 2.0,
+								"rotationZ": -10.0
+							}
+						]
+					},
+					"backpack-large-planted": {
+						"extends": "backpack-none-planted",
+						"overrides": [
+							{
+								"id": "root",
+								"translationX": 0.03,
+								"translationY": 0.01,
+								"rotationZ": -8.0
+							}
+						]
+					}
+				},
+				"renderRootFirst": true,
+				"transformGroupResolver": "plant-container",
 				"slots": {
 					"Hands": {
 						"animation": "carryon:holdlight"
@@ -155,8 +335,26 @@
 			"name": "Carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.DisplayCase",
-				"translation": [ 0.0625, 0, 0 ],
-				"rotation": [ 0, 180, 0 ],
+				"renderRootFirst": false,
+				"transformTemplates": [
+					"carryon:carry-displaycase"
+				],
+				"transformGroupResolver": "displaycase",
+				"transformGroups": {
+					"@hands": [
+						{
+							"id": "root",
+							"disableIfItemStackPath": "itemstack"
+						},
+						{
+							"id": "chiseled",
+							"renderPass": "both",
+							"cullFaces": false,
+							"blockEntityDataItemStackPath": "itemstack",
+							"scale": 1.0
+						}
+					]
+				},
 				"slots": {
 					"Hands": {}
 				},
@@ -178,8 +376,22 @@
 			"name": "Carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Oven",
-				"translation": [ 0.0625, 0, 0 ],
-				"rotation": [ 0, 180, 0 ],
+				"transformGroups": {
+					"hands": [
+						{
+							"id": "root",
+							"disableIfItemStackPath": "itemstack",
+							"rotationY": 90.0
+						},
+						{
+							"id": "chiseled",
+							"renderPass": "both",
+							"cullFaces": false,
+							"blockEntityDataItemStackPath": "itemstack",
+							"scale": 1.0
+						}
+					]
+				},
 				"slots": {
 					"Hands": {}
 				},
@@ -201,8 +413,186 @@
 			"name": "Carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Planter",
-				"scale": 0.6,
-				"preventAttaching": true
+				"transformTemplates": [
+					"carryon:plants-large"
+				],
+				"transformGroups": {
+					"hands": [
+						{
+							"id": "root",
+							"disableIfItemStackPath": "itemstack",
+							"rotationY": 180.0
+						},
+						{
+							"id": "displayflowerpot",
+							"renderPass": "both",
+							"cullFaces": false,
+							"blockEntityDataItemStackPath": "itemstack",
+							"scale": 1.0
+						}
+					],
+					"hands-planted": {
+						"extends": "hands",
+						"overrides": [
+							{
+								"id": "root",
+								"translation": [ -0.02, 0.09, 0.03 ],
+								"rotation": [ 11.0, 178.0, -10.0 ]
+							}
+						],
+						"appends": [
+							{
+								"id": "soil",
+								"disableIfItemStackPath": "itemstack",
+								"item": "carryon:soil-planter",
+								"translation": [ 0.185, 0.0, 0.188 ],
+								"scale": 1.0
+							}
+						]
+					},
+					"hands-planted-sapling": {
+						"extends": "hands-planted",
+						"overrides": [
+							{
+								"id": "root",
+								"translation": [ 0.024, 0.0, 0.048 ],
+								"rotation": [ 30.0, 25.0, -17.0 ]
+							}
+						]
+					},
+					"hands-planted-cactus-silvertorchcactus": {
+						"extends": "hands-planted-sapling"
+					},
+					"hands-planted-fern-tallfern": {
+						"extends": "hands-planted-sapling"
+					},
+					"hands-planted-reed-cattail": {
+						"extends": "hands-planted-sapling"
+					},
+					"backpack-none": {
+						"extends": "hands",
+						"overrides": [
+							{
+								"id": "root",
+								"translation": [ 0.05, -0.02, 0.01 ],
+								"rotation": [ 0.0, 197.0, -88.0 ]
+							}
+						]
+					},
+					"backpack-none-planted": {
+						"extends": "hands-planted",
+						"overrides": [
+							{
+								"id": "root",
+								"translation": [ 0.06, -0.02, -0.03 ],
+								"rotationX": 10.0,
+								"rotationZ": -20.0
+							}
+						]
+					},
+					"backpack-small": {
+						"extends": "backpack-none",
+						"overrides": [
+							{
+								"id": "root",
+								"translation": [ 0.08, 0.14, 0.0 ],
+								"rotation": [ 10.0, 177.0, -68.0 ]
+							}
+						]
+					},
+					"backpack-small-planted": {
+						"extends": "backpack-none-planted",
+						"overrides": [
+							{
+								"id": "root",
+								"translationY": 0.11
+							}
+						]
+					},
+					"backpack-large": {
+						"extends": "backpack-none",
+						"overrides": [
+							{
+								"id": "root",
+								"translation": [ 0.034, 0.18, 0.0 ],
+								"rotation": [ 9.0, 180.0, -73.0 ]
+							}
+						]
+					},
+					"backpack-large-planted": {
+						"extends": "backpack-none-planted",
+						"overrides": [
+							{
+								"id": "root",
+								"translation": [ 0.02, -0.09, 0.0 ]
+							}
+						]
+					},
+					"backpack-none-planted-sapling": {
+						"extends": "backpack-none-planted",
+						"overrides": [
+							{
+								"id": "root",
+								"scale": 0.5
+							}
+						]
+					},
+					"backpack-small-planted-sapling": {
+						"extends": "backpack-small-planted",
+						"overrides": [
+							{
+								"id": "root",
+								"translation": [ -0.01, 0.07, 0.03 ],
+								"rotation": [ 8.0, 173.0, 1.0 ]
+							}
+						]
+					},
+					"backpack-large-planted-sapling": {
+						"extends": "backpack-large-planted",
+						"overrides": [
+							{
+								"id": "root",
+								"translation": [ 0.004, -0.05, 0.018 ],
+								"rotationY": 178.0,
+								"rotationZ": 0.0
+							}
+						]
+					},
+					"backpack-large-planted-reed-cattail": {
+						"extends": "backpack-large-planted-sapling"
+					},
+					"backpack-small-planted-reed-cattail": {
+						"extends": "backpack-small-planted-sapling"
+					},
+					"backpack-none-planted-reed-cattail": {
+						"extends": "backpack-none-planted-sapling"
+					},
+					"backpack-large-planted-cactus-silvertorchcactus": {
+						"extends": "backpack-large-planted-sapling"
+					},
+					"backpack-small-planted-cactus-silvertorchcactus": {
+						"extends": "backpack-small-planted-sapling"
+					},
+					"backpack-none-planted-cactus-silvertorchcactus": {
+						"extends": "backpack-none-planted-sapling"
+					},
+					"backpack-large-planted-fern-tallfern": {
+						"extends": "backpack-large-planted-sapling"
+					},
+					"backpack-small-planted-fern-tallfern": {
+						"extends": "backpack-small-planted-sapling"
+					},
+					"backpack-none-planted-fern-tallfern": {
+						"extends": "backpack-none-planted-sapling"
+					}
+				},
+				"preventAttaching": true,
+				"slots": {
+					"Hands": {},
+					"Back": {
+						"enabledCondition": "carryon.CarryablesOnBack.Planter"
+					}
+				}
 			}
 		},
 		"dependsOn": [
@@ -220,8 +610,21 @@
 			"name": "Carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Shelf",
-				"translation": [ 0.0625, 0, 0 ],
-				"rotation": [ 0, 180, 0 ],
+				"transformGroups": {
+					"hands": [
+						{
+							"id": "root",
+							"disableIfItemStackPath": "itemstack"
+						},
+						{
+							"id": "chiseled",
+							"renderPass": "both",
+							"cullFaces": false,
+							"blockEntityDataItemStackPath": "itemstack",
+							"scale": 1.0
+						}
+					]
+				},
 				"slots": {
 					"Hands": {}
 				},
@@ -244,8 +647,32 @@
 				"name": "Carryable",
 				"properties": {
 					"enabledCondition": "carryon.Carryables.Sign",
-					"translation": [ 0.0625, 0, 0 ],
-					"rotation": [ 0, -90, 0 ],
+					"labelRenderSettings": {
+						"maxWidth": 100,
+						"maxHeight": 150,
+						"verticalAlign": "Top",
+						"transform": {
+							"translation": [ 3.109, 2.653, 0.6 ],
+							"scale": [ 3.596, 3.6, 1.0 ]
+						}
+					},
+					"transformGroups": {
+						"hands": [
+							{
+								"id": "root",
+								"disableIfItemStackPath": "itemstack",
+								"translation": [ 0.04, -0.05, 0.0 ],
+								"rotation": [ 0.0, -90.0, -40.0 ]
+							},
+							{
+								"id": "chiseled",
+								"renderPass": "both",
+								"cullFaces": false,
+								"blockEntityDataItemStackPath": "itemstack",
+								"scale": 1.0
+							}
+						]
+					},
 					"slots": {
 						"Hands": {}
 					},
@@ -268,7 +695,52 @@
 			"name": "Carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.StorageVessel",
-				"translation": [ -0.125, 0, 0 ],
+				"transformGroups": {
+					"hands": [
+						{
+							"id": "root",
+							"disableIfItemStackPath": "itemstack",
+							"translationY": -0.02,
+							"rotationY": 180.0
+						},
+						{
+							"id": "chiseled",
+							"renderPass": "both",
+							"cullFaces": false,
+							"blockEntityDataItemStackPath": "itemstack",
+							"scale": 1.0
+						}
+					],
+					"backpack-none": {
+						"extends": "hands",
+						"overrides": [
+							{
+								"id": "root",
+								"translation": [ -0.0075, -0.02, 0.0012 ]
+							}
+						]
+					},
+					"backpack-small": {
+						"extends": "backpack-none",
+						"overrides": [
+							{
+								"id": "root",
+								"rotationX": 0.0,
+								"rotationZ": 2.9
+							}
+						]
+					},
+					"backpack-large": {
+						"extends": "backpack-none",
+						"overrides": [
+							{
+								"id": "root",
+								"translation": [ -0.0035, 0.024, 0.0072 ],
+								"rotationZ": 18.9
+							}
+						]
+					}
+				},
 				"slots": {
 					"Hands": {},
 					"Back": {
@@ -293,8 +765,23 @@
 			"name": "Carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.ToolRack",
-				"translation": [ 0.0625, 0, 0 ],
-				"rotation": [ 0, 90, 90 ],
+				"transformGroups": {
+					"hands": [
+						{
+							"id": "root",
+							"disableIfItemStackPath": "itemstack",
+							"translation": [ -0.1, 0.1, 0.0 ],
+							"rotation": [ 0.0, -90.0, -30.0 ]
+						},
+						{
+							"id": "chiseled",
+							"renderPass": "both",
+							"cullFaces": false,
+							"blockEntityDataItemStackPath": "itemstack",
+							"scale": 1.0
+						}
+					]
+				},
 				"slots": {
 					"Hands": {}
 				},

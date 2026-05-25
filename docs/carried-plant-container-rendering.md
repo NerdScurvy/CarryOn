@@ -24,7 +24,7 @@ Both follow the same structure.
     "carryon:plants-small",
     "carryon:carry-flowerpot"
   ],
-  "renderTransformResolver": "plant-container",
+  "transformGroupResolver": "plant-container",
   "renderRootFirst": true,
   "slots": {
     "Hands": { "animation": "carryon:holdlight" },
@@ -40,7 +40,7 @@ Both follow the same structure.
     "carryon:plants-medium",
     "carryon:carry-planter"
   ],
-  "renderTransformResolver": "plant-container",
+  "transformGroupResolver": "plant-container",
   "renderRootFirst": true,
   "slots": {
     "Hands": { /* disabled or restricted */ },
@@ -51,7 +51,7 @@ Both follow the same structure.
 
 Key properties shared by both:
 - `transformTemplates`: references to template codes for size/variant rendering
-- `renderTransformResolver`: `plant-container` (enables plant-content-aware group selection)
+- `transformGroupResolver`: `plant-container` (enables plant-content-aware group selection)
 - `renderRootFirst`: controls render order of root mesh vs accessories
 - `slots`: defines available carry slots and restrictions
 
@@ -147,7 +147,7 @@ Current renderer flow is plan-builder based:
 1. `EntityCarryRenderer` resolves base group from slot/backpack context.
 2. `GetRenderInfoCached` calls `CarryTransformPlanBuilder.GetOrBuild`.
 3. `CarryTransformPlanBuilder`:
-   - runs registered transform group resolvers (including `plant-container` when requested via `renderTransformResolver`)
+   - runs registered transform group resolvers (including `plant-container` when requested via `transformGroupResolver`)
    - chooses primary group from resolver candidates
    - resolves additional groups
    - falls back to `default` settings if needed
@@ -231,7 +231,7 @@ graph TD
 
 - [Transform Template System](transform-template-system.md) — How `transformTemplates` are loaded, merged, and resolved into `ResolvedTransformGroups`.
 - [Carried Chest-Trunk and Chest Rendering](carried-chest-trunk-rendering.md) — Parallel doc for chest and trunk rendering, covering type-suffix group selection and straps.
-- [Entity Carry Renderer Pipeline](entity-carry-renderer-pipeline.md) — The full client-side rendering pipeline, including how `renderTransformResolver` is invoked during plan resolution.
+- [Entity Carry Renderer Pipeline](entity-carry-renderer-pipeline.md) — The full client-side rendering pipeline, including how `transformGroupResolver` is invoked during plan resolution.
 
 ---
 

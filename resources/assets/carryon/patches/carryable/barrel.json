@@ -8,23 +8,13 @@
 			"name": "Carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Barrel",
-				"translation": [ -0.0625, 0, 0 ],
+				"transformTemplates": [
+					"carryon:carry-barrel"
+				],
 				"slots": {
 					"Hands": {},
 					"Back": {
-						"enabledCondition": "carryon.CarryablesOnBack.Barrel",
-						"transforms": {
-							"small": {
-								"translation": [ -0.1, 0.2, 0.00125 ],
-								"rotation": [ 0, 180, 20 ],
-								"scale": 0.6
-							},
-							"large": {
-								"translation": [ 0.0625, 0.4, 0.00125 ],
-								"rotation": [ 0, 180, -10 ],
-								"scale": 0.6
-							}
-						}
+						"enabledCondition": "carryon.CarryablesOnBack.Barrel"
 					}
 				}
 			}

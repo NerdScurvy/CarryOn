@@ -5,10 +5,10 @@ using System;
 namespace CarryOn.Common.Network
 {
     [ProtoContract(ImplicitFields = ImplicitFields.AllFields)]
-    public class SwapSlotsMessage
+    public record SwapSlotsMessage
     {
-        public CarrySlot First { get; }
-        public CarrySlot Second { get; }
+        public CarrySlot First { get; init; }
+        public CarrySlot Second { get; init; }
 
         private SwapSlotsMessage() { }
 

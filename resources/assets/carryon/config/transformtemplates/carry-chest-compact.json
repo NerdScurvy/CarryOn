@@ -4,7 +4,7 @@
 		"backpack-none-compact": [
 			{
 				"id": "root",
-				"translation": [ -0.04, 0.26, 0.0 ],
+				"translation": [ -0.04, 0.14, 0.0 ],
 				"rotationY": 180.0
 			},
 			{
@@ -56,7 +56,7 @@
 				{
 					"id": "root",
 					"translationX": -0.06,
-					"translationY": 0.03,
+					"translationY": 0.2,
 					"rotationX": 3.0,
 					"rotationZ": 24.0
 				}
@@ -68,7 +68,7 @@
 				{
 					"id": "root",
 					"translationX": -0.03,
-					"translationY": 0.6,
+					"translationY": 0.02,
 					"rotationX": 1.0,
 					"rotationZ": 10.0
 				}

@@ -8,6 +8,17 @@
 			"name": "Carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.BunchOCandles",
+				"transformGroups": {
+					"hands": [
+						{
+							"id": "root",
+							"translationY": 0.05,
+							"rotationY": -30.0,
+							"rotationZ": -20.0,
+							"glowIntensity": 1.0
+						}
+					]
+				},
 				"slots": {
 					"Hands": {}
 				}

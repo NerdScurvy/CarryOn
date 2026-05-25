@@ -1,170 +1,79 @@
 [
 	{
-		"file": "bettercrates:blocktypes/bettercrates*",
+		"file": "bettercrates:blocktypes/bettercrates",
 		"op": "add",
 		"path": "/behaviors/-",
 		"value": {
 			"name": "Carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Crate",
+				"swapBackKeyPassthrough": true,
+				"labelRenderSettings": {
+					"iconPixelSize": 128,
+					"iconFromInventory": true,
+					"transform": {
+						"translation": [ -0.01, 0.29, 0.23 ],
+						"rotation": [ -180.0, -90.0, 0.0 ],
+						"scale": [ 0.54, 0.54, 0.8433 ],
+						"origin": [ 0.0, 0.0, 0.0 ]
+					}
+				},
+				"transformTemplates": [
+					"carryon:carry-crate"
+				],
 				"slots": {
-					"Hands": {
-						"transforms": {
-							"default": [
-								{
-									"translation": [ -0.2, 0.0, 0.0 ],
-									"rotation": [ 0.0, 180.0, 0.0 ],
-									"scale": 0.5
-								}
-							]
-						}
-					},
+					"Hands": {},
 					"Back": {
 						"walkSpeedModifier": -0.2,
-						"enabledCondition": "carryon.CarryablesOnBack.Crate",
-						"transforms": {
-							"default": [
-								{
-									"translation": [ -0.27, -0.04, 0.002 ],
-									"rotation": [ 0.0, -180.0, 0.0 ],
-									"scale": 0.5
-								},
-								{
-									"item": "carryon:strap",
-									"translation": [ -0.5, 1.1, 0.185 ],
-									"rotation": [ 0.0, 87.0, 0.0 ],
-									"scale": 1.0
-								},
-								{
-									"item": "carryon:strap",
-									"translation": [ -0.5, 1.1, 0.815 ],
-									"rotation": [ 0.0, 94.0, 0.0 ],
-									"scale": 1.0
-								},
-								{
-									"item": "carryon:strap",
-									"translation": [ -0.5001, 1.116, 0.185 ],
-									"rotation": [ 90.0, 0.0, 90.0 ],
-									"scale": [ 1.0, 1.0, 1.034 ]
-								},
-								{
-									"item": "carryon:strap",
-									"translation": [ -0.5001, 1.116, 0.815 ],
-									"rotation": [ 90.0, 0.0, 90.0 ],
-									"scale": [ 1.0, 1.0, 1.034 ]
-								},
-								{
-									"item": "carryon:strap",
-									"translation": [ -0.5, 0.1, 0.185 ],
-									"rotation": [ 0.0, 90.0, 0.0 ],
-									"scale": 1.0
-								},
-								{
-									"item": "carryon:strap",
-									"translation": [ -0.5, 0.1, 0.815 ],
-									"rotation": [ 0.0, 90.0, 0.0 ],
-									"scale": 1.0
-								}
-							],
-							"small": [
-								{
-									"translation": [ -0.14, 0.001, 0.008 ],
-									"rotation": [ 0.0, -180.0, 10.0 ],
-									"scale": 0.5
-								},
-								{
-									"item": "carryon:strap",
-									"translation": [ -0.5, 1.1, 0.185 ],
-									"rotation": [ 0.0, 89.6, 0.0 ],
-									"scale": 1.0
-								},
-								{
-									"item": "carryon:strap",
-									"translation": [ -0.5, 1.1, 0.815 ],
-									"rotation": [ 0.0, 95.2, 0.0 ],
-									"scale": 1.0
-								},
-								{
-									"item": "carryon:strap",
-									"translation": [ -0.5001, 1.116, 0.185 ],
-									"rotation": [ 90.0, 0.0, 90.0 ],
-									"scale": [ 1.0, 1.0, 1.034 ]
-								},
-								{
-									"item": "carryon:strap",
-									"translation": [ -0.5001, 1.116, 0.815 ],
-									"rotation": [ 90.0, 0.0, 90.0 ],
-									"scale": [ 1.0, 1.0, 1.034 ]
-								},
-								{
-									"item": "carryon:strap",
-									"translation": [ -0.5, 0.1, 0.185 ],
-									"rotation": [ 0.0, 90.0, 0.0 ],
-									"scale": 1.0
-								},
-								{
-									"item": "carryon:strap",
-									"translation": [ -0.5, 0.1, 0.815 ],
-									"rotation": [ 0.0, 90.0, 0.0 ],
-									"scale": 1.0
-								},
-								{
-									"item": "carryon:strap",
-									"translation": [ 0.4859, 0.092, 0.185 ],
-									"rotation": [ -5.9, -270.0, 61.7 ],
-									"scale": [ 1.0, 1.0, 0.434 ]
-								},
-								{
-									"item": "carryon:strap",
-									"translation": [ 0.4859, 0.092, 0.814 ],
-									"rotation": [ -5.9, -270.0, 61.7 ],
-									"scale": [ 1.0, 1.0, 0.434 ]
-								}
-							],
-							"large": [
-								{
-									"translation": [ 0.0, 0.053, 0.011 ],
-									"rotation": [ 0.0, -180.0, 10.1 ],
-									"scale": 0.5
-								},
-								{
-									"item": "carryon:strap",
-									"translation": [ -0.5, 1.1, 0.185 ],
-									"rotation": [ 0.0, 87.0, 0.7 ],
-									"scale": [ 1.0, 1.0, 1.425 ]
-								},
-								{
-									"item": "carryon:strap",
-									"translation": [ -0.5, 1.1, 0.815 ],
-									"rotation": [ 0.0, 91.4, 0.8 ],
-									"scale": [ 1.0, 1.0, 1.4 ]
-								},
-								{
-									"item": "carryon:strap",
-									"translation": [ -0.5001, 1.116, 0.185 ],
-									"rotation": [ 90.0, 0.0, 90.0 ],
-									"scale": [ 1.0, 1.0, 1.034 ]
-								},
-								{
-									"item": "carryon:strap",
-									"translation": [ -0.5001, 1.116, 0.815 ],
-									"rotation": [ 90.0, 0.0, 90.0 ],
-									"scale": [ 1.0, 1.0, 1.034 ]
-								},
-								{
-									"item": "carryon:strap",
-									"translation": [ -0.5, 0.1, 0.185 ],
-									"rotation": [ 0.0, 90.0, 0.0 ],
-									"scale": [ 1.0, 1.0, 1.1 ]
-								},
-								{
-									"item": "carryon:strap",
-									"translation": [ -0.5, 0.1, 0.815 ],
-									"rotation": [ 0.0, 90.0, 0.0 ],
-									"scale": [ 1.0, 1.0, 1.1 ]
-								}
-							]
+						"enabledCondition": "carryon.CarryablesOnBack.Crate"
+					}
+				},
+				"patchPriority": 1
+			}
+		},
+		"dependsOn": [
+			{
+				"modid": "bettercrates"
+			}
+		]
+	},
+	{
+		"file": "bettercrates:blocktypes/bettercrates2sided",
+		"op": "add",
+		"path": "/behaviors/-",
+		"value": {
+			"name": "Carryable",
+			"properties": {
+				"enabledCondition": "carryon.Carryables.Crate",
+				"swapBackKeyPassthrough": true,
+				"labelRenderSettings": {
+					"iconPixelSize": 128,
+					"iconFromInventory": true,
+					"transform": {
+						"translation": [ -0.01, 0.29, 0.23 ],
+						"rotation": [ -180.0, -90.0, 0.0 ],
+						"scale": [ 0.54, 0.54, 0.8433 ],
+						"origin": [ 0.0, 0.0, 0.0 ]
+					},
+					"additionalTransforms": [
+						{
+							"translation": [ 1.01, 0.29, 0.77 ],
+							"rotation": [ -180.0, 90.0, 0.0 ],
+							"scale": [ 0.54, 0.54, 0.8433 ],
+							"origin": [ 0.0, 0.0, 0.0 ]
 						}
+					]
+				},
+				"transformTemplates": [
+					"carryon:carry-crate"
+				],
+				"slots": {
+					"Hands": {
+						"walkSpeedModifier": -0.3
+					},
+					"Back": {
+						"walkSpeedModifier": -0.3,
+						"enabledCondition": "carryon.CarryablesOnBack.Crate"
 					}
 				},
 				"patchPriority": 1

@@ -33,6 +33,8 @@
 	"attach-failed": "Памылка пры спробе прымацаваць блок",
 	"attach-unavailable": "Нельга прымацаваць прадмет да гэтага аб'екта",
 	"detach-unavailable": "Нельга адмацаваць прадмет ад гэтага аб'екта",
+	"pick-up-failed": "Не магу падняць гэты блок",
+	"pick-up-failed-too-hot": "Гэты блок занадта гарячы, каб яго несці",
 	"place-down-failed": "Нельга паставіць блок сюды",
 	"place-down-failed-entityintersecting": "Нельга паставіць блок сюды: нешта перашкаджае",
 	"place-down-failed-requiresolidground": "Нельга паставіць блок сюды: патрэбна цвёрдая паверхня",

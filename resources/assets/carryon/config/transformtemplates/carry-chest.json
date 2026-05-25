@@ -4,14 +4,13 @@
 		"hands": [
 			{
 				"id": "root",
-				"translationY": 0.1,
 				"rotationY": 180.0
 			}
 		],
 		"backpack-none": [
 			{
 				"id": "root",
-				"translation": [ 0.02, 0.1, 0.0 ],
+				"translation": [ 0.02, -0.02, 0.0 ],
 				"rotationY": 180.0
 			},
 			{
@@ -63,7 +62,7 @@
 				{
 					"id": "root",
 					"translationX": 0.04,
-					"translationY": 0.24,
+					"translationY": 0.12,
 					"rotationX": 3.0,
 					"rotationZ": 24.0
 				},
@@ -103,16 +102,16 @@
 				{
 					"id": "strap-top-left",
 					"translationZ": -0.35,
-					"rotationY": 90.7,
-					"rotationZ": 17.3,
-					"scaleZ": 1.37
+					"rotationY": 83.7,
+					"rotationZ": 16.5,
+					"scaleZ": 1.0
 				},
 				{
 					"id": "strap-top-right",
 					"translationZ": 0.35,
-					"rotationY": 89.7,
+					"rotationY": 96.7,
 					"rotationZ": 16.5,
-					"scaleZ": 1.37
+					"scaleZ": 1.0
 				},
 				{
 					"id": "strap-rear-right",

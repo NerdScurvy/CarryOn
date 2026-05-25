@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using CarryOn.API.Common.Models;
 using CarryOn.Client.Models;
+using Newtonsoft.Json;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
@@ -126,6 +127,51 @@ namespace CarryOn.Client.Logic.CarryRenderer
             return containerSlots.GetItemstack(slotKey);
         }
 
+        internal static ItemStack TryGetItemStackByPath(ITreeAttribute root, string path, IWorldAccessor world)
+        {
+            if (root == null || string.IsNullOrWhiteSpace(path))
+            {
+                return null;
+            }
+
+            var parts = path.Split('.');
+            if (parts.Length == 0)
+            {
+                return null;
+            }
+
+            ITreeAttribute current = root;
+            for (var i = 0; i < parts.Length; i++)
+            {
+                var part = parts[i]?.Trim();
+                if (string.IsNullOrEmpty(part) || current == null)
+                {
+                    return null;
+                }
+
+                var isLast = i == parts.Length - 1;
+                if (isLast)
+                {
+                    var stack = current.GetItemstack(part, null);
+                    if (stack == null && current[part] is ItemstackAttribute itemAttr)
+                    {
+                        stack = itemAttr.GetValue() as ItemStack;
+                    }
+
+                    if (stack?.Collectible == null)
+                    {
+                        stack?.ResolveBlockOrItem(world);
+                    }
+
+                    return stack;
+                }
+
+                current = current.GetTreeAttribute(part);
+            }
+
+            return null;
+        }
+
         internal static string BuildSlotStateKey(EntityAgent entity, CarrySlot slot)
         {
             return string.Concat(entity?.EntityId.ToString() ?? "0", "|", ((int)slot).ToString());
@@ -141,7 +187,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
                 renderVariantSignature ?? "novariant");
         }
 
-        internal static string BuildRenderInfoVariantSignature(CarriedBlock carried, TreeAttribute containerSlots)
+        internal static string BuildRenderInfoVariantSignature(CarriedBlock carried, TreeAttribute containerSlots, IReadOnlyList<EffectiveTransformSetting> effectiveSettings, IWorldAccessor world)
         {
             var sb = new StringBuilder(160);
             var be = carried?.BlockEntityData;
@@ -176,7 +222,126 @@ namespace CarryOn.Client.Logic.CarryRenderer
                 }
             }
 
+            if (effectiveSettings != null && effectiveSettings.Count > 0)
+            {
+                sb.Append("|bepaths=");
+                for (var i = 0; i < effectiveSettings.Count; i++)
+                {
+                    AppendBeStackPathSignature(sb, be, world, effectiveSettings[i]?.Setting?.DisableIfItemStackPath, "disable");
+                    AppendBeStackPathSignature(sb, be, world, effectiveSettings[i]?.Setting?.BlockEntityDataItemStackPath, "render");
+                }
+            }
+
             return sb.ToString();
+        }
+
+        private static void AppendBeStackPathSignature(StringBuilder sb, ITreeAttribute be, IWorldAccessor world, string path, string kind)
+        {
+            if (string.IsNullOrWhiteSpace(path)) return;
+
+            var stack = TryGetItemStackByPath(be, path, world);
+            sb.Append(kind).Append(':').Append(path).Append(':').Append(BuildItemStackContentSignature(stack)).Append(',');
+        }
+
+        private static string BuildItemStackContentSignature(ItemStack stack)
+        {
+            if (stack == null)
+            {
+                return "null";
+            }
+
+            var raw = new StringBuilder(256)
+                .Append((int)stack.Class).Append('|')
+                .Append(stack.Id).Append('|')
+                .Append(stack.StackSize).Append('|')
+                .Append(stack.Collectible?.Code?.ToString() ?? "nocode");
+
+            if (stack.Attributes != null)
+            {
+                if (stack.Attributes is TreeAttribute treeAttributes)
+                {
+                    raw.Append("|a:").Append(SerializeTreeAttribute(treeAttributes));
+                }
+ 
+            }
+
+            return ComputeFnv1a64Hex(raw.ToString());
+        }
+
+        private static string SerializeTreeAttribute(TreeAttribute tree, int depth = 0)
+        {
+            if (tree == null) return "null";
+            if (depth > 16) return "<max-depth>";
+
+            var keys = tree.Keys?.OrderBy(k => k, StringComparer.Ordinal) ?? Enumerable.Empty<string>();
+            var sb = new StringBuilder(256);
+            sb.Append('{');
+
+            foreach (var key in keys)
+            {
+                sb.Append(key).Append('=');
+                sb.Append(SerializeAttribute(tree[key], depth + 1));
+                sb.Append(';');
+            }
+
+            sb.Append('}');
+            return sb.ToString();
+        }
+
+        private static string SerializeAttribute(IAttribute attribute, int depth)
+        {
+            if (attribute == null) return "null";
+            if (depth > 16) return "<max-depth>";
+
+            if (attribute is TreeAttribute nestedTree)
+            {
+                return SerializeTreeAttribute(nestedTree, depth + 1);
+            }
+
+            if (attribute is ItemstackAttribute itemstackAttribute)
+            {
+                var nestedStack = itemstackAttribute.GetValue() as ItemStack;
+                return "itemstack(" + BuildItemStackContentSignature(nestedStack) + ")";
+            }
+
+            var value = attribute.GetValue();
+            if (value == null)
+            {
+                return attribute.GetType().Name + "(null)";
+            }
+
+            if (value is byte[] bytes)
+            {
+                return attribute.GetType().Name + "(b64:" + Convert.ToBase64String(bytes) + ")";
+            }
+
+            if (value is Array arr && value is not char[])
+            {
+                var values = new List<string>(arr.Length);
+                foreach (var element in arr)
+                {
+                    values.Add(element?.ToString() ?? "null");
+                }
+
+                return attribute.GetType().Name + "([" + string.Join(",", values) + "])";
+            }
+
+            return attribute.GetType().Name + "(" + value + ")";
+        }
+
+        private static string ComputeFnv1a64Hex(string text)
+        {
+            const ulong offset = 14695981039346656037UL;
+            const ulong prime = 1099511628211UL;
+
+            ulong hash = offset;
+            for (var i = 0; i < text.Length; i++)
+            {
+                hash ^= text[i];
+                hash *= prime;
+            }
+
+            return hash.ToString("x16", CultureInfo.InvariantCulture);
         }
 
         internal static string BuildTransformPlanSignature(
@@ -211,9 +376,9 @@ namespace CarryOn.Client.Logic.CarryRenderer
             return sb.ToString();
         }
 
-        internal static float[] ApplyTransform(ModelTransform transform, float[] modelMatrix, Vec3f offset)
+        // In-place version for pooled matrix buffers
+        internal static void ApplyTransformInPlace(ModelTransform transform, float[] matrix, Vec3f offset)
         {
-            float[] matrix = Mat4f.CloneIt(modelMatrix);
             Mat4f.Translate(matrix, matrix, offset.X, offset.Y, offset.Z);
             Mat4f.Translate(matrix, matrix, transform.Translation.X, transform.Translation.Y, transform.Translation.Z);
             Mat4f.Translate(matrix, matrix, transform.Origin.X, transform.Origin.Y, transform.Origin.Z);
@@ -222,8 +387,6 @@ namespace CarryOn.Client.Logic.CarryRenderer
             Mat4f.RotateY(matrix, matrix, transform.Rotation.Y * GameMath.DEG2RAD);
             Mat4f.Scale(matrix, matrix, transform.ScaleXYZ.X, transform.ScaleXYZ.Y, transform.ScaleXYZ.Z);
             Mat4f.Translate(matrix, matrix, -transform.Origin.X, -transform.Origin.Y, -transform.Origin.Z);
-
-            return matrix;
         }
 
         internal static float[] GetAttachmentPointMatrix(EntityShapeRenderer renderer, AttachmentPointAndPose attachPointAndPose)

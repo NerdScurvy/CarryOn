@@ -244,7 +244,7 @@ graph TD
 ## See Also
 
 - [Carried Chest-Trunk and Chest Rendering](carried-chest-trunk-rendering.md) — Worked example of `transformTemplates` and local `transformGroups` for chest and trunk blocks.
-- [Carried Plant Container Rendering](carried-plant-container-rendering.md) — Worked example of `transformTemplates` combined with a `renderTransformResolver` for flowerpots and planters.
+- [Carried Plant Container Rendering](carried-plant-container-rendering.md) — Worked example of `transformTemplates` combined with a `transformGroupResolver` for flowerpots and planters.
 - [Entity Carry Renderer Pipeline](entity-carry-renderer-pipeline.md) — How `ResolvedTransformGroups` produced by this pipeline are consumed at render time (Sections 5 and 7).
 
 ---
