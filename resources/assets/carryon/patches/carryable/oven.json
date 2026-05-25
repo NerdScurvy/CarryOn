@@ -1,27 +1,24 @@
 [
-  {
-    "file": "game:blocktypes/clay/oven",
-    "side": "Server",
-    "op": "add",
-    "path": "/behaviors/-",
-    "value": {
-      "name": "Carryable",
-      "properties": {
-        "enabledCondition": "carryon.Carryables.Oven",
-        "translation": [
-          0.0625,
-          0,
-          0
-        ],
-        "rotation": [
-          0,
-          180,
-          0
-        ],
-        "slots": {
-          "Hands": {}
-        }
-      }
-    }
-  }
+	{
+		"file": "game:blocktypes/clay/oven",
+		"side": "Server",
+		"op": "add",
+		"path": "/behaviors/-",
+		"value": {
+			"name": "Carryable",
+			"properties": {
+				"enabledCondition": "carryon.Carryables.Oven",
+				"transformGroups": {
+					"hands": [
+						{
+							"rotationY": -90.0
+						}
+					]
+				},
+				"slots": {
+					"Hands": {}
+				}
+			}
+		}
+	}
 ]

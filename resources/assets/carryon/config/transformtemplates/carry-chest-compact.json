@@ -1,0 +1,78 @@
+{
+	"code": "carry-chest-compact",
+	"transformGroups": {
+		"backpack-none-compact": [
+			{
+				"id": "root",
+				"translation": [ -0.04, 0.14, 0.0 ],
+				"rotationY": 180.0
+			},
+			{
+				"id": "strap-top-left",
+				"item": "carryon:strap",
+				"translation": [ -0.27, -0.01, -0.15 ],
+				"rotation": [ 0.0, 100.0, 15.0 ],
+				"scale": [ 0.8, 0.8, 0.63 ]
+			},
+			{
+				"id": "strap-top-right",
+				"item": "carryon:strap",
+				"translation": [ -0.27, -0.01, 0.15 ],
+				"rotation": [ 0.0, 80.0, 15.0 ],
+				"scale": [ 0.8, 0.8, 0.63 ]
+			},
+			{
+				"id": "strap-rear-right",
+				"item": "carryon:strap",
+				"translation": [ -0.2516, -0.0001, 0.1514 ],
+				"rotation": [ -9.0, -100.0, 90.0 ],
+				"scale": [ 0.8, 0.8, 0.45 ]
+			},
+			{
+				"id": "strap-rear-left",
+				"item": "carryon:strap",
+				"translation": [ -0.2534, -0.0001, -0.1504 ],
+				"rotation": [ -10.0, -100.0, 90.0 ],
+				"scale": [ 0.8, 0.8, 0.45 ]
+			},
+			{
+				"id": "strap-bottom-left",
+				"item": "carryon:strap",
+				"translation": [ -0.2634, -0.4401, -0.1505 ],
+				"rotation": [ 0.0, -90.0, 179.0 ],
+				"scale": [ 0.8, 0.8, 0.65 ]
+			},
+			{
+				"id": "strap-bottom-right",
+				"item": "carryon:strap",
+				"translation": [ -0.2634, -0.4401, 0.1434 ],
+				"rotation": [ 0.0, -90.0, 179.0 ],
+				"scale": [ 0.8, 0.8, 0.65 ]
+			}
+		],
+		"backpack-small-compact": {
+			"extends": "backpack-none-compact",
+			"overrides": [
+				{
+					"id": "root",
+					"translationX": -0.06,
+					"translationY": 0.2,
+					"rotationX": 3.0,
+					"rotationZ": 24.0
+				}
+			]
+		},
+		"backpack-large-compact": {
+			"extends": "backpack-none-compact",
+			"overrides": [
+				{
+					"id": "root",
+					"translationX": -0.03,
+					"translationY": 0.02,
+					"rotationX": 1.0,
+					"rotationZ": 10.0
+				}
+			]
+		}
+	}
+}

@@ -1,0 +1,620 @@
+{
+	"code": "plants-large",
+	"transformGroups": {
+		"planted": [
+			{
+				"id": "plant1",
+				"translationY": 0.495,
+				"scale": 1.0
+			}
+		],
+		"planted-double": {
+			"extends": "planted",
+			"appends": [
+				{
+					"id": "plant2",
+					"translationY": 0.495,
+					"scale": 1.0
+				}
+			]
+		},
+		"planted-sapling": {
+			"extends": "planted-double",
+			"overrides": [
+				{
+					"id": "plant1",
+					"translationY": 0.6,
+					"rotationY": -45.0,
+					"scale": 1.2
+				},
+				{
+					"id": "plant2",
+					"translationY": 0.6,
+					"rotationY": -45.0,
+					"scale": 1.2
+				}
+			]
+		},
+		"planted-mushroom": {
+			"extends": "planted",
+			"overrides": [
+				{
+					"id": "plant1",
+					"alphaTestBlend": 0.01,
+					"alphaTestOpaque": 0.9,
+					"cullFaces": false
+				}
+			]
+		},
+		"planted-flower": {
+			"extends": "planted",
+			"overrides": [
+				{
+					"id": "plant1",
+					"originY": 0.0,
+					"rotationY": -25.0
+				}
+			]
+		},
+		"planted-flower-double": {
+			"extends": "planted-double"
+		},
+		"planted-sapling-acacia": {
+			"extends": "planted-sapling",
+			"overrides": [
+				{
+					"id": "plant1",
+					"item": "carryon:sapling-acacia-large-trunk"
+				},
+				{
+					"id": "plant2",
+					"item": "carryon:sapling-acacia-large-leaves",
+					"seasonalTintMap": "seasonalFoliage",
+					"climateTintMap": "climatePlantTint"
+				}
+			]
+		},
+		"planted-sapling-baldcypress": {
+			"extends": "planted-sapling",
+			"overrides": [
+				{
+					"id": "plant1",
+					"item": "carryon:sapling-baldcypress-large-trunk"
+				},
+				{
+					"id": "plant2",
+					"item": "carryon:sapling-baldcypress-large-leaves",
+					"seasonalTintMap": "seasonalFoliage",
+					"climateTintMap": "climatePlantTint"
+				}
+			]
+		},
+		"planted-sapling-birch": {
+			"extends": "planted-sapling",
+			"overrides": [
+				{
+					"id": "plant1",
+					"item": "carryon:sapling-birch-large-trunk"
+				},
+				{
+					"id": "plant2",
+					"item": "carryon:sapling-birch-large-leaves",
+					"seasonalTintMap": "seasonalFoliage",
+					"climateTintMap": "climatePlantTint"
+				}
+			]
+		},
+		"planted-sapling-crimsonkingmaple": {
+			"extends": "planted-sapling",
+			"overrides": [
+				{
+					"id": "plant1",
+					"item": "carryon:sapling-crimsonkingmaple-large-trunk"
+				},
+				{
+					"id": "plant2",
+					"item": "carryon:sapling-crimsonkingmaple-large-leaves",
+					"climateTintMap": "climateCrimsonKingTint",
+					"seasonalTintMap": "seasonalCrimsonKingMaple"
+				}
+			]
+		},
+		"planted-sapling-ebony": {
+			"extends": "planted-sapling",
+			"overrides": [
+				{
+					"id": "plant1",
+					"item": "carryon:sapling-ebony-large-trunk"
+				},
+				{
+					"id": "plant2",
+					"item": "carryon:sapling-ebony-large-leaves",
+					"seasonalTintMap": "seasonalLarch",
+					"climateTintMap": "climatePlantTint"
+				}
+			]
+		},
+		"planted-sapling-greenspirecypress": {
+			"extends": "planted-sapling",
+			"overrides": [
+				{
+					"id": "plant1",
+					"item": "carryon:sapling-greenspirecypress-large-trunk"
+				},
+				{
+					"id": "plant2",
+					"item": "carryon:sapling-greenspirecypress-large-leaves",
+					"seasonalTintMap": "seasonalNeedles",
+					"climateTintMap": "climatePlantTint"
+				}
+			]
+		},
+		"planted-sapling-kapok": {
+			"extends": "planted-sapling",
+			"overrides": [
+				{
+					"id": "plant1",
+					"item": "carryon:sapling-kapok-large-trunk"
+				},
+				{
+					"id": "plant2",
+					"item": "carryon:sapling-kapok-large-leaves",
+					"climateTintMap": "climatePlantTint",
+					"seasonalTintMap": "seasonalFoliage"
+				}
+			]
+		},
+		"planted-sapling-larch": {
+			"extends": "planted-sapling",
+			"overrides": [
+				{
+					"id": "plant1",
+					"item": "carryon:sapling-larch-large-trunk"
+				},
+				{
+					"id": "plant2",
+					"item": "carryon:sapling-larch-large-leaves",
+					"seasonalTintMap": "seasonalLarch"
+				}
+			]
+		},
+		"planted-sapling-maple": {
+			"extends": "planted-sapling",
+			"overrides": [
+				{
+					"id": "plant1",
+					"item": "carryon:sapling-maple-large-trunk"
+				},
+				{
+					"id": "plant2",
+					"item": "carryon:sapling-maple-large-leaves",
+					"seasonalTintMap": "seasonalFoliage",
+					"climateTintMap": "climatePlantTint"
+				}
+			]
+		},
+		"planted-sapling-oak": {
+			"extends": "planted-sapling",
+			"overrides": [
+				{
+					"id": "plant1",
+					"item": "carryon:sapling-oak-large-trunk"
+				},
+				{
+					"id": "plant2",
+					"item": "carryon:sapling-oak-large-leaves",
+					"seasonalTintMap": "seasonalFoliage",
+					"climateTintMap": "climatePlantTint"
+				}
+			]
+		},
+		"planted-sapling-pine": {
+			"extends": "planted-sapling",
+			"overrides": [
+				{
+					"id": "plant1",
+					"item": "carryon:sapling-pine-large-trunk"
+				},
+				{
+					"id": "plant2",
+					"item": "carryon:sapling-pine-large-leaves",
+					"seasonalTintMap": "seasonalNeedles",
+					"climateTintMap": "climatePlantTint"
+				}
+			]
+		},
+		"planted-sapling-purpleheart": {
+			"extends": "planted-sapling",
+			"overrides": [
+				{
+					"id": "plant1",
+					"item": "carryon:sapling-purpleheart-large-trunk"
+				},
+				{
+					"id": "plant2",
+					"item": "carryon:sapling-purpleheart-large-leaves",
+					"climateTintMap": "climatePlantTint",
+					"seasonalTintMap": "seasonalLarch"
+				}
+			]
+		},
+		"planted-sapling-redwood": {
+			"extends": "planted-sapling",
+			"overrides": [
+				{
+					"id": "plant1",
+					"item": "carryon:sapling-redwood-large-trunk"
+				},
+				{
+					"id": "plant2",
+					"item": "carryon:sapling-redwood-large-leaves",
+					"climateTintMap": "climateDarkerPlantTint",
+					"seasonalTintMap": "seasonalNeedles"
+				}
+			]
+		},
+		"planted-sapling-walnut": {
+			"extends": "planted-sapling",
+			"overrides": [
+				{
+					"id": "plant1",
+					"item": "carryon:sapling-walnut-large-trunk"
+				},
+				{
+					"id": "plant2",
+					"item": "carryon:sapling-walnut-large-leaves",
+					"seasonalTintMap": "seasonalWalnut",
+					"climateTintMap": "climatePlantTint"
+				}
+			]
+		},
+		"planted-sapling-brownbamboo": {
+			"extends": "planted-sapling",
+			"overrides": [
+				{
+					"id": "plant1",
+					"item": "carryon:sapling-brownbamboo-large-trunk"
+				},
+				{
+					"id": "plant2",
+					"item": "carryon:sapling-brownbamboo-large-leaves",
+					"climateTintMap": "climatePlantTint"
+				}
+			]
+		},
+		"planted-sapling-greenbamboo": {
+			"extends": "planted-sapling",
+			"overrides": [
+				{
+					"id": "plant1",
+					"item": "carryon:sapling-greenbamboo-large-trunk"
+				},
+				{
+					"id": "plant2",
+					"item": "carryon:sapling-greenbamboo-large-leaves",
+					"climateTintMap": "climatePlantTint"
+				}
+			]
+		},
+		"planted-sapling-brownbambooshoots": {
+			"extends": "planted",
+			"overrides": [
+				{
+					"id": "plant1",
+					"item": "carryon:sapling-brownbambooshoots-large-trunk",
+					"rotationY": -35.0
+				}
+			]
+		},
+		"planted-sapling-greenbambooshoots": {
+			"extends": "planted-sapling-brownbambooshoots",
+			"overrides": [
+				{
+					"id": "plant1",
+					"item": "carryon:sapling-greenbambooshoots-large-trunk"
+				}
+			]
+		},
+		"planted-flower-bluebell": {
+			"extends": "planted-flower",
+			"overrides": [
+				{
+					"id": "plant1",
+					"item": "carryon:flower-bluebell-bloom-large"
+				}
+			]
+		},
+		"planted-flower-catmint": {
+			"extends": "planted-flower",
+			"overrides": [
+				{
+					"id": "plant1",
+					"item": "carryon:flower-catmint-bloom-large"
+				}
+			]
+		},
+		"planted-flower-cornflower": {
+			"extends": "planted-flower",
+			"overrides": [
+				{
+					"id": "plant1",
+					"item": "carryon:flower-cornflower-bloom-large"
+				}
+			]
+		},
+		"planted-flower-cowparsley": {
+			"extends": "planted-flower",
+			"overrides": [
+				{
+					"id": "plant1",
+					"item": "carryon:flower-cowparsley-bloom-large"
+				}
+			]
+		},
+		"planted-flower-daffodil": {
+			"extends": "planted-flower",
+			"overrides": [
+				{
+					"id": "plant1",
+					"item": "carryon:flower-daffodil-bloom-large"
+				}
+			]
+		},
+		"planted-flower-dandelion": {
+			"extends": "planted-flower",
+			"overrides": [
+				{
+					"id": "plant1",
+					"item": "carryon:flower-dandelion-bloom-large"
+				}
+			]
+		},
+		"planted-flower-edelweiss": {
+			"extends": "planted-flower",
+			"overrides": [
+				{
+					"id": "plant1",
+					"item": "carryon:flower-edelweiss-bloom-large"
+				}
+			]
+		},
+		"planted-flower-forgetmenot": {
+			"extends": "planted-flower",
+			"overrides": [
+				{
+					"id": "plant1",
+					"item": "carryon:flower-forgetmenot-bloom-large"
+				}
+			]
+		},
+		"planted-flower-goldenpoppy": {
+			"extends": "planted-flower",
+			"overrides": [
+				{
+					"id": "plant1",
+					"item": "carryon:flower-goldenpoppy-bloom-large"
+				}
+			]
+		},
+		"planted-flower-heather": {
+			"extends": "planted-flower",
+			"overrides": [
+				{
+					"id": "plant1",
+					"item": "carryon:flower-heather-bloom-large"
+				}
+			]
+		},
+		"planted-flower-horsetail": {
+			"extends": "planted-flower",
+			"overrides": [
+				{
+					"id": "plant1",
+					"item": "carryon:flower-horsetail-bloom-large"
+				}
+			]
+		},
+		"planted-flower-lilyofthevalley": {
+			"extends": "planted-flower-double",
+			"overrides": [
+				{
+					"id": "plant1",
+					"item": "carryon:flower-lilyofthevalley-stem-large",
+					"seasonalTintMap": "seasonalFoliage"
+				},
+				{
+					"id": "plant2",
+					"item": "carryon:flower-lilyofthevalley-bloom-large"
+				}
+			]
+		},
+		"planted-flower-lupine-blue": {
+			"extends": "planted-flower",
+			"overrides": [
+				{
+					"id": "plant1",
+					"item": "carryon:flower-lupine-blue-bloom-large"
+				}
+			]
+		},
+		"planted-flower-lupine-orange": {
+			"extends": "planted-flower",
+			"overrides": [
+				{
+					"id": "plant1",
+					"item": "carryon:flower-lupine-orange-bloom-large"
+				}
+			]
+		},
+		"planted-flower-lupine-purple": {
+			"extends": "planted-flower",
+			"overrides": [
+				{
+					"id": "plant1",
+					"item": "carryon:flower-lupine-purple-bloom-large"
+				}
+			]
+		},
+		"planted-flower-lupine-red": {
+			"extends": "planted-flower",
+			"overrides": [
+				{
+					"id": "plant1",
+					"item": "carryon:flower-lupine-red-bloom-large"
+				}
+			]
+		},
+		"planted-flower-lupine-white": {
+			"extends": "planted-flower",
+			"overrides": [
+				{
+					"id": "plant1",
+					"item": "carryon:flower-lupine-white-bloom-large"
+				}
+			]
+		},
+		"planted-flower-mugwort": {
+			"extends": "planted-flower",
+			"overrides": [
+				{
+					"id": "plant1",
+					"item": "carryon:flower-mugwort-bloom-large"
+				}
+			]
+		},
+		"planted-flower-orangemallow": {
+			"extends": "planted-flower",
+			"overrides": [
+				{
+					"id": "plant1",
+					"item": "carryon:flower-orangemallow-bloom-large"
+				}
+			]
+		},
+		"planted-flower-redtopgrass": {
+			"extends": "planted-flower",
+			"overrides": [
+				{
+					"id": "plant1",
+					"item": "carryon:flower-redtopgrass-bloom-large"
+				}
+			]
+		},
+		"planted-flower-reeds": {
+			"extends": "planted-flower",
+			"overrides": [
+				{
+					"id": "plant1",
+					"item": "carryon:flower-reeds-bloom-large"
+				}
+			]
+		},
+		"planted-flower-summerreeds": {
+			"extends": "planted-flower",
+			"overrides": [
+				{
+					"id": "plant1",
+					"item": "carryon:flower-summerreeds-bloom-large"
+				}
+			]
+		},
+		"planted-flower-tallgrass": {
+			"extends": "planted-flower",
+			"overrides": [
+				{
+					"id": "plant1",
+					"item": "carryon:tallgrass-large",
+					"climateTintMap": "climatePlantTint",
+					"seasonalTintMap": "seasonalGrass"
+				}
+			]
+		},
+		"planted-flower-tule": {
+			"extends": "planted-flower",
+			"overrides": [
+				{
+					"id": "plant1",
+					"item": "carryon:flower-tule-bloom-large"
+				}
+			]
+		},
+		"planted-flower-westerngorse": {
+			"extends": "planted-flower",
+			"overrides": [
+				{
+					"id": "plant1",
+					"item": "carryon:flower-westerngorse-bloom-large"
+				}
+			]
+		},
+		"planted-flower-wilddaisy": {
+			"extends": "planted-flower",
+			"overrides": [
+				{
+					"id": "plant1",
+					"item": "carryon:flower-wilddaisy-bloom-large"
+				}
+			]
+		},
+		"planted-flower-woad": {
+			"extends": "planted-flower",
+			"overrides": [
+				{
+					"id": "plant1",
+					"item": "carryon:flower-woad-bloom-large"
+				}
+			]
+		},
+		"planted-reed-cattail": {
+			"extends": "planted-double",
+			"overrides": [
+				{
+					"id": "plant1",
+					"item": "carryon:reed-cattail-large",
+					"seasonalTintMap": "seasonalFoliage"
+				},
+				{
+					"id": "plant2",
+					"item": "carryon:reed-cattail-cob-large"
+				}
+			]
+		},
+		"planted-reed-papyrus": {
+			"extends": "planted",
+			"overrides": [
+				{
+					"id": "plant1",
+					"item": "carryon:reed-papyrus-large",
+					"climateTintMap": "climatePlantTint"
+				}
+			]
+		},
+		"planted-reed-tule": {
+			"extends": "planted",
+			"overrides": [
+				{
+					"id": "plant1",
+					"item": "carryon:reed-tule-large",
+					"climateTintMap": "climateDarkerPlantTint",
+					"seasonalTintMap": "seasonalTule"
+				}
+			]
+		},
+		"planted-fern": {
+			"extends": "planted",
+			"overrides": [
+				{
+					"id": "plant1",
+					"climateTintMap": "climatePlantTint",
+					"seasonalTintMap": "seasonalFoliage"
+				}
+			]
+		},
+		"planted-croton": {
+			"extends": "planted"
+		},
+		"planted-cactus": {
+			"extends": "planted"
+		}
+	}
+}

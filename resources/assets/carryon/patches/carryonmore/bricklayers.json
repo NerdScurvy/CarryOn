@@ -1,94 +1,120 @@
 [
-  {
-    "file": "bricklayers:blocktypes/clay/plantercolored",
-    "side": "Server",
-    "op": "add",
-    "path": "/behaviorsByType/*/-",
-    "value": {
-      "name": "Carryable",
-      "properties": {
-        "enabledCondition": "carryon.Carryables.Planter",
-        "scale": 0.6,
-        "slots": {
-          "Hands": {},
-          "Back": {}
-        }        
-      }
-    },
-    "dependsOn": [
-      {
-        "modid": "bricklayers"
-      }
-    ]
-  },
-  {
-    "file": "bricklayers:blocktypes/clay/planterglazed",
-    "side": "Server",
-    "op": "add",
-    "path": "/behaviorsByType/*/-",
-    "value": {
-      "name": "Carryable",
-      "properties": {
-        "enabledCondition": "carryon.Carryables.Planter",
-        "scale": 0.6,
-        "slots": {
-          "Hands": {},
-          "Back": {}
-        }        
-      }
-    },
-    "dependsOn": [
-      {
-        "modid": "bricklayers"
-      }
-    ]
-  },
-  {
-    "file": "bricklayers:blocktypes/clay/vat_planter_small_colored",
-    "side": "Server",
-    "op": "add",
-    "path": "/behaviorsByType/*/-",
-    "value": {
-      "name": "Carryable",
-      "properties": {
-        "enabledCondition": "carryon.Carryables.Planter",
-        "scale": 0.6,
-        "slots": {
-          "Hands": {},
-          "Back": {}
-        }        
-      }
-    },
-    "dependsOn": [
-      {
-        "modid": "bricklayers"
-      }
-    ]
-  },
-  {
-    "file": "bricklayers:blocktypes/clay/storagevesselcolored_planter",
-    "side": "Server",
-    "op": "add",
-    "path": "/behaviors/-",
-    "value": {
-      "name": "Carryable",
-      "properties": {
-        "enabledCondition": "carryon.Carryables.Planter",
-        "translation": [
-          -0.125,
-          0,
-          0
-        ],
-        "slots": {
-          "Hands": {},
-          "Back": {}
-        }        
-      }
-    },
-    "dependsOn": [
-      {
-        "modid": "bricklayers"
-      }
-    ]
-  }         
+	{
+		"file": "bricklayers:blocktypes/clay/planter*",
+		"side": "Server",
+		"op": "add",
+		"path": "/behaviorsByType/*/-",
+		"value": {
+			"name": "Carryable",
+			"properties": {
+				"enabledCondition": "carryon.Carryables.Planter",
+				"transformTemplates": [
+					"carryon:plants-large",
+					"carryon:carry-planter"
+				],
+				"renderRootFirst": true,
+				"transformGroupResolver": "plant-container",
+				"slots": {
+					"Hands": {},
+					"Back": {
+						"enabledCondition": "carryon.CarryablesOnBack.Planter"
+					}
+				}
+			}
+		},
+		"dependsOn": [
+			{
+				"modid": "bricklayers"
+			}
+		]
+	},
+	{
+		"file": "bricklayers:blocktypes/clay/vat_planter_small_colored",
+		"side": "Server",
+		"op": "add",
+		"path": "/behaviorsByType/*/-",
+		"value": {
+			"name": "Carryable",
+			"properties": {
+				"enabledCondition": "carryon.Carryables.Planter",
+				"transformTemplates": [
+					"carryon:carry-vat-planter",
+					"carryon:plants-small"
+				],
+				"renderRootFirst": true,
+				"transformGroupResolver": "plant-container",
+				"slots": {
+					"Hands": {},
+					"Back": {
+						"enabledCondition": "carryon.CarryablesOnBack.Planter"
+					}
+				}
+			}
+		},
+		"dependsOn": [
+			{
+				"modid": "bricklayers"
+			}
+		]
+	},
+	{
+		"file": "bricklayers:blocktypes/clay/storagevesselcolored_planter",
+		"side": "Server",
+		"op": "add",
+		"path": "/behaviors/-",
+		"value": {
+			"name": "Carryable",
+			"properties": {
+				"enabledCondition": "carryon.Carryables.Planter",
+				"transformTemplates": [
+					"carryon:carry-storagevessel-planter",
+					"carryon:plants-large"
+				],
+				"renderRootFirst": true,
+				"transformGroupResolver": "plant-container",
+				"slots": {
+					"Back": {},
+					"Hands": {
+						"enabledCondition": "carryon.CarryablesOnBack.Planter"
+					}
+				}
+			}
+		},
+		"dependsOn": [
+			{
+				"modid": "bricklayers"
+			}
+		]
+	},
+	{
+		"file": "bricklayers:blocktypes/clay/flowerpot*",
+		"side": "Server",
+		"op": "add",
+		"path": "/behaviorsByType/*/-",
+		"value": {
+			"name": "Carryable",
+			"properties": {
+				"enabledCondition": "carryon.Carryables.Flowerpot",
+				"transformTemplates": [
+					"carryon:carry-flowerpot",
+					"carryon:plants-small"
+				],
+				"renderRootFirst": true,
+				"transformGroupResolver": "plant-container",
+				"slots": {
+					"Hands": {
+						"animation": "carryon:holdlight"
+					},
+					"Back": {
+						"enabledCondition": "carryon.CarryablesOnBack.Flowerpot"
+					}
+				}
+			}
+		},
+		"dependsOn": [
+			{
+				"modid": "bricklayers"
+			}
+		]
+	}
 ]

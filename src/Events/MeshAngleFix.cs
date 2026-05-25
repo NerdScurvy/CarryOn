@@ -15,10 +15,10 @@ namespace CarryOn.Events
         {
             if (carryManager.Api.Side != EnumAppSide.Server) return;
 
-            carryManager.CarryEvents.OnRestoreEntityBlockData += OnRestoreEntityBlockData;
+            carryManager.CarryEvents.BeforeRestoreBlockEntityData += OnBeforeRestoreBlockEntityData;
         }
 
-        private void OnRestoreEntityBlockData(BlockEntity blockEntity, ITreeAttribute blockEntityData, bool dropped)
+        private void OnBeforeRestoreBlockEntityData(BlockEntity blockEntity, ITreeAttribute blockEntityData, bool dropped)
         {
             if (blockEntity == null || blockEntityData == null) return;
 

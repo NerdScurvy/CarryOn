@@ -6,34 +6,34 @@ using Vintagestory.API.MathTools;
 namespace CarryOn.Common.Network
 {
     [ProtoContract(ImplicitFields = ImplicitFields.AllFields)]
-    public class PlaceDownMessage
+    public record PlaceDownMessage
     {
-        public CarrySlot Slot { get; }
+        public CarrySlot Slot { get; init; }
 
-        private readonly BlockPos _pos;
-        private readonly byte _face;
-        private readonly float _x, _y, _z;
+        // These fields are needed for reconstructing BlockSelection
+        public BlockPos Position { get; init; }
 
-        public BlockSelection Selection => new()
-        {
-            Position = _pos,
-            Face = BlockFacing.ALLFACES[_face],
-            HitPosition = new Vec3d(_x, _y, _z),
-        };
+        public Vec3d HitPosition { get; init; }
+        public byte Face { get; init; }
 
-        public BlockPos PlacedAt { get; }
+        public BlockPos PlacedAt { get; init; }
 
         private PlaceDownMessage() { }
 
         public PlaceDownMessage(CarrySlot slot, BlockSelection selection, BlockPos placedAt)
         {
             Slot = slot;
-            _pos = selection.Position;
-            _face = (byte)selection.Face.Index;
-            _x = (float)selection.HitPosition.X;
-            _y = (float)selection.HitPosition.Y;
-            _z = (float)selection.HitPosition.Z;
+            Position = selection.Position;
+            Face = (byte)selection.Face.Index;
+            HitPosition = selection.HitPosition.Clone();
             PlacedAt = placedAt;
         }
+
+        public BlockSelection Selection => new()
+        {
+            Position = Position,
+            Face = BlockFacing.ALLFACES[Face],
+            HitPosition = HitPosition.Clone(),
+        };
     }
 }

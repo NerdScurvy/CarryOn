@@ -1,106 +1,101 @@
 [
-  {
-    "op": "add",
-    "path": "/behaviors/-",
-    "file": "extrachests:blocktypes/chests",
-    "side": "Server",
-    "value": {
-      "name": "Carryable",
-      "properties": {
-        "enabledCondition": "carryon.Carryables.Chest&carryon.CarryOptions.AllowLargeChestsOnBack",
-        "override": true,
-        "translation": [
-          0.0625,
-          0,
-          0
-        ],
-        "rotation": [
-          0,
-          180,
-          0
-        ],
-        "slots": {
-          "Hands": {},
-          "Back": {
-            "walkSpeedModifier": -0.2
-          }
-        },
-        "patchPriority": 1
-      }
-    },
-    "dependsOn": [
-      {
-        "modid": "extrachests"
-      }
-    ]
-  },
-  {
-    "op": "add",
-    "path": "/behaviors/-",
-    "file": "extrachests:blocktypes/labeledchests",
-    "side": "Server",
-    "value": {
-      "name": "Carryable",
-      "properties": {
-        "enabledCondition": "carryon.Carryables.ChestLabeled&carryon.CarryOptions.AllowLargeChestsOnBack",
-        "override": true,
-        "translation": [
-          0.0625,
-          0,
-          0
-        ],
-        "rotation": [
-          0,
-          180,
-          0
-        ],
-        "slots": {
-          "Hands": {},
-          "Back": {
-            "walkSpeedModifier": -0.2
-          }
-        },
-        "patchPriority": 1
-      }
-    },
-    "dependsOn": [
-      {
-        "modid": "extrachests"
-      }
-    ]
-  },
-  {
-    "file": "extrachests:blocktypes/chests",
-    "side": "Server",
-    "op": "add",
-    "path": "/behaviors/-",
-    "value": {
-      "name": "CarryableInteract",
-      "properties":{
-        "enabledCondition": "carryon.Interactables.Storage"
-      }
-    },
-    "dependsOn": [
-      {
-        "modid": "extrachests"
-      }
-    ]
-  },
-  {
-    "file": "extrachests:blocktypes/labeledchests",
-    "side": "Server",
-    "op": "add",
-    "path": "/behaviors/-",
-    "value": {
-      "name": "CarryableInteract",
-      "properties":{
-        "enabledCondition": "carryon.Interactables.Storage"
-      }
-    },
-    "dependsOn": [
-      {
-        "modid": "extrachests"
-      }
-    ]
-  }
+	{
+		"op": "add",
+		"path": "/behaviors/-",
+		"file": "extrachests:blocktypes/chests",
+		"side": "Server",
+		"value": {
+			"name": "Carryable",
+			"properties": {
+				"enabledCondition": "carryon.Carryables.Chest",
+				"override": true,
+				"transformTemplates": [
+					"carryon:carry-chest"
+				],
+				"slots": {
+					"Hands": {},
+					"Back": {
+						"enabledCondition": "carryon.Carryables.Chest&&carryon.CarryOptions.AllowHighCapacityStorageOnBack",
+						"walkSpeedModifier": -0.2
+					}
+				},
+				"patchPriority": 1
+			}
+		},
+		"dependsOn": [
+			{
+				"modid": "extrachests"
+			}
+		]
+	},
+	{
+		"op": "add",
+		"path": "/behaviors/-",
+		"file": "extrachests:blocktypes/labeledchests",
+		"side": "Server",
+		"value": {
+			"name": "Carryable",
+			"properties": {
+				"enabledCondition": "carryon.Carryables.Chest",
+				"labelRenderSettings": {
+					"transform": {
+						"translation": [ -0.907, 0.627, 0.59 ],
+						"rotation": [ 0.0, -90.0, 0.0 ],
+						"scale": 1.0
+					}
+				},
+				"override": true,
+				"transformTemplates": [
+					"carryon:carry-chest"
+				],
+				"slots": {
+					"Hands": {},
+					"Back": {
+						"enabledCondition": "carryon.Carryables.Chest&&carryon.CarryOptions.AllowHighCapacityStorageOnBack",
+						"walkSpeedModifier": -0.2
+					}
+				},
+				"patchPriority": 1
+			}
+		},
+		"dependsOn": [
+			{
+				"modid": "extrachests"
+			}
+		]
+	},
+	{
+		"file": "extrachests:blocktypes/chests",
+		"side": "Server",
+		"op": "add",
+		"path": "/behaviors/-",
+		"value": {
+			"name": "CarryableInteract",
+			"properties": {
+				"enabledCondition": "carryon.Interactables.Storage"
+			}
+		},
+		"dependsOn": [
+			{
+				"modid": "extrachests"
+			}
+		]
+	},
+	{
+		"file": "extrachests:blocktypes/labeledchests",
+		"side": "Server",
+		"op": "add",
+		"path": "/behaviors/-",
+		"value": {
+			"name": "CarryableInteract",
+			"properties": {
+				"enabledCondition": "carryon.Interactables.Storage"
+			}
+		},
+		"dependsOn": [
+			{
+				"modid": "extrachests"
+			}
+		]
+	}
 ]

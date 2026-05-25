@@ -1,24 +1,88 @@
 [
-  { 
-    "file": "bettercrates:blocktypes/bettercrates*",
-    "op": "add",
-    "path": "/behaviors/-",
-    "value": {
-      "name": "Carryable",
-      "properties": {
-        "enabledCondition": "carryon.Carryables.Crate",
-        "translation": [ 0.0625, 0, 0 ],
-        "rotation": [ 0, 180, 0 ],
-        "slots": {
-          "Hands": {},
-          "Back": {
-            "walkSpeedModifier": -0.2,
-            "enabledCondition": "carryon.CarryOptions.AllowCratesOnBack"
-          }
-        },
-        "patchPriority": 1
-      }
-    },
-    "dependsOn": [ { "modid": "bettercrates" } ]
-  }
+	{
+		"file": "bettercrates:blocktypes/bettercrates",
+		"op": "add",
+		"path": "/behaviors/-",
+		"value": {
+			"name": "Carryable",
+			"properties": {
+				"enabledCondition": "carryon.Carryables.Crate",
+				"swapBackKeyPassthrough": true,
+				"labelRenderSettings": {
+					"iconPixelSize": 128,
+					"iconFromInventory": true,
+					"transform": {
+						"translation": [ -0.01, 0.29, 0.23 ],
+						"rotation": [ -180.0, -90.0, 0.0 ],
+						"scale": [ 0.54, 0.54, 0.8433 ],
+						"origin": [ 0.0, 0.0, 0.0 ]
+					}
+				},
+				"transformTemplates": [
+					"carryon:carry-crate"
+				],
+				"slots": {
+					"Hands": {},
+					"Back": {
+						"walkSpeedModifier": -0.2,
+						"enabledCondition": "carryon.CarryablesOnBack.Crate"
+					}
+				},
+				"patchPriority": 1
+			}
+		},
+		"dependsOn": [
+			{
+				"modid": "bettercrates"
+			}
+		]
+	},
+	{
+		"file": "bettercrates:blocktypes/bettercrates2sided",
+		"op": "add",
+		"path": "/behaviors/-",
+		"value": {
+			"name": "Carryable",
+			"properties": {
+				"enabledCondition": "carryon.Carryables.Crate",
+				"swapBackKeyPassthrough": true,
+				"labelRenderSettings": {
+					"iconPixelSize": 128,
+					"iconFromInventory": true,
+					"transform": {
+						"translation": [ -0.01, 0.29, 0.23 ],
+						"rotation": [ -180.0, -90.0, 0.0 ],
+						"scale": [ 0.54, 0.54, 0.8433 ],
+						"origin": [ 0.0, 0.0, 0.0 ]
+					},
+					"additionalTransforms": [
+						{
+							"translation": [ 1.01, 0.29, 0.77 ],
+							"rotation": [ -180.0, 90.0, 0.0 ],
+							"scale": [ 0.54, 0.54, 0.8433 ],
+							"origin": [ 0.0, 0.0, 0.0 ]
+						}
+					]
+				},
+				"transformTemplates": [
+					"carryon:carry-crate"
+				],
+				"slots": {
+					"Hands": {
+						"walkSpeedModifier": -0.3
+					},
+					"Back": {
+						"walkSpeedModifier": -0.3,
+						"enabledCondition": "carryon.CarryablesOnBack.Crate"
+					}
+				},
+				"patchPriority": 1
+			}
+		},
+		"dependsOn": [
+			{
+				"modid": "bettercrates"
+			}
+		]
+	}
 ]

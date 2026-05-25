@@ -1,40 +1,72 @@
 [
-  {
-    "file": "lc:blocktypes/stationarybasket",
-    "side": "Server",
-    "op": "add",
-    "path": "/behaviors/-",
-    "value": {
-      "name": "Carryable",
-      "properties": {
-        "EnabledCondition": "carryon.Carryables.ReedChest",
-        "interactDelay": 0.4,
-        "slots": {
-          "Hands": {
-            "animation": "carryon:holdlight",
-            "walkSpeedModifier": -0.15
-          },
-          "Back": {
-            "walkSpeedModifier": 0.0,
-            "translation": [
-              0.09375,
-              0,
-              0.03125
-            ],
-            "rotation": [
-              0,
-              0,
-              -90
-            ],
-            "scale": 0.6
-          }
-        }
-      }
-    },
-    "dependsOn": [
-      {
-        "modid": "lc"
-      }
-    ]  
-  }
+	{
+		"file": "lc:blocktypes/stationarybasket",
+		"side": "Server",
+		"op": "add",
+		"path": "/behaviors/-",
+		"value": {
+			"name": "Carryable",
+			"properties": {
+				"enabledCondition": "carryon.Carryables.ReedChest",
+				"interactDelay": 0.4,
+				"labelRenderSettings": {
+					"transform": {
+						"translation": [ -0.847, 0.497, 0.59 ],
+						"rotation": [ 0.0, -90.0, 0.0 ],
+						"scale": 1.0
+					}
+				},
+				"transformTemplates": [
+					"carryon:carry-reedchest"
+				],
+				"slots": {
+					"Hands": {
+						"animation": "carryon:holdlight",
+						"walkSpeedModifier": -0.15
+					},
+					"Back": {
+						"enabledCondition": "carryon.CarryablesOnBack.ReedChest"
+					}
+				}
+			}
+		},
+		"dependsOn": [
+			{
+				"modid": "lc"
+			}
+		]
+	},
+	{
+		"file": "lc:blocktypes/storagevessel*",
+		"side": "Server",
+		"op": "add",
+		"path": "/behaviors/-",
+		"value": {
+			"name": "Carryable",
+			"properties": {
+				"enabledCondition": "carryon.Carryables.StorageVessel",
+				"labelRenderSettings": {
+					"transform": {
+						"translation": [ -0.907, 0.627, 0.59 ],
+						"rotation": [ 0.0, -90.0, 0.0 ],
+						"scale": 1.0
+					}
+				},
+				"transformTemplates": [
+					"carryon:carry-storagevessel"
+				],
+				"slots": {
+					"Hands": {},
+					"Back": {
+						"enabledCondition": "carryon.CarryablesOnBack.StorageVessel"
+					}
+				}
+			}
+		},
+		"dependsOn": [
+			{
+				"modid": "lc"
+			}
+		]
+	}
 ]

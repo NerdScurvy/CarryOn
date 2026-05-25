@@ -1,3 +1,4 @@
+using System.Linq;
 using CarryOn.API.Common.Models;
 using CarryOn.API.Event;
 using CarryOn.Common.Behaviors;
@@ -27,13 +28,11 @@ namespace CarryOn.Utility
         /// Returns whether the specified block can be carried in the specified slot.
         /// Checks if <see cref="BlockBehaviorCarryable"/> is present and has slot enabled. 
         /// </summary>
-        public static bool IsCarryable(this Block block, CarrySlot slot)
+        public static bool CanCarryInSlot(this Block block, CarrySlot slot, ItemStack itemStack)
         {
             if (block == null) return false;
             var behavior = block.GetBehavior<BlockBehaviorCarryable>();
-            if (behavior == null) return false;
-            if (behavior.Slots == null) return false;
-            return behavior.Slots[slot] != null;
+            return behavior?.CanCarryInSlot(slot, itemStack) == true;
         }
 
 
@@ -84,7 +83,7 @@ namespace CarryOn.Utility
                 if (!api.Input.IsCarryKeyPressed(true))
                 {
                     return false;
-                }           
+                }
             }
             return entityAgent.CanDoCarryAction(requireEmptyHanded);
         }
@@ -130,6 +129,58 @@ namespace CarryOn.Utility
         public static bool IsCarrySwapBackKeyPressed(this IInputAPI input)
         {
             return input.KeyboardKeyState[input.HotKeys.Get(HotKeyCode.SwapBackModifier).CurrentMapping.KeyCode];
+        }
+
+
+        /// <summary>
+        /// Gets the currently rendered backpack slot for the player.
+        /// </summary>
+        /// <param name="player"></param>
+        /// <returns></returns>
+        public static ItemSlot GetRenderedBackpackSlot(this IPlayer player)
+        {
+            var backpackInv = player.InventoryManager.GetOwnInventory("backpack");
+            var renderedItemSlot = backpackInv?
+                 .Take(4)?
+                 .Where(slot => slot?.Itemstack != null &&
+                             slot?.Itemstack?.ItemAttributes?["attachableToEntity"]?["categoryCode"]?.AsString() == "backpack")?
+                 .LastOrDefault();
+
+            return renderedItemSlot;
+        }
+
+        public static string GetRenderedBackpackItemCode(this IPlayer player)
+        {
+            var renderedItemSlot = player.GetRenderedBackpackSlot();
+            return renderedItemSlot?.Itemstack?.Item?.Code?.ToString();
+        }
+
+        public static string ResolveCarryTransformGroupBase(this EntityPlayer entityPlayer, CarrySystem carrySystem, CarrySlot carrySlot)
+        {
+            if (carrySlot == CarrySlot.Hands)
+            {
+                return "hands";
+            }
+
+            var backpackItemCode = entityPlayer?.Player?.GetRenderedBackpackItemCode();
+            if (!string.IsNullOrEmpty(backpackItemCode)
+                && (carrySystem?.Config?.BackpackMapping?.TryGetValue(backpackItemCode, out var backpackType) ?? false)
+                && !string.IsNullOrEmpty(backpackType))
+            {
+                return "backpack-" + backpackType;
+            }
+
+            return "backpack-none";
+        }
+
+        public static string ResolveCarryTransformGroupBase(this EntityAgent entity, CarrySystem carrySystem, CarrySlot carrySlot)
+        {
+            if (entity is EntityPlayer entityPlayer)
+            {
+                return entityPlayer.ResolveCarryTransformGroupBase(carrySystem, carrySlot);
+            }
+
+            return "default"; 
         }
 
     }

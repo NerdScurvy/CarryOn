@@ -1,27 +1,25 @@
 [
-  {
-    "file": "game:blocktypes/wood/toolrack",
-    "side": "Server",
-    "op": "add",
-    "path": "/behaviors/-",
-    "value": {
-      "name": "Carryable",
-      "properties": {
-        "enabledCondition": "carryon.Carryables.ToolRack",
-        "translation": [
-          0.0625,
-          0,
-          0
-        ],
-        "rotation": [
-          0,
-          90,
-          90
-        ],
-        "slots": {
-          "Hands": {}
-        }
-      }
-    }
-  }
+	{
+		"file": "game:blocktypes/wood/toolrack",
+		"side": "Server",
+		"op": "add",
+		"path": "/behaviors/-",
+		"value": {
+			"name": "Carryable",
+			"properties": {
+				"enabledCondition": "carryon.Carryables.ToolRack",
+				"transformGroups": {
+					"hands": [
+						{
+							"translation": [ -0.1, 0.1, 0.0 ],
+							"rotation": [ 0.0, -90.0, -30.0 ]
+						}
+					]
+				},
+				"slots": {
+					"Hands": {}
+				}
+			}
+		}
+	}
 ]

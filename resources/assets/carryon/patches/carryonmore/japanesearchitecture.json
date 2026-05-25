@@ -1,0 +1,186 @@
+[
+	{
+		"file": "japanesearchitecture:blocktypes/furniture/tansu3.json",
+		"side": "Server",
+		"op": "add",
+		"path": "/behaviors/-",
+		"value": {
+			"name": "Carryable",
+			"properties": {
+				"enabledCondition": "carryon.Carryables.ChestTrunk",
+				"transformGroups": {
+					"hands": [
+						{
+							"id": "root",
+							"translation": [ 0.0, -0.4, -0.2 ],
+							"scale": 0.4
+						}
+					]
+				},
+				"slots": {
+					"Hands": {
+						"animation": "carryon:holdheavy",
+						"walkSpeedModifier": -0.7
+					}
+				}
+			}
+		},
+		"dependsOn": [
+			{
+				"modid": "japanesearchitecture"
+			}
+		]
+	},
+	{
+		"file": "japanesearchitecture:blocktypes/furniture/tansu2.json",
+		"side": "Server",
+		"op": "add",
+		"path": "/behaviors/-",
+		"value": {
+			"name": "Carryable",
+			"properties": {
+				"enabledCondition": "carryon.Carryables.ChestTrunk",
+				"transformTemplates": [
+					"carryon:carry-chest"
+				],
+				"transformGroups": {
+					"@backpack-none": [
+						{
+							"id": "root",
+							"enabled": false
+						},
+						{
+							"id": "visual",
+							"translation": [ 0.03, -0.06, -0.4 ],
+							"scale": 0.79
+						}
+					],
+					"@backpack-small": [
+						{
+							"id": "root",
+							"enabled": false
+						},
+						{
+							"id": "visual",
+							"translation": [ 0.03, -0.064, -0.4 ],
+							"scale": 0.79
+						}
+					],
+					"@backpack-large": [
+						{
+							"id": "root",
+							"enabled": false
+						},
+						{
+							"id": "visual",
+							"translation": [ 0.03, -0.06, -0.4 ],
+							"scale": 0.79
+						}
+					],
+					"@hands": [
+						{
+							"id": "root",
+							"enabled": false
+						},
+						{
+							"id": "visual",
+							"translation": [ 0.03, 0.1, -0.4 ],
+							"scale": 0.79
+						}
+					]
+				},
+				"slots": {
+					"Hands": {
+						"animation": "carryon:holdheavy",
+						"walkSpeedModifier": -0.5
+					},
+					"Back": {
+						"enabledCondition": "carryon.CarryablesOnBack.ChestTrunk",
+						"walkSpeedModifier": -0.3
+					}
+				}
+			}
+		},
+		"dependsOn": [
+			{
+				"modid": "japanesearchitecture"
+			}
+		]
+	},
+	{
+		"file": "japanesearchitecture:blocktypes/furniture/tansu.json",
+		"side": "Server",
+		"op": "add",
+		"path": "/behaviors/-",
+		"value": {
+			"name": "Carryable",
+			"properties": {
+				"enabledCondition": "carryon.Carryables.Chest",
+				"transformTemplates": [
+					"carryon:carry-chest"
+				],
+				"transformGroups": {
+					"@backpack-none": [
+						{
+							"id": "root",
+							"enabled": false
+						},
+						{
+							"id": "visual",
+							"translation": [ 0.03, -0.06, 0.0 ],
+							"scale": 0.79
+						}
+					],
+					"@backpack-small": [
+						{
+							"id": "root",
+							"enabled": false
+						},
+						{
+							"id": "visual",
+							"translation": [ 0.03, -0.064, 0.0 ],
+							"scale": 0.79
+						}
+					],
+					"@backpack-large": [
+						{
+							"id": "root",
+							"enabled": false
+						},
+						{
+							"id": "visual",
+							"translation": [ 0.03, -0.06, 0.0 ],
+							"scale": 0.79
+						}
+					],
+					"@hands": [
+						{
+							"id": "root",
+							"enabled": false
+						},
+						{
+							"id": "visual",
+							"translation": [ 0.03, -0.06, 0.0 ],
+							"scale": 0.79
+						}
+					]
+				},
+				"slots": {
+					"Hands": {
+						"animation": "carryon:holdheavy",
+						"walkSpeedModifier": -0.1
+					},
+					"Back": {
+						"enabledCondition": "carryon.CarryablesOnBack.Chest",
+						"walkSpeedModifier": -0.2
+					}
+				}
+			}
+		},
+		"dependsOn": [
+			{
+				"modid": "japanesearchitecture"
+			}
+		]
+	}
+]

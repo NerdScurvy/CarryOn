@@ -1,54 +1,139 @@
 [
-  {
-    "file": "game:blocktypes/wood/woodtyped/log-withresin",
-    "side": "Server",
-    "op": "add",
-    "path": "/behaviorsByType/*/-",
-    "value": {
-      "name": "Carryable",
-      "properties": {
-        "enabledCondition": "carryon.Carryables.LogWithResin",
-        "translation": [
-          0.0625,
-          0,
-          0
-        ],
-        "rotation": [
-          0,
-          180,
-          0
-        ],
-        "slots": {
-          "Hands": {},
-          "Back": {}
-        }
-      }
-    }
-  },
-  {
-    "file": "game:blocktypes/wood/woodtyped/log-withresin",
-    "side": "Server",
-    "op": "add",
-    "path": "/behaviorsByType/log-resinharvested-*/-",
-    "value": {
-      "name": "Carryable",
-      "properties": {
-        "enabledCondition": "carryon.Carryables.LogWithResin",
-        "translation": [
-          0.0625,
-          0,
-          0
-        ],
-        "rotation": [
-          0,
-          180,
-          0
-        ],
-        "slots": {
-          "Hands": {},
-          "Back": {}
-        }
-      }
-    }
-  }
+	{
+		"file": "game:blocktypes/wood/woodtyped/log-withresin",
+		"side": "Server",
+		"op": "add",
+		"path": "/behaviorsByType/*/-",
+		"value": {
+			"name": "Carryable",
+			"properties": {
+				"enabledCondition": "carryon.Carryables.LogWithResin",
+				"transformTemplates": [
+					"carryon:carry-crate"
+				],
+				"transformGroups": {
+					"@backpack-none": [
+						{
+							"id": "root",
+							"enabled": false
+						},
+						{
+							"id": "log-visual",
+							"rotationY": 90.0,
+							"scale": 1.0
+						}
+					],
+					"@backpack-small": [
+						{
+							"id": "root",
+							"enabled": false
+						},
+						{
+							"id": "log-visual",
+							"rotationY": 90.0,
+							"scale": 1.0
+						}
+					],
+					"@backpack-large": [
+						{
+							"id": "root",
+							"enabled": false
+						},
+						{
+							"id": "log-visual",
+							"rotationY": 90.0,
+							"scale": 1.0
+						}
+					],
+					"@hands": [
+						{
+							"id": "root",
+							"enabled": false
+						},
+						{
+							"id": "log-visual",
+							"rotationY": 90.0,
+							"scale": 1.0
+						}
+					]
+				},
+				"slots": {
+					"Hands": {
+						"walkSpeedModifier": -0.2
+					},
+					"Back": {
+						"enabledCondition": "carryon.CarryablesOnBack.LogWithResin",
+						"walkSpeedModifier": -0.2
+					}
+				}
+			}
+		}
+	},
+	{
+		"file": "game:blocktypes/wood/woodtyped/log-withresin",
+		"side": "Server",
+		"op": "add",
+		"path": "/behaviorsByType/log-resinharvested-*/-",
+		"value": {
+			"name": "Carryable",
+			"properties": {
+				"enabledCondition": "carryon.Carryables.LogWithResin",
+				"transformTemplates": [
+					"carryon:carry-crate"
+				],
+				"transformGroups": {
+					"@backpack-none": [
+						{
+							"id": "root",
+							"enabled": false
+						},
+						{
+							"id": "log-visual",
+							"rotationY": 90.0,
+							"scale": 1.0
+						}
+					],
+					"@backpack-small": [
+						{
+							"id": "root",
+							"enabled": false
+						},
+						{
+							"id": "log-visual",
+							"rotationY": 90.0,
+							"scale": 1.0
+						}
+					],
+					"@backpack-large": [
+						{
+							"id": "root",
+							"enabled": false
+						},
+						{
+							"id": "log-visual",
+							"rotationY": 90.0,
+							"scale": 1.0
+						}
+					],
+					"@hands": [
+						{
+							"id": "root",
+							"enabled": false
+						},
+						{
+							"id": "log-visual",
+							"rotationY": 90.0,
+							"scale": 1.0
+						}
+					]
+				},
+				"slots": {
+					"Hands": {},
+					"Back": {
+						"enabledCondition": "carryon.CarryablesOnBack.LogWithResin"
+					}
+				}
+			}
+		}
+	}
 ]

@@ -1,0 +1,23 @@
+{
+	"code": "reed-papyrus",
+	"variantgroups": [
+		{
+			"code": "size",
+			"states": [ "", "large" ]
+		}
+	],
+	"shapeByType": {
+		"*-large": {"base": "game:block/clay/planter/contents-tropicaltint"},
+		"*": {"base": "game:block/clay/flowerpot/contents-tropicaltint"}
+	},
+	"textures": {
+		"north": {"base": "game:block/plant/potted/papyrus"},
+		"south": {"base": "game:block/plant/potted/papyrus"}
+	},
+	"creativeinventory": {},
+	"attributes": {
+		"handbook": {
+			"exclude": true
+		}
+	}
+}

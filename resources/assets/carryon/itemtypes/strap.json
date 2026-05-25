@@ -1,0 +1,12 @@
+{
+	"code": "strap",
+	"shape": {
+		"base": "carryon:item/strap"
+	},
+	"creativeinventory": {},
+	"attributes": {
+		"handbook": {
+			"exclude": true
+		}
+	}
+}

@@ -1,24 +1,32 @@
 [
-  {
-    "file": "game:blocktypes/wood/henbox",
-    "side": "Server",
-    "op": "addmerge",
-    "path": "/behaviors",
-    "value": []
-  },
-  {
-    "file": "game:blocktypes/wood/henbox",
-    "side": "Server",
-    "op": "add",
-    "path": "/behaviors/-",
-    "value": {
-      "name": "Carryable",
-      "properties": {
-        "enabledCondition": "carryon.Carryables.Henbox",
-        "slots": {
-          "Hands": {}
-        }
-      }
-    }
-  }
+	{
+		"file": "game:blocktypes/wood/henbox",
+		"side": "Server",
+		"op": "addmerge",
+		"path": "/behaviors",
+		"value": [  ]
+	},
+	{
+		"file": "game:blocktypes/wood/henbox",
+		"side": "Server",
+		"op": "add",
+		"path": "/behaviors/-",
+		"value": {
+			"name": "Carryable",
+			"properties": {
+				"enabledCondition": "carryon.Carryables.Henbox",
+				"transformGroups": {
+					"hands": [
+						{
+							"translationY": 0.1,
+							"rotationY": 90.0
+						}
+					]
+				},
+				"slots": {
+					"Hands": {}
+				}
+			}
+		}
+	}
 ]

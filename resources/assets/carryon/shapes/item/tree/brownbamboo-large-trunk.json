@@ -1,0 +1,56 @@
+{
+	"editor": {
+		"allAngles": false,
+		"entityTextureMode": false
+	},
+	"textureWidth": 16,
+	"textureHeight": 16,
+	"textureSizes": {},
+	"textures": {
+		"potted-bamboo": "game:block/plant/bamboo/potted-bamboo"
+	},
+	"elements": [
+		{
+			"name": "bamboo-stem1",
+			"from": [ 7.5, 0.0, 7.5 ],
+			"to": [ 8.5, 14.0, 8.5 ],
+			"rotationOrigin": [ 8.5, 0.0, 8.5 ],
+			"faces": {
+				"north": {"texture": "#potted-bamboo", "uv": [ 2.0, 0.0, 3.0, 14.0 ]},
+				"east": {"texture": "#potted-bamboo", "uv": [ 2.0, 0.0, 3.0, 14.0 ]},
+				"south": {"texture": "#potted-bamboo", "uv": [ 2.0, 0.0, 3.0, 14.0 ]},
+				"west": {"texture": "#potted-bamboo", "uv": [ 2.0, 0.0, 3.0, 14.0 ]}
+			},
+			"children": [
+				{
+					"name": "bamboo-band1",
+					"from": [ -0.2, 6.0, -0.2 ],
+					"to": [ 1.2, 7.0, 1.2 ],
+					"rotationOrigin": [ -0.2, 6.0, -0.2 ],
+					"faces": {
+						"north": {"texture": "#potted-bamboo", "uv": [ 2.0, 13.0, 3.0, 14.0 ]},
+						"east": {"texture": "#potted-bamboo", "uv": [ 2.0, 13.0, 3.0, 14.0 ]},
+						"south": {"texture": "#potted-bamboo", "uv": [ 2.0, 13.0, 3.0, 14.0 ]},
+						"west": {"texture": "#potted-bamboo", "uv": [ 2.0, 13.0, 3.0, 14.0 ]},
+						"up": {"texture": "#potted-bamboo", "uv": [ 2.0, 14.0, 3.0, 15.0 ]},
+						"down": {"texture": "#potted-bamboo", "uv": [ 2.0, 14.0, 3.0, 15.0 ]}
+					}
+				},
+				{
+					"name": "bamboo-band2",
+					"from": [ -0.2, 13.0, -0.2 ],
+					"to": [ 1.2, 14.0, 1.2 ],
+					"rotationOrigin": [ -0.2, 13.0, -0.2 ],
+					"faces": {
+						"north": {"texture": "#potted-bamboo", "uv": [ 2.0, 13.0, 3.0, 14.0 ]},
+						"east": {"texture": "#potted-bamboo", "uv": [ 2.0, 13.0, 3.0, 14.0 ]},
+						"south": {"texture": "#potted-bamboo", "uv": [ 2.0, 13.0, 3.0, 14.0 ]},
+						"west": {"texture": "#potted-bamboo", "uv": [ 2.0, 13.0, 3.0, 14.0 ]},
+						"up": {"texture": "#potted-bamboo", "uv": [ 2.5, 14.5, 3.5, 15.5 ]},
+						"down": {"texture": "#potted-bamboo", "uv": [ 2.0, 14.0, 3.0, 15.0 ]}
+					}
+				}
+			]
+		}
+	]
+}

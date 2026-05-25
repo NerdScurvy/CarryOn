@@ -1,26 +1,35 @@
 [
-  {
-    "file": "game:blocktypes/wood/woodtyped/crate",
-    "side": "Server",
-    "op": "add",
-    "path": "/behaviors/-",
-    "value": {
-      "name": "Carryable",
-      "properties": {
-        "enabledCondition": "carryon.Carryables.Crate",
-        "translation": [
-          -0.0625,
-          0,
-          0
-        ],
-        "slots": {
-          "Hands": {},
-          "Back": {
-            "walkSpeedModifier": -0.2,
-            "enabledCondition": "carryon.CarryOptions.AllowCratesOnBack"
-          }
-        }
-      }
-    }
-  }
+	{
+		"file": "game:blocktypes/wood/woodtyped/crate",
+		"side": "Server",
+		"op": "add",
+		"path": "/behaviors/-",
+		"value": {
+			"name": "Carryable",
+			"properties": {
+				"enabledCondition": "carryon.Carryables.Crate",
+				"labelRenderSettings": {
+					"iconPixelSize": 128,
+					"transform": {
+						"translation": [ 0.78, 0.29, 0.0203 ],
+						"rotation": [ -180.0, 0.0, 0.0 ],
+						"scale": [ 0.54, 0.54, 0.8433 ],
+						"origin": [ 0.0, 0.0, 0.0 ]
+					}
+				},
+				"transformTemplates": [
+					"carryon:carry-crate"
+				],
+				"slots": {
+					"Hands": {
+						"walkSpeedModifier": -0.3
+					},
+					"Back": {
+						"enabledCondition": "carryon.CarryablesOnBack.Crate",
+						"walkSpeedModifier": -0.3
+					}
+				}
+			}
+		}
+	}
 ]

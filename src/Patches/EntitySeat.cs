@@ -49,7 +49,7 @@ namespace CarryOn.Patches
                             entityAgent.TryUnmount();
                             __instance.controls.StopAllMovement();
 
-                            carrySystem.ClientChannel.SendPacket(new DismountMessage() { EntityId = entityId, SeatId = seatId });
+                            carrySystem.ClientChannel.SendPacket(new DismountMessage(entityId, seatId));
 
                             // Log the dismount action
                             entityAgent.Api.Logger.Debug($"Entity {entityAgent.GetName()} double-tapped to dismount from seat {seatId} on entity {entityId}.");

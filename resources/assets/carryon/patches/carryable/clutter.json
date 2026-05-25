@@ -1,34 +1,25 @@
 [
-  {
-    "file": "game:blocktypes/clutter",
-    "side": "Server",
-    "op": "add",
-    "path": "/behaviors/-",
-    "value": {
-      "name": "Carryable",
-      "properties": {
-        "enabledCondition": "carryon.Carryables.Clutter",
-        "translation": [
-          0,
-          0,
-          0
-        ],
-        "rotation": [
-          0,
-          -90,
-          0
-        ],
-        "slots": {
-          "Hands": {},
-          "Back": {
-            "rotation": [
-              0,
-              0,
-              -90
-            ]
-          }
-        }
-      }
-    }
-  }
+	{
+		"file": "game:blocktypes/clutter",
+		"side": "Server",
+		"op": "add",
+		"path": "/behaviors/-",
+		"value": {
+			"name": "Carryable",
+			"properties": {
+				"enabledCondition": "carryon.Carryables.Clutter",
+				"transformGroupResolver": "codepath",
+				"transformGroups": {
+					"hands": [
+						{
+							"rotation": [ 0.0, -90.0, 0.0 ]
+						}
+					]
+				},
+				"slots": {
+					"Hands": {}
+				}
+			}
+		}
+	}
 ]

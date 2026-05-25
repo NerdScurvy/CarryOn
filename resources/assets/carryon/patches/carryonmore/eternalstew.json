@@ -1,0 +1,175 @@
+[
+	{
+		"file": "eternalstew:blocktypes/eternalstewstove",
+		"side": "Server",
+		"op": "add",
+		"path": "/behaviors/-",
+		"value": {
+			"name": "Carryable",
+			"properties": {
+				"interactDelay": 1.7,
+				"transformGroups": {
+					"hands": [
+						{
+							"rotationY": 90.0
+						}
+					]
+				},
+				"slots": {
+					"Hands": {
+						"animation": "carryon:holdheavy",
+						"walkSpeedModifier": -0.2
+					}
+				}
+			}
+		},
+		"dependsOn": [
+			{
+				"modid": "eternalstew"
+			}
+		]
+	},
+	{
+		"file": "eternalstew:blocktypes/eternalstewpot",
+		"side": "Server",
+		"op": "add",
+		"path": "/behaviors/-",
+		"value": {
+			"name": "Carryable",
+			"properties": {
+				"optimisticPickup": false,
+				"transformGroupResolver": "codepath",
+				"transformGroups": {
+					"hands": [
+						{
+							"id": "root",
+							"translation": [ 0.1, 0.03, 0.0 ],
+							"rotation": [ 0.0, 90.0, -10.0 ]
+						},
+						{
+							"id": "lid",
+							"item": "carryon:eternalstew-lid",
+							"rotationY": 180.0,
+							"scale": 1.0
+						}
+					],
+					"hands-eternalstewpot-tinbronze": {
+						"extends": "hands",
+						"overrides": [
+							{
+								"id": "lid",
+								"item": "carryon:eternalstew-lid-tinbronze"
+							}
+						]
+					},
+					"hands-eternalstewpot-blackbronze": {
+						"extends": "hands",
+						"overrides": [
+							{
+								"id": "lid",
+								"item": "carryon:eternalstew-lid-blackbronze"
+							}
+						]
+					},
+					"hands-eternalstewpot-copper": {
+						"extends": "hands",
+						"overrides": [
+							{
+								"id": "lid",
+								"item": "carryon:eternalstew-lid-copper"
+							}
+						]
+					},
+					"hands-eternalstewpot-iron": {
+						"extends": "hands",
+						"overrides": [
+							{
+								"id": "lid",
+								"item": "carryon:eternalstew-lid-iron"
+							}
+						]
+					},
+					"hands-eternalstewpot-meteoriciron": {
+						"extends": "hands",
+						"overrides": [
+							{
+								"id": "lid",
+								"item": "carryon:eternalstew-lid-meteoriciron"
+							}
+						]
+					},
+					"hands-eternalstewpot-steel": {
+						"extends": "hands",
+						"overrides": [
+							{
+								"id": "lid",
+								"item": "carryon:eternalstew-lid-steel"
+							}
+						]
+					},
+					"hands-eternalstewpot-bismuthbronze": {
+						"extends": "hands",
+						"overrides": [
+							{
+								"id": "lid",
+								"item": "carryon:eternalstew-lid-bismuthbronze"
+							}
+						]
+					}
+				},
+				"slots": {
+					"Hands": {}
+				}
+			}
+		},
+		"dependsOn": [
+			{
+				"modid": "eternalstew"
+			}
+		]
+	},
+	{
+		"file": "carryon:itemtypes/eternalstew-lid",
+		"dependsOn": [
+			{
+				"modid": "eternalstew"
+			}
+		],
+		"op": "add",
+		"path": "/variantgroups",
+		"value": [
+			{
+				"code": "metal",
+				"states": [ "bismuthbronze", "blackbronze", "copper", "iron", "meteoriciron", "steel", "tinbronze" ]
+			}
+		]
+	},
+	{
+		"file": "carryon:itemtypes/eternalstew-lid",
+		"dependsOn": [
+			{
+				"modid": "eternalstew"
+			}
+		],
+		"op": "add",
+		"path": "/shape",
+		"value": {
+			"base": "eternalstew:block/eternalstewstewpot-lid"
+		}
+	},
+	{
+		"file": "carryon:itemtypes/eternalstew-lid",
+		"dependsOn": [
+			{
+				"modid": "eternalstew"
+			}
+		],
+		"op": "add",
+		"path": "/textures",
+		"value": {
+			"iron": {
+				"base": "game:block/metal/anvil/{metal}"
+			}
+		}
+	}
+]

@@ -1,0 +1,82 @@
+{
+	"code": "mushroom",
+	"variantgroups": [
+		{
+			"code": "mushroom",
+			"states": [
+				"almondmushroom",
+				"bitterbolete",
+				"blacktrumpet",
+				"bluemeanie",
+				"bolete",
+				"chanterelle",
+				"commonmorel",
+				"deathcap",
+				"devilbolete",
+				"devilstooth",
+				"earthball",
+				"elfinsaddle",
+				"fieldmushroom",
+				"flyagaric",
+				"foolsconecap",
+				"goldcap",
+				"golddropmilkcap",
+				"greencrackedrussula",
+				"honeymushroom",
+				"indigomilkcap",
+				"jackolantern",
+				"kingbolete",
+				"laughingjim",
+				"libertycap",
+				"lobster",
+				"orangeoakbolete",
+				"paddystraw",
+				"puffball",
+				"redwinecap",
+				"saffronmilkcap",
+				"sickener",
+				"violetwebcap",
+				"wavycap",
+				"witchhat"
+			]
+		},
+		{
+			"code": "state",
+			"states": [ "normal" ]
+		},
+		{
+			"code": "face",
+			"states": [ "", "north", "east", "south", "west" ]
+		},
+		{
+			"code": "size",
+			"states": [ "", "large" ]
+		}
+	],
+	"shapeByType": {
+		"*-large": {"base": "game:block/plant/mushroom/{mushroom}/planter/normal1"},
+		"*": {"base": "game:block/plant/mushroom/{mushroom}/flowerpot/normal1"}
+	},
+	"texturesByType": {
+		"mushroom-*": {
+			"mycelium1": {"base": "game:block/plant/mushroom/mycelium1"},
+			"mycelium2": {"base": "game:block/plant/mushroom/mycelium2"},
+			"mycelium3": {"base": "game:block/plant/mushroom/mycelium3"},
+			"mycelium4": {"base": "game:block/plant/mushroom/mycelium4"},
+			"mycelium5": {"base": "game:block/plant/mushroom/mycelium5"},
+			"mycelium6": {"base": "game:block/plant/mushroom/mycelium6"},
+			"north": {"base": "game:block/plant/mushroom/mycelium1"},
+			"east": {"base": "game:block/plant/mushroom/mycelium1"},
+			"south": {"base": "game:block/plant/mushroom/mycelium1"},
+			"west": {"base": "game:block/plant/mushroom/mycelium1"},
+			"up": {"base": "game:block/plant/mushroom/mycelium1"},
+			"down": {"base": "game:block/plant/mushroom/mycelium1"}
+		}
+	},
+	"creativeinventory": {},
+	"attributes": {
+		"handbook": {
+			"exclude": true
+		}
+	}
+}

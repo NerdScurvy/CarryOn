@@ -1,0 +1,23 @@
+{
+	"code": "tallgrass",
+	"variantgroups": [
+		{
+			"code": "size",
+			"states": [ "", "large" ]
+		}
+	],
+	"shapeByType": {
+		"*-large": {"base": "game:block/clay/planter/contents"},
+		"*": {"base": "game:block/clay/flowerpot/contents"}
+	},
+	"textures": {
+		"north": {"base": "game:block/plant/potted/tallgrass"},
+		"south": {"base": "game:block/plant/potted/tallgrass"}
+	},
+	"creativeinventory": {},
+	"attributes": {
+		"handbook": {
+			"exclude": true
+		}
+	}
+}

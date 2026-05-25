@@ -2,10 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CarryOn.API.Common.Interfaces;
+using CarryOn.API.Common.Models;
 using CarryOn.Common.Behaviors;
-using CarryOn.Config;
 using CarryOn.Utility;
+using Newtonsoft.Json.Linq;
+using Vintagestory.API.Client;
 using Vintagestory.API.Common;
+using Vintagestory.API.Datastructures;
 using Vintagestory.API.Util;
 using static CarryOn.Utility.Extensions;
 
@@ -18,6 +21,11 @@ namespace CarryOn.Server.Logic
 
         public void Init(ICoreAPI api, CarryOnConfig config)
         {
+            if(config == null)
+            {
+                api.Logger.Error("CarryOn: Config is null in BehavioralConditioning.Init");
+                return;
+            }
             this.Config = config;
 
             RemoveDisabledConditionalBehaviors(api);
@@ -27,12 +35,19 @@ namespace CarryOn.Server.Logic
             RemoveExcludedCarryableBehaviors(api);
         }
 
+
         /// <summary>
         /// Removes all conditional behaviors from blocks that are not enabled by the EnabledCondition.
         /// </summary>
         private void RemoveDisabledConditionalBehaviors(ICoreAPI api)
         {
-            var config = api.World.Config;
+            if(api.World == null || api.World.Config == null)
+            {
+                api.Logger.Error("CarryOn: World or World.Config is null in RemoveDisabledConditionalBehaviors");
+                return;
+            }
+
+            var worldConfig = api.World.Config;
 
             foreach (var block in api.World.Blocks.Where(b => b.BlockBehaviors.Any(beh => beh is IConditionalBlockBehavior) == true))
             {
@@ -41,7 +56,7 @@ namespace CarryOn.Server.Logic
 
                 foreach (var behavior in conditionalBehaviors)
                 {
-                    if (behavior.EnabledCondition != null && !config.EvaluateDotNotationLogic(api, behavior.EnabledCondition))
+                    if (behavior.EnabledCondition != null && !worldConfig.EvaluateDotNotationLogic(api, behavior.EnabledCondition))
                     {
                         // Remove all behaviors of this type if disabled
                         block.BlockBehaviors = RemoveBehaviorsOfType(block.BlockBehaviors, behavior.GetType());
@@ -62,11 +77,29 @@ namespace CarryOn.Server.Logic
         private void RemoveExcludedCarryableBehaviors(ICoreAPI api)
         {
 
-            var loggingEnabled = Config?.DebuggingOptions?.LoggingEnabled ?? false;
-            var filters = Config?.CarryablesFilters;
+            if (Config == null)
+            {
+                api.Logger.Error("CarryOn: Config is null in RemoveExcludedCarryableBehaviours");
+                return;
+            }
+
+            if (Config.DebuggingOptions == null)
+            {
+                api.Logger.Error("CarryOn: DebuggingOptions is null in RemoveExcludedCarryableBehaviours");
+                return;
+            }
+            
+            if (Config.CarryablesFilters == null)
+            {
+                api.Logger.Error("CarryOn: CarryablesFilters is null in RemoveExcludedCarryableBehaviours");
+                return;
+            }
+
+            var loggingEnabled = Config.DebuggingOptions.LoggingEnabled;
+            var filters = Config.CarryablesFilters;
 
 
-            var removeArray = filters?.RemoveCarryableBehaviour;
+            var removeArray = filters.RemoveCarryableBehaviour;
             if (removeArray == null || removeArray.Length == 0)
             {
                 return;
@@ -97,15 +130,33 @@ namespace CarryOn.Server.Logic
         /// <param name="api"></param>
         private void ResolveMultipleCarryableBehaviors(ICoreAPI api)
         {
-            var filters = Config?.CarryablesFilters;
+            if (Config == null)
+            {
+                api.Logger.Error("CarryOn: Config is null in ResolveMultipleCarryableBehaviors");
+                return;
+            }
 
+            var filters = Config.CarryablesFilters;
+            if (filters == null)
+            {
+                api.Logger.Error("CarryOn: CarryablesFilters is null in ResolveMultipleCarryableBehaviors");
+                return;
+            }
+
+            var removeBaseFilters = filters.RemoveBaseCarryableBehaviour;
+            if (removeBaseFilters == null)
+            {
+                api.Logger.Error("CarryOn: RemoveBaseCarryableBehaviour is null in ResolveMultipleCarryableBehaviors");
+                return;
+            }
+            
             foreach (var block in api.World.Blocks)
             {
                 bool removeBaseBehavior = false;
                 if (block.Code == null || block.Id == 0) continue;
-                if (filters?.RemoveBaseCarryableBehaviour != null)
+                if (removeBaseFilters != null)
                 {
-                    foreach (var match in filters.RemoveBaseCarryableBehaviour)
+                    foreach (var match in removeBaseFilters)
                     {
                         if (block.Code.ToString().StartsWith(match))
                         {
@@ -126,27 +177,54 @@ namespace CarryOn.Server.Logic
         private T[] RemoveOverriddenCarryableBehaviors<T>(T[] behaviours, bool removeBaseBehavior = false)
         {
             if (behaviours == null || behaviours.Length == 0) return behaviours;
+
             var behaviourList = behaviours.ToList();
-            // Only consider BlockBehaviorCarryable instances for removal
             var carryableList = behaviourList.OfType<BlockBehaviorCarryable>().ToList();
+
             if (carryableList.Count > 1)
             {
-                var maxPriority = carryableList.Max(m => m.PatchPriority);
-                var priorityCarryable = carryableList.FirstOrDefault(p => p.PatchPriority == maxPriority);
-                if (priorityCarryable != null)
+                var hasOverrides = carryableList.Any(c => c.OverrideExistingProperties);
+
+                BlockBehaviorCarryable keepBehavior;
+
+                if (!hasOverrides)
                 {
-                    if (ShouldKeepBehavior(priorityCarryable, maxPriority, removeBaseBehavior))
-                    {
-                        carryableList.Remove(priorityCarryable);
-                    }
-                    behaviourList.RemoveAll(r => carryableList.Any(c => ReferenceEquals(r, c)));
+                    var maxPriority = carryableList.Max(m => m.PatchPriority);
+                    keepBehavior = carryableList.FirstOrDefault(p => p.PatchPriority == maxPriority);
                 }
+                else
+                {
+                    var ordered = carryableList.OrderBy(c => c.PatchPriority).ToList();
+
+                    keepBehavior = ordered
+                        .Where(c => !c.OverrideExistingProperties)
+                        .OrderByDescending(c => c.PatchPriority)
+                        .FirstOrDefault()
+                        ?? ordered.Last();
+
+                    var overlays = ordered
+                        .Where(c => c.OverrideExistingProperties && c.PatchPriority >= keepBehavior.PatchPriority)
+                        .ToList();
+
+                    if (overlays.Count > 0)
+                    {
+                        var merged = MergeCarryableProperties(keepBehavior, overlays);
+                        keepBehavior.Initialize(merged);
+                    }
+                }
+
+                if (keepBehavior != null && ShouldKeepBehavior(keepBehavior, keepBehavior.PatchPriority, removeBaseBehavior))
+                {
+                    carryableList.Remove(keepBehavior);
+                }
+
+                behaviourList.RemoveAll(r => carryableList.Any(c => ReferenceEquals(r, c)));
             }
             else if (removeBaseBehavior && carryableList.Count == 1 && carryableList[0].PatchPriority == 0)
             {
-                // Remove base behavior
                 behaviourList.RemoveAll(r => carryableList.Any(c => ReferenceEquals(r, c)));
             }
+
             return behaviourList.ToArray();
         }
 
@@ -167,8 +245,26 @@ namespace CarryOn.Server.Logic
         /// <param name="api"></param>
         private void AutoMapSimilarCarryableInteract(ICoreAPI api)
         {
-            var loggingEnabled = Config?.DebuggingOptions?.LoggingEnabled ?? false;
-            var filters = Config?.CarryablesFilters;
+            if (Config == null)
+            {
+                api.Logger.Error("CarryOn: Config is null in AutoMapSimilarCarryableInteract");
+                return;
+            }
+
+            if (Config.DebuggingOptions == null)
+            {
+                api.Logger.Error("CarryOn: DebuggingOptions is null in AutoMapSimilarCarryableInteract");
+                return;
+            }
+
+            var loggingEnabled = Config.DebuggingOptions.LoggingEnabled;
+            var filters = Config.CarryablesFilters;
+
+            if (filters == null)
+            {
+                api.Logger.Error("CarryOn: CarryablesFilters is null in AutoMapSimilarCarryableInteract");
+                return;
+            }
 
             if (filters?.AutoMapSimilar != true) return;
 
@@ -199,8 +295,23 @@ namespace CarryOn.Server.Logic
         /// <param name="api"></param>
         private void AutoMapSimilarCarryables(ICoreAPI api)
         {
-            var loggingEnabled = Config?.DebuggingOptions?.LoggingEnabled ?? false;
-            var filters = Config?.CarryablesFilters;
+            if (Config == null)
+            {
+                api.Logger.Error("CarryOn: Config is null in AutoMapSimilarCarryables");
+                return;
+            }
+            if (Config.DebuggingOptions == null)
+            {
+                api.Logger.Error("CarryOn: DebuggingOptions is null in AutoMapSimilarCarryables");
+                return;
+            }
+            var loggingEnabled = Config.DebuggingOptions.LoggingEnabled;
+            var filters = Config.CarryablesFilters;
+            if (filters == null)
+            {
+                api.Logger.Error("CarryOn: CarryablesFilters is null in AutoMapSimilarCarryables");
+                return;
+            }
 
             if (filters?.AutoMapSimilar != true) return;
 
@@ -223,7 +334,7 @@ namespace CarryOn.Server.Logic
                 }
 
                 string classKey = null;
-                if (carryableBlock.Class != "Block")
+                if (carryableBlock.Class is not "Block" and not "BlockGeneric")
                 {
                     classKey = $"Class:{carryableBlock.Class}";
                     if (!matchBehaviors.ContainsKey(classKey))
@@ -320,5 +431,27 @@ namespace CarryOn.Server.Logic
             return behavior.PatchPriority == maxPriority &&
                 !(removeBaseBehavior && behavior.PatchPriority == 0);
         }
+
+        private JsonObject MergeCarryableProperties(
+            BlockBehaviorCarryable baseBehavior,
+            List<BlockBehaviorCarryable> overlays)
+        {
+            var merged = baseBehavior?.Properties?.Token as JObject;
+            merged = merged != null ? (JObject)merged.DeepClone() : new JObject();
+
+            foreach (var overlay in overlays)
+            {
+                if (overlay?.Properties?.Token is JObject overlayObj)
+                {
+                    merged.Merge(overlayObj, new JsonMergeSettings
+                    {
+                        MergeArrayHandling = MergeArrayHandling.Replace,
+                        MergeNullValueHandling = MergeNullValueHandling.Merge
+                    });
+                }
+            }
+
+            return new JsonObject(merged);
+        }        
     }
 }

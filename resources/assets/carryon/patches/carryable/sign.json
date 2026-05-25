@@ -1,29 +1,36 @@
 [
-  {
-    "file": "game:blocktypes/wood/sign",
-    "side": "Server",
-    "op": "add",
-    "path": "/behaviors",
-    "value": [
-      {
-        "name": "Carryable",
-        "properties": {
-          "enabledCondition": "carryon.Carryables.Sign",
-          "translation": [
-            0.0625,
-            0,
-            0
-          ],
-          "rotation": [
-            0,
-            -90,
-            0
-          ],
-          "slots": {
-            "Hands": {}
-          }
-        }
-      }
-    ]
-  }
+	{
+		"file": "game:blocktypes/wood/sign",
+		"side": "Server",
+		"op": "add",
+		"path": "/behaviors",
+		"value": [
+			{
+				"name": "Carryable",
+				"properties": {
+					"enabledCondition": "carryon.Carryables.Sign",
+					"labelRenderSettings": {
+						"transform": {
+							"translation": [ 0.589, 0.753, 0.6 ],
+							"scale": [ 0.996, 1.1, 1.0 ],
+							"maxWidth": 200,
+							"maxHeight": 96
+						}
+					},
+					"transformGroups": {
+						"hands": [
+							{
+								"id": "root",
+								"translation": [ 0.04, -0.05, 0.0 ],
+								"rotation": [ 0.0, -90.0, -40.0 ]
+							}
+						]
+					},
+					"slots": {
+						"Hands": {}
+					}
+				}
+			}
+		]
+	}
 ]

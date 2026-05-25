@@ -1,14 +1,14 @@
 [
-  {
-    "file": "game:blocktypes/wood/chest*",
-    "side": "Server",
-    "op": "add",
-    "path": "/behaviors/-",
-    "value": {
-      "name": "CarryableInteract",
-      "properties":{
-        "enabledCondition": "carryon.Interactables.Storage"
-      }
-    }
-  }
+	{
+		"file": "game:blocktypes/wood/chest*",
+		"side": "Server",
+		"op": "add",
+		"path": "/behaviors/-",
+		"value": {
+			"name": "CarryableInteract",
+			"properties": {
+				"enabledCondition": "carryon.Interactables.Storage"
+			}
+		}
+	}
 ]

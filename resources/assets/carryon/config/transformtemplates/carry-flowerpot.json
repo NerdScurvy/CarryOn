@@ -1,0 +1,213 @@
+{
+	"code": "carry-flowerpot",
+	"transformGroups": {
+		"default": [
+			{
+				"id": "root",
+				"scale": 0.7
+			}
+		],
+		"default-planted": [
+			{
+				"id": "root",
+				"rotation": [ 7.4, 1.7, -11.0 ],
+				"scale": 0.7
+			},
+			{
+				"id": "soil",
+				"item": "carryon:soil-flowerpot",
+				"translation": [ 0.372, 0.065, 0.375 ],
+				"scale": 1.0
+			}
+		],
+		"hands": {
+			"extends": "default"
+		},
+		"hands-planted": {
+			"extends": "default-planted",
+			"overrides": [
+				{
+					"id": "root",
+					"translation": [ -0.01, 0.08, -0.04 ],
+					"rotation": [ -12.6, 21.7, -21.0 ]
+				}
+			]
+		},
+		"backpack-none": [
+			{
+				"id": "root",
+				"translation": [ -0.06, 0.15, 0.0 ],
+				"rotation": [ 0.0, 0.0, 0.0 ],
+				"scale": 0.7
+			},
+			{
+				"id": "strap-right-anchor",
+				"item": "carryon:strap",
+				"translation": [ 0.2, -0.27, -0.1999 ],
+				"rotation": [ 90.0, 122.0, -176.0 ],
+				"scale": [ 1.0, 1.0, 0.5 ]
+			},
+			{
+				"id": "strap-lower",
+				"item": "carryon:strap",
+				"translation": [ 0.2, -0.5, 0.0 ],
+				"rotation": [ 0.0, 270.0, 0.0 ],
+				"scale": [ 1.0, 1.0, 0.44 ]
+			},
+			{
+				"id": "strap-back-center",
+				"item": "carryon:strap",
+				"translation": [ 0.19, -0.51, 0.0001 ],
+				"rotation": [ 0.0, 270.0, -90.0 ],
+				"scale": [ 1.0, 1.0, 0.24 ]
+			},
+			{
+				"id": "strap-back-middle",
+				"item": "carryon:strap",
+				"translation": [ 0.2, -0.27, -0.1999 ],
+				"rotation": [ 0.0, 358.0, -110.0 ],
+				"scale": [ 1.0, 1.0, 0.4 ]
+			},
+			{
+				"id": "strap-left-anchor",
+				"item": "carryon:strap",
+				"translation": [ 0.2, -0.25, 0.1901 ],
+				"rotation": [ 90.0, 122.0, -183.0 ],
+				"scale": [ 1.0, 1.0, 0.5 ]
+			}
+		],
+		"backpack-small": {
+			"extends": "backpack-none",
+			"overrides": [
+				{
+					"id": "root",
+					"translationX": -0.03,
+					"translationY": 0.28,
+					"rotationZ": 10.0
+				},
+				{
+					"id": "strap-right-anchor",
+					"rotationY": 109.0,
+					"scaleZ": 0.72
+				},
+				{
+					"id": "strap-left-anchor",
+					"rotationX": 97.0,
+					"rotationY": 108.0,
+					"scale": [ 1.0483, 1.0483, 0.65 ]
+				}
+			]
+		},
+		"backpack-large": {
+			"extends": "backpack-none",
+			"overrides": [
+				{
+					"id": "root",
+					"translation": [ 0.04, 0.02, 0.02 ],
+					"rotationX": 2.0,
+					"rotationZ": -10.0
+				},
+				{
+					"id": "strap-right-anchor",
+					"rotationX": 91.0,
+					"rotationY": 110.0,
+					"scaleZ": 0.6
+				},
+				{
+					"id": "strap-left-anchor",
+					"rotationY": 111.0,
+					"scaleZ": 0.62
+				}
+			]
+		},
+		"backpack-none-planted": {
+			"extends": "default-planted",
+			"overrides": [
+				{
+					"id": "root",
+					"translation": [ 0.02, 0.15, 0.03 ],
+					"rotation": [ 12.0, -3.0, -18.0 ]
+				}
+			],
+			"appends": [
+				{
+					"id": "strap-left-anchor",
+					"item": "carryon:strap",
+					"translation": [ 0.2, -0.25, 0.1901 ],
+					"rotation": [ 88.0, 114.0, -183.0 ],
+					"scale": [ 1.0, 1.0, 0.6 ]
+				},
+				{
+					"id": "strap-right-anchor",
+					"item": "carryon:strap",
+					"translation": [ 0.2, -0.27, -0.1999 ],
+					"rotation": [ 82.0, 108.0, -176.0 ],
+					"scale": [ 1.0, 1.0, 0.6 ]
+				},
+				{
+					"id": "strap-lower",
+					"item": "carryon:strap",
+					"translation": [ 0.2, -0.5, 0.0 ],
+					"rotation": [ 0.0, 270.0, 0.0 ],
+					"scale": [ 1.0, 1.0, 0.44 ]
+				},
+				{
+					"id": "strap-back-center",
+					"item": "carryon:strap",
+					"translation": [ 0.19, -0.51, 0.0001 ],
+					"rotation": [ 0.0, 270.0, -90.0 ],
+					"scale": [ 1.0, 1.0, 0.24 ]
+				},
+				{
+					"id": "strap-back-middle",
+					"item": "carryon:strap",
+					"translation": [ 0.2, -0.27, -0.1999 ],
+					"rotation": [ 0.0, 358.0, -110.0 ],
+					"scale": [ 1.0, 1.0, 0.4 ]
+				}
+			]
+		},
+		"backpack-small-planted": {
+			"extends": "backpack-none-planted",
+			"overrides": [
+				{
+					"id": "root",
+					"translationY": 0.25,
+					"translationZ": 0.04,
+					"rotationZ": 2.0
+				},
+				{
+					"id": "strap-left-anchor",
+					"rotation": [ 91.0, 107.0, -180.0 ],
+					"scaleZ": 0.69
+				},
+				{
+					"id": "strap-right-anchor",
+					"rotation": [ 90.0, 103.0, -181.0 ]
+				}
+			]
+		},
+		"backpack-large-planted": {
+			"extends": "backpack-none-planted",
+			"overrides": [
+				{
+					"id": "root",
+					"translationX": 0.03,
+					"translationY": 0.01,
+					"rotationZ": -8.0
+				},
+				{
+					"id": "strap-left-anchor",
+					"rotationX": 86.0,
+					"rotationY": 117.0
+				},
+				{
+					"id": "strap-right-anchor",
+					"rotationY": 111.0,
+					"rotationZ": -178.0,
+					"scaleZ": 0.62
+				}
+			]
+		}
+	}
+}

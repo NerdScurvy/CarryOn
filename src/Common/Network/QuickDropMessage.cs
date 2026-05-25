@@ -4,8 +4,15 @@ using ProtoBuf;
 namespace CarryOn.Common.Network
 {
     [ProtoContract(ImplicitFields = ImplicitFields.AllFields)]
-    public class QuickDropMessage
+    public record QuickDropMessage
     {
-        public CarrySlot[] CarrySlots { get; set; }
+        public CarrySlot[] CarrySlots { get; init; }
+
+        private QuickDropMessage() { }
+
+        public QuickDropMessage(CarrySlot[] carrySlots)
+        {
+            CarrySlots = carrySlots;
+        }
     }
 }

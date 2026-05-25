@@ -1,22 +1,18 @@
-using System.Runtime.InteropServices;
 using ProtoBuf;
-using Vintagestory.API.Datastructures;
 
 namespace CarryOn.Common.Network
 {
     [ProtoContract]
-    public class PlayerAttributeUpdateMessage
+    public record PlayerAttributeUpdateMessage
     {
         [ProtoMember(1)]
-        public string AttributeKey { get; set; }
+        public string AttributeKey { get; init; }
         [ProtoMember(2)]
-        public bool? BoolValue { get; set; }
+        public bool? BoolValue { get; init; }
         [ProtoMember(3)]
-        public bool IsWatchedAttribute { get; set; }
+        public bool IsWatchedAttribute { get; init; }
 
-        public PlayerAttributeUpdateMessage()
-        {
-        }
+        private PlayerAttributeUpdateMessage() { }
 
         public PlayerAttributeUpdateMessage(string attributeKey, bool value, bool isWatchedAttribute = false)
         {
