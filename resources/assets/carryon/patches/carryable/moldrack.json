@@ -8,12 +8,12 @@
 			"name": "Carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.MoldRack",
-				"renderTransformResolver": "moldrack",
+				"transformGroupResolver": "moldrack",
 				"transformGroups": {
 					"hands": [
 						{
 							"id": "root",
-							"translationY": 0.2
+							"translationY": 0.08
 						}
 					],
 					"moldrack-slot0": [

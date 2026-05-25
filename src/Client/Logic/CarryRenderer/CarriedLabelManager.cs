@@ -48,6 +48,17 @@ namespace CarryOn.Client.Logic.CarryRenderer
         private static string MakeKey(string text, int color, float fontSize, int areaWidth, int areaHeight, string fontName, bool boldFont, string verticalAlign)
             => fontSize.ToString("0.##") + "|" + areaWidth + "x" + areaHeight + "|" + color.ToString("X8") + "|" + (fontName ?? "") + "|" + (boldFont ? "b" : "n") + "|" + (verticalAlign ?? "") + "|" + text;
 
+
+        /// <summary>
+        /// Generates or retrieves a cached texture for the given label text and styling parameters. The method ensures that the generated texture does not exceed reasonable limits to prevent excessive memory usage. 
+        /// If a texture for the specified parameters already exists in the cache, it is returned immediately; otherwise, a new texture is created, stored in the cache, and returned. The method also handles potential exceptions gracefully, returning null if texture generation fails for any reason.
+        /// </summary>
+        /// <param name="rawText"> The text to be rendered on the label. </param>
+        /// <param name="color"> The color of the text in ARGB format. </param>
+        /// <param name="fontSize"> The size of the font. </param>
+        /// <param name="settings"> Optional settings for label rendering. </param>
+        /// <param name="wrapWidth"> Optional width to wrap the text. If not provided, the default TextWidth is used. </param>
+        /// <returns> A tuple containing the loaded texture, width, and height of the label, or null if the label could not be generated. </returns>
         public (LoadedTexture texture, float w, float h)? GetLabel(string rawText, int color, float fontSize, LabelRenderSettings settings = null, int wrapWidth = 0)
         {
             if (string.IsNullOrWhiteSpace(rawText)) return null;
@@ -137,6 +148,18 @@ namespace CarryOn.Client.Logic.CarryRenderer
             }
         }
 
+        /// <summary>
+        /// Generates or retrieves a cached mesh and texture for the given item stack to be used as an icon label. 
+        /// The method constructs a unique key based on the item stack's properties and the specified styling parameters 
+        /// to manage caching effectively. If a cached entry exists for the generated key, it returns the associated mesh and texture ID. 
+        /// If not, it initiates the rendering of the item stack to an atlas, creates a new mesh and texture for the icon, and stores them 
+        /// in the cache for future retrieval. The method also includes error handling to ensure that any issues during texture generation 
+        /// do not cause crashes, returning null values when necessary.
+        /// </summary>
+        /// <param name="itemStack"> The item stack for which to generate the icon label. </param>
+        /// <param name="color"> The color to apply to the icon label. </param>
+        /// <param name="settings"> Optional settings for label rendering. </param>
+        /// <returns> A tuple containing the mesh, texture ID, and readiness status of the icon label. </returns>
         public (MeshRef mesh, int textureId, bool ready) GetItemIconLabel(ItemStack itemStack, int color, LabelRenderSettings settings = null)
         {
             if (itemStack?.Collectible == null)
@@ -199,13 +222,13 @@ namespace CarryOn.Client.Logic.CarryRenderer
                     var quad = QuadMeshUtil.GetQuad();
                     // Vertex order for GetQuad: TL, TR, BR, BL
                     // Horizontal flip keeps icon orientation correct after face rotation.
-                    quad.Uv = new float[]
-                    {
+                    quad.Uv =
+                    [
                         1f, 0f,
                         0f, 0f,
                         0f, 1f,
                         1f, 1f
-                    };
+                    ];
                     quad.Rgba = new byte[16];
                     quad.Rgba.Fill(byte.MaxValue);
 
@@ -224,6 +247,15 @@ namespace CarryOn.Client.Logic.CarryRenderer
             return (null, 0, false);
         }
 
+        /// <summary>
+        /// Creates a new texture by copying a specified region from the texture atlas. 
+        /// This method is used to generate standalone textures for item icons based on their position in the atlas. 
+        /// It calculates the pixel coordinates of the desired region, retrieves the pixel data using OpenGL, and creates 
+        /// a new texture with the extracted data. The method includes error handling to ensure that any issues during the 
+        /// texture copying process do not cause crashes, returning null if the operation fails for any reason.
+        /// </summary>
+        /// <param name="texPos"> The position of the texture region within the atlas. </param>
+        /// <returns> A new LoadedTexture instance if successful; otherwise, null. </returns>
         private LoadedTexture CopyAtlasRegionToStandaloneTexture(TextureAtlasPosition texPos)
         {
             var atlas = api.BlockTextureAtlas;
@@ -292,6 +324,12 @@ namespace CarryOn.Client.Logic.CarryRenderer
             iconLru.Add(key);
         }
 
+        /// <summary>
+        /// Ensures that the number of cached text textures does not exceed the defined maximum limit. 
+        /// If the cache exceeds the limit, the least recently used entries are removed, and their associated textures 
+        /// are disposed of to free memory. This method is called whenever a new text entry is added to the cache to 
+        /// maintain optimal performance and prevent excessive memory usage.
+        /// </summary>
         private void EnforceTextLimit()
         {
             while (textLru.Count > MaxTextCache)
@@ -306,6 +344,12 @@ namespace CarryOn.Client.Logic.CarryRenderer
             }
         }
 
+        /// <summary>
+        /// Ensures that the number of cached icon textures and meshes does not exceed the defined maximum limit. 
+        /// If the cache exceeds the limit, the least recently used entries are removed, and their associated resources 
+        /// are disposed of to free memory. This method is called whenever a new icon entry is added to the cache to 
+        /// maintain optimal performance and prevent excessive memory usage.
+        /// </summary>
         private void EnforceIconLimit()
         {
             while (iconLru.Count > MaxIconCache)

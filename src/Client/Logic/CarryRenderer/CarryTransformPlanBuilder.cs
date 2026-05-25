@@ -47,7 +47,6 @@ namespace CarryOn.Client.Logic.CarryRenderer
                 };
             }
 
-            var carriedSlot = carryBehavior.Slots[carried.Slot];
             var transformsGroup = transformsGroupBase;
 
             var primaryGroupCandidates = new List<string> { transformsGroup };
@@ -58,7 +57,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
             var transformGroupResolvers = carrySystem?.CarryManager?.GetTransformGroupResolvers();
             if (transformGroupResolvers != null)
             {
-                var requestedResolverCode = carryBehavior.RenderTransformResolver;
+                var requestedResolverCode = carryBehavior.TransformGroupResolver;
                 foreach (var resolver in transformGroupResolvers)
                 {
                     if (resolver == null) continue;
@@ -110,7 +109,6 @@ namespace CarryOn.Client.Logic.CarryRenderer
                 var resolvedAdditional = ResolveAdditionalSettings(
                     carried,
                     carryBehavior,
-                    carriedSlot,
                     matchedResolution.AdditionalGroupCandidates,
                     matchedResolution.EnableVertexWarpForAdditionalTransforms);
 
@@ -214,12 +212,11 @@ namespace CarryOn.Client.Logic.CarryRenderer
         private static IList<EffectiveTransformSetting> ResolveAdditionalSettings(
             CarriedBlock carried,
             BlockBehaviorCarryable carryBehavior,
-            BlockBehaviorCarryable.SlotSettings carriedSlot,
             IList<CarriedGroupCandidateSet> candidateSets,
             bool enableVertexWarp)
         {
             var list = new List<EffectiveTransformSetting>();
-            if (carried == null || carryBehavior == null || carriedSlot == null || candidateSets == null) return list;
+            if (carried == null || carryBehavior == null || candidateSets == null) return list;
 
             foreach (var candidateSet in candidateSets)
             {
@@ -241,16 +238,10 @@ namespace CarryOn.Client.Logic.CarryRenderer
 
                     foreach (var setting in settings)
                     {
-                        var settingClone = setting.Clone();
-                        if (settingClone.AssetType == EnumAssetType.None
-                            && !string.IsNullOrEmpty(candidateSet.AssetNameIfUnset)
-                            && candidateSet.AssetTypeIfUnset != CarriedGroupAssetType.None)
-                        {
-                            settingClone.AssetName = candidateSet.AssetNameIfUnset;
-                            settingClone.AssetType = candidateSet.AssetTypeIfUnset == CarriedGroupAssetType.Item
-                                ? EnumAssetType.Item
-                                : EnumAssetType.Block;
-                        }
+                        var settingClone = setting.DeepCloneWithDefaults(
+                            defaultAssetName: candidateSet.AssetNameIfUnset,
+                            defaultAssetType: candidateSet.AssetTypeIfUnset
+                        );
 
                         list.Add(new EffectiveTransformSetting
                         {

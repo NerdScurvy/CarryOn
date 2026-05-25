@@ -3,11 +3,11 @@ using ProtoBuf;
 namespace CarryOn.Common.Network
 {
     [ProtoContract(ImplicitFields = ImplicitFields.AllFields)]
-    public class DetachMessage
+    public record DetachMessage
     {
-        public long TargetEntityId { get; }
+        public long TargetEntityId { get; init; }
 
-        public int SlotIndex { get; }
+        public int SlotIndex { get; init; }
 
         private DetachMessage() { }
 

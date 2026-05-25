@@ -86,70 +86,26 @@ namespace CarryOn.Client.Logic.CarryRenderer
             }
         }
 
-        internal void PruneTransformPlans()
+        private void PruneCache<TKey, TValue>(
+            Dictionary<TKey, TValue> dict, int maxEntries, TimeSpan ttl, Func<TValue, DateTime> lastUsedSelector)
         {
-            if (TransformPlans.Count <= TransformPlanCacheMaxEntries)
+            if (dict.Count <= maxEntries) return;
+            var cutoff = DateTime.UtcNow - ttl;
+            var staleKeys = dict.Where(kv => lastUsedSelector(kv.Value) < cutoff).Select(kv => kv.Key).ToList();
+            foreach (var key in staleKeys) dict.Remove(key);
+            if (dict.Count <= maxEntries) return;
+            foreach (var key in dict.OrderBy(kv => lastUsedSelector(kv.Value))
+                                    .Take(dict.Count - maxEntries)
+                                    .Select(kv => kv.Key).ToList())
             {
-                return;
-            }
-
-            var cutoff = DateTime.UtcNow - TransformPlanCacheTtl;
-            var staleKeys = TransformPlans
-                .Where(kv => kv.Value.LastUsedAtUtc < cutoff)
-                .Select(kv => kv.Key)
-                .ToList();
-
-            foreach (var key in staleKeys)
-            {
-                TransformPlans.Remove(key);
-            }
-
-            if (TransformPlans.Count <= TransformPlanCacheMaxEntries)
-            {
-                return;
-            }
-
-            foreach (var key in TransformPlans
-                .OrderBy(kv => kv.Value.LastUsedAtUtc)
-                .Take(TransformPlans.Count - TransformPlanCacheMaxEntries)
-                .Select(kv => kv.Key)
-                .ToList())
-            {
-                TransformPlans.Remove(key);
+                dict.Remove(key);
             }
         }
+        // Usage:
+        internal void PruneTransformPlans() =>
+            PruneCache(TransformPlans, TransformPlanCacheMaxEntries, TransformPlanCacheTtl, v => v.LastUsedAtUtc);
+        internal void PruneRenderInfos() =>
+            PruneCache(RenderInfos, RenderInfoCacheMaxEntries, RenderInfoCacheTtl, v => v.LastUsedAtUtc);
 
-        internal void PruneRenderInfos()
-        {
-            if (RenderInfos.Count <= RenderInfoCacheMaxEntries)
-            {
-                return;
-            }
-
-            var cutoff = DateTime.UtcNow - RenderInfoCacheTtl;
-            var staleKeys = RenderInfos
-                .Where(kv => kv.Value.LastUsedAtUtc < cutoff)
-                .Select(kv => kv.Key)
-                .ToList();
-
-            foreach (var key in staleKeys)
-            {
-                RenderInfos.Remove(key);
-            }
-
-            if (RenderInfos.Count <= RenderInfoCacheMaxEntries)
-            {
-                return;
-            }
-
-            foreach (var key in RenderInfos
-                .OrderBy(kv => kv.Value.LastUsedAtUtc)
-                .Take(RenderInfos.Count - RenderInfoCacheMaxEntries)
-                .Select(kv => kv.Key)
-                .ToList())
-            {
-                RenderInfos.Remove(key);
-            }
-        }
     }
 }

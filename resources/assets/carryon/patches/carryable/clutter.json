@@ -8,11 +8,16 @@
 			"name": "Carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Clutter",
+				"transformGroupResolver": "codepath",
+				"transformGroups": {
+					"hands": [
+						{
+							"rotation": [ 0.0, -90.0, 0.0 ]
+						}
+					]
+				},
 				"slots": {
-					"Hands": {},
-					"disabled--Back": {
-						"rotation": [ 0, 0, -90 ]
-					}
+					"Hands": {}
 				}
 			}
 		}

@@ -9,18 +9,16 @@
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Mold",
 				"interactDelay": 0.5,
-				"slots": {
-					"Hands": {
-						"transforms": {
-							"default": [
-								{
-									"translation": [ -0.2, 0.0, 0.0 ],
-									"rotation": [ 0.0, -90.0, 0.0 ],
-									"scale": 0.5
-								}
-							]
+				"transformGroups": {
+					"hands": [
+						{
+							"translation": [ 0.15, 0.1, 0.0 ],
+							"rotation": [ 0.0, -90.0, -10.0 ]
 						}
-					}
+					]
+				},
+				"slots": {
+					"Hands": {}
 				}
 			}
 		}

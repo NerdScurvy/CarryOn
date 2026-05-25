@@ -14,8 +14,11 @@ namespace CarryOn.Client.Logic.CarryRenderer
 {
 	public class EntityCarryRenderer : IRenderer
 	{
-		private static readonly Dictionary<CarrySlot, Dictionary<string, SlotRenderSettings>> RenderSettings = new() {
-			{ CarrySlot.Hands    , new Dictionary<string, SlotRenderSettings> { { "hands", new SlotRenderSettings("carryon:FrontCarry", -0.3F, -0.6F, -0.5F) } } },
+		private static readonly Dictionary<CarrySlot, Dictionary<string, SlotRenderSettings>> RenderSettings = CreateRenderSettings();
+		private static Dictionary<CarrySlot, Dictionary<string, SlotRenderSettings>> CreateRenderSettings() => new() {
+			{ CarrySlot.Hands    , new Dictionary<string, SlotRenderSettings> {
+					{ "hands", new SlotRenderSettings("carryon:FrontCarry", -0.3F, -0.6F, -0.5F) } } },
+
 			{ CarrySlot.Back     , new Dictionary<string, SlotRenderSettings> {
 					{ "backpack-none", new SlotRenderSettings("Back", -0.3F, -0.6F, -0.5F) },
 					{ "backpack-small", new SlotRenderSettings("Back", -0.2F, -0.6F, -0.5F) },
@@ -24,17 +27,17 @@ namespace CarryOn.Client.Logic.CarryRenderer
 			}
 		};
 
-		private sealed class QueuedDraw
-		{
-			public CarriedRenderInfo Info { get; init; }
-			public float[] Matrix { get; init; }
-			public bool IsRoot { get; init; }
-			public RenderPhaseMask Phases { get; init; }
-			public float AlphaTestOpaque { get; init; }
-			public float AlphaTestBlend { get; init; }
-		}
+		private record QueuedDraw(
+			CarriedRenderInfo Info,
+			float[] Matrix,
+			bool IsRoot,
+			RenderPhaseMask Phases,
+			float AlphaTestOpaque,
+			float AlphaTestBlend
+		);
 
-		private class SlotRenderSettings
+		
+		private record SlotRenderSettings
 		{
 			public string AttachmentPoint { get; }
 			public Vec3f Offset { get; }
@@ -69,6 +72,11 @@ namespace CarryOn.Client.Logic.CarryRenderer
 		private readonly CarryTransformPlanBuilder planBuilder;
 		private readonly CarryRenderInfoBuilder infoBuilder;
 		private readonly CarriedLabelRenderer labelRenderer;
+
+		// Matrix pool for per-frame reuse to reduce GC pressure
+		private readonly Stack<float[]> matrixPool = new();
+
+		private float[] RentMatrix() => this.matrixPool.Count > 0 ? this.matrixPool.Pop() : new float[16];
 
 
 		public EntityCarryRenderer(ICoreClientAPI api, CarrySystem carrySystem)
@@ -111,7 +119,11 @@ namespace CarryOn.Client.Logic.CarryRenderer
 			// Include BE rotation + slot content signature so cached render infos invalidate
 			// when displaycase item orientation/contents change.
 			var containerSlots = TransformGroupResolverHelper.GetContainerSlots(carried);
-			var renderVariantSignature = CarryRenderHelpers.BuildRenderInfoVariantSignature(carried, containerSlots);
+			var renderVariantSignature = CarryRenderHelpers.BuildRenderInfoVariantSignature(
+				carried,
+				containerSlots,
+				plan.EffectiveSettings,
+				this.api.World);
 
 			var frameKey = CarryRenderHelpers.BuildFrameCacheKey(entity, carried, plan.Signature, renderVariantSignature);
 			cache.InvalidateSlotState(slotStateKey, frameKey);
@@ -143,11 +155,11 @@ namespace CarryOn.Client.Logic.CarryRenderer
 			cache.RenderInfos[renderInfoKey] = new CachedRenderInfos
 			{
 				Signature = renderInfoKey,
-				RenderInfos = CarryRenderHelpers.CloneCarriedRenderInfos(built),
+				RenderInfos = built,
 				LastUsedAtUtc = now
 			};
 
-			cache.FrameRenderInfos[frameKey] = CarryRenderHelpers.CloneCarriedRenderInfos(built);
+			cache.FrameRenderInfos[frameKey] = built;
 			return built;
 		}
 
@@ -174,38 +186,27 @@ namespace CarryOn.Client.Logic.CarryRenderer
 				}
 			}
 
+			// Start any new desired carryon:hold* animations
 			foreach (var animationCode in desiredAnimations.Except(this.activeCarryAnimations))
-			{
 				player.StartAnimation(animationCode);
-			}
 
-			var activeAnimationCodes = player.AnimManager?.ActiveAnimationsByAnimCode?.Keys;
-			if (activeAnimationCodes != null)
-			{
-				foreach (var animationCode in activeAnimationCodes)
-				{
-					if (string.IsNullOrEmpty(animationCode)) continue;
-					if (!animationCode.StartsWith("carryon:hold", StringComparison.OrdinalIgnoreCase)) continue;
-					if (desiredAnimations.Contains(animationCode)) continue;
 
-					player.StopAnimation(animationCode);
-				}
-			}
-
-			foreach (var animationCode in this.activeCarryAnimations.Except(desiredAnimations).ToList())
-			{
+			// Stop any carryon:hold* animations that are no longer desired
+			foreach (var animationCode in this.activeCarryAnimations.Except(desiredAnimations)
+																	.Where(code => code.StartsWith("carryon:hold", StringComparison.OrdinalIgnoreCase))
+																	.ToList())
 				player.StopAnimation(animationCode);
-			}
+			
 
+			// Update the active set
 			this.activeCarryAnimations.Clear();
-			foreach (var animationCode in desiredAnimations)
-			{
-				this.activeCarryAnimations.Add(animationCode);
-			}
+			this.activeCarryAnimations.UnionWith(desiredAnimations);
 		}
 
 		public void OnRenderFrame(float deltaTime, EnumRenderStage stage)
 		{
+			// Clear matrix pool at the start of each frame
+			matrixPool.Clear();
 			if (stage != EnumRenderStage.Opaque
 				&& stage != EnumRenderStage.AfterOIT
 				&& stage != EnumRenderStage.ShadowFar
@@ -228,10 +229,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
 
 				var isShadowPass = stage == EnumRenderStage.ShadowFar || stage == EnumRenderStage.ShadowNear;
 
-				if (player == this.api.World.Player)
-				{
-					SyncCarryAnimations(player.Entity);
-				}
+				SyncCarryAnimations(player.Entity);
 
 				// Don't render remote entities that haven't been rendered for this stage.
 				if (player != this.api.World.Player
@@ -386,7 +384,10 @@ namespace CarryOn.Client.Logic.CarryRenderer
 
 			string transformGroupName = entity.ResolveCarryTransformGroupBase(carrySystem, carried.Slot);
 
-			var renderSettings = RenderSettings[carried.Slot][transformGroupName];
+			var renderSettings = RenderSettings?[carried.Slot]?[transformGroupName];
+
+			// If render settings are not found for the current slot and transform group, don't render.
+			if (renderSettings == null) return;
 
 			var carriedRenderInfo = GetRenderInfoCached(entity, carried, transformGroupName);
 
@@ -396,23 +397,24 @@ namespace CarryOn.Client.Logic.CarryRenderer
 			if (inHands && isFirstPerson && !isImmersiveFirstPerson && !isShadowPass)
 			{
 				modelMat = GetFirstPersonHandsMatrix(entity, viewMat, deltaTime);
+				// Move carried block down slightly so not in players face as much in first person/non-immersive view.
+				Mat4f.Translate(modelMat, modelMat, 0.0F, -0.05F, 0.0F);
 			}
 			else
 			{
-				if (animator == null || renderSettings == null) return;
+				if (animator == null) return;
 				var attachPointAndPose = animator.GetAttachmentPointPose(renderSettings.AttachmentPoint);
 				if (attachPointAndPose == null) return; // Couldn't find attachment point.
 				modelMat = CarryRenderHelpers.GetAttachmentPointMatrix(renderer, attachPointAndPose);
-				// If in immersive first person, move the model down a bit so it's not too much "in your face".
-				if (isImmersiveFirstPerson) Mat4f.Translate(modelMat, modelMat, 0.0F, -0.12F, 0.0F);
 			}
 
-			float[] initialMatrix = null;
+			float[] initialMatrix = RentMatrix();
 			float[] matrix;
 
 			var initial = carriedRenderInfo.FirstOrDefault();
 			initial.SkipTransform = true;
-			initialMatrix = CarryRenderHelpers.ApplyTransform(initial.RenderInfo.Transform, modelMat, renderSettings.Offset);
+			Array.Copy(modelMat, initialMatrix, 16);
+			CarryRenderHelpers.ApplyTransformInPlace(initial.RenderInfo.Transform, initialMatrix, renderSettings.Offset);
 
 			var renderRootFirst = carried.GetCarryableBehavior()?.RenderRootFirst ?? false;
 			if (carriedRenderInfo.Length > 1 && !renderRootFirst)
@@ -426,21 +428,26 @@ namespace CarryOn.Client.Logic.CarryRenderer
 			if (isShadowPass)
 			{
 				var prog = rapi.CurrentActiveShader;
-				// lastMatrix not needed for shadow pass
 				foreach (var info in carriedRenderInfo)
 				{
-					if (!info.RenderEnabled) continue; // No model to render for this transform
-					if (info.SkipTransform) matrix = initialMatrix;
+					if (!info.RenderEnabled) continue;
+					if (info.SkipTransform)
+					{
+						matrix = initialMatrix;
+					}
 					else
 					{
-						matrix = CarryRenderHelpers.ApplyTransform(info.RenderInfo.Transform, initialMatrix, zeroOffset);
+						matrix = RentMatrix();
+						Array.Copy(initialMatrix, matrix, 16);
+						CarryRenderHelpers.ApplyTransformInPlace(info.RenderInfo.Transform, matrix, zeroOffset);
 						if (info.SecondaryTransform != null)
 						{
-							matrix = CarryRenderHelpers.ApplyTransform(info.SecondaryTransform, matrix, zeroOffset);
+							CarryRenderHelpers.ApplyTransformInPlace(info.SecondaryTransform, matrix, zeroOffset);
 						}
 					}
 
-					var shadowMatrix = Mat4f.CloneIt(matrix);
+					var shadowMatrix = RentMatrix();
+					Array.Copy(matrix, shadowMatrix, 16);
 					Mat4f.Mul(shadowMatrix, rapi.CurrentShadowProjectionMatrix, shadowMatrix);
 
 					bool disabledCull = false;
@@ -465,6 +472,8 @@ namespace CarryOn.Client.Logic.CarryRenderer
 							rapi.GlEnableCullFace();
 						}
 					}
+					matrixPool.Push(matrix);
+					matrixPool.Push(shadowMatrix);
 				}
 			}
 			else
@@ -485,31 +494,40 @@ namespace CarryOn.Client.Logic.CarryRenderer
 				{
 					if (!info.RenderEnabled) continue;
 
-					var drawMatrix = info.SkipTransform
-						? initialMatrix
-						: CarryRenderHelpers.ApplyTransform(info.RenderInfo.Transform, initialMatrix, zeroOffset);
-
-					if (!info.SkipTransform && info.SecondaryTransform != null)
+					var drawMatrix = RentMatrix();
+					Array.Copy(initialMatrix, drawMatrix, 16);
+					if (!info.SkipTransform)
 					{
-						drawMatrix = CarryRenderHelpers.ApplyTransform(info.SecondaryTransform, drawMatrix, zeroOffset);
+						CarryRenderHelpers.ApplyTransformInPlace(info.RenderInfo.Transform, drawMatrix, zeroOffset);
+						if (info.SecondaryTransform != null)
+						{
+							CarryRenderHelpers.ApplyTransformInPlace(info.SecondaryTransform, drawMatrix, zeroOffset);
+						}
 					}
 
 					draws.Add(new QueuedDraw
-					{
-						Info = info,
-						Matrix = drawMatrix,
-						IsRoot = info.SkipTransform,
-						Phases = CarryRenderHelpers.ResolveDefaultPhases(info),
-						AlphaTestOpaque = info.AlphaTestOpaque ?? 0.5f,
-						AlphaTestBlend = info.AlphaTestBlend ?? 0.15f
-					});
+					(
+						Info: info,
+						Matrix: drawMatrix,
+						IsRoot: info.SkipTransform,
+						Phases: CarryRenderHelpers.ResolveDefaultPhases(info),
+						AlphaTestOpaque: info.AlphaTestOpaque ?? 0.5f,
+						AlphaTestBlend: info.AlphaTestBlend ?? 0.15f
+					));
 				}
 
-				// 2) Stable sort by root preference only (within each phase)
+				// 2) Add root to either the front or back of the queue, depending on whether root-first rendering is specified. Root-first rendering is important for certain cases where the root transform has alpha and we want to render it in the opaque pass, while rendering secondary transforms in the translucent pass.
 				// renderRootFirst=true => root first
+				var roots = new List<QueuedDraw>();
+				var nonRoots = new List<QueuedDraw>();
+				foreach (var d in draws)
+				{
+					if (d.IsRoot) roots.Add(d);
+					else nonRoots.Add(d);
+				}
 				draws = renderRootFirst
-					? draws.OrderByDescending(d => d.IsRoot).ToList()
-					: draws.OrderBy(d => d.IsRoot).ToList();
+					? [.. roots, .. nonRoots]
+					: [.. nonRoots, .. roots];
 
 				if (renderOpaquePhase)
 				{
@@ -528,6 +546,11 @@ namespace CarryOn.Client.Logic.CarryRenderer
 					labelRenderer.TryRender(carried, initialMatrix, viewMat, prog, entity.Pos.AsBlockPos);
 				}
 
+				foreach (var d in draws)
+				{
+					matrixPool.Push(d.Matrix);
+				}
+
 				prog.Stop();
 			}
 		}
@@ -538,6 +561,13 @@ namespace CarryOn.Client.Logic.CarryRenderer
 		private float lastYaw;
 		private float yawDifference;
 
+		/// <summary> 
+		/// Gets the transform matrix for rendering the player's hands in first person, including view wobble based on movement and rotation. 
+		/// </summary>
+		/// <param name="entity"> The entity whose hands are being rendered. </param>
+		/// <param name="viewMat"> The current view matrix. </param>
+		/// <param name="deltaTime"> The time elapsed since the last frame. </param>
+		/// <returns> The transform matrix for the player's hands. </returns>
 		private float[] GetFirstPersonHandsMatrix(EntityAgent entity, float[] viewMat, float deltaTime)
 		{
 			var modelMat = Mat4f.Invert(Mat4f.Create(), viewMat);

@@ -27,7 +27,7 @@ using static CarryOn.API.Common.Models.CarryCode;
     Description = "Adds the capability to carry various things",
     Website = "https://github.com/NerdScurvy/CarryOn",
     Authors = new[] { "copygirl", "NerdScurvy" })]
-[assembly: ModDependency("game", "1.22.0-rc.2")]
+[assembly: ModDependency("game", "1.22.0")]
 [assembly: ModDependency("carryonlib", "1.0.0-pre.1")]
 
 namespace CarryOn
@@ -212,6 +212,7 @@ namespace CarryOn
             CarryManager?.RegisterTransformGroupResolver(new PlantContainerTransformGroupResolver());
             CarryManager?.RegisterTransformGroupResolver(new DisplayCaseTransformGroupResolver());
             CarryManager?.RegisterTransformGroupResolver(new MoldRackTransformGroupResolver());
+            CarryManager?.RegisterTransformGroupResolver(new GenericCodePathTransformGroupResolver());
 
             if (Config.DebuggingOptions.EnablePackAdjustmentTool)
             {

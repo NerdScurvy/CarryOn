@@ -4,14 +4,14 @@
 		"hands": [
 			{
 				"id": "root",
-				"translation": [ 0.0, 0.1, 0.0 ],
+				"translation": [ 0.0, -0.02, 0.0 ],
 				"rotationY": -90.0
 			}
 		],
 		"backpack-none": [
 			{
 				"id": "root",
-				"translation": [ 0.04, 0.07, 0.002 ],
+				"translation": [ 0.04, -0.05, 0.002 ],
 				"rotationY": -90.0
 			},
 			{
@@ -30,14 +30,14 @@
 			{
 				"id": "strap-rear-left",
 				"item": "carryon:strap",
-				"translation": [ 0.2999, 0.516, -0.485 ],
+				"translation": [ 0.2999, 0.516, -0.495 ],
 				"rotationX": 90.0,
 				"scale": [ 1.0, 1.0, 1.034 ]
 			},
 			{
 				"id": "strap-rear-right",
 				"item": "carryon:strap",
-				"translation": [ -0.3001, 0.516, -0.485 ],
+				"translation": [ -0.3001, 0.516, -0.495 ],
 				"rotationX": 90.0,
 				"scale": [ 1.0, 1.0, 1.034 ]
 			},
@@ -59,7 +59,7 @@
 			"overrides": [
 				{
 					"id": "root",
-					"translation": [ 0.06, 0.151, -0.012 ],
+					"translation": [ 0.06, 0.031, -0.012 ],
 					"rotationZ": 11.0
 				},
 				{
@@ -102,7 +102,7 @@
 			"overrides": [
 				{
 					"id": "root",
-					"translation": [ 0.0, 0.163, 0.011 ],
+					"translation": [ 0.0, 0.05, 0.011 ],
 					"rotationZ": 10.1
 				},
 				{

@@ -5,7 +5,9 @@ using Vintagestory.API.Server;
 
 namespace CarryOn.Common.Handlers
 {
-
+    /// <summary>
+    /// Handles player deaths and drops carried blocks if "deathPunishment" isn't set to "keep".
+    /// </summary>
     public class DeathHandler : IDisposable
     {
         private readonly ICoreServerAPI api;
@@ -31,6 +33,8 @@ namespace CarryOn.Common.Handlers
         ///   See <see cref="Server.EntityBehaviorDropCarriedOnDamage"/> for that.
         /// </para>
         /// </summary>
+        /// <param name="player"> The player that died. </param>
+        /// <param name="source"> The source of the damage that caused the death. </param
         private void OnPlayerDeath(IPlayer player, DamageSource source)
         {
             if (player.Entity.Properties.Server?.Attributes?.GetBool("keepContents", false) != true)

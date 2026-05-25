@@ -4,28 +4,29 @@
 		"hands": [
 			{
 				"id": "root",
-				"translationY": 0.2,
+				"translationY": 0.08,
+				"rotationY": 180.0,
 				"scale": 0.6
 			}
 		],
 		"backpack-none": [
 			{
 				"id": "root",
-				"translation": [ 0.1, 0.1, 0.0312 ],
+				"translation": [ 0.1, -0.02, 0.0312 ],
 				"rotation": [ 5.0, 0.0, -90.0 ],
 				"scale": 0.6
 			},
 			{
 				"id": "strap-top-left",
 				"item": "carryon:strap",
-				"translation": [ -0.31, 0.02, 0.25 ],
+				"translation": [ -0.32, 0.03, 0.25 ],
 				"rotation": [ 0.0, 96.0, -100.0 ],
 				"scale": [ 0.8, 0.8, 0.56 ]
 			},
 			{
 				"id": "strap-top-right",
 				"item": "carryon:strap",
-				"translation": [ -0.31, 0.02, -0.25 ],
+				"translation": [ -0.33, 0.03, -0.25 ],
 				"rotation": [ 0.0, 100.0, -96.0 ],
 				"scale": [ 0.8, 0.8, 0.56 ]
 			},
@@ -63,20 +64,24 @@
 			"overrides": [
 				{
 					"id": "root",
-					"translationY": 0.25,
+					"translationY": 0.13,
 					"translationZ": 0.03125,
 					"rotationZ": -70.0
 				},
 				{
 					"id": "strap-top-left",
+					"translationX": -0.31,
+					"translationY": 0.02,
 					"rotationY": 98.0,
-					"rotationZ": -97.0,
+					"rotationZ": -92.0,
 					"scaleZ": 0.61
 				},
 				{
 					"id": "strap-top-right",
+					"translationX": -0.31,
+					"translationY": 0.02,
 					"rotationY": 93.0,
-					"rotationZ": -93.0,
+					"rotationZ": -91.0,
 					"scaleZ": 0.61
 				},
 				{
@@ -94,14 +99,20 @@
 			"overrides": [
 				{
 					"id": "root",
-					"translationY": 0.166,
+					"translationY": 0.046,
 					"translationZ": -0.0152,
 					"rotationX": 1.7,
 					"rotationZ": -70.0
 				},
 				{
+					"id": "strap-top-left",
+					"translationY": 0.02
+				},
+				{
 					"id": "strap-top-right",
-					"rotationY": 84.0
+					"translationX": -0.32,
+					"rotationY": 83.0,
+					"rotationZ": -100.0
 				}
 			]
 		}

@@ -4,13 +4,13 @@ using System.Collections.Generic;
 namespace CarryOn.Common.Network
 {
     [ProtoContract(ImplicitFields = ImplicitFields.AllFields)]
-    public class LockSlotsMessage
+    public record LockSlotsMessage
     {
-        public List<int> HotbarSlots { get; }
+        public IReadOnlyList<int> HotbarSlots { get; init; }
 
         private LockSlotsMessage() { }
 
-        public LockSlotsMessage(List<int> hotbarSlots)
+        public LockSlotsMessage(IReadOnlyList<int> hotbarSlots)
             => HotbarSlots = hotbarSlots;
     }
 }

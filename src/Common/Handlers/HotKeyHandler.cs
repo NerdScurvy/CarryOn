@@ -9,6 +9,9 @@ using CarryOn.API.Common.Models;
 
 namespace CarryOn.Common.Handlers
 {
+    /// <summary>
+    /// Handles hotkey registrations and actions for toggling CarryOn behavior and quick dropping carried blocks.
+    /// </summary>
     public class HotKeyHandler
     {
         private ICoreClientAPI clientApi;
@@ -58,6 +61,10 @@ namespace CarryOn.Common.Handlers
                 .SetMessageHandler<PlayerAttributeUpdateMessage>(OnPlayerAttributeUpdateMessage);
         }
 
+        /// <summary>
+        /// Checks if the cursor is active (not grabbed) to prevent hotkey actions from triggering while the player is interacting with UI.
+        /// </summary>
+        /// <returns> True if the cursor is active, false otherwise. </returns>
         private bool IsCursorActive()
         {
             return !ClientApi.Input.MouseGrabbed;
@@ -66,8 +73,8 @@ namespace CarryOn.Common.Handlers
         /// <summary>
         /// Triggers the action to toggle client side CarryOn behavior when the specified key combination is pressed.
         /// </summary>
-        /// <param name="keyCombination"></param>
-        /// <returns></returns>
+        /// <param name="keyCombination"> The key combination that was pressed. </param>
+        /// <returns> True if the action was successfully triggered, false otherwise. </returns>
         public bool TriggerToggleKeyPressed(KeyCombination keyCombination)
         {
             if (IsCursorActive()) return false;
@@ -80,40 +87,39 @@ namespace CarryOn.Common.Handlers
         /// <summary>
         /// Triggers the quick drop action when the specified key combination is pressed.
         /// </summary>
-        /// <param name="keyCombination"></param>
-        /// <returns></returns>
+        /// <param name="keyCombination"> The key combination that was pressed. </param>
+        /// <returns> True if the action was successfully triggered, false otherwise. </returns>
         public bool TriggerQuickDropKeyPressed(KeyCombination keyCombination)
         {
             if (IsCursorActive()) return false;
 
             // Send drop message even if client shows nothing being held
-            this.carrySystem.ClientChannel.SendPacket(new QuickDropMessage() { CarrySlots = [CarrySlot.Hands] });
+            this.carrySystem.ClientChannel.SendPacket(new QuickDropMessage(carrySlots: [CarrySlot.Hands]));
             return true;
         }
 
 
         /// <summary>
-        /// Triggers the quick drop action when the specified key combination is pressed.
+        /// Triggers the quick drop all action when the specified key combination is pressed.
         /// </summary>
-        /// <param name="keyCombination"></param>
-        /// <returns></returns>
+        /// <param name="keyCombination"> The key combination that was pressed. </param>
+        /// <returns> True if the action was successfully triggered, false otherwise. </returns>
         public bool TriggerQuickDropAllKeyPressed(KeyCombination keyCombination)
         {
             if (IsCursorActive()) return false;
 
             if (ClientApi.World?.Player == null) return false;
-            //if (ClientApi.OpenedGuis..IsDialogOpen == true || ClientApi.Gui?.IsChatOpen == true) return false;
 
             // Send drop message even if client shows nothing being held
-            this.carrySystem.ClientChannel.SendPacket(new QuickDropMessage() { CarrySlots = [CarrySlot.Hands, CarrySlot.Back] });
+            this.carrySystem.ClientChannel.SendPacket(new QuickDropMessage(carrySlots: [CarrySlot.Hands, CarrySlot.Back]));
             return true;
         }
 
         /// <summary>
         /// Triggers the double-tap dismount toggle when the specified key combination is pressed.
         /// </summary>
-        /// <param name="keyCombination"></param>
-        /// <returns></returns>
+        /// <param name="keyCombination"> The key combination that was pressed. </param>
+        /// <returns> True if the action was successfully triggered, false otherwise. </returns>
         private bool TriggerToggleDoubleTapDismountKeyPressed(KeyCombination keyCombination)
         {
             if (IsCursorActive()) return false;
@@ -133,8 +139,8 @@ namespace CarryOn.Common.Handlers
         /// <summary>
         /// Handles the quick drop action for a player.
         /// </summary>
-        /// <param name="player"></param>
-        /// <param name="message"></param>
+        /// <param name="player"> The player who triggered the quick drop action. </param>
+        /// <param name="message"> The message containing the quick drop details. </param>
         public void OnQuickDropMessage(IServerPlayer player, QuickDropMessage message)
         {
             carrySystem.CarryManager.DropCarried(player.Entity, message.CarrySlots, 2);
@@ -144,8 +150,8 @@ namespace CarryOn.Common.Handlers
         /// Handles player attribute updates.
         /// Currently only updates the double-tap dismount attribute which toggles the feature for the player.
         /// </summary>
-        /// <param name="player"></param>
-        /// <param name="message"></param>
+        /// <param name="player"> The player whose attributes are being updated. </param>
+        /// <param name="message"> The message containing the attribute update details. </param>
         private void OnPlayerAttributeUpdateMessage(IServerPlayer player, PlayerAttributeUpdateMessage message)
         {
             var playerEntity = player.Entity;

@@ -4,9 +4,9 @@ using Vintagestory.API.MathTools;
 namespace CarryOn.Common.Network
 {
     [ProtoContract(ImplicitFields = ImplicitFields.AllFields)]
-    public class InteractMessage
+    public record InteractMessage
     {
-        public BlockPos Position { get; }
+        public BlockPos Position { get; init; }
 
         private InteractMessage() { }
 

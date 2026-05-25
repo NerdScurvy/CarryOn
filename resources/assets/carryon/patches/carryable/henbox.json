@@ -15,6 +15,14 @@
 			"name": "Carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Henbox",
+				"transformGroups": {
+					"hands": [
+						{
+							"translationY": 0.1,
+							"rotationY": 90.0
+						}
+					]
+				},
 				"slots": {
 					"Hands": {}
 				}

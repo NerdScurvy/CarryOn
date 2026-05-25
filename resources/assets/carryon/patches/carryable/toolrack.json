@@ -8,6 +8,14 @@
 			"name": "Carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.ToolRack",
+				"transformGroups": {
+					"hands": [
+						{
+							"translation": [ -0.1, 0.1, 0.0 ],
+							"rotation": [ 0.0, -90.0, -30.0 ]
+						}
+					]
+				},
 				"slots": {
 					"Hands": {}
 				}

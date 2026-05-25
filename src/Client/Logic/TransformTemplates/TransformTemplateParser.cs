@@ -5,6 +5,7 @@ using CarryOn.Utility;
 using Newtonsoft.Json.Linq;
 using Vintagestory.API.Client;
 using Vintagestory.API.Datastructures;
+using Vintagestory.API.MathTools;
 
 namespace CarryOn.Client.Logic.TransformTemplates
 {
@@ -47,13 +48,20 @@ namespace CarryOn.Client.Logic.TransformTemplates
 
                 if (prop.Value.Type == JTokenType.Array)
                 {
-                    var group = new TransformGroup { GroupName = groupName };
-
+                    var baseList = new List<TransformGroupSettings>();
                     foreach (var token in (JArray)prop.Value)
                     {
                         var settings = ParseTransformGroupSettings(new JsonObject(token));
-                        if (settings != null) group.AddBaseSettings(settings);
+                        if (settings != null) baseList.Add(settings);
                     }
+
+                    var group = new TransformGroup(
+                        GroupName: groupName,
+                        ExtendsGroup: null,
+                        Base: baseList,
+                        Overrides: Array.Empty<TransformGroupSettings>(),
+                        Appends: Array.Empty<TransformGroupSettings>()
+                    );
 
                     parsed[groupName] = group;
                     continue;
@@ -77,18 +85,35 @@ namespace CarryOn.Client.Logic.TransformTemplates
 
         public TransformGroup ParseTransformGroup(JsonObject groupJson, string groupName = null)
         {
-            if (groupJson == null || !groupJson.Exists) return new TransformGroup { GroupName = groupName };
+            if (groupJson == null || !groupJson.Exists)
+            {
+                return new TransformGroup(
+                    GroupName: groupName,
+                    ExtendsGroup: null,
+                    Base: Array.Empty<TransformGroupSettings>(),
+                    Overrides: Array.Empty<TransformGroupSettings>(),
+                    Appends: Array.Empty<TransformGroupSettings>()
+                );
+            }
 
-            var group = new TransformGroup { GroupName = groupName };
+            string extendsGroup = null;
+            if (JsonHelper.TryGetString(groupJson, "extends", out var ext)) extendsGroup = ext;
 
-            if (JsonHelper.TryGetString(groupJson, "extends", out var extendsGroup))
-                group.ExtendsGroup = extendsGroup;
+            var baseList = new List<TransformGroupSettings>();
+            var overridesList = new List<TransformGroupSettings>();
+            var appendsList = new List<TransformGroupSettings>();
 
-            ReadSettingsArray(groupJson, "base", group.AddBaseSettings, groupName);
-            ReadSettingsArray(groupJson, "overrides", group.AddOverrideSettings, groupName);
-            ReadSettingsArray(groupJson, "appends", group.AddAppendSettings, groupName);
+            ReadSettingsArray(groupJson, "base", s => baseList.Add(s), groupName);
+            ReadSettingsArray(groupJson, "overrides", s => overridesList.Add(s), groupName);
+            ReadSettingsArray(groupJson, "appends", s => appendsList.Add(s), groupName);
 
-            return group;
+            return new TransformGroup(
+                GroupName: groupName,
+                ExtendsGroup: extendsGroup,
+                Base: baseList,
+                Overrides: overridesList,
+                Appends: appendsList
+            );
         }
 
         /// <summary>
@@ -101,53 +126,130 @@ namespace CarryOn.Client.Logic.TransformTemplates
         {
             if (settingsJson == null || !settingsJson.Exists) return null;
 
-            var settings = new TransformGroupSettings();
+            string id = null;
+            EnumAssetType assetType = EnumAssetType.None;
+            string assetName = null;
+            string disableIfItemStackPath = null;
+            string beDataItemStackPath = null;
+            float? translationX = null, translationY = null, translationZ = null;
+            float? rotationX = null, rotationY = null, rotationZ = null;
+            float? scaleX = null, scaleY = null, scaleZ = null;
+            float? originX = null, originY = null, originZ = null;
+            bool? cullFaces = null;
+            float? alphaTestOpaque = null, alphaTestBlend = null;
+            bool? normalShaded = null;
+            string renderPass = null;
+            Vec4f tintColor = null;
+            string climateTintMap = null, seasonalTintMap = null;
+            float? glowIntensity = null;
+            bool enabled = true;
 
-            if (JsonHelper.TryGetString(settingsJson, "id", out var id)) settings.Id = id;
+            if (JsonHelper.TryGetString(settingsJson, "id", out var idVal)) id = idVal;
 
             if (JsonHelper.TryGetString(settingsJson, "item", out var item))
             {
-                settings.AssetType = EnumAssetType.Item;
-                settings.AssetName = item;
+                assetType = EnumAssetType.Item;
+                assetName = item;
             }
             else if (JsonHelper.TryGetString(settingsJson, "block", out var block))
             {
-                settings.AssetType = EnumAssetType.Block;
-                settings.AssetName = block;
+                assetType = EnumAssetType.Block;
+                assetName = block;
             }
 
-            if (JsonHelper.TryGetVec3f(settingsJson, "translation", out var translation)) settings.SetTranslation(translation);
-            if (JsonHelper.TryGetVec3f(settingsJson, "rotation", out var rotation)) settings.SetRotation(rotation);
-            if (JsonHelper.TryGetVec3f(settingsJson, "origin", out var origin)) settings.SetOrigin(origin);
-            if (JsonHelper.TryGetVec3f(settingsJson, "scale", out var scaleVec)) settings.SetScale(scaleVec);
-            if (JsonHelper.TryGetFloat(settingsJson, "scale", out var scaleFloat)) settings.SetScale(scaleFloat, scaleFloat, scaleFloat);
+            if (JsonHelper.TryGetString(settingsJson, "disableIfItemStackPath", out var disableIfPath))
+            {
+                disableIfItemStackPath = disableIfPath;
+            }
 
-            if (JsonHelper.TryGetFloat(settingsJson, "translationX", out var tx)) settings.TranslationX = tx;
-            if (JsonHelper.TryGetFloat(settingsJson, "translationY", out var ty)) settings.TranslationY = ty;
-            if (JsonHelper.TryGetFloat(settingsJson, "translationZ", out var tz)) settings.TranslationZ = tz;
-            if (JsonHelper.TryGetFloat(settingsJson, "rotationX", out var rx)) settings.RotationX = rx;
-            if (JsonHelper.TryGetFloat(settingsJson, "rotationY", out var ry)) settings.RotationY = ry;
-            if (JsonHelper.TryGetFloat(settingsJson, "rotationZ", out var rz)) settings.RotationZ = rz;
-            if (JsonHelper.TryGetFloat(settingsJson, "scaleX", out var sx)) settings.ScaleX = sx;
-            if (JsonHelper.TryGetFloat(settingsJson, "scaleY", out var sy)) settings.ScaleY = sy;
-            if (JsonHelper.TryGetFloat(settingsJson, "scaleZ", out var sz)) settings.ScaleZ = sz;
-            if (JsonHelper.TryGetFloat(settingsJson, "originX", out var ox)) settings.OriginX = ox;
-            if (JsonHelper.TryGetFloat(settingsJson, "originY", out var oy)) settings.OriginY = oy;
-            if (JsonHelper.TryGetFloat(settingsJson, "originZ", out var oz)) settings.OriginZ = oz;
+            if (JsonHelper.TryGetString(settingsJson, "blockEntityDataItemStackPath", out var bePath))
+            {
+                beDataItemStackPath = bePath;
+            }
 
-            if (JsonHelper.TryGetBool(settingsJson, "cullFaces", out var cullFaces)) settings.CullFaces = cullFaces;
-            if (JsonHelper.TryGetFloat(settingsJson, "alphaTestOpaque", out var ato)) settings.AlphaTestOpaque = ato;
-            if (JsonHelper.TryGetFloat(settingsJson, "alphaTestBlend", out var atb)) settings.AlphaTestBlend = atb;
-            if (JsonHelper.TryGetBool(settingsJson, "normalShaded", out var normalShaded)) settings.NormalShaded = normalShaded;
-            if (JsonHelper.TryGetString(settingsJson, "renderPass", out var renderPass)) settings.RenderPass = renderPass;
-            if (JsonHelper.TryGetVec4f(settingsJson, "tintColor", out var tintColor)) settings.TintColor = tintColor;
+            if (JsonHelper.TryGetVec3f(settingsJson, "translation", out var translation))
+            {
+                translationX = translation.X;
+                translationY = translation.Y;
+                translationZ = translation.Z;
+            }
+            if (JsonHelper.TryGetVec3f(settingsJson, "rotation", out var rotation))
+            {
+                rotationX = rotation.X;
+                rotationY = rotation.Y;
+                rotationZ = rotation.Z;
+            }
+            if (JsonHelper.TryGetVec3f(settingsJson, "origin", out var origin))
+            {
+                originX = origin.X;
+                originY = origin.Y;
+                originZ = origin.Z;
+            }
+            if (JsonHelper.TryGetVec3f(settingsJson, "scale", out var scaleVec))
+            {
+                scaleX = scaleVec.X;
+                scaleY = scaleVec.Y;
+                scaleZ = scaleVec.Z;
+            }
+            if (JsonHelper.TryGetFloat(settingsJson, "scale", out var scaleFloat))
+            {
+                scaleX = scaleY = scaleZ = scaleFloat;
+            }
 
-            if (JsonHelper.TryGetString(settingsJson, "climateTintMap", out var climateTintMap)) settings.ClimateTintMap = climateTintMap;
-            if (JsonHelper.TryGetString(settingsJson, "seasonalTintMap", out var seasonalTintMap)) settings.SeasonalTintMap = seasonalTintMap;
-            if (JsonHelper.TryGetFloat(settingsJson, "glowIntensity", out var glowIntensity)) settings.GlowIntensity = glowIntensity;
-            if (JsonHelper.TryGetBool(settingsJson, "enabled", out var enabled)) settings.Enabled = enabled;
+            if (JsonHelper.TryGetFloat(settingsJson, "translationX", out var tx)) translationX = tx;
+            if (JsonHelper.TryGetFloat(settingsJson, "translationY", out var ty)) translationY = ty;
+            if (JsonHelper.TryGetFloat(settingsJson, "translationZ", out var tz)) translationZ = tz;
+            if (JsonHelper.TryGetFloat(settingsJson, "rotationX", out var rx)) rotationX = rx;
+            if (JsonHelper.TryGetFloat(settingsJson, "rotationY", out var ry)) rotationY = ry;
+            if (JsonHelper.TryGetFloat(settingsJson, "rotationZ", out var rz)) rotationZ = rz;
+            if (JsonHelper.TryGetFloat(settingsJson, "scaleX", out var sx)) scaleX = sx;
+            if (JsonHelper.TryGetFloat(settingsJson, "scaleY", out var sy)) scaleY = sy;
+            if (JsonHelper.TryGetFloat(settingsJson, "scaleZ", out var sz)) scaleZ = sz;
+            if (JsonHelper.TryGetFloat(settingsJson, "originX", out var ox)) originX = ox;
+            if (JsonHelper.TryGetFloat(settingsJson, "originY", out var oy)) originY = oy;
+            if (JsonHelper.TryGetFloat(settingsJson, "originZ", out var oz)) originZ = oz;
 
-            return settings;
+            if (JsonHelper.TryGetBool(settingsJson, "cullFaces", out var cull)) cullFaces = cull;
+            if (JsonHelper.TryGetFloat(settingsJson, "alphaTestOpaque", out var ato)) alphaTestOpaque = ato;
+            if (JsonHelper.TryGetFloat(settingsJson, "alphaTestBlend", out var atb)) alphaTestBlend = atb;
+            if (JsonHelper.TryGetBool(settingsJson, "normalShaded", out var normal)) normalShaded = normal;
+            if (JsonHelper.TryGetString(settingsJson, "renderPass", out var rp)) renderPass = rp;
+            if (JsonHelper.TryGetVec4f(settingsJson, "tintColor", out var tint)) tintColor = tint;
+
+            if (JsonHelper.TryGetString(settingsJson, "climateTintMap", out var climate)) climateTintMap = climate;
+            if (JsonHelper.TryGetString(settingsJson, "seasonalTintMap", out var seasonal)) seasonalTintMap = seasonal;
+            if (JsonHelper.TryGetFloat(settingsJson, "glowIntensity", out var glow)) glowIntensity = glow;
+            if (JsonHelper.TryGetBool(settingsJson, "enabled", out var en)) enabled = en;
+
+            return new TransformGroupSettings(
+                Id: id,
+                AssetType: assetType,
+                AssetName: assetName,
+                DisableIfItemStackPath: disableIfItemStackPath,
+                BlockEntityDataItemStackPath: beDataItemStackPath,
+                TranslationX: translationX,
+                TranslationY: translationY,
+                TranslationZ: translationZ,
+                RotationX: rotationX,
+                RotationY: rotationY,
+                RotationZ: rotationZ,
+                ScaleX: scaleX,
+                ScaleY: scaleY,
+                ScaleZ: scaleZ,
+                OriginX: originX,
+                OriginY: originY,
+                OriginZ: originZ,
+                CullFaces: cullFaces,
+                AlphaTestOpaque: alphaTestOpaque,
+                AlphaTestBlend: alphaTestBlend,
+                NormalShaded: normalShaded,
+                RenderPass: renderPass,
+                TintColor: tintColor,
+                ClimateTintMap: climateTintMap,
+                SeasonalTintMap: seasonalTintMap,
+                GlowIntensity: glowIntensity,
+                Enabled: enabled
+            );
         }
 
         /// <summary>

@@ -8,12 +8,19 @@
 			"name": "Carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.ChestTrunk",
-				"translation": [ 0.0625, 0, -0.5 ],
-				"scale": 0.6,
+				"transformGroups": {
+					"hands": [
+						{
+							"id": "root",
+							"translation": [ 0.0, -0.4, -0.2 ],
+							"scale": 0.4
+						}
+					]
+				},
 				"slots": {
 					"Hands": {
 						"animation": "carryon:holdheavy",
-						"walkSpeedModifier": -0.75
+						"walkSpeedModifier": -0.7
 					}
 				}
 			}
@@ -33,17 +40,63 @@
 			"name": "Carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.ChestTrunk",
-				"translation": [ 0.0625, 0, -0.5 ],
-				"scale": 0.6,
+				"transformTemplates": [
+					"carryon:carry-chest"
+				],
+				"transformGroups": {
+					"@backpack-none": [
+						{
+							"id": "root",
+							"enabled": false
+						},
+						{
+							"id": "visual",
+							"translation": [ 0.03, -0.06, -0.4 ],
+							"scale": 0.79
+						}
+					],
+					"@backpack-small": [
+						{
+							"id": "root",
+							"enabled": false
+						},
+						{
+							"id": "visual",
+							"translation": [ 0.03, -0.064, -0.4 ],
+							"scale": 0.79
+						}
+					],
+					"@backpack-large": [
+						{
+							"id": "root",
+							"enabled": false
+						},
+						{
+							"id": "visual",
+							"translation": [ 0.03, -0.06, -0.4 ],
+							"scale": 0.79
+						}
+					],
+					"@hands": [
+						{
+							"id": "root",
+							"enabled": false
+						},
+						{
+							"id": "visual",
+							"translation": [ 0.03, 0.1, -0.4 ],
+							"scale": 0.79
+						}
+					]
+				},
 				"slots": {
 					"Hands": {
 						"animation": "carryon:holdheavy",
-						"walkSpeedModifier": -0.3
+						"walkSpeedModifier": -0.5
 					},
 					"Back": {
 						"enabledCondition": "carryon.CarryablesOnBack.ChestTrunk",
-						"walkSpeedModifier": -0.2,
-						"rotation": [ 0, 180, 0 ]
+						"walkSpeedModifier": -0.3
 					}
 				}
 			}
@@ -63,70 +116,63 @@
 			"name": "Carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Chest",
-				"translation": [ -0.1175, -0.04, 0.0 ],
-				"scale": 0.55,
+				"transformTemplates": [
+					"carryon:carry-chest"
+				],
+				"transformGroups": {
+					"@backpack-none": [
+						{
+							"id": "root",
+							"enabled": false
+						},
+						{
+							"id": "visual",
+							"translation": [ 0.03, -0.06, 0.0 ],
+							"scale": 0.79
+						}
+					],
+					"@backpack-small": [
+						{
+							"id": "root",
+							"enabled": false
+						},
+						{
+							"id": "visual",
+							"translation": [ 0.03, -0.064, 0.0 ],
+							"scale": 0.79
+						}
+					],
+					"@backpack-large": [
+						{
+							"id": "root",
+							"enabled": false
+						},
+						{
+							"id": "visual",
+							"translation": [ 0.03, -0.06, 0.0 ],
+							"scale": 0.79
+						}
+					],
+					"@hands": [
+						{
+							"id": "root",
+							"enabled": false
+						},
+						{
+							"id": "visual",
+							"translation": [ 0.03, -0.06, 0.0 ],
+							"scale": 0.79
+						}
+					]
+				},
 				"slots": {
 					"Hands": {
 						"animation": "carryon:holdheavy",
-						"walkSpeedModifier": -0.1,
-						"transforms": {
-							"default": [
-								{
-									"translation": [ -0.2234, 0.0, 0.0 ],
-									"rotation": [ 0.0, 180.0, 0.0 ],
-									"scale": 0.5
-								}
-							]
-						}
+						"walkSpeedModifier": -0.1
 					},
 					"Back": {
 						"enabledCondition": "carryon.CarryablesOnBack.Chest",
-						"walkSpeedModifier": -0.2,
-						"transforms": {
-							"default": [
-								{
-									"translation": [ -0.2334, -0.06, 0.0061 ],
-									"rotation": [ 1.0, 180.0, 0.0 ],
-									"scale": 0.5
-								},
-								{
-									"item": "carryon:strap",
-									"translation": [ -0.51, 1.1, 0.3 ],
-									"rotation": [ 0.0, 90.0, 2.0 ],
-									"scale": [ 0.8, 0.8, 1.27 ]
-								},
-								{
-									"item": "carryon:strap",
-									"translation": [ -0.52, 1.12, 0.7 ],
-									"rotation": [ 0.0, 90.0, 2.0 ],
-									"scale": [ 0.8, 0.8, 1.17 ]
-								},
-								{
-									"item": "carryon:strap",
-									"translation": [ -0.51, 1.1226, 0.7 ],
-									"rotation": [ 2.0, 90.0, 271.0 ],
-									"scale": [ 0.8, 0.8, 1.0497 ]
-								},
-								{
-									"item": "carryon:strap",
-									"translation": [ -0.519, 1.0766, 0.29 ],
-									"rotation": [ -2.0, 90.0, 271.0 ],
-									"scale": [ 0.8, 0.8, 0.99 ]
-								},
-								{
-									"item": "carryon:strap",
-									"translation": [ -0.5113, 0.1, 0.3267 ],
-									"rotation": [ 0.0, 88.0, 0.0 ],
-									"scale": [ 0.8, 0.8, 1.37 ]
-								},
-								{
-									"item": "carryon:strap",
-									"translation": [ -0.4999, 0.09, 0.6733 ],
-									"rotation": [ 0.0, 92.0, 0.0 ],
-									"scale": [ 0.8, 0.8, 1.37 ]
-								}
-							]
-						}
+						"walkSpeedModifier": -0.2
 					}
 				}
 			}

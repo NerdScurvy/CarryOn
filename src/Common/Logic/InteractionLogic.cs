@@ -307,7 +307,7 @@ namespace CarryOn.Common.Logic
                     break;
 
                 case CarryAction.PlaceDown:
-                    if (this.carrySystem.CarryManager.TryPlaceDownAt(player, carriedTarget, selection, out var placedAt, ref failureCode))
+                    if (this.carrySystem.CarryManager.TryPlaceDownAt(player, carriedTarget.Slot, selection, out var placedAt, ref failureCode))
                         this.carrySystem.ClientChannel.SendPacket(new PlaceDownMessage(Interaction.CarrySlot.Value, selection, placedAt));
                     else
                     {
@@ -341,11 +341,7 @@ namespace CarryOn.Common.Logic
                     break;
 
                 case CarryAction.Put:
-                    var putMessage = new PutMessage()
-                    {
-                        BlockPos = Interaction.TargetBlockPos,
-                        Index = Interaction.TargetSlotIndex ?? -1
-                    };
+                    var putMessage = new PutMessage(blockPos: Interaction.TargetBlockPos, index: Interaction.TargetSlotIndex ?? -1);
 
                     // Call Client side
                     if (!this.transferLogic.TryPutCarryable(player, putMessage, out failureCode, out onScreenErrorMessage))
@@ -367,11 +363,7 @@ namespace CarryOn.Common.Logic
                     break;
 
                 case CarryAction.Take:
-                    var takeMessage = new TakeMessage()
-                    {
-                        BlockPos = Interaction.TargetBlockPos,
-                        Index = Interaction.TargetSlotIndex ?? -1
-                    };
+                    var takeMessage = new TakeMessage(blockPos: Interaction.TargetBlockPos, index: Interaction.TargetSlotIndex ?? -1);
 
                     // Call Client side
                     if (!this.transferLogic.TryTakeCarryable(player, takeMessage, out failureCode, out onScreenErrorMessage))
@@ -505,7 +497,7 @@ namespace CarryOn.Common.Logic
                 {
                     if (!Interaction.Slot.Empty)
                     {
-                        this.api.TriggerIngameError("carryon", "slot-not-empty", GetLang("slot-not-empty"));
+                        this.api.TriggerIngameError("carryon", FailureCode.SlotNotEmpty, GetLang(FailureCode.SlotNotEmpty));
                         CompleteInteraction();
                         handled = EnumHandling.PreventDefault;
                         return true;
@@ -516,7 +508,7 @@ namespace CarryOn.Common.Logic
                 {
                     if (Interaction.Slot.Empty)
                     {
-                        this.api.TriggerIngameError("carryon", "slot-empty", GetLang("slot-empty"));
+                        this.api.TriggerIngameError("carryon", FailureCode.SlotEmpty, GetLang(FailureCode.SlotEmpty));
                         CompleteInteraction();
                         return true;
                     }
@@ -680,6 +672,25 @@ namespace CarryOn.Common.Logic
             var selection = player.CurrentBlockSelection;
             var carriedHands = player.Entity.GetCarried(CarrySlot.Hands);
 
+            // Some targets reserve the swap-back modifier for base block interactions.
+            // In that case, skip carry actions so input can pass through.
+            // Exception: force-pickup targets (e.g. mold rack) must still allow CarryOn pickup
+            // while swap-back modifier is held.
+            if (api.Input.IsCarrySwapBackKeyPressed() && selection != null)
+            {
+                var swapCheckSelection = BlockUtils.GetMultiblockOriginSelection(world.BlockAccessor, selection);
+                if (SelectionPreventsSwap(swapCheckSelection))
+                {
+                    var carryable = swapCheckSelection?.Block?.GetBehavior<BlockBehaviorCarryable>();
+                    var allowForcePickup = carryable?.ForcePickupOnSwapBack == true;
+
+                    if (!allowForcePickup)
+                    {
+                        return false;
+                    }
+                }
+            }
+
             // If something's being held..
             if (carriedHands != null)
             {
@@ -755,8 +766,8 @@ namespace CarryOn.Common.Logic
                 return false;
             }
 
-            // Some targets reserve the swap-back modifier for force-pickup.
-            // In that case, skip transfer handling so pickup logic can run.
+            // Some targets reserve the swap-back modifier for base block interactions.
+            // In that case, skip transfer handling so input can pass through.
             if (api.Input.IsCarrySwapBackKeyPressed() && SelectionPreventsSwap(selection))
             {
                 return false;
@@ -884,10 +895,10 @@ namespace CarryOn.Common.Logic
                 }
             }
 
-            // Check carryable behavior's ForcePickupOnSwapBack flag.
+            // Check carryable behavior's swap-back flags.
             // This allows mods to opt-in programmatically or via JSON without touching server config.
             var carryable = block.GetBehavior<BlockBehaviorCarryable>();
-            if (carryable?.ForcePickupOnSwapBack == true) return true;
+            if (carryable?.ForcePickupOnSwapBack == true || carryable?.SwapBackKeyPassthrough == true) return true;
 
             return false;
         }        

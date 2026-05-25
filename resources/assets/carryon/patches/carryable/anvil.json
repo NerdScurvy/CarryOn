@@ -9,17 +9,19 @@
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Anvil",
 				"interactDelay": 1.5,
+				"transformGroups": {
+					"hands": [
+						{
+							"translationY": 0.1,
+							"rotationY": -90.0,
+							"rotationZ": 10.0,
+							"scale": 0.8
+						}
+					]
+				},
 				"slots": {
 					"Hands": {
-						"walkSpeedModifier": -0.5,
-						"transforms": {
-							"default": [
-								{
-									"rotation": [ 0.0, 90.0, 10.0 ],
-									"scale": 0.8
-								}
-							]
-						}
+						"walkSpeedModifier": -0.5
 					}
 				}
 			}

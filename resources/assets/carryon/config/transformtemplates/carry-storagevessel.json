@@ -4,13 +4,14 @@
 		"hands": [
 			{
 				"id": "root",
-				"translationY": 0.1
+				"translationY": -0.02,
+				"rotationY": 180.0
 			}
 		],
 		"backpack-none": [
 			{
 				"id": "root",
-				"translation": [ -0.0075, 0.1, 0.0012 ],
+				"translation": [ -0.0075, -0.02, 0.0012 ],
 				"rotationY": 180.0
 			},
 			{
@@ -84,7 +85,7 @@
 			"overrides": [
 				{
 					"id": "root",
-					"translation": [ -0.0035, 0.144, 0.0072 ],
+					"translation": [ -0.0035, 0.024, 0.0072 ],
 					"rotationZ": 18.9
 				},
 				{

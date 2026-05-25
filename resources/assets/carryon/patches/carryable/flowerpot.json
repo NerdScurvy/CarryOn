@@ -13,7 +13,7 @@
 					"carryon:carry-flowerpot"
 				],
 				"renderRootFirst": true,
-				"renderTransformResolver": "plant-container",
+				"transformGroupResolver": "plant-container",
 				"slots": {
 					"Hands": {
 						"animation": "carryon:holdlight"

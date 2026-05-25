@@ -83,7 +83,7 @@ namespace CarryOn.Client.Logic.TransformTemplates
 
                     foreach (var kv in groups)
                     {
-                        merged[kv.Key] = kv.Value?.Clone();
+                        merged[kv.Key] = kv.Value?.DeepClone();
                     }
                 }
             }
@@ -92,7 +92,7 @@ namespace CarryOn.Client.Logic.TransformTemplates
             {
                 foreach (var kv in localTransformGroups)
                 {
-                    merged[kv.Key] = kv.Value?.Clone();
+                    merged[kv.Key] = kv.Value?.DeepClone();
                 }
             }
 
@@ -143,7 +143,7 @@ namespace CarryOn.Client.Logic.TransformTemplates
                     }
                     else
                     {
-                        merged.AddRange(parent.Select(s => s.Clone()));
+                        merged.AddRange(parent.Select(s => s.DeepClone()));
                     }
                 }
 
@@ -156,7 +156,7 @@ namespace CarryOn.Client.Logic.TransformTemplates
                     foreach (var s in group.Appends)
                     {
                         if (s == null) continue;
-                        merged.Add(s.Clone());
+                        merged.Add(s.DeepClone());
                     }
                 }
 
@@ -174,7 +174,7 @@ namespace CarryOn.Client.Logic.TransformTemplates
         /// </summary>
         /// <param name="target"> The list of target TransformGroupSettings to apply overrides to. </param>
         /// <param name="incoming"> The list of incoming TransformGroupSettings containing overrides. </param>
-        private static void ApplyUpsertById(List<TransformGroupSettings> target, IList<TransformGroupSettings> incoming)
+        private static void ApplyUpsertById(List<TransformGroupSettings> target, IReadOnlyList<TransformGroupSettings> incoming)
         {
             if (incoming == null) return;
 
@@ -190,12 +190,12 @@ namespace CarryOn.Client.Logic.TransformTemplates
 
                     if (idx >= 0)
                     {
-                        target[idx] = target[idx]?.MergeOverlay(s) ?? s?.Clone();
+                        target[idx] = target[idx]?.MergeOverlay(s) ?? s?.DeepClone();
                         continue;
                     }
                 }
 
-                target.Add(s.Clone());
+                target.Add(s.DeepClone());
             }
         }
 
@@ -341,7 +341,7 @@ namespace CarryOn.Client.Logic.TransformTemplates
 
                 // Incoming entries come from base/overrides/appends of the ^ group, in that order.
                 var incoming = EnumeratePatchEntries(patchGroup);
-                ApplyRelativeAdjustmentsToDefinition(targetGroup, incoming, patchGroupName, targetGroupName);
+                definitions[targetGroupName] = ApplyRelativeAdjustmentsToDefinition(targetGroup, incoming, patchGroupName, targetGroupName);
 
                 // ^ groups are control groups only; do not resolve/flatten them.
                 definitions.Remove(patchGroupName);
@@ -356,42 +356,53 @@ namespace CarryOn.Client.Logic.TransformTemplates
         /// <param name="incoming"> The incoming TransformGroupSettings containing the relative adjustments. </param>
         /// <param name="patchGroupName"> The name of the patch group (with "^" prefix). </param>
         /// <param name="targetGroupName"> The name of the target group. </param>
-        private void ApplyRelativeAdjustmentsToDefinition(
+        private TransformGroup ApplyRelativeAdjustmentsToDefinition(
             TransformGroup targetGroup,
             IEnumerable<TransformGroupSettings> incoming,
             string patchGroupName,
             string targetGroupName)
         {
-            if (targetGroup == null || incoming == null) return;
+            if (targetGroup == null || incoming == null) return targetGroup;
 
-            // Search order inside unresolved definition:
-            // base first, then overrides, then appends.
+            // Work on local copies of the lists
+            var baseList = targetGroup.Base?.ToList() ?? [];
+            var overridesList = targetGroup.Overrides?.ToList() ?? [];
+            var appendsList = targetGroup.Appends?.ToList() ?? [];
+
             foreach (var patch in incoming)
             {
                 if (patch == null) continue;
 
                 if (!string.IsNullOrWhiteSpace(patch.Id))
                 {
-                    if (TryMergeRelativeById(targetGroup.Base, patch)) continue;
-                    if (TryMergeRelativeById(targetGroup.Overrides, patch)) continue;
-                    if (TryMergeRelativeById(targetGroup.Appends, patch)) continue;
+                    if (TryMergeRelativeById(baseList, patch)) continue;
+                    if (TryMergeRelativeById(overridesList, patch)) continue;
+                    if (TryMergeRelativeById(appendsList, patch)) continue;
 
                     // If id not present in target group definition, append to overrides.
-                    targetGroup.AddOverrideSettings(patch.Clone());
+                    overridesList.Add(patch.DeepClone());
                     continue;
                 }
 
                 // No id: allow only if target definition has exactly one entry total.
-                var total = (targetGroup.Base?.Count ?? 0) + (targetGroup.Overrides?.Count ?? 0) + (targetGroup.Appends?.Count ?? 0);
+                var total = (baseList?.Count ?? 0) + (overridesList?.Count ?? 0) + (appendsList?.Count ?? 0);
                 if (total == 1)
                 {
-                    if (TryMergeRelativeFirst(targetGroup.Base, patch)) continue;
-                    if (TryMergeRelativeFirst(targetGroup.Overrides, patch)) continue;
-                    if (TryMergeRelativeFirst(targetGroup.Appends, patch)) continue;
+                    if (TryMergeRelativeFirst(baseList, patch)) continue;
+                    if (TryMergeRelativeFirst(overridesList, patch)) continue;
+                    if (TryMergeRelativeFirst(appendsList, patch)) continue;
                 }
 
                 capi.Logger.Warning($"CarryOn: transform group pre-adjustment '{patchGroupName}' has entry without id, but target group '{targetGroupName}' cannot be uniquely matched.");
             }
+
+            // Return a new record with updated lists
+            return targetGroup with
+            {
+                Base = baseList,
+                Overrides = overridesList,
+                Appends = appendsList
+            };
         }
  
 
@@ -428,14 +439,14 @@ namespace CarryOn.Client.Logic.TransformTemplates
                         continue;
                     }
 
-                    target[idx] = target[idx]?.MergeRelative(s) ?? s.Clone();
+                    target[idx] = target[idx]?.MergeRelative(s) ?? s.DeepClone();
 
                     continue;
                 }
 
                 if (target.Count == 1)
                 {
-                    target[0] = target[0]?.MergeRelative(s) ?? s.Clone();
+                    target[0] = target[0]?.MergeRelative(s) ?? s.DeepClone();
                     continue;
                 }
 
@@ -515,7 +526,7 @@ namespace CarryOn.Client.Logic.TransformTemplates
                 return false;
             }
 
-            list[0] = (list[0]?.MergeRelative(patch)) ?? patch.Clone();
+            list[0] = (list[0]?.MergeRelative(patch)) ?? patch.DeepClone();
             return true;
         }      
     }

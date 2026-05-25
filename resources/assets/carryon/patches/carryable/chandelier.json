@@ -9,15 +9,14 @@
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Chandelier",
 				"transformGroups": {
-					"hands": 
-						[
-							{
-								"id": "root",
-								"glowIntensity": 1.0
-							}
-						]
-					
-
+					"hands": [
+						{
+							"id": "root",
+							"translationY": 0.05,
+							"rotationZ": -20.0,
+							"glowIntensity": 1.0
+						}
+					]
 				},
 				"slots": {
 					"Hands": {}

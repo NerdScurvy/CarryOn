@@ -18,7 +18,7 @@
 					},
 					"Back": {
 						"enabledCondition": "carryon.CarryablesOnBack.ChestTrunk",
-						"walkSpeedModifier": -0.2
+						"walkSpeedModifier": -0.3
 					}
 				}
 			}

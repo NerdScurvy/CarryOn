@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using CarryOn.API.Common.Models;
 using CarryOn.Utility;
@@ -66,12 +67,37 @@ namespace CarryOn.Client.Logic.CarryRenderer
                     }
                 }
 
+                ItemStack beDataItemStack = null;
+                if (!string.IsNullOrWhiteSpace(setting.BlockEntityDataItemStackPath))
+                {
+                    beDataItemStack = CarryRenderHelpers.TryGetItemStackByPath(
+                        carried?.BlockEntityData,
+                        setting.BlockEntityDataItemStackPath,
+                        this.api.World);
+                }
+
+                var disableIfItemStack = !string.IsNullOrWhiteSpace(setting.DisableIfItemStackPath)
+                    && CarryRenderHelpers.TryGetItemStackByPath(
+                        carried?.BlockEntityData,
+                        setting.DisableIfItemStackPath,
+                        this.api.World) != null;
+
                 bool useSlotStack =
                     slotItemStack != null &&
                     (
                         string.IsNullOrEmpty(setting.AssetName) ||
                         CarryRenderHelpers.IsSameCollectible(slotItemStack, setting.AssetName)
                     );
+
+                // If this transform explicitly requests a BE-driven stack source and none exists,
+                // do not implicitly fall back to the carried root stack unless another explicit
+                // source (slot match or item/block asset) is available.
+                var hasBeItemPath = !string.IsNullOrWhiteSpace(setting.BlockEntityDataItemStackPath);
+                var hasExplicitAsset = !string.IsNullOrWhiteSpace(setting.AssetName);
+                if (hasBeItemPath && beDataItemStack == null && !useSlotStack && !hasExplicitAsset)
+                {
+                    continue;
+                }
 
                 if (useSlotStack)
                 {
@@ -100,6 +126,13 @@ namespace CarryOn.Client.Logic.CarryRenderer
                     var itemStack = new ItemStack(itemOrBlock);
                     targetRenderInfo = this.api.Render.GetItemStackRenderInfo(
                         new DummySlot(itemStack),
+                        EnumItemRenderTarget.Ground,
+                        0);
+                }
+                else if (beDataItemStack != null)
+                {
+                    targetRenderInfo = this.api.Render.GetItemStackRenderInfo(
+                        new DummySlot(beDataItemStack),
                         EnumItemRenderTarget.Ground,
                         0);
                 }
@@ -137,7 +170,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
                     NormalShaded = setting.NormalShaded,
                     RenderPass = setting.RenderPass,
                     SecondaryTransform = secondaryTransform,
-                    RenderEnabled = setting.Enabled ?? true
+                    RenderEnabled = (setting.Enabled ?? true) && !disableIfItemStack
                 });
             }
 

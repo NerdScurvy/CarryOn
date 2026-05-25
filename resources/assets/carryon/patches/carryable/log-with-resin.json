@@ -8,18 +8,62 @@
 			"name": "Carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.LogWithResin",
+				"transformTemplates": [
+					"carryon:carry-crate"
+				],
+				"transformGroups": {
+					"@backpack-none": [
+						{
+							"id": "root",
+							"enabled": false
+						},
+						{
+							"id": "log-visual",
+							"rotationY": 90.0,
+							"scale": 1.0
+						}
+					],
+					"@backpack-small": [
+						{
+							"id": "root",
+							"enabled": false
+						},
+						{
+							"id": "log-visual",
+							"rotationY": 90.0,
+							"scale": 1.0
+						}
+					],
+					"@backpack-large": [
+						{
+							"id": "root",
+							"enabled": false
+						},
+						{
+							"id": "log-visual",
+							"rotationY": 90.0,
+							"scale": 1.0
+						}
+					],
+					"@hands": [
+						{
+							"id": "root",
+							"enabled": false
+						},
+						{
+							"id": "log-visual",
+							"rotationY": 90.0,
+							"scale": 1.0
+						}
+					]
+				},
 				"slots": {
 					"Hands": {
-						"transforms": {
-							"default": [
-								{
-									"rotation": [ 0.0, 180.0, 0.0 ]
-								}
-							]
-						}
+						"walkSpeedModifier": -0.2
 					},
 					"Back": {
-						"enabledCondition": "carryon.CarryablesOnBack.LogWithResin"
+						"enabledCondition": "carryon.CarryablesOnBack.LogWithResin",
+						"walkSpeedModifier": -0.2
 					}
 				}
 			}
@@ -34,16 +78,57 @@
 			"name": "Carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.LogWithResin",
-				"slots": {
-					"Hands": {
-						"transforms": {
-							"default": [
-								{
-									"rotation": [ 0.0, 180.0, 0.0 ]
-								}
-							]
+				"transformTemplates": [
+					"carryon:carry-crate"
+				],
+				"transformGroups": {
+					"@backpack-none": [
+						{
+							"id": "root",
+							"enabled": false
+						},
+						{
+							"id": "log-visual",
+							"rotationY": 90.0,
+							"scale": 1.0
 						}
-					},
+					],
+					"@backpack-small": [
+						{
+							"id": "root",
+							"enabled": false
+						},
+						{
+							"id": "log-visual",
+							"rotationY": 90.0,
+							"scale": 1.0
+						}
+					],
+					"@backpack-large": [
+						{
+							"id": "root",
+							"enabled": false
+						},
+						{
+							"id": "log-visual",
+							"rotationY": 90.0,
+							"scale": 1.0
+						}
+					],
+					"@hands": [
+						{
+							"id": "root",
+							"enabled": false
+						},
+						{
+							"id": "log-visual",
+							"rotationY": 90.0,
+							"scale": 1.0
+						}
+					]
+				},
+				"slots": {
+					"Hands": {},
 					"Back": {
 						"enabledCondition": "carryon.CarryablesOnBack.LogWithResin"
 					}

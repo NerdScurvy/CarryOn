@@ -35,11 +35,6 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
                 return false;
             }
 
-            if (carried.Block.Class is not ("BlockPlantContainer" or "BlockFlowerPot"))
-            {
-                return false;
-            }
-
             var containerSlots = TransformGroupResolverHelper.GetContainerSlots(carried);
 
             if (containerSlots == null || containerSlots.Count == 0)

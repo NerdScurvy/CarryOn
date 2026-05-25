@@ -8,6 +8,13 @@
 			"name": "Carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Forge",
+				"transformGroups": {
+					"hands": [
+						{
+							"rotationY": -90.0
+						}
+					]
+				},
 				"slots": {
 					"Hands": {}
 				}

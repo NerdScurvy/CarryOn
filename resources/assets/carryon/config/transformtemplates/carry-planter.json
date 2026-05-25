@@ -23,7 +23,7 @@
 			"overrides": [
 				{
 					"id": "root",
-					"translationY": 0.2
+					"translationY": 0.08
 				}
 			]
 		},
@@ -32,8 +32,8 @@
 			"overrides": [
 				{
 					"id": "root",
-					"translationY": 0.14,
-					"rotation": [ 0.0, 160.0, -10.0 ]
+					"translation": [ -0.02, 0.09, 0.03 ],
+					"rotation": [ 11.0, 178.0, -10.0 ]
 				}
 			]
 		},
@@ -42,7 +42,7 @@
 			"overrides": [
 				{
 					"id": "root",
-					"translation": [ 0.024, 0.12, 0.048 ],
+					"translation": [ 0.024, 0.0, 0.048 ],
 					"rotation": [ 30.0, 25.0, -17.0 ]
 				}
 			]
@@ -59,7 +59,7 @@
 		"backpack-none": [
 			{
 				"id": "root",
-				"translation": [ 0.05, 0.1, 0.01 ],
+				"translation": [ 0.05, -0.02, 0.01 ],
 				"rotation": [ 0.0, 197.0, -88.0 ]
 			},
 			{
@@ -110,7 +110,7 @@
 			"overrides": [
 				{
 					"id": "root",
-					"translation": [ 0.08, 0.26, 0.0 ],
+					"translation": [ 0.08, 0.14, 0.0 ],
 					"rotation": [ 10.0, 177.0, -68.0 ]
 				},
 				{
@@ -137,7 +137,7 @@
 			"overrides": [
 				{
 					"id": "root",
-					"translation": [ 0.034, 0.3, 0.0 ],
+					"translation": [ 0.034, 0.18, 0.0 ],
 					"rotation": [ 9.0, 180.0, -73.0 ]
 				},
 				{
@@ -158,7 +158,9 @@
 			"overrides": [
 				{
 					"id": "root",
-					"translationY": 0.1
+					"translation": [ 0.06, -0.02, -0.03 ],
+					"rotationX": 10.0,
+					"rotationZ": -20.0
 				}
 			],
 			"appends": [
@@ -166,7 +168,7 @@
 					"id": "strap-side-left",
 					"item": "carryon:strap",
 					"translation": [ -0.384, -0.324, -0.39 ],
-					"rotation": [ -93.0, 49.0, -3.0 ],
+					"rotation": [ -93.0, 60.0, -4.0 ],
 					"scale": [ 1.0, 1.0, 1.08 ]
 				},
 				{
@@ -204,7 +206,7 @@
 			"overrides": [
 				{
 					"id": "root",
-					"translationY": 0.23
+					"translationY": 0.11
 				},
 				{
 					"id": "strap-side-left",
@@ -227,12 +229,11 @@
 			"overrides": [
 				{
 					"id": "root",
-					"translation": [ 0.02, 0.03, 0.0 ]
+					"translation": [ 0.02, -0.09, 0.0 ]
 				},
 				{
 					"id": "strap-side-left",
-					"rotationX": -98.0,
-					"rotationY": 60.0
+					"rotationX": -98.0
 				},
 				{
 					"id": "strap-side-right",
@@ -246,10 +247,6 @@
 			"overrides": [
 				{
 					"id": "root",
-					"translationX": 0.06,
-					"translationZ": -0.03,
-					"rotationX": 10.0,
-					"rotationZ": -20.0,
 					"scale": 0.5
 				},
 				{
@@ -274,7 +271,7 @@
 			"overrides": [
 				{
 					"id": "root",
-					"translation": [ -0.01, 0.19, 0.03 ],
+					"translation": [ -0.01, 0.07, 0.03 ],
 					"rotation": [ 8.0, 173.0, 1.0 ]
 				},
 				{
@@ -292,8 +289,9 @@
 			"overrides": [
 				{
 					"id": "root",
-					"translation": [ 0.004, 0.07, 0.018 ],
-					"rotation": [ 10.0, 178.0, 0.0 ]
+					"translation": [ 0.004, -0.05, 0.018 ],
+					"rotationY": 178.0,
+					"rotationZ": 0.0
 				},
 				{
 					"id": "strap-side-left",

@@ -18,7 +18,6 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
             resolution = null;
 
             if (api?.World == null || carried?.Block == null || string.IsNullOrEmpty(baseGroup)) return false;
-            if (carried.Block.Class is not "BlockDisplayCase") return false;
 
             var containerSlots = TransformGroupResolverHelper.GetContainerSlots(carried);
             if (containerSlots == null || containerSlots.Count == 0) return false;

@@ -40,22 +40,22 @@ namespace CarryOn.Events
                 return;
             }
 
+            // Check if block is an oven or forge and too hot
             if (blockEntity is IHeatSource heatSource)
             {
-                var heatStrength = heatSource.GetHeatStrength(entity.World, pos, pos);
-                if (heatStrength > 0)
+                if (heatSource is BlockEntityOven oven && oven.ovenTemperature > config.CarryOptions.TooHotToCarryTemperature
+                    || heatSource is BlockEntityForge forge && forge.IsBurning)
                 {
                     canPickUp = false;
                     failureCode = "too-hot";
                     return;
                 }
 
-                // Extra heuristic: a heat source containing very hot items is still too hot to carry
+                // Check if any inventory items are too hot
                 if (HasTooHotInventoryItems(blockEntity, entity.World))
                 {
                     canPickUp = false;
                     failureCode = "too-hot";
-                    return;
                 }
             }
         }

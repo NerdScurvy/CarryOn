@@ -1,22 +1,16 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
 using CarryOn.API.Event;
-using CarryOn.API.Event.Delegates;
 using CarryOn.Common.Behaviors;
-using CarryOn.Common.Models;
-using CarryOn.Common.Network;
+using CarryOn.Common.Services;
 using CarryOn.Server.Logic;
-using CarryOn.Utility;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Server;
-using Vintagestory.GameContent;
-using static CarryOn.API.Common.Models.CarryCode;
 
 
 namespace CarryOn.API.Common
@@ -30,18 +24,14 @@ namespace CarryOn.API.Common
 
         public CarryEvents CarryEvents => CarrySystem?.CarryEvents;
 
-        private bool? allowSprintWhileCarrying;
-        private bool? ignoreCarrySpeedPenalty;
         private readonly List<ICarriedTransformGroupResolver> transformGroupResolvers = new();
-
-        public bool AllowSprintWhileCarrying => allowSprintWhileCarrying ??= CarrySystem?.Config?.CarryOptions?.AllowSprintWhileCarrying ?? false;
-
-        public bool IgnoreCarrySpeedPenalty => ignoreCarrySpeedPenalty ??= CarrySystem?.Config?.CarryOptions?.IgnoreCarrySpeedPenalty ?? false;
+        internal CarryManagerServices Services { get; }
 
         public CarryManager(ICoreAPI api, CarrySystem carrySystem)
         {
             CarrySystem = carrySystem ?? throw new ArgumentNullException(nameof(carrySystem));
             Api = api ?? throw new ArgumentNullException(nameof(api));
+            Services = new CarryManagerServices(Api, CarrySystem, this);
         }
 
         public CarryOnConfig GetConfig()
@@ -49,6 +39,11 @@ namespace CarryOn.API.Common
             return CarrySystem?.Config;
         }
 
+        /// <summary>
+        /// Registers a transform group resolver to determine the transform group for carried blocks.
+        /// </summary>
+        /// <param name="resolver"> The transform group resolver to register. </param>
+        /// <exception cref="ArgumentNullException"></exception>
         public void RegisterTransformGroupResolver(ICarriedTransformGroupResolver resolver)
         {
             if (resolver == null) throw new ArgumentNullException(nameof(resolver));
@@ -62,12 +57,21 @@ namespace CarryOn.API.Common
             transformGroupResolvers.Sort((a, b) => b.Priority.CompareTo(a.Priority));
         }
 
+        /// <summary>
+        /// Unregisters a transform group resolver.
+        /// </summary>
+        /// <param name="resolver"> The transform group resolver to unregister. </param>
+        /// <returns> True if the resolver was successfully unregistered, otherwise false. </returns>
         public bool UnregisterTransformGroupResolver(ICarriedTransformGroupResolver resolver)
         {
             if (resolver == null) return false;
             return transformGroupResolvers.Remove(resolver);
         }
 
+        /// <summary>
+        /// Gets the list of registered transform group resolvers, ordered by priority.
+        /// </summary>
+        /// <returns> A read-only list of registered transform group resolvers. </returns>
         public IReadOnlyList<ICarriedTransformGroupResolver> GetTransformGroupResolvers()
         {
             return transformGroupResolvers;
@@ -77,204 +81,114 @@ namespace CarryOn.API.Common
         /// <summary>
         /// Gets all carried blocks for the specified entity.
         /// </summary>
-        /// <param name="entity"></param>
-        /// <returns></returns>
+        /// <param name="entity"> The entity whose carried blocks are being retrieved. </param>
+        /// <returns> An enumerable of all carried blocks for the specified entity. </returns>
         public IEnumerable<CarriedBlock> GetAllCarried(Entity entity)
         {
-            foreach (var slot in Enum.GetValues(typeof(CarrySlot)).Cast<CarrySlot>())
-            {
-                var carried = GetCarried(entity, slot);
-                if (carried != null) yield return carried;
-            }
+            return Services.State.GetAllCarried(entity);
         }
 
         /// <summary>
         /// Gets the CarriedBlock carried by the entity in the specified carry slot.
         /// </summary>
-        /// <param name="entity"></param>
-        /// <param name="slot">CarrySlot</param>
-        /// <returns></returns>
+        /// <param name="entity"> The entity whose carried block is being retrieved. </param>
+        /// <param name="slot"> The carry slot from which to retrieve the carried block. </param>
+        /// <returns> The CarriedBlock in the specified carry slot, or null if none exists. </returns>
         /// <exception cref="ArgumentNullException"></exception>
         public CarriedBlock GetCarried(Entity entity, CarrySlot slot)
         {
-            if (entity == null) throw new ArgumentNullException(nameof(entity));
-
-            var entityCarriedKey = AttributeKey.Watched.EntityCarried;
-            var slotAttribute = entity.WatchedAttributes
-                .TryGet<ITreeAttribute>(entityCarriedKey, slot.ToString());
-            if (slotAttribute == null) return null;
-
-            var stack = slotAttribute.GetItemstack("Stack");
-            if (stack?.Class != EnumItemClass.Block) return null;
-            // The ItemStack returned by TreeAttribute.GetItemstack
-            // may not have Block set, so we have to resolve it.
-            if (stack.Block == null)
-            {
-                stack.ResolveBlockOrItem(entity.World);
-                if (stack.Block == null) return null; // Can't resolve block?
-            }
-
-            var blockEntityData = entity.WatchedAttributes.TryGet<ITreeAttribute>(entityCarriedKey, slot.ToString(), "Data");
-
-            return new CarriedBlock(slot, stack, blockEntityData);
+            return Services.State.GetCarried(entity, slot);
         }
 
 
         /// <summary>
         /// Sets the CarriedBlock for the entity in the specified carry slot.
         /// </summary>
-        /// <param name="entity"></param>
-        /// <param name="carriedBlock"></param>
-        public void SetCarried(Entity entity, CarriedBlock carriedBlock)
+        /// <param name="entity"> The entity for which to set the carried block. </param>
+        /// <param name="carriedBlock"> The CarriedBlock to set for the entity. </param>
+        public void SetCarried(Entity entity, CarriedBlock carriedBlock) => Services.State.SetCarried(entity, carriedBlock);
+
+        /// <summary>
+        /// Sets the CarriedBlock for the entity in the specified carry slot.
+        /// </summary>
+        /// <param name="entity"> The entity for which to set the carried block. </param>
+        /// <param name="carriedBlock"> The CarriedBlock to set for the entity. </param>
+        /// <param name="markDirty"> Whether to mark the entity's carried attributes as dirty. </param>
+        public void SetCarried(Entity entity, CarriedBlock carriedBlock, bool markDirty = true)
         {
-            SetCarried(entity, carriedBlock.Slot, carriedBlock.ItemStack, carriedBlock.BlockEntityData);
+            Services.State.SetCarried(entity, carriedBlock, markDirty);
         }
 
         /// <summary>
         /// Sets the CarriedBlock for the entity in the specified carry slot.
         /// </summary>
-        /// <param name="entity"></param>
-        /// <param name="slot"></param>
-        /// <param name="stack"></param>
-        /// <param name="blockEntityData"></param>
-        /// <exception cref="ArgumentNullException"></exception>
+        /// <param name="entity"> The entity for which to set the carried block. </param>
+        /// <param name="slot"> The carry slot in which to set the carried block. </param>
+        /// <param name="stack"> The ItemStack to set for the carried block. </param>
+        /// <param name="blockEntityData"> The block entity data to set for the carried block. </param>
         public void SetCarried(Entity entity, CarrySlot slot, ItemStack stack, ITreeAttribute blockEntityData)
+              => Services.State.SetCarried(entity, slot, stack, blockEntityData);
+
+        /// <summary>
+        /// Sets the CarriedBlock for the entity in the specified carry slot.
+        /// </summary>
+        /// <param name="entity"> The entity for which to set the carried block. </param>
+        /// <param name="slot"> The carry slot in which to set the carried block. </param>
+        /// <param name="stack"> The ItemStack to set for the carried block. </param>
+        /// <param name="blockEntityData"> The block entity data to set for the carried block. </param>
+        /// <param name="markDirty"> Whether to mark the entity's carried attributes as dirty. </param>
+        /// <exception cref="ArgumentNullException"></exception>
+        public void SetCarried(Entity entity, CarrySlot slot, ItemStack stack, ITreeAttribute blockEntityData, bool markDirty = true)
         {
-            if (entity == null) throw new ArgumentNullException(nameof(entity));
-
-            var entityCarriedKey = AttributeKey.Watched.EntityCarried;
-            entity.WatchedAttributes.Set(stack, entityCarriedKey, slot.ToString(), "Stack");
-
-            if (blockEntityData != null)
-            {
-                entity.WatchedAttributes.Set(blockEntityData, entityCarriedKey, slot.ToString(), "Data");
-            }
-
-            // Mark the entity carried attribute as dirty so it gets synced to clients
-            if (entity.Api.Side == EnumAppSide.Server)
-                ((SyncedTreeAttribute)entity.WatchedAttributes).MarkPathDirty(entityCarriedKey);
-
-
-            var behavior = stack.Block.GetBehaviorOrDefault(BlockBehaviorCarryable.Default);
-            var slotSettings = behavior.Slots[slot];
-
-            if (slotSettings?.Animation != null)
-                entity.StartAnimation(slotSettings.Animation);
-
-            if (entity is EntityAgent agent)
-            {
-                var speed = IgnoreCarrySpeedPenalty ? 0.0f : slotSettings?.WalkSpeedModifier ?? 0.0F;
-                if (speed != 0.0F && !AllowSprintWhileCarrying)
-                {
-                    agent.Stats.Set("walkspeed",
-                       CarryOnCode(slot.ToString()), speed, false);
-                }
-
-                if (entity.Api.Side == EnumAppSide.Server)
-                {
-                    if (slot == CarrySlot.Hands) LockedItemSlot.Lock(agent.RightHandItemSlot);
-                    if (slot != CarrySlot.Back) LockedItemSlot.Lock(agent.LeftHandItemSlot);
-                    SendLockSlotsMessage(agent as EntityPlayer);
-                }
-            }
+            Services.State.SetCarried(entity, slot, stack, blockEntityData, markDirty);
         }
+
 
         /// <summary>
         /// Removes the CarriedBlock from the entity in the specified carry slot.
         /// </summary>
-        /// <param name="entity"></param>
-        /// <param name="slot"></param>
+        /// <param name="entity"> The entity from which to remove the carried block. </param>
+        /// <param name="slot"> The carry slot from which to remove the carried block. </param>
         /// <exception cref="ArgumentNullException"></exception>
-        public void RemoveCarried(Entity entity, CarrySlot slot)
+        public void RemoveCarried(Entity entity, CarrySlot slot) => Services.State.RemoveCarried(entity, slot);
+
+
+        /// <summary>
+        /// Removes the CarriedBlock from the entity in the specified carry slot.
+        /// </summary>
+        /// <param name="entity"> The entity from which to remove the carried block. </param>
+        /// <param name="slot"> The carry slot from which to remove the carried block. </param>
+        /// <param name="markDirty"> Whether to mark the entity's carried attributes as dirty. </param>
+        /// <exception cref="ArgumentNullException"></exception>
+        public void RemoveCarried(Entity entity, CarrySlot slot, bool markDirty = true)
         {
-            if (entity == null) throw new ArgumentNullException(nameof(entity));
-
-            var animation = entity.GetCarried(slot)?.GetCarryableBehavior()?.Slots?[slot]?.Animation;
-            if (animation != null) entity.StopAnimation(animation);
-
-            if (entity is EntityAgent agent)
-            {
-                agent.Stats.Remove("walkspeed", CarryOnCode(slot.ToString()));
-
-                if (slot == CarrySlot.Hands) LockedItemSlot.Restore(agent.RightHandItemSlot);
-                if (slot != CarrySlot.Back) LockedItemSlot.Restore(agent.LeftHandItemSlot);
-                SendLockSlotsMessage(agent as EntityPlayer);
-            }
-            var entityCarriedKey = AttributeKey.Watched.EntityCarried;
-            entity.WatchedAttributes.Remove(entityCarriedKey, slot.ToString());
-            ((SyncedTreeAttribute)entity.WatchedAttributes).MarkPathDirty(entityCarriedKey);
-            entity.Attributes.Remove(entityCarriedKey, slot.ToString());
+            Services.State.RemoveCarried(entity, slot, markDirty);
         }
 
         /// <summary>
         ///   Attempts to swap the <see cref="CarriedBlock"/>s currently carried in the
         ///   entity's <paramref name="first"/> and <paramref name="second"/> slots.
         /// </summary>
-        /// <param name="entity">The entity whose carried blocks are being swapped.</param>
-        /// <param name="first">The first carry slot.</param>
-        /// <param name="second">The second carry slot.</param>
+        /// <param name="entity"> The entity whose carried blocks are being swapped. </param>
+        /// <param name="first"> The first carry slot. </param>
+        /// <param name="second"> The second carry slot. </param>
         /// <exception cref="ArgumentNullException"> Thrown if entity is null. </exception>
         public bool SwapCarried(Entity entity, CarrySlot first, CarrySlot second)
         {
-            if (first == second) throw new ArgumentException("Slots can't be the same");
-
-            var carriedFirst = GetCarried(entity, first);
-            var carriedSecond = GetCarried(entity, second);
-            if ((carriedFirst == null) && (carriedSecond == null)) return false;
-
-            RemoveCarried(entity, first);
-            RemoveCarried(entity, second);
-
-            carriedFirst?.Set(entity, second);
-            carriedSecond?.Set(entity, first);
-
-            return true;
-        }
-
-        /// <summary>
-        /// Checks if the block at the specified position can be picked up by the entity.
-        /// </summary>
-        /// <param name="entity">The entity attempting to pick up the block.</param>
-        /// <param name="pos">The position of the block.</param>
-        /// <param name="slot">The carry slot.</param>
-        /// <param name="carried">The carried block.</param>
-        /// <returns><c>true</c> if the block can be picked up; otherwise, <c>false</c>.</returns>
-        private bool CanPickUp(Entity entity, BlockPos pos, CarrySlot slot, CarriedBlock carried, ref string failureCode)
-        {
-            var delegates = CarryEvents?.BeforePickUpBlock?.GetInvocationList();
-            if (delegates == null) return true;
-
-            foreach (var del in delegates.Cast<BeforePickUpBlockDelegate>())
-            {
-                try
-                {
-                    del(entity, pos, slot, carried, out bool? canPickUp, out string delegateFailureCode);
-
-                    if (delegateFailureCode != null) failureCode = delegateFailureCode;
-                    if (canPickUp != null) return canPickUp.Value;
-                }
-                catch (Exception e)
-                {
-                    entity.World.Logger.Error(e.Message);
-                }
-            }
-
-            return true;
+            return Services.State.SwapCarried(entity, first, second);
         }
 
         /// <summary>
         /// Gets a CarriedBlock from the world at the specified position and slot.
         /// The block is removed from the world.
         /// </summary>
-        /// <param name="pos"></param>
-        /// <param name="slot"></param>
+        /// <param name="pos"> The position of the block in the world. </param>
+        /// <param name="slot"> The carry slot. </param>
         /// <param name="checkIsCarryable">If <c>true</c>, checks if the block is carryable in a particular slot.</param>
-        /// <returns></returns>
+        /// <returns> The CarriedBlock from the world, or null if none exists. </returns>
         public CarriedBlock GetCarriedFromWorld(BlockPos pos, CarrySlot slot, bool checkIsCarryable = false)
         {
-            var delegates = CarryEvents?.BeforeRemoveBlockFromWorld?.GetInvocationList();
-            string failureCode = FailureCode.Ignore;
-            return GetCarriedFromWorld(null, pos, slot, ref failureCode, delegates: delegates, checkIsCarryable: checkIsCarryable);
+            return Services.Placement.GetCarriedFromWorld(pos, slot, checkIsCarryable);
         }
 
 
@@ -282,583 +196,315 @@ namespace CarryOn.API.Common
         /// Gets a CarriedBlock from the world at the specified position and slot.
         /// The block is removed from the world.
         /// </summary>
-        /// <param name="pos"></param>
-        /// <param name="slot"></param>
+        /// <param name="entity"> The entity attempting to pick up the block. </param>
+        /// <param name="pos"> The position of the block in the world. </param>
+        /// <param name="slot"> The carry slot. </param>
         /// <param name="delegates">Optional delegates to call when removing the block from the world</param>
         /// <param name="checkIsCarryable">If <c>true</c>, checks if the block is carryable in a particular slot.</param>
-        /// <returns></returns>
+        /// <returns> The CarriedBlock from the world, or null if none exists. </returns>
         public CarriedBlock GetCarriedFromWorld(Entity entity, BlockPos pos, CarrySlot slot, ref string failureCode, Delegate[] delegates = null, bool checkIsCarryable = false)
         {
-            var world = Api.World;
-            var carried = BlockUtils.CreateCarriedFromBlockPos(world, pos, slot);
-            if (carried == null) return null;
-
-            if (checkIsCarryable && !IsCarryable(carried.Block, slot)) return null;
-
-            if (entity != null && !CanPickUp(entity, pos, slot, carried, ref failureCode)) return null;
-
-            if (delegates != null)
-            {
-                foreach (var removeBlockDelegate in delegates.Cast<BeforeRemoveBlockDelegate>())
-                {
-                    try
-                    {
-                        removeBlockDelegate(carried, pos);
-                    }
-                    catch (Exception e)
-                    {
-                        world.Logger.Error(e.Message);
-                    }
-                }
-            }
-
-            world.BlockAccessor.SetBlock(0, pos);
-            world.Api.ModLoader.GetModSystem<ModSystemBlockReinforcement>()?.ClearReinforcement(pos);
-            world.BlockAccessor.TriggerNeighbourBlockUpdate(pos);
-            return carried;
+            return Services.Placement.GetCarriedFromWorld(entity, pos, slot, ref failureCode, delegates, checkIsCarryable);
         }
 
         /// <summary>
         /// Restores the block at a specified position with the entity data from the carried block.
         /// </summary>
-        /// <param name="carriedBlock"></param>
-        /// <param name="pos"></param>
+        /// <param name="world"> The world in which the block exists. </param>
+        /// <param name="carriedBlock"> The carried block containing the entity data. </param>
+        /// <param name="pos"> The position of the block in the world. </param>
         /// <param name="dropped">Signal block was dropped to any delegates</param>
         public void RestoreBlockEntityData(IWorldAccessor world, CarriedBlock carriedBlock, BlockPos pos, bool dropped = false)
         {
-            if ((world.Side != EnumAppSide.Server) || (carriedBlock?.BlockEntityData == null)) return;
-
-            var delegates = CarryEvents?.BeforeRestoreBlockEntityData?.GetInvocationList();
-            RestoreBlockEntityData(world, carriedBlock, pos, delegates: delegates, dropped: dropped);
+            Services.Placement.RestoreBlockEntityData(world, carriedBlock, pos, dropped);
         }
 
 
         /// <summary>
         /// Restores the block at a specified position with the entity data from the carried block.
         /// </summary>
-        /// <param name="carriedBlock"></param>
-        /// <param name="pos"></param>
+        /// <param name="world"> The world in which the block exists. </param>
+        /// <param name="carriedBlock"> The carried block containing the entity data. </param>
+        /// <param name="pos"> The position of the block in the world. </param>
         /// <param name="delegates">Optional delegates to call when restoring block entity data</param>
         /// <param name="dropped">Signal block was dropped to any delegates</param>
         public void RestoreBlockEntityData(IWorldAccessor world, CarriedBlock carriedBlock, BlockPos pos, Delegate[] delegates = null, bool dropped = false)
         {
-            if (carriedBlock?.BlockEntityData == null) return;
-
-            var blockEntityData = carriedBlock.BlockEntityData;
-            // Set the block entity's position to the new position.
-            // Without this, we get some funny behavior.
-            blockEntityData.SetInt("posx", pos.X);
-            blockEntityData.SetInt("posy", pos.Y);
-            blockEntityData.SetInt("posz", pos.Z);
-
-            // Get the block entity at the position (Likely default from block just placed)
-            var blockEntity = world.BlockAccessor.GetBlockEntity(pos);
-
-            // Handle BeforeRestoreBlockEntityData events
-            if (delegates != null)
-            {
-                foreach (var blockEntityDataDelegate in delegates.Cast<BlockEntityDataDelegate>())
-                {
-                    try
-                    {
-                        blockEntityDataDelegate(blockEntity, blockEntityData, dropped);
-                    }
-                    catch (Exception e)
-                    {
-                        world.Logger.Error(e.Message);
-                    }
-                }
-            }
-
-            blockEntity?.FromTreeAttributes(blockEntityData, world);
-            blockEntity?.MarkDirty(true);
+            Services.Placement.RestoreBlockEntityData(world, carriedBlock, pos, delegates, dropped);
         }
 
         /// <summary>
-        /// Tries to carry a block from the specified position.
-        /// Will check carry permissions and if the block is carryable.
+        /// Attempts to pick up a block from the specified position.
         /// </summary>
-        /// <param name="entity"></param>
-        /// <param name="pos"></param>
-        /// <param name="slot"></param>
-        /// <param name="checkIsCarryable"></param>
-        /// <param name="playSound"></param>
-        /// <returns></returns>
-        public bool TryPickUp(Entity entity, BlockPos pos, CarrySlot slot, ref string failureCode, bool checkIsCarryable = true, bool playSound = true)
+        /// <param name="entity"> The entity attempting to pick up the block. </param>
+        /// <param name="pos"> The position of the block in the world. </param>
+        /// <param name="slot"> The carry slot. </param>
+        /// <param name="failureCode"> The failure code to be set if pickup fails. </param>
+        /// <param name="checkIsCarryable"> Whether to check if the block is carryable. </param>
+        /// <param name="playSound"> Whether to play a sound when picking up the block. </param>
+        /// <returns> True if the block was successfully picked up, false otherwise. </returns>
+        public bool TryPickUp(
+            Entity entity,
+            BlockPos pos,
+            CarrySlot slot,
+            ref string failureCode,
+            bool checkIsCarryable = true,
+            bool playSound = true)
         {
-            failureCode ??= FailureCode.Ignore;
-
-            if (entity.Api.Side == EnumAppSide.Server)
-            {
-                if (!HasPermissionToCarry(entity, pos)) return false;
-            }
-
-            if (GetCarried(entity, slot) != null) return false;
-            var delegates = CarryEvents?.BeforeRemoveBlockFromWorld?.GetInvocationList();
-            var carried = GetCarriedFromWorld(entity, pos, slot, ref failureCode, delegates, checkIsCarryable);
-            if (carried == null) return false;
-
-            SetCarried(entity, carried);
-            if (playSound) PlaySound(carried.Block, pos, entity as EntityPlayer);
-            if (entity.Api.Side == EnumAppSide.Server)
-            {
-                var entityName = entity?.GetName() ?? "Unknown Entity";
-                entity.World.Logger.Audit($"[{ModId}] {entityName} picked up block {carried.Block.Code.GetName()} at {pos}");
-            }
-            return true;
+            return Services.Placement.TryPickUp(entity, pos, slot, ref failureCode, checkIsCarryable, playSound);
         }
 
+
+        /// <summary>
+        /// Attempts to pick up a block from the specified position.
+        /// </summary>
+        /// <param name="entity"> The entity attempting to pick up the block. </param>
+        /// <param name="pos"> The position of the block in the world. </param>
+        /// <param name="slot"> The carry slot. </param>
+        /// <param name="checkIsCarryable"> Whether to check if the block is carryable. </param>
+        /// <param name="playSound"> Whether to play a sound when picking up the block. </param>
+        /// <returns> True if the block was successfully picked up, false otherwise. </returns>
         public bool TryPickUp(Entity entity, BlockPos pos, CarrySlot slot, bool checkIsCarryable = true, bool playSound = true)
         {
-            string failureCode = FailureCode.Ignore;
-            return TryPickUp(entity, pos, slot, ref failureCode, checkIsCarryable, playSound);
+            return Services.Placement.TryPickUp(entity, pos, slot, checkIsCarryable, playSound);
         }
 
         /// <summary>
         /// Tries to place the carriedBlock in the world, removing from entity if successful
         /// </summary>
-        /// <param name="entity"></param>
-        /// <param name="carriedBlock"></param>
-        /// <param name="selection"></param>
+        /// <param name="entity"> The entity attempting to place the block. </param>
+        /// <param name="carriedBlock"> The carried block to be placed. </param>
+        /// <param name="selection"> The block selection indicating where to place the block. </param>
         /// <param name="dropped">If <c>true</c>, the block is set in world instead of placed, bypassing some checks.</param>
-        /// <param name="playSound"></param>
-        /// <returns></returns>
+        /// <param name="playSound"> Whether to play a sound when placing the block. </param>
+        /// <returns> True if the block was successfully placed, false otherwise. </returns>
         /// <exception cref="ArgumentNullException"></exception>
         public bool TryPlaceDown(Entity entity, CarriedBlock carriedBlock, BlockSelection selection, bool dropped = false, bool playSound = true)
         {
-            string failureCode = FailureCode.Ignore;
-            return TryPlaceDown(entity, carriedBlock, selection, ref failureCode, dropped, playSound);
+            return Services.Placement.TryPlaceDown(entity, carriedBlock, selection, dropped, playSound);
         }
 
         /// <summary>
         /// Tries to place the carriedBlock in the world, removing from entity if successful
         /// </summary>
-        /// <param name="entity"></param>
-        /// <param name="carriedBlock"></param>
-        /// <param name="selection"></param>
+        /// <param name="entity"> The entity attempting to place the block. </param>
+        /// <param name="carriedBlock"> The carried block to be placed. </param>
+        /// <param name="selection"> The block selection indicating where to place the block. </param>
+        /// <param name="failureCode"> The failure code to be set if placement fails. </param>
         /// <param name="dropped">If <c>true</c>, the block is set in world instead of placed, bypassing some checks.</param>
-        /// <param name="playSound"></param>
-        /// <returns></returns>
+        /// <param name="playSound"> Whether to play a sound when placing the block. </param>
+        /// <returns> True if the block was successfully placed, false otherwise. </returns>
         /// <exception cref="ArgumentNullException"></exception>
         public bool TryPlaceDown(Entity entity, CarriedBlock carriedBlock, BlockSelection selection, ref string failureCode, bool dropped = false, bool playSound = true)
         {
-            if (selection == null) throw new ArgumentNullException(nameof(selection));
-            if (entity == null) throw new ArgumentNullException(nameof(entity));
-
-            var world = Api.World;
-
-            if (carriedBlock?.Block == null || carriedBlock.ItemStack == null) return false;
-            if (!world.BlockAccessor.IsValidPos(selection.Position)) return false;
-
-            failureCode ??= FailureCode.Ignore;
-
-            var placed = (entity is EntityPlayer playerEntity && !dropped)
-                ? TryPlaceDownAsPlayer(world, playerEntity, carriedBlock, selection, ref failureCode)
-                : TryPlaceDownDirect(world, carriedBlock, selection);
-
-            if (!placed) return false;
-
-            FinalizePlacedBlock(world, entity, carriedBlock, selection.Position, dropped, playSound);
-            return true;
+            return Services.Placement.TryPlaceDown(entity, carriedBlock, selection, ref failureCode, dropped, playSound);
         }
 
-        private bool TryPlaceDownAsPlayer(IWorldAccessor world, EntityPlayer playerEntity, CarriedBlock carriedBlock, BlockSelection selection, ref string failureCode)
+        /// <summary>
+        /// Attempts to place the carried block at the specified position.
+        /// </summary>
+        /// <param name="player"> The player attempting to place the block. </param>
+        /// <param name="carrySlot"> The carry slot to place from. </param>
+        /// <param name="selection"> The block selection indicating where to place the block. </param>
+        /// <param name="placedAt"> Position of where the block was placed. It may have replaced the selected block. </param>
+        /// <returns> True if the block was successfully placed, false otherwise. </returns>
+        public bool TryPlaceDownAt(IPlayer player, CarrySlot carrySlot, BlockSelection selection, out BlockPos placedAt)
         {
-            var player = world.PlayerByUid(playerEntity.PlayerUID);
-            var activeHotbarSlot = player?.InventoryManager?.ActiveHotbarSlot;
-            if (player == null || activeHotbarSlot == null)
-            {
-                world.Logger.Error($"CarryOn: Failed to resolve player inventory while placing carried block at {selection.Position}. Falling back to direct placement.");
-                return TryPlaceDownFallback(world, carriedBlock, selection);
-            }
-
-            var shift = playerEntity.Controls.ShiftKey;
-            var ctrl = playerEntity.Controls.CtrlKey;
-
-            try
-            {
-                // Add a phantom item so block placement callbacks see an expected active slot.
-                activeHotbarSlot.Itemstack = carriedBlock.ItemStack;
-
-                // Force sneak placement for blocks that require it and disable ctrl-specific alternate placement.
-                playerEntity.Controls.ShiftKey = true;
-                playerEntity.Controls.CtrlKey = false;
-
-                return carriedBlock.Block.TryPlaceBlock(world, player, carriedBlock.ItemStack, selection, ref failureCode);
-            }
-            finally
-            {
-                playerEntity.Controls.ShiftKey = shift;
-                playerEntity.Controls.CtrlKey = ctrl;
-                activeHotbarSlot.Itemstack = null;
-            }
-        }
-
-        private bool TryPlaceDownFallback(IWorldAccessor world, CarriedBlock carriedBlock, BlockSelection selection)
-        {
-            if (carriedBlock?.Block == null || carriedBlock.ItemStack == null) return false;
-
-            world.BlockAccessor.SetBlock(carriedBlock.Block.Id, selection.Position, carriedBlock.ItemStack);
-            return true;
-        }
-
-        private bool TryPlaceDownDirect(IWorldAccessor world, CarriedBlock carriedBlock, BlockSelection selection)
-        {
-            var meshFacing = selection.Face;
-            var droppedBlock = carriedBlock.Block;
-
-            if (meshFacing != null)
-            {
-                var assetLocation = carriedBlock.Block.Code.Clone();
-                var baseCode = assetLocation.FirstCodePart();
-                assetLocation.Path = $"{baseCode}-{meshFacing.Code}";
-                droppedBlock = world.GetBlock(assetLocation) ?? carriedBlock.Block;
-            }
-
-            world.BlockAccessor.ExchangeBlock(droppedBlock.Id, selection.Position);
-
-            if (droppedBlock.EntityClass != null)
-            {
-                world.BlockAccessor.SpawnBlockEntity(droppedBlock.EntityClass, selection.Position, carriedBlock.ItemStack);
-            }
-
-            droppedBlock.OnBlockPlaced(world, selection.Position, carriedBlock.ItemStack);
-
-            if (meshFacing != null)
-            {
-                carriedBlock.BlockEntityData?.SetFloat("meshAngle", -GetMeshAngle(meshFacing));
-            }
-
-            return true;
-        }
-
-        private void FinalizePlacedBlock(IWorldAccessor world, Entity entity, CarriedBlock carriedBlock, BlockPos position, bool dropped, bool playSound)
-        {
-            RestoreBlockEntityData(world, carriedBlock, position, dropped: dropped);
-
-            world.BlockAccessor.MarkBlockDirty(position);
-            world.BlockAccessor.TriggerNeighbourBlockUpdate(position);
-
-            RemoveCarried(entity, carriedBlock.Slot);
-            if (playSound)
-            {
-                PlaySound(carriedBlock.Block, position, dropped ? null : entity as EntityPlayer);
-            }
-
-            if (dropped)
-            {
-                CarryEvents?.TriggerBlockDropped(position, entity, carriedBlock);
-            }
-            if (world.Side == EnumAppSide.Server)
-            {
-                var entityName = entity?.GetName() ?? "Unknown Entity";
-                Api.World.Logger.Audit($"[{ModId}] Player {entityName}  {(dropped ? "dropped" : "placed down")}  block {carriedBlock?.Block?.Code.GetName()} at {position}");
-            }
+            return Services.Placement.TryPlaceDownAt(player, carrySlot, selection, out placedAt);
         }
 
         /// <summary>
         /// Tries to place the carried block at the specified position.
         /// </summary>
-        /// <param name="player"></param>
-        /// <param name="carried"></param>
-        /// <param name="selection"></param>
-        /// <param name="placedAt">Position of where the block was placed. It may have replaced the selected block.</param>
-        /// <param name="failureCode"></param>
-        /// <returns></returns>
-        public bool TryPlaceDownAt(IPlayer player, CarriedBlock carried,
-                                     BlockSelection selection, out BlockPos placedAt, ref string failureCode)
+        /// <param name="player"> The player attempting to place the block. </param>
+        /// <param name="carrySlot"> The carry slot to place from. </param>
+        /// <param name="selection"> The block selection indicating where to place the block. </param>
+        /// <param name="placedAt"> Position of where the block was placed. It may have replaced the selected block. </param>
+        /// <param name="failureCode"> A reference to a string that will contain the failure code if the placement fails. </param>
+        /// <returns> True if the block was successfully placed, false otherwise. </returns>
+        public bool TryPlaceDownAt(IPlayer player, CarrySlot carrySlot, BlockSelection selection, out BlockPos placedAt, ref string failureCode)
         {
-            var blockSelection = selection.Clone();
-            var selectedBlock = player.Entity?.World?.BlockAccessor?.GetBlock(blockSelection.Position);
-
-            if (selectedBlock == null)
-            {
-                placedAt = null;
-                return false;
-            }
-
-            if (selectedBlock.IsReplacableBy(carried.Block))
-            {
-                blockSelection.Face = BlockFacing.UP;
-                blockSelection.HitPosition.Y = 0.5;
-            }
-            else
-            {
-                blockSelection.Position.Offset(blockSelection.Face);
-                blockSelection.DidOffset = true;
-            }
-
-            placedAt = blockSelection.Position;
-            return TryPlaceDown(player.Entity, carried, blockSelection, ref failureCode);
+            return Services.Placement.TryPlaceDownAt(player, carrySlot, selection, out placedAt, ref failureCode);
         }
 
         /// <summary>
-        /// Gets the mesh angle for the specified block facing.
+        /// Tries to attach the carried block in player hands to an entity attachment slot.
         /// </summary>
-        /// <param name="facing"></param>
-        /// <returns></returns>
-        private float GetMeshAngle(BlockFacing facing)
+        /// <param name="player"> The player attempting to attach. </param>
+        /// <param name="targetEntityId"> The target entity id. </param>
+        /// <param name="slotIndex"> The attachment selection box slot index. </param>
+        /// <param name="playSound"> Whether to play the attach sound. </param>
+        /// <returns> True if the block was successfully attached; otherwise false. </returns>
+        public bool TryAttach(IServerPlayer player, long targetEntityId, int slotIndex, bool playSound = true)
         {
-            switch (facing.Code)
-            {
-                case "north": return 0f;
-                case "east": return (float)(Math.PI / 2);
-                case "south": return (float)Math.PI;
-                case "west": return (float)(3 * Math.PI / 2);
-                default: return 0f;
-            }
+            return Services.Attachment.TryAttach(player, targetEntityId, slotIndex, playSound);
+        }
+
+        /// <summary>
+        /// Tries to attach the carried block in player hands to an entity attachment slot.
+        /// </summary>
+        /// <param name="player"> The player attempting to attach. </param>
+        /// <param name="targetEntityId"> The target entity id. </param>
+        /// <param name="slotIndex"> The attachment selection box slot index. </param>
+        /// <param name="failureCode"> The failure code to be set if attaching fails. </param>
+        /// <param name="playSound"> Whether to play the attach sound. </param>
+        /// <returns> True if the block was successfully attached; otherwise false. </returns>
+        public bool TryAttach(IServerPlayer player, long targetEntityId, int slotIndex, ref string failureCode, bool playSound = true)
+        {
+            return Services.Attachment.TryAttach(player, targetEntityId, slotIndex, ref failureCode, playSound);
+        }
+
+        /// <summary>
+        /// Tries to detach a carryable block from an entity attachment slot to player hands.
+        /// </summary>
+        /// <param name="player"> The player attempting to detach. </param>
+        /// <param name="targetEntityId"> The target entity id. </param>
+        /// <param name="slotIndex"> The attachment selection box slot index. </param>
+        /// <param name="playSound"> Whether to play the detach sound. </param>
+        /// <returns> True if the block was successfully detached; otherwise false. </returns>
+        public bool TryDetach(IServerPlayer player, long targetEntityId, int slotIndex, bool playSound = true)
+        {
+            return Services.Attachment.TryDetach(player, targetEntityId, slotIndex, playSound);
+        }
+
+        /// <summary>
+        /// Tries to detach a carryable block from an entity attachment slot to player hands.
+        /// </summary>
+        /// <param name="player"> The player attempting to detach. </param>
+        /// <param name="targetEntityId"> The target entity id. </param>
+        /// <param name="slotIndex"> The attachment selection box slot index. </param>
+        /// <param name="failureCode"> The failure code to be set if detaching fails. </param>
+        /// <param name="playSound"> Whether to play the detach sound. </param>
+        /// <returns> True if the block was successfully detached; otherwise false. </returns>
+        public bool TryDetach(IServerPlayer player, long targetEntityId, int slotIndex, ref string failureCode, bool playSound = true)
+        {
+            return Services.Attachment.TryDetach(player, targetEntityId, slotIndex, ref failureCode, playSound);
         }
 
         /// <summary>
         /// Checks if the entity has permission to carry the block at the specified position.
+        /// Delegates to the placement service.
         /// </summary>
-        /// <param name="entity"></param>
-        /// <param name="pos"></param>
-        /// <returns></returns>
+        /// <param name="entity"> The entity attempting to carry the block. </param>
+        /// <param name="pos"> The position of the block. </param>
+        /// <returns> True if the entity has permission to carry the block, false otherwise. </returns>
         public bool HasPermissionToCarry(Entity entity, BlockPos pos)
         {
-            var isReinforced = entity.Api.ModLoader.GetModSystem<ModSystemBlockReinforcement>()?.IsReinforced(pos) ?? false;
-            if (entity is EntityPlayer playerEntity)
-            {
-                var delegates = entity.World.GetCarryEvents()?.CheckPermissionToCarry?.GetInvocationList();
-
-                // Handle OnRestoreBlockEntityData events
-                if (delegates != null)
-                {
-                    foreach (var checkPermissionToCarryDelegate in delegates.Cast<CheckPermissionToCarryDelegate>())
-                    {
-                        try
-                        {
-                            checkPermissionToCarryDelegate(playerEntity, pos, isReinforced, out bool? hasPermission);
-
-                            if (hasPermission != null)
-                            {
-                                return hasPermission.Value;
-                            }
-                        }
-                        catch (Exception e)
-                        {
-                            entity.World.Logger.Error(e.Message);
-                        }
-                    }
-                }
-
-                var isCreative = playerEntity.Player.WorldData.CurrentGameMode == EnumGameMode.Creative;
-
-                if (!isCreative && isReinforced) return false; // Can't pick up when reinforced unless in creative mode.
-                                                               // Can pick up if has access to any claims that might be present.
-
-                return entity.World.Claims.TryAccess(playerEntity.Player, pos, EnumBlockAccessFlags.BuildOrBreak);
-            }
-            else
-            {
-                return !isReinforced; // If not a player entity, can pick up if not reinforced.
-            }
-        }
-
-        internal void PlaySound(Block block, BlockPos pos,
-                        EntityPlayer entityPlayer = null)
-        {
-            const float SOUND_RANGE = 16.0F;
-            const float SOUND_VOLUME = 1.0F;
-
-            var sound = block.Sounds?.Place.Location ?? new AssetLocation("sounds/player/build");
-
-            if (sound == null) return;
-
-            var world = Api.World;
-            var player = (entityPlayer != null) && (world.Side == EnumAppSide.Server)
-                ? entityPlayer?.Player : null;
-
-            world.PlaySoundAt(sound,
-                pos.X + 0.5, pos.Y + 0.25, pos.Z + 0.5, player,
-                range: SOUND_RANGE, volume: SOUND_VOLUME);
+            return Services.Placement.HasPermissionToCarry(entity, pos);
         }
 
         /// <summary>
         /// Sends a message to the player to lock the hotbar slots.
         /// </summary>
-        /// <param name="player"></param>
+        /// <param name="player"> The player to whom the message will be sent. </param>
         public void LockHotbarSlots(IServerPlayer player)
         {
-            var hotbar = player.InventoryManager.GetHotbarInventory();
-            var slots = Enumerable.Range(0, hotbar.Count).Where(i => hotbar[i] is LockedItemSlot).ToList();
-            CarrySystem.ServerChannel.SendPacket(new LockSlotsMessage(slots), player);
+            Services.State.LockHotbarSlots(player);
         }
 
         /// <summary>
         /// Sends a message to the player to lock the hotbar slots.
         /// </summary>
-        /// <param name="player"></param>
+        /// <param name="player"> The player to whom the message will be sent. </param>
         internal void SendLockSlotsMessage(EntityPlayer player)
         {
-            if ((player == null) || (player.World.PlayerByUid(player.PlayerUID) is not IServerPlayer serverPlayer)) return;
-            LockHotbarSlots(serverPlayer);
+            Services.State.SendLockSlotsMessage(player);
         }
 
         /// <summary>
         /// Drops the carried blocks from specified slots on the entity.
         /// </summary>
-        /// <param name="entity"></param>
-        /// <param name="slots">Carried slots to drop</param>
-        /// <param name="range">Radius to check for placement</param>
+        /// <param name="entity"> The entity from which to drop the carried blocks. </param>
+        /// <param name="slots"> The carried slots to drop. </param>
+        /// <param name="range"> The radius to check for placement. </param>
         /// <exception cref="ArgumentNullException"></exception>
         /// <exception cref="ArgumentOutOfRangeException"></exception>
         public void DropCarried(Entity entity, IEnumerable<CarrySlot> slots, int range = 4)
         {
-            if (entity == null) throw new ArgumentNullException(nameof(entity));
-            if (slots == null) throw new ArgumentNullException(nameof(slots));
-            if (range < 0) throw new ArgumentOutOfRangeException(nameof(range));
+            Services.Drop.DropCarried(entity, slots, range);
+        }
 
-            IServerPlayer player = (entity is EntityPlayer entityPlayer) ? (IServerPlayer)entityPlayer.Player : null;
-
-            var world = Api.World;
-            var blockAccessor = world.BlockAccessor;
-
-            var remaining = slots
-                .Select(s => entity.GetCarried(s))
-                .Where(c => c != null)
-                .OrderBy(c => c?.GetCarryableBehavior()?.MultiblockOffset)
-                .ToList();
-            if (remaining.Count == 0) return;
-
-            BlockPos centerBlock = entity.Pos.AsBlockPos.UpCopy();
-
-            foreach (var carriedBlock in remaining)
-            {
-                var blockPlacer = new BlockPlacer(entity.Api);
-                var blockSelection = blockPlacer.FindBlockPlacement(carriedBlock.Block, centerBlock, range);
-
-                if (blockSelection == null)
-                {
-                    DropBlockAsItem(carriedBlock, centerBlock, player, entity);
-                    continue;
-                }
-
-                if (TryPlaceDown(entity, carriedBlock, blockSelection, dropped: true))
-                {
-                    RemoveCarried(entity, carriedBlock.Slot);
-                    Api.World.Logger.Audit($"[{ModId}] Player {player?.PlayerName} dropped carried block {carriedBlock.Block.Code} at {blockSelection.Position}");
-                    continue;
-                }
-                DropBlockAsItem(carriedBlock, centerBlock, player, entity);
-            }
+        /// <summary>
+        /// Drops the block from the specified carriedBlock.
+        /// </summary>
+        /// <param name="entity"> The entity attempting to carry the block. </param>
+        /// <param name="carriedBlock"> The carried block to drop. </param>
+        /// <param name="range"> The radius to check for placement. </param>
+        /// <param name="blockPlacer"> The block placer to use for placing the block. </param>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        public void DropCarriedBlock(Entity entity, CarriedBlock carriedBlock, int range = 4, BlockPlacer blockPlacer = null)
+        {
+            Services.Drop.DropCarriedBlock(entity, carriedBlock, range, blockPlacer);
         }
 
         /// <summary>
         /// Drops a carried block as an item.
         /// All items in the carried block's inventory will be dropped if applicable.
         /// </summary>
-        /// <param name="carriedBlock"></param>
-        /// <param name="centerBlock"></param>
-        /// <param name="player"></param>
-        /// <param name="entity"></param>
+        /// <param name="carriedBlock"> The carried block to drop as an item. </param>
+        /// <param name="centerBlock"> The position where the block is being dropped. </param>
+        /// <param name="player"> The player associated with the drop, if any. </param>
+        /// <param name="entity"> The entity from which the block is being dropped. </param>
         public void DropBlockAsItem(CarriedBlock carriedBlock, BlockPos centerBlock, IServerPlayer player, Entity entity)
         {
-            var world = Api.World;
-            var blockDestroyed = false;
-            var hadContents = false;
-            var dropCount = 1;
-            var dropVec3d = new Vec3d(centerBlock.X + 0.5, centerBlock.Y + 0.5, centerBlock.Z + 0.5);
-
-            if (carriedBlock.BlockEntityData?["inventory"] is TreeAttribute inventory && inventory["slots"] is TreeAttribute invSlots)
-            {
-                foreach (var item in invSlots.Values.Cast<ItemstackAttribute>())
-                {
-                    var itemStack = (ItemStack)item.GetValue();
-                    world.SpawnItemEntity(itemStack, dropVec3d);
-                    hadContents = true;
-                    dropCount++;
-                }
-                var carriedItemStack = carriedBlock.ItemStack.Clone();
-                carriedItemStack.Attributes.Remove("contents");
-                world.SpawnItemEntity(carriedItemStack, dropVec3d);
-            }
-            else
-            {
-                var itemStacks = carriedBlock.Block.GetDrops(world, centerBlock, player);
-                if (itemStacks.Length == 1 && itemStacks[0].Id == carriedBlock.ItemStack.Id)
-                {
-                    world.SpawnItemEntity(carriedBlock.ItemStack, dropVec3d);
-                }
-                else
-                {
-                    blockDestroyed = true;
-                    foreach (var itemStack in itemStacks)
-                    {
-                        world.SpawnItemEntity(itemStack, dropVec3d);
-                        hadContents = true;
-                        dropCount++;
-                    }
-                }
-            }
-
-            var breakSound = carriedBlock.Block.Sounds.GetBreakSound(player).Location ?? new AssetLocation("game:sounds/block/planks");
-            world.PlaySoundAt(breakSound, (double)centerBlock.X, (double)centerBlock.Y, (double)centerBlock.Z);
-            RemoveCarried(entity, carriedBlock.Slot);
-
-            if (blockDestroyed)
-                world.Logger.Audit($"[{ModId}] Player {player?.PlayerName} dropped carried block {carriedBlock.Block.Code} at {centerBlock} and it was destroyed dropping {dropCount} items.");
-            else
-                world.Logger.Audit($"[{ModId}] Player {player?.PlayerName} dropped carried block {carriedBlock.Block.Code} as item at {centerBlock} spilling {dropCount} items from its contents.");
-
-            CarryEvents?.TriggerBlockDropped(centerBlock, entity, carriedBlock, blockDestroyed, hadContents, blockPlaced: false);
-
+            Services.Drop.DropBlockAsItem(carriedBlock, centerBlock, player, entity);
         }
 
         /// <summary>
-        /// Initializes any carry events.
+        /// Increments the carried-state revision and marks the carried root dirty if necessary.
+        /// Client side only returns the current revision, while server side increments and returns the new revision.
         /// </summary>
-        /// <param name="api"></param>
+        /// <param name="entity"> The entity whose carried attributes are being touched. </param>
+        /// <returns> The new revision number. </returns>
+        /// <exception cref="ArgumentNullException"> Thrown if entity is null. </exception>
+        public int TouchCarriedAttributes(Entity entity)
+        {
+            return Services.State.TouchCarriedAttributes(entity);
+        }
+
+        /// <summary>
+        /// Gets the current carried-state revision for the entity. This can be used to check if the carried state has changed since the last time it was checked.
+        /// </summary>
+        /// <param name="entity"> The entity whose carried attributes are being queried. </param>
+        /// <returns> The current carried-state revision. </returns>
+        /// <exception cref="ArgumentNullException"> Thrown if entity is null. </exception>
+        public int GetCarriedRevision(Entity entity)
+        {
+            return Services.State.GetCarriedRevision(entity);
+        }
+
+
+        /// <summary>
+        /// Initializes carry events discovered by the event bootstrap service.
+        /// </summary>
+        /// <param name="api"> The core API instance. </param>
         public void InitEvents(ICoreAPI api)
         {
-            var ignoreMods = new[] { "game", "creative", "survival" };
-
-            var assemblies = api.ModLoader.Mods.Where(m => !ignoreMods.Contains(m.Info.ModID))
-                                               .Select(s => s.Systems)
-                                               .SelectMany(o => o.ToArray())
-                                               .Select(t => t.GetType().Assembly)
-                                               .Distinct();
-
-            foreach (var assembly in assemblies)
-            {
-                // Initialise all ICarryEvent 
-                foreach (Type type in assembly.GetTypes().Where(t => t.GetInterfaces().Contains(typeof(ICarryEvent))))
-                {
-                    try
-                    {
-                        (Activator.CreateInstance(type) as ICarryEvent)?.Init(this);
-                    }
-                    catch (Exception e)
-                    {
-                        api.Logger.Error(e.Message);
-                    }
-                }
-            }
+            Services.EventBootstrapper.InitEvents(api);
         }
 
         /// <summary>
         /// Checks if the block is carryable in the specified slot.
         /// </summary>
-        /// <param name="block"></param>
-        /// <param name="slot"></param>
-        /// <returns></returns>
+        /// <param name="block"> The block to check. </param>
+        /// <param name="slot"> The slot to check. </param>
+        /// <returns> True if the block is carryable in the specified slot, otherwise false. </returns>
         public bool IsCarryable(Block block, CarrySlot slot)
             => block.GetBehavior<BlockBehaviorCarryable>()?.Slots?[slot] != null;
 
         /// <summary>
         /// Checks if the block is carryable.
         /// </summary>
-        /// <param name="block"></param>
-        /// <returns></returns>
+        /// <param name="block"> The block to check. </param>
+        /// <returns> True if the block is carryable, otherwise false. </returns>
         public bool IsCarryable(Block block)
             => block.HasBehavior<BlockBehaviorCarryable>();
 
         /// <summary>
-        /// Checks if the entity can interact with block while carrying a block in their hands
+        /// Checks if the entity can interact with a block while carrying in hands.
         /// </summary>
-        /// <param name="block"></param>
-        /// <returns></returns>
+        /// <param name="block"> The block to check. </param>
+        /// <returns> True if the entity can interact with the block while carrying, otherwise false. </returns>
         public bool CanInteractWhileCarrying(Block block)
             => block.HasBehavior<BlockBehaviorCarryableInteract>();
     }
