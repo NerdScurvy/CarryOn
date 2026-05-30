@@ -27,8 +27,10 @@ Transform templates live under:
 - `resources/assets/<domain>/config/transformtemplates/<code>.json`
 
 Template code resolution rules:
-- `carry-planter` -> domain defaults to `carryon`
-- `carryon:carry-planter` -> explicit domain
+- Canonical form is `modid:code`.
+- Bare values default to `carryon:<code>` during lookup.
+- `carry-planter` -> canonicalized to `carryon:carry-planter`
+- `carryon:carry-planter` -> explicit canonical form
 
 Examples:
 - `carryon:carry-planter` -> `assets/carryon/config/transformtemplates/carry-planter.json`
@@ -188,8 +190,8 @@ The template system's responsibility is:
 Typical carryable behavior pattern:
 ```json
 "transformTemplates": [
-  "carryon:carry-chest",
-  "carryon:carry-chest-compact"
+  "carry-chest",
+  "carry-chest-compact"
 ],
 "transformGroups": {
   "backpack-none-normal": { "extends": "backpack-none" },

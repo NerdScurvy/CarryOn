@@ -10,7 +10,7 @@
 				"enabledCondition": "carryon.Carryables.Chest",
 				"override": true,
 				"transformTemplates": [
-					"carryon:carry-chest"
+					"carry-chest"
 				],
 				"slots": {
 					"Hands": {},
@@ -46,7 +46,7 @@
 				},
 				"override": true,
 				"transformTemplates": [
-					"carryon:carry-chest"
+					"carry-chest"
 				],
 				"slots": {
 					"Hands": {},

@@ -14,8 +14,6 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
     {
         public virtual string ResolverCode => "container-slot";
 
-        public virtual int Priority => -10;
-
         public virtual bool TryResolve(ICoreAPI api, CarriedBlock carried, string baseGroup, out CarriedGroupResolution resolution)
         {
             resolution = null;

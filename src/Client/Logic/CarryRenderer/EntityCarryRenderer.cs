@@ -6,6 +6,7 @@ using CarryOn.Client.Models;
 using CarryOn.Utility;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
+using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Util;
 using Vintagestory.GameContent;
@@ -65,13 +66,43 @@ namespace CarryOn.Client.Logic.CarryRenderer
 
 		private CarrySystem carrySystem { get; }
 		private ICoreClientAPI api { get; }
-		private readonly HashSet<string> activeCarryAnimations = new(StringComparer.OrdinalIgnoreCase);
+		private readonly Dictionary<long, HashSet<string>> activeHandCarryAnimationsByEntityId = new();
+		private readonly Dictionary<long, HashSet<string>> knownHandCarryAnimationsByEntityId = new();
 
 		private long renderTick = 0;
 		private readonly CarryRenderCache cache = new();
 		private readonly CarryTransformPlanBuilder planBuilder;
 		private readonly CarryRenderInfoBuilder infoBuilder;
 		private readonly CarriedLabelRenderer labelRenderer;
+		private readonly Dictionary<(long EntityId, CarrySlot Slot), SignatureSidecarState> signatureSidecars = new();
+		private static readonly TimeSpan DebugCounterLogInterval = TimeSpan.FromSeconds(5);
+
+		private long signatureRecomputeCount;
+		private long planRecomputeCount;
+		private long variantRecomputeCount;
+		private long signatureReuseCount;
+		private long frameRenderInfoHitCount;
+		private long persistentRenderInfoHitCount;
+		private long renderInfoBuildCount;
+
+		private long lastLoggedSignatureRecomputeCount;
+		private long lastLoggedPlanRecomputeCount;
+		private long lastLoggedVariantRecomputeCount;
+		private long lastLoggedSignatureReuseCount;
+		private long lastLoggedFrameRenderInfoHitCount;
+		private long lastLoggedPersistentRenderInfoHitCount;
+		private long lastLoggedRenderInfoBuildCount;
+		private DateTime nextDebugCounterLogAtUtc = DateTime.MinValue;
+
+		private sealed class SignatureSidecarState
+		{
+			public int LastSeenCarriedRevision { get; set; } = -1;
+			public string LastTransformsGroup { get; set; }
+			public string LastStackCode { get; set; }
+			public ITreeAttribute LastBlockEntityDataRef { get; set; }
+			public CachedTransformPlan Plan { get; set; }
+			public string RenderVariantSignature { get; set; }
+		}
 
 		// Matrix pool for per-frame reuse to reduce GC pressure
 		private readonly Stack<float[]> matrixPool = new();
@@ -103,33 +134,76 @@ namespace CarryOn.Client.Logic.CarryRenderer
 			this.api.Event.UnregisterRenderer(this, EnumRenderStage.ShadowFar);
 			this.api.Event.UnregisterRenderer(this, EnumRenderStage.ShadowNear);
 			cache.InvalidateAll();
+			signatureSidecars.Clear();
 			labelRenderer?.Dispose();
 		}
 
 		public void InvalidateRenderCaches()
 		{
 			cache.InvalidateAll();
+			signatureSidecars.Clear();
 		}
 
 		private CarriedRenderInfo[] GetRenderInfoCached(EntityAgent entity, CarriedBlock carried, string transformsGroup)
 		{
 			var slotStateKey = CarryRenderHelpers.BuildSlotStateKey(entity, carried.Slot);
-			var plan = planBuilder.GetOrBuild(carried, transformsGroup);
+			var sidecarKey = (entity.EntityId, carried.Slot);
+			if (!signatureSidecars.TryGetValue(sidecarKey, out var sidecar))
+			{
+				sidecar = new SignatureSidecarState();
+				signatureSidecars[sidecarKey] = sidecar;
+			}
 
-			// Include BE rotation + slot content signature so cached render infos invalidate
-			// when displaycase item orientation/contents change.
-			var containerSlots = TransformGroupResolverHelper.GetContainerSlots(carried);
-			var renderVariantSignature = CarryRenderHelpers.BuildRenderInfoVariantSignature(
-				carried,
-				containerSlots,
-				plan.EffectiveSettings,
-				this.api.World);
+			var carriedRevision = this.carrySystem?.CarryManager?.GetCarriedRevision(entity) ?? 0;
+			var stackCode = carried?.ItemStack?.Collectible?.Code?.ToString() ?? "none";
+
+			var signaturesDirty = sidecar.Plan == null
+				|| sidecar.LastSeenCarriedRevision != carriedRevision
+				|| !string.Equals(sidecar.LastTransformsGroup, transformsGroup, StringComparison.Ordinal)
+				|| !string.Equals(sidecar.LastStackCode, stackCode, StringComparison.Ordinal)
+				|| !ReferenceEquals(sidecar.LastBlockEntityDataRef, carried?.BlockEntityData)
+				|| string.IsNullOrEmpty(sidecar.RenderVariantSignature);
+
+			TreeAttribute containerSlots = null;
+			CachedTransformPlan plan;
+			string renderVariantSignature;
+
+			if (signaturesDirty)
+			{
+				signatureRecomputeCount++;
+				planRecomputeCount++;
+				plan = planBuilder.GetOrBuild(carried, transformsGroup);
+
+				// Include BE rotation + slot content signature so cached render infos invalidate
+				// when displaycase item orientation/contents change.
+				containerSlots = TransformGroupResolverHelper.GetContainerSlots(carried);
+				variantRecomputeCount++;
+				renderVariantSignature = CarryRenderHelpers.BuildRenderInfoVariantSignature(
+					carried,
+					containerSlots,
+					plan.EffectiveSettings,
+					this.api.World);
+
+				sidecar.LastSeenCarriedRevision = carriedRevision;
+				sidecar.LastTransformsGroup = transformsGroup;
+				sidecar.LastStackCode = stackCode;
+				sidecar.LastBlockEntityDataRef = carried?.BlockEntityData;
+				sidecar.Plan = plan;
+				sidecar.RenderVariantSignature = renderVariantSignature;
+			}
+			else
+			{
+				signatureReuseCount++;
+				plan = sidecar.Plan;
+				renderVariantSignature = sidecar.RenderVariantSignature;
+			}
 
 			var frameKey = CarryRenderHelpers.BuildFrameCacheKey(entity, carried, plan.Signature, renderVariantSignature);
 			cache.InvalidateSlotState(slotStateKey, frameKey);
 
 			if (cache.FrameRenderInfos.TryGetValue(frameKey, out var frameCached))
 			{
+				frameRenderInfoHitCount++;
 				return CarryRenderHelpers.CloneCarriedRenderInfos(frameCached);
 			}
 
@@ -145,12 +219,15 @@ namespace CarryOn.Client.Logic.CarryRenderer
 
 			if (cache.RenderInfos.TryGetValue(renderInfoKey, out var cachedRenderInfos))
 			{
+				persistentRenderInfoHitCount++;
 				cachedRenderInfos.LastUsedAtUtc = now;
 				var clonedFromPersistent = CarryRenderHelpers.CloneCarriedRenderInfos(cachedRenderInfos.RenderInfos);
 				cache.FrameRenderInfos[frameKey] = CarryRenderHelpers.CloneCarriedRenderInfos(clonedFromPersistent);
 				return clonedFromPersistent;
 			}
 
+			containerSlots ??= TransformGroupResolverHelper.GetContainerSlots(carried);
+			renderInfoBuildCount++;
 			var built = infoBuilder.BuildFromPlan(carried, plan, containerSlots);
 			cache.RenderInfos[renderInfoKey] = new CachedRenderInfos
 			{
@@ -168,39 +245,98 @@ namespace CarryOn.Client.Logic.CarryRenderer
 		public double RenderOrder => 1.0;
 		public int RenderRange => 99;
 
+		/// <summary> 
+		/// Gets or creates the set of currently tracked hand-carry animations for the specified entity. 
+		/// This is used to determine which animations to stop when the carried item or player state changes. 
+		/// </summary>	
+		/// <param name="entityId"></param>
+		/// <returns></returns>
+		private HashSet<string> GetOrCreateTrackedHoldAnimations(long entityId)
+		{
+			if (!this.activeHandCarryAnimationsByEntityId.TryGetValue(entityId, out var tracked))
+			{
+				tracked = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+				this.activeHandCarryAnimationsByEntityId[entityId] = tracked;
+			}
+
+			return tracked;
+		}
+
+		/// <summary>
+		/// Gets or creates the set of known hand-carry animations for the specified entity. 
+		/// This is used to track all hand-carry animations that should be active for the entity, 
+		/// even if they were started outside of this renderer's tracked set (e.g. by an animation that has a hardcoded animation code, or by another mod). 
+		/// This allows the renderer to stop any stale hand-carry animations that are no longer desired, even if they weren't started in the tracked set.
+		/// </summary>
+		/// <param name="entityId"></param>
+		/// <returns></returns>
+		private HashSet<string> GetOrCreateKnownHandAnimations(long entityId)
+		{
+			if (!this.knownHandCarryAnimationsByEntityId.TryGetValue(entityId, out var known))
+			{
+				known = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+				this.knownHandCarryAnimationsByEntityId[entityId] = known;
+			}
+
+			return known;
+		}
+
+		/// <summary>
+		/// Synchronizes the player's active animations with the currently desired hand-carry animations based on the item they're carrying and their state 
+		/// (sneaking, sitting, etc.).
+		/// </summary>
+		/// <param name="player"></param>
 		private void SyncCarryAnimations(EntityPlayer player)
 		{
 			if (player == null) return;
+			var trackedAnimations = GetOrCreateTrackedHoldAnimations(player.EntityId);
+			var knownAnimations = GetOrCreateKnownHandAnimations(player.EntityId);
 
 			var isSneaking = player.Controls?.Sneak ?? false;
-			var isSitting = CarryRenderHelpers.IsSitting(player);
+			var isSitting = CarryAnimationResolver.IsSitting(player);
 			var desiredAnimations = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+			var handsCarried = player.GetCarried(CarrySlot.Hands);
 
-			foreach (var carried in player.GetCarried())
+			if (handsCarried != null)
 			{
-				var animationCode = carried.GetCarryableBehavior()?.Slots?[carried.Slot]?.Animation;
-				animationCode = CarryRenderHelpers.ResolveCarryAnimationCode(animationCode, isSneaking, isSitting);
-				if (!string.IsNullOrEmpty(animationCode))
+				var slotSettings = handsCarried.GetCarryableBehavior()?.Slots?[handsCarried.Slot];
+				if (slotSettings != null)
 				{
-					desiredAnimations.Add(animationCode);
+					knownAnimations.UnionWith(CarryAnimationResolver.GetHandAnimationCodes(slotSettings));
+					var animationCode = CarryAnimationResolver.ResolveHandsAnimation(slotSettings, isSneaking, isSitting);
+					if (!string.IsNullOrWhiteSpace(animationCode))
+					{
+						desiredAnimations.Add(animationCode);
+					}
 				}
 			}
 
-			// Start any new desired carryon:hold* animations
-			foreach (var animationCode in desiredAnimations.Except(this.activeCarryAnimations))
+			// Start any new desired hand-carry animations.
+			foreach (var animationCode in desiredAnimations.Except(trackedAnimations))
 				player.StartAnimation(animationCode);
 
 
-			// Stop any carryon:hold* animations that are no longer desired
-			foreach (var animationCode in this.activeCarryAnimations.Except(desiredAnimations)
-																	.Where(code => code.StartsWith("carryon:hold", StringComparison.OrdinalIgnoreCase))
+			// Stop tracked hand-carry animations that are no longer desired.
+			foreach (var animationCode in trackedAnimations.Except(desiredAnimations)
 																	.ToList())
 				player.StopAnimation(animationCode);
-			
+
+			// Safety scrub: stop stale known hand animations even if they started outside trackedAnimations.
+			var activeByCode = player.AnimManager?.ActiveAnimationsByAnimCode;
+			if (activeByCode != null && activeByCode.Count > 0)
+			{
+				foreach (var animationCode in activeByCode.Keys.Where(code => knownAnimations.Contains(code)).ToList())
+				{
+					if (!desiredAnimations.Contains(animationCode))
+					{
+						player.StopAnimation(animationCode);
+					}
+				}
+			}
 
 			// Update the active set
-			this.activeCarryAnimations.Clear();
-			this.activeCarryAnimations.UnionWith(desiredAnimations);
+			trackedAnimations.Clear();
+			trackedAnimations.UnionWith(desiredAnimations);
 		}
 
 		public void OnRenderFrame(float deltaTime, EnumRenderStage stage)
@@ -222,25 +358,95 @@ namespace CarryOn.Client.Logic.CarryRenderer
 				cache.PruneRenderInfos();
 			}
 
+			var seenEntityIds = new HashSet<long>();
+
 			foreach (var player in this.api.World.AllPlayers)
 			{
 				// Player entity may be null in some circumstances..?
 				if (player.Entity == null) continue;
+				seenEntityIds.Add(player.Entity.EntityId);
 
 				var isShadowPass = stage == EnumRenderStage.ShadowFar || stage == EnumRenderStage.ShadowNear;
-
-				SyncCarryAnimations(player.Entity);
+				var isLocalPlayer = player == this.api.World.Player;
 
 				// Don't render remote entities that haven't been rendered for this stage.
-				if (player != this.api.World.Player
+				if (!isLocalPlayer
 					&& (isShadowPass ? !player.Entity.IsShadowRendered : !player.Entity.IsRendered))
 				{
 					continue;
 				}
 
+				SyncCarryAnimations(player.Entity);
+
 				RenderAllCarried(player.Entity, deltaTime, stage, isShadowPass);
 			}
+
+			foreach (var entityId in this.activeHandCarryAnimationsByEntityId.Keys.Where(id => !seenEntityIds.Contains(id)).ToList())
+			{
+				this.activeHandCarryAnimationsByEntityId.Remove(entityId);
+				this.knownHandCarryAnimationsByEntityId.Remove(entityId);
+			}
+
+			foreach (var sidecarKey in this.signatureSidecars.Keys.Where(key => !seenEntityIds.Contains(key.EntityId)).ToList())
+			{
+				this.signatureSidecars.Remove(sidecarKey);
+			}
+
+			if (stage == EnumRenderStage.Opaque)
+			{
+				TryLogSignatureCounters();
+			}
+
 			this.renderTick++;
+		}
+
+		private void TryLogSignatureCounters()
+		{
+			var loggingEnabled = this.carrySystem?.Config?.DebuggingOptions?.LoggingEnabled ?? false;
+			if (!loggingEnabled)
+			{
+				return;
+			}
+
+			var now = DateTime.UtcNow;
+			if (now < nextDebugCounterLogAtUtc)
+			{
+				return;
+			}
+
+			var deltaRecomputed = signatureRecomputeCount - lastLoggedSignatureRecomputeCount;
+			var deltaPlanRecomputed = planRecomputeCount - lastLoggedPlanRecomputeCount;
+			var deltaVariantRecomputed = variantRecomputeCount - lastLoggedVariantRecomputeCount;
+			var deltaReused = signatureReuseCount - lastLoggedSignatureReuseCount;
+			var deltaFrameHits = frameRenderInfoHitCount - lastLoggedFrameRenderInfoHitCount;
+			var deltaPersistentHits = persistentRenderInfoHitCount - lastLoggedPersistentRenderInfoHitCount;
+			var deltaBuilds = renderInfoBuildCount - lastLoggedRenderInfoBuildCount;
+
+			lastLoggedSignatureRecomputeCount = signatureRecomputeCount;
+			lastLoggedPlanRecomputeCount = planRecomputeCount;
+			lastLoggedVariantRecomputeCount = variantRecomputeCount;
+			lastLoggedSignatureReuseCount = signatureReuseCount;
+			lastLoggedFrameRenderInfoHitCount = frameRenderInfoHitCount;
+			lastLoggedPersistentRenderInfoHitCount = persistentRenderInfoHitCount;
+			lastLoggedRenderInfoBuildCount = renderInfoBuildCount;
+			nextDebugCounterLogAtUtc = now + DebugCounterLogInterval;
+
+			var totalDeltaRequests = deltaRecomputed + deltaReused;
+			var reuseRate = totalDeltaRequests > 0
+				? (100.0 * deltaReused / totalDeltaRequests).ToString("F1")
+				: "n/a";
+
+			this.api.Logger.Debug(
+				"[CarryOn] Renderer sidecar counters (last {0}s): recomputed={1}, planRecomputed={2}, variantRecomputed={3}, reused={4}, reuseRate={5}%, frameHits={6}, persistentHits={7}, builds={8}",
+				(int)DebugCounterLogInterval.TotalSeconds,
+				deltaRecomputed,
+				deltaPlanRecomputed,
+				deltaVariantRecomputed,
+				deltaReused,
+				reuseRate,
+				deltaFrameHits,
+				deltaPersistentHits,
+				deltaBuilds);
 		}
 
 		/// <summary> Renders all carried blocks of the specified entity. </summary>

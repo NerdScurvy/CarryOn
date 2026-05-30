@@ -627,6 +627,10 @@ namespace CarryOn.Common.Behaviors
 
             public string Animation { get; set; }
 
+            public string AnimationSit { get; set; }
+
+            public string AnimationCrouch { get; set; }
+
             public float WalkSpeedModifier { get; set; } = 0.0F;
 
             public string EnabledCondition { get; set; }
@@ -681,6 +685,8 @@ namespace CarryOn.Common.Behaviors
                         }
 
                         settings.Animation = slotProperties["animation"].AsString(settings.Animation);
+                        settings.AnimationSit = slotProperties["animationSit"].AsString(settings.AnimationSit);
+                        settings.AnimationCrouch = slotProperties["animationCrouch"].AsString(settings.AnimationCrouch);
 
                         if (!DefaultWalkSpeed.TryGetValue(slot, out var speed)) speed = 0.0F;
                         settings.WalkSpeedModifier = slotProperties["walkSpeedModifier"].AsFloat(speed);

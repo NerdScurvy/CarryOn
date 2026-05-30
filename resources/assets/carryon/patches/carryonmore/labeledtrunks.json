@@ -9,8 +9,15 @@
 			"properties": {
 				"enabledCondition": "carryon.Carryables.ChestTrunk",
 				"transformTemplates": [
-					"carryon:carry-trunk"
+					"carry-trunk"
 				],
+				"labelRenderSettings": {
+					"transform": {
+						"translation": [ -0.907, 0.627, 1.09 ],
+						"rotation": [ 0.0, -90.0, 0.0 ],
+						"scale": 1.0
+					}
+				},				
 				"slots": {
 					"Hands": {
 						"animation": "carryon:holdheavy",

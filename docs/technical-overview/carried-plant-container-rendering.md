@@ -5,7 +5,9 @@ This document explains how carried plant containers (flowerpots and planters) ar
 It reflects the current implementation, which is template-based and resolver-driven:
 - Plant container carryable patches reference `transformTemplates`.
 - Transform groups are defined in template JSON files under `config/transformtemplates`.
-- Runtime group selection uses base slot/backpack groups (`hands`, `backpack-none`, `backpack-small`, `backpack-large`) and the `plant-container` transform group resolver.
+- Runtime group selection uses base slot/backpack groups (`hands`, `backpack-none`, `backpack-small`, `backpack-large`) and the explicitly requested `plant-container` transform group resolver.
+
+Template code canonical form is `modid:code`. Bare `transformTemplates` values default to `carryon:<code>` during lookup.
 
 ---
 
@@ -21,8 +23,8 @@ Both follow the same structure.
 ```json
 "properties": {
   "transformTemplates": [
-    "carryon:plants-small",
-    "carryon:carry-flowerpot"
+    "plants-small",
+    "carry-flowerpot"
   ],
   "transformGroupResolver": "plant-container",
   "renderRootFirst": true,
@@ -37,8 +39,8 @@ Both follow the same structure.
 ```json
 "properties": {
   "transformTemplates": [
-    "carryon:plants-medium",
-    "carryon:carry-planter"
+    "plants-medium",
+    "carry-planter"
   ],
   "transformGroupResolver": "plant-container",
   "renderRootFirst": true,
@@ -50,8 +52,8 @@ Both follow the same structure.
 ```
 
 Key properties shared by both:
-- `transformTemplates`: references to template codes for size/variant rendering
-- `transformGroupResolver`: `plant-container` (enables plant-content-aware group selection)
+- `transformTemplates`: references to template codes for size/variant rendering (canonical `modid:code`; bare defaults to `carryon:<code>`)
+- `transformGroupResolver`: `plant-container` (enables plant-content-aware group selection via direct resolver lookup)
 - `renderRootFirst`: controls render order of root mesh vs accessories
 - `slots`: defines available carry slots and restrictions
 
@@ -147,7 +149,7 @@ Current renderer flow is plan-builder based:
 1. `EntityCarryRenderer` resolves base group from slot/backpack context.
 2. `GetRenderInfoCached` calls `CarryTransformPlanBuilder.GetOrBuild`.
 3. `CarryTransformPlanBuilder`:
-   - runs registered transform group resolvers (including `plant-container` when requested via `transformGroupResolver`)
+  - looks up the explicitly requested transform group resolver code (`plant-container`)
    - chooses primary group from resolver candidates
    - resolves additional groups
    - falls back to `default` settings if needed

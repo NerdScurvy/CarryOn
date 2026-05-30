@@ -9,8 +9,8 @@
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Planter",
 				"transformTemplates": [
-					"carryon:plants-large",
-					"carryon:carry-planter"
+					"plants-large",
+					"carry-planter"
 				],
 				"renderRootFirst": true,
 				"transformGroupResolver": "plant-container",

@@ -4,6 +4,7 @@ This document explains the client-side carried-block rendering pipeline implemen
 
 It reflects the current implementation:
 - `EntityCarryRenderer` orchestrates stage registration, per-frame traversal, animation sync, and final draw submission.
+- `CarryAnimationResolver` resolves effective hand-carry animation codes (base/sit/crouch) and known animation sets.
 - `CarryTransformPlanBuilder` resolves transform-group plans (primary plus additional groups) and caches them.
 - `CarryRenderInfoBuilder` materializes concrete render infos from plan settings and optional container-slot sources.
 - `CarryRenderCache` holds transform plans, persistent render infos, frame-local render infos, and per-slot invalidation state.
@@ -14,6 +15,7 @@ It reflects the current implementation:
 
 The pipeline in this document covers all classes in:
 - `src/Client/Logic/CarryRenderer/EntityCarryRenderer.cs`
+- `src/Client/Logic/CarryRenderer/CarryAnimationResolver.cs`
 - `src/Client/Logic/CarryRenderer/CarryTransformPlanBuilder.cs`
 - `src/Client/Logic/CarryRenderer/CarryRenderInfoBuilder.cs`
 - `src/Client/Logic/CarryRenderer/CarryRenderCache.cs`
@@ -31,41 +33,52 @@ Core orchestrator responsibilities:
 - Registers renderer for `Opaque`, `AfterOIT`, `ShadowFar`, `ShadowNear` stages.
 - Iterates players each frame, culls non-rendered remote entities per stage, and renders carried blocks.
 - Computes entity/slot matrices, resolves first-person hands matrix behavior, and emits draw calls.
+- Uses per-entity/slot signature sidecars to avoid unnecessary transform-plan and variant-signature recomputation.
 - Splits non-shadow rendering across stages:
   - `Opaque` stage renders opaque carried content.
   - `AfterOIT` stage renders translucent carried content.
   - Local first-person hands opaque can be deferred to `AfterOIT` so hands still composite over water correctly.
-- Syncs carry hold animations on the local player.
+- Syncs carry hold animations for players during traversal (resolved via `CarryAnimationResolver`) and scrubs stale tracked state for entities no longer seen.
 - Delegates label rendering after any carried entry's opaque phase is rendered.
 
-### 1B. `CarryTransformPlanBuilder`
+### 1B. `CarryAnimationResolver`
+
+Animation resolution responsibilities:
+- Detects sitting state (`floor sitting` or mounted) for animation selection.
+- Resolves effective hands animation code from slot settings and stance (`Animation`, `AnimationSit`, `AnimationCrouch`).
+- Applies default sit/crouch fallback mappings for common base carry animations when explicit overrides are not provided.
+- Returns the known set of hand animation codes used by `EntityCarryRenderer` safety scrub logic.
+
+### 1C. `CarryTransformPlanBuilder`
 
 Plan resolution responsibilities:
-- Chooses transform-group resolver (if requested or available) and collects primary group candidates.
+- Invokes the requested transform-group resolver (when `transformGroupResolver` is set) and collects primary group candidates.
 - Resolves additional group candidates (including optional slot-key source and vertex-warp marker).
 - Resolves final primary group with fallback chain and type-suffix existence checks.
 - Falls back to `default` group settings if no effective settings are produced.
 - Produces a `CachedTransformPlan` keyed by transform-plan signature.
 
-### 1C. `CarryRenderInfoBuilder`
+### 1D. `CarryRenderInfoBuilder`
 
 Render-info materialization responsibilities:
 - Converts effective plan settings into concrete `CarriedRenderInfo[]`.
 - Resolves target mesh source from one of:
   - resolver source slot stack,
+  - block-entity path stack source (`BlockEntityDataItemStackPath`),
   - explicit asset in transform setting,
   - carried root stack.
-- Applies cull-face overrides, climate/seasonal tints, display slot yaw, and optional `onDisplayTransform` secondary transform.
+- Applies cull-face overrides, climate/seasonal tints, display slot yaw, optional `onDisplayTransform` secondary transform, and disable flags (`DisableIfItemStackPath`).
 
-### 1D. `CarryRenderCache`
+### 1E. `CarryRenderCache`
 
 Caching responsibilities:
 - `TransformPlans`: expensive group resolution output.
 - `RenderInfos`: persistent render info blobs keyed by plan plus variant signature.
 - `FrameRenderInfos`: per-frame clone cache for draw safety/mutability.
 - `SlotStates`: slot-level mapping used to invalidate stale frame/render/plan caches when signatures change.
+- `SignatureSidecars` (owned by `EntityCarryRenderer`): per `(entityId, slot)` signature memoization (carried revision, transform group, stack code, BE data ref, cached plan, variant signature).
 
-### 1E. `CarryRenderHelpers`
+### 1F. `CarryRenderHelpers`
 
 Shared utility responsibilities:
 - Key/signature builders for cache identity.
@@ -73,11 +86,12 @@ Shared utility responsibilities:
 - Render phase selection (`opaque`, `translucent`, `both`) and phase filtering.
 - Color-map tint sampling and robust fallback behavior.
 - Array cloning for `CarriedRenderInfo` safety.
+- Variant signatures include block-entity placement/rotation, container slot contents, and hashed block-entity itemstack path content used by render/disable path settings.
 
-### 1F. `CarriedLabelRenderer` and `CarriedLabelManager`
+### 1G. `CarriedLabelRenderer` and `CarriedLabelManager`
 
 Label subsystem responsibilities:
-- Renders either text label (`text`) or icon label (`labelStack`) from block entity data.
+- Renders either text label (`text`) or icon label (`labelStack` or inventory-derived source) from block entity data.
 - Uses behavior `LabelRenderSettings` transform and style metadata.
 - Caches generated text textures and icon meshes/textures with LRU bounds.
 
@@ -106,7 +120,9 @@ Label subsystem responsibilities:
   - prunes render info cache (TTL/cap)
 - On other accepted stages, skips cache maintenance and just renders for that stage.
 - Iterates all players and applies stage visibility culling for remote entities.
-- Syncs carry animations for the local player.
+- Syncs carry animations for traversed players by using `CarryAnimationResolver` for sitting-state and effective hands animation selection.
+- Removes stale per-entity animation tracking and signature sidecars for entities no longer seen.
+- Emits optional debug counter logs (sidecar reuse/hits/builds) on the opaque stage when debugging logging is enabled.
 - Calls per-entity carried render traversal.
 
 ---
@@ -117,6 +133,7 @@ Label subsystem responsibilities:
 - Retrieves entity carried list.
 - Determines local player / first-person / immersive first-person context.
 - Retrieves entity shape renderer and animator.
+- Optionally merges carried block/item light into `entity.LightHsv` when `CarriedLightEnabled` is active.
 - Calls `RenderCarried` for each carried block.
 
 `RenderCarried` path highlights:
@@ -134,8 +151,8 @@ Label subsystem responsibilities:
 
 `GetRenderInfoCached` sequence:
 1. Build slot-state key (`entityId + slot`).
-2. Resolve or build transform plan from `CarryTransformPlanBuilder`.
-3. Build render-variant signature from block entity placement/rotation and container slot contents.
+2. Resolve sidecar state for `(entityId, slot)`.
+3. Recompute plan/variant only when sidecar inputs changed (carried revision, transform group, stack code, BE data reference); otherwise reuse sidecar plan/signature.
 4. Build frame key from entity, slot, stack, plan signature, and render-variant signature.
 5. Invalidate previous slot state when frame key changes.
 6. Try frame cache hit (`FrameRenderInfos`).
@@ -175,10 +192,11 @@ Output:
 - Starts from carried base stack render info.
 - For each effective setting:
   - optionally samples climate/seasonal tint map near player position
-  - resolves source mesh from slot stack / explicit asset / carried stack
+  - resolves source mesh from slot stack / explicit asset / BE itemstack path / carried stack
+  - skips implicit carried-stack fallback when a BE path is explicitly requested but missing and no other explicit source is available
   - applies cull-face override
   - composes primary and optional secondary transforms
-  - emits `CarriedRenderInfo` with alpha thresholds, normal-shaded flag, render pass, vertex warp flag, and enabled state
+  - emits `CarriedRenderInfo` with alpha thresholds, normal-shaded flag, render pass, vertex warp flag, and enabled state (including `DisableIfItemStackPath` gating)
 
 Display-specific adjustments:
 - Slot-key source can inject display slot yaw from `rotation<slotKey>` in carried block entity data.
@@ -236,10 +254,12 @@ In current stage routing, local non-immersive hands opaque can be deferred from 
 Label data source fields in block entity data:
 - text path: `text`, `color`, `fontSize`
 - icon path: `labelStack`
+- optional inventory icon source path: first populated stack under `inventory.slots` when `LabelRenderSettings.IconFromInventory` is enabled
 
 `CarriedLabelRenderer`:
 - Requires behavior `LabelRenderSettings.Transform`; if absent, labels are skipped.
 - Applies label transform on top of carried root matrix.
+- Supports one primary plus optional additional transforms from `LabelRenderSettings.AdditionalTransforms`.
 - Renders icon label if available and ready; otherwise falls back to text label.
 
 `CarriedLabelManager`:
@@ -276,19 +296,23 @@ graph TD
   D -- no --> F[Skip cache maintenance]
   E --> G[Iterate world players]
   F --> G
-  G --> H[Sync local carry animations]
-  H --> I[RenderAllCarried per entity]
-  I --> J[Resolve base transform group and slot render settings]
-  J --> K[GetRenderInfoCached]
-  K --> L[GetOrBuild transform plan]
-  L --> M[Resolve primary and additional settings]
-  M --> N[Build or fetch render infos]
-  N --> O{Shadow pass?}
-  O -- yes --> P[Render shadow meshes]
-  O -- no --> Q[Queue draws and sort root order]
-  Q --> R{Stage}
-  R -- Opaque --> S[Render opaque phase, then label]
-  R -- AfterOIT --> T[Render translucent phase; render deferred hands opaque when applicable]
+  G --> H[Resolve carry animations via CarryAnimationResolver]
+  H --> I[Sync carry animations for traversed players]
+  I --> J[RenderAllCarried per entity]
+  J --> K[Resolve base transform group and slot render settings]
+  K --> L[GetRenderInfoCached]
+  L --> M{Sidecar dirty?}
+  M -- yes --> N[GetOrBuild transform plan and variant signature]
+  M -- no --> O[Reuse sidecar plan and variant signature]
+  N --> P[Build frame key and invalidate slot state if changed]
+  O --> P
+  P --> Q[Build or fetch render infos]
+  Q --> R{Shadow pass?}
+  R -- yes --> S[Render shadow meshes]
+  R -- no --> T[Queue draws and sort root order]
+  T --> U{Stage}
+  U -- Opaque --> V[Render opaque phase, then label]
+  U -- AfterOIT --> W[Render translucent phase; render deferred hands opaque when applicable]
 ```
 
 ---
@@ -296,6 +320,7 @@ graph TD
 ## 12. References
 
 - `src/Client/Logic/CarryRenderer/EntityCarryRenderer.cs`
+- `src/Client/Logic/CarryRenderer/CarryAnimationResolver.cs`
 - `src/Client/Logic/CarryRenderer/CarryTransformPlanBuilder.cs`
 - `src/Client/Logic/CarryRenderer/CarryRenderInfoBuilder.cs`
 - `src/Client/Logic/CarryRenderer/CarryRenderCache.cs`

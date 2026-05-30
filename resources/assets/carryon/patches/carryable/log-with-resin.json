@@ -9,7 +9,7 @@
 			"properties": {
 				"enabledCondition": "carryon.Carryables.LogWithResin",
 				"transformTemplates": [
-					"carryon:carry-crate"
+					"carry-crate"
 				],
 				"transformGroups": {
 					"@backpack-none": [
@@ -79,7 +79,7 @@
 			"properties": {
 				"enabledCondition": "carryon.Carryables.LogWithResin",
 				"transformTemplates": [
-					"carryon:carry-crate"
+					"carry-crate"
 				],
 				"transformGroups": {
 					"@backpack-none": [

@@ -53,26 +53,13 @@ namespace CarryOn.Client.Logic.CarryRenderer
             string matchedResolverCode = null;
             string resolverCacheSignature = null;
             CarriedGroupResolution matchedResolution = null;
+            var requestedResolverCode = carryBehavior.TransformGroupResolver;
 
-            var transformGroupResolvers = carrySystem?.CarryManager?.GetTransformGroupResolvers();
-            if (transformGroupResolvers != null)
+            if (!string.IsNullOrEmpty(requestedResolverCode)
+                && carrySystem?.CarryManager?.TryGetTransformGroupResolver(requestedResolverCode, out var resolver) == true)
             {
-                var requestedResolverCode = carryBehavior.TransformGroupResolver;
-                foreach (var resolver in transformGroupResolvers)
+                if (resolver.TryResolve(this.api, carried, transformsGroup, out var resolution) && resolution != null)
                 {
-                    if (resolver == null) continue;
-
-                    if (!string.IsNullOrEmpty(requestedResolverCode)
-                        && !requestedResolverCode.Equals(resolver.ResolverCode, StringComparison.OrdinalIgnoreCase))
-                    {
-                        continue;
-                    }
-
-                    if (!resolver.TryResolve(this.api, carried, transformsGroup, out var resolution) || resolution == null)
-                    {
-                        continue;
-                    }
-
                     matchedResolverCode = resolver.ResolverCode;
                     resolverCacheSignature = resolver.GetCacheSignature(this.api, carried, transformsGroup, resolution);
                     matchedResolution = resolution;
@@ -85,8 +72,6 @@ namespace CarryOn.Client.Logic.CarryRenderer
                     {
                         primaryGroupCandidates = new List<string> { resolution.PrimaryGroup };
                     }
-
-                    break;
                 }
             }
 

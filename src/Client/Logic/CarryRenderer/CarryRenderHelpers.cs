@@ -404,43 +404,6 @@ namespace CarryOn.Client.Logic.CarryRenderer
             return modelMat;
         }
 
-        internal static bool IsSitting(EntityPlayer player)
-        {
-            var active = player?.AnimManager?.ActiveAnimationsByAnimCode;
-            if (active == null || active.Count == 0) return false;
-
-            foreach (var animation in active.Keys)
-            {
-                if (string.IsNullOrEmpty(animation)) continue;
-                // Exclude our carry animations; check only for vanilla sit animations
-                if (animation.StartsWith("carryon:", StringComparison.OrdinalIgnoreCase)) continue;
-                if (animation.IndexOf("sit", StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        internal static string ResolveCarryAnimationCode(string animationCode, bool isSneaking, bool isSitting)
-        {
-            if (string.IsNullOrEmpty(animationCode)) return animationCode;
-
-            if (isSitting)
-            {
-                if (animationCode == "carryon:holdheavy") return "carryon:holdheavysit";
-                if (animationCode == "carryon:holdlight") return "carryon:holdlightsit";
-            }
-
-            if (!isSneaking) return animationCode;
-
-            if (animationCode == "carryon:holdheavy") return "carryon:holdheavycrouch";
-            if (animationCode == "carryon:holdlight") return "carryon:holdlightcrouch";
-
-            return animationCode;
-        }
-
         internal static RenderPhaseMask ResolveDefaultPhases(CarriedRenderInfo info)
         {
             var explicitPass = ParseRenderPass(info?.RenderPass);
