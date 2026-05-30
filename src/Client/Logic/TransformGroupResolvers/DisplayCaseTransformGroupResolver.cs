@@ -10,7 +10,6 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
 {
     public class DisplayCaseTransformGroupResolver : ContainerSlotTransformGroupResolverBase
     {
-        public override int Priority => -5;
         public override string ResolverCode => "displaycase";
 
         public override bool TryResolve(ICoreAPI api, CarriedBlock carried, string baseGroup, out CarriedGroupResolution resolution)

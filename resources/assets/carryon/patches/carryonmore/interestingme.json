@@ -1,0 +1,40 @@
+[
+	{
+		"file": "interestingme:blocktypes/muckbin",
+		"op": "add",
+		"path": "/behaviors/-",
+		"value": {
+			"name": "Carryable",
+			"properties": {
+				"enabledCondition": "carryon.Carryables.Crate",
+				"swapBackKeyPassthrough": true,
+				"labelRenderSettings": {
+					"iconPixelSize": 128,
+					"iconFromInventory": true,
+					"transform": {
+						"translation": [ -0.01, 0.29, 0.23 ],
+						"rotation": [ -180.0, -90.0, 0.0 ],
+						"scale": [ 0.54, 0.54, 0.8433 ],
+						"origin": [ 0.0, 0.0, 0.0 ]
+					}
+				},
+				"transformTemplates": [
+					"carryon:carry-crate"
+				],
+				"slots": {
+					"Hands": {},
+					"Back": {
+						"walkSpeedModifier": -0.2,
+						"enabledCondition": "carryon.CarryablesOnBack.Crate"
+					}
+				},
+				"patchPriority": 1
+			}
+		},
+		"dependsOn": [
+			{
+				"modid": "interestingme"
+			}
+		]
+	}
+]

@@ -3,7 +3,7 @@
 This document explains the carry management and interaction pipeline centered on `CarryManager` and `CarryHandler`.
 
 It reflects the current implementation:
-- `CarryManager` is the core authority for carried state, pickup/place/drop operations, permission checks, and carry event hooks.
+- `CarryManager` is a facade over dedicated domain services and remains the public authority exposed through `ICarryManager`.
 - `CarryHandler` is the orchestration layer that wires input, network messages, server validation, and interaction state progression.
 - `InteractionLogic` drives client-side carry action state (`PickUp`, `PlaceDown`, `SwapBack`, `Attach`, `Detach`, `Put`, `Take`, `Interact`).
 - `TransferLogic` handles carryable transfer into and out of block entities via pluggable transfer handlers.
@@ -13,6 +13,12 @@ It reflects the current implementation:
 
 This pipeline covers:
 - `src/Common/CarryManager.cs`
+- `src/Common/Services/CarryManagerServices.cs`
+- `src/Common/Services/CarryStateService.cs`
+- `src/Common/Services/CarryPlacementService.cs`
+- `src/Common/Services/CarryAttachmentService.cs`
+- `src/Common/Services/CarryDropService.cs`
+- `src/Common/Services/CarryEventBootstrapper.cs`
 - `src/Common/Handlers/CarryHandler.cs`
 - `src/Common/Handlers/DeathHandler.cs`
 - `src/Common/Logic/InteractionLogic.cs`
@@ -28,16 +34,23 @@ This pipeline covers:
 ### 1A. `CarryManager`
 
 Core responsibilities:
-- Stores and resolves carried blocks in entity watched attributes per carry slot.
-- Sets/removes carried state, including side effects:
-  - carry animation start/stop
-  - movement speed modifier
-  - hand hotbar slot locking synchronization
-- Performs world-to-carried and carried-to-world transitions (`TryPickUp`, `TryPlaceDown`, `TryPlaceDownAt`).
-- Handles drop fallback (`DropCarried`, `DropBlockAsItem`) when placement is not possible.
-- Validates build/reinforcement/claim permissions before pickup on server side.
-- Publishes and consumes carry event delegate hooks around pickup/remove/restore/drop and permission checks.
-- Maintains transform group resolver registry used by carried render planning.
+- Exposes the public carry API (`ICarryManager`) used by CarryOn internals and other mods.
+- Delegates operational behavior to `CarryManagerServices` domain services:
+  - `CarryStateService` for watched-attribute state, revisions, slot locks, animation/stat side effects.
+  - `CarryPlacementService` for pickup, placement, permission checks, and block entity restore.
+  - `CarryAttachmentService` for attach/detach between player hands and entity slots.
+  - `CarryDropService` for drop placement fallback and item spill/drop behavior.
+  - `CarryEventBootstrapper` for `ICarryEvent` discovery and initialization.
+- Maintains transform group resolver registration for renderer-side transform group planning.
+
+### 1A.1 Service Delegation Matrix
+
+`CarryManager` method routing:
+- State: `GetAllCarried`, `GetCarried`, `SetCarried`, `RemoveCarried`, `SwapCarried`, `LockHotbarSlots`, `TouchCarriedAttributes`, `GetCarriedRevision` -> `CarryStateService`
+- Placement: `HasPermissionToCarry`, `GetCarriedFromWorld`, `RestoreBlockEntityData`, `TryPickUp`, `TryPlaceDown`, `TryPlaceDownAt` -> `CarryPlacementService`
+- Attachment: `TryAttach`, `TryDetach` -> `CarryAttachmentService`
+- Drop: `DropCarried`, `DropCarriedBlock`, `DropBlockAsItem` -> `CarryDropService`
+- Event bootstrap: `InitEvents` -> `CarryEventBootstrapper`
 
 ### 1B. `CarryHandler`
 
@@ -84,7 +97,7 @@ Death flow responsibility:
 - Creates renderer/HUD systems.
 - Calls `CarryHandler.InitClient`.
 - Calls `CarryManager.InitEvents`.
-- Registers transform group resolvers (`plant-container`, `display-case`, `mold-rack`).
+- Registers transform group resolvers (`plant-container`, `display-case`, `mold-rack`, `generic-code-path`).
 
 `CarrySystem.StartServerSide`:
 - Registers `EntityBehaviorDropCarriedOnDamage`.
@@ -106,26 +119,29 @@ Death flow responsibility:
 
 Important implementation behavior:
 - `GetCarried` resolves `ItemStack.Block` if missing after tree deserialization.
-- Server-side set/remove marks watched tree paths dirty so client state stays synchronized.
-- Server-side set/remove updates hand lock state and sends `LockSlotsMessage`.
+- `SetCarried` starts configured carry animation, applies walkspeed modifiers, and updates hand lock state.
+- `RemoveCarried` stops animation, removes walkspeed modifier, restores lock states, and clears watched + entity attributes.
+- Server-side set/remove calls increment carried revision via `TouchCarriedAttributes` and marks `AttributeKey.Watched.EntityCarried` dirty.
+- `TouchCarriedAttributes` stores integer revision at `AttributeKey.CarriedRevision` under the carried root.
 
 ---
 
 ## 4. Pickup and Place-Down Pipeline
 
-`TryPickUp` flow (`CarryManager`):
+`TryPickUp` flow (`CarryPlacementService` via `CarryManager`):
 1. Server: permission check (`HasPermissionToCarry`) against claims/reinforcement and external delegates.
 2. Reject if target carry slot already occupied.
-3. Build `CarriedBlock` from world position (`GetCarriedFromWorld`) and invoke pre-remove delegates.
-4. Remove world block (+ clear reinforcement + neighbor update).
-5. Set carried state on entity and play placement sound profile.
-6. Audit log on server.
+3. Validate carryability and optimistic pickup behavior (`BlockBehaviorCarryable.OptimisticPickup`).
+4. Build `CarriedBlock` from world position (`GetCarriedFromWorld`) and invoke pre-remove delegates.
+5. Remove world block (+ clear reinforcement + neighbor update).
+6. Set carried state on entity and play carry sound profile.
+7. Audit log on server.
 
-`TryPlaceDownAt` + `TryPlaceDown` flow (`CarryManager`):
+`TryPlaceDownAt` + `TryPlaceDown` flow (`CarryPlacementService` via `CarryManager`):
 1. Resolve actual placement position (replace selected block or offset by face).
 2. For player placements, route through block `TryPlaceBlock` with temporary active-slot phantom stack.
 3. Force Shift=true and Ctrl=false during placement attempt (compatibility workaround), then restore controls.
-4. For dropped placements, directly exchange block/spawn block entity and call `OnBlockPlaced`.
+4. For dropped placements (or non-player placement paths), directly exchange block/spawn block entity and call `OnBlockPlaced`.
 5. Restore serialized block entity data at final position.
 6. Mark block dirty, trigger neighbor update, remove carried state, play sound, raise drop event when applicable.
 
@@ -133,7 +149,7 @@ Important implementation behavior:
 
 ## 5. Drop Pipeline and Failure Fallback
 
-`DropCarried` flow:
+`DropCarried` flow (`CarryDropService`):
 - For each requested carried slot, finds candidate placement near entity using `BlockPlacer`.
 - If a placement is found, attempts dropped placement (`TryPlaceDown(..., dropped: true)`).
 - If no placement or placement fails, falls back to `DropBlockAsItem`.
@@ -141,25 +157,25 @@ Important implementation behavior:
 `DropBlockAsItem` behavior:
 - If carried block contains serialized inventory, spills contents as item entities and drops block stack.
 - Otherwise uses block drop table; if drops differ from carried stack, block is treated as destroyed.
-- Plays break sound, removes carried state, logs audit, and triggers block-dropped carry events.
+- Plays break sound, removes carried state, logs audit, and triggers block-dropped carry events with metadata (`blockDestroyed`, `hadContents`, `blockPlaced: false`).
 
 ---
 
 ## 6. Permission, Rules, and Event Hooks
 
-Permission checks (`HasPermissionToCarry`):
+Permission checks (`CarryPlacementService.HasPermissionToCarry`):
 - Invokes `CheckPermissionToCarry` delegates first (can explicitly allow/deny).
 - Applies reinforcement + claim checks for player entities.
 - Non-player entities are restricted only by reinforcement state.
 
-Carry event delegate integration points (`CarryManager`):
+Carry event delegate integration points:
 - Before pickup: `BeforePickUpBlock`
 - Before world remove: `BeforeRemoveBlockFromWorld`
 - Before block entity restore: `BeforeRestoreBlockEntityData`
 - Permission override: `CheckPermissionToCarry`
 - Drop notification: `TriggerBlockDropped`
 
-`InitEvents` discovers and initializes `ICarryEvent` implementations from non-vanilla mod assemblies.
+`CarryEventBootstrapper.InitEvents` discovers and initializes `ICarryEvent` implementations from non-vanilla mod assemblies.
 
 ---
 
@@ -177,6 +193,7 @@ Runtime behavior:
 - `OnEntityAction` starts/cancels interactions through `InteractionLogic`.
 - `OnGameTick` advances interaction timer/progress and refreshes interaction help when carry capability state changes.
 - `OnBeforeActiveSlotChanged` prevents hotbar active slot changes while hands slot is carrying.
+- On player-ready (client) and server init paths, transfer behaviors are discovered and configured through `TransferLogic.InitTransferBehaviors`.
 
 ---
 
@@ -196,7 +213,26 @@ Validation examples in server handlers:
 
 ---
 
-## 9. Interaction State Machine
+## 9. Attachment Service Pipeline
+
+`CarryAttachmentService.TryAttach`:
+1. Validate target entity id, range, attachable behavior, and ownership requirements.
+2. Validate source carried block in hands and required block entity data.
+3. Resolve target slot from selection-box index and ensure slot is not occupied (including seat occupancy checks).
+4. Convert carried block inventory payload into attachable slot-compatible backpack attributes.
+5. Run compatibility checks (`CanTakeFrom`, `PreventAttaching`, optional `IAttachedInteractions.OnTryAttach`).
+6. Move stack into target slot, persist entity inventory/cache updates, remove carried hands state, play sound, audit.
+
+`CarryAttachmentService.TryDetach`:
+1. Validate target entity and attachable context.
+2. Validate source slot occupancy and takeability.
+3. Validate source is carryable and that no other player has related storage inventory open.
+4. Rebuild carried block entity data from attached stack backup/backpack attributes.
+5. Set carried hands state, clear source slot and cached slot storage, persist inventory, shape/chunk dirty, optional listener callbacks, audit.
+
+---
+
+## 10. Interaction State Machine
 
 `CarryInteraction` stores transient action context:
 - `CarryAction`
@@ -219,10 +255,11 @@ Validation examples in server handlers:
 - drives HUD progress
 - executes action locally and sends corresponding network packet when successful
 - emits localized failure messaging for rejected operations
+- coalesces interaction-help refresh requests and flushes them safely via reflected HUD method invocation
 
 ---
 
-## 10. TransferLogic Integration
+## 11. TransferLogic Integration
 
 Transfer behavior model:
 - A carryable block can expose `TransferEnabled` and a `TransferHandler`.
@@ -242,7 +279,7 @@ Transfer behavior model:
 
 ---
 
-## 11. Death Handling
+## 12. Death Handling
 
 `DeathHandler` subscribes to server `PlayerDeath`:
 - If player server attributes do not indicate `keepContents == true`, it drops all carried blocks from the dead player entity.
@@ -250,12 +287,14 @@ Transfer behavior model:
 
 ---
 
-## 12. Summary Flowchart
+## 13. Summary Flowchart
 
 ```mermaid
 graph TD
-  A[CarrySystem startup] --> B[Create CarryManager and CarryHandler]
-  B --> C{Client or Server init}
+  A[CarrySystem startup] --> B[Create CarryManager facade and CarryHandler]
+  B --> B2[CarryManager builds CarryManagerServices]
+  B2 --> B3[State Placement Attachment Drop EventBootstrap services]
+  B3 --> C{Client or Server init}
   C -- Client --> D[InitClient: input hooks, tick loop, client message handlers]
   C -- Server --> E[InitServer: message handlers, spawn hooks, transfer init]
 
@@ -264,8 +303,9 @@ graph TD
   G --> H[Hold-to-complete timing and HUD progress]
   H --> I{Action type}
 
-  I -- PickUp/PlaceDown --> J[Local try via CarryManager]
-  J --> K[Send PickUp/PlaceDown message]
+  I -- PickUp/PlaceDown --> J[Local try via CarryManager facade]
+  J --> J2[CarryPlacementService performs operation]
+  J2 --> K[Send PickUp/PlaceDown message]
   K --> L[Server validates and re-runs authoritative operation]
 
   I -- Put/Take --> M[Local transfer precheck/attempt]
@@ -273,21 +313,27 @@ graph TD
   N --> O[Server TransferLogic authoritative execution]
 
   I -- Attach/Detach --> P[Send Attach/Detach message]
-  P --> Q[Server validates target and applies inventory/entity changes]
+  P --> Q[CarryAttachmentService validates target and applies inventory/entity changes]
 
-  L --> R[Set/Remove carried state, sync watched attributes, lock slots]
+  L --> R[CarryStateService Set Remove and slot-lock sync]
   O --> R
   Q --> R
 
   R --> S[On death or forced drop path]
-  S --> T[DropCarried: place nearby or spill as items]
+  S --> T[CarryDropService: place nearby or spill as items]
 ```
 
 ---
 
-## 13. References
+## 14. References
 
 - `src/Common/CarryManager.cs`
+- `src/Common/Services/CarryManagerServices.cs`
+- `src/Common/Services/CarryStateService.cs`
+- `src/Common/Services/CarryPlacementService.cs`
+- `src/Common/Services/CarryAttachmentService.cs`
+- `src/Common/Services/CarryDropService.cs`
+- `src/Common/Services/CarryEventBootstrapper.cs`
 - `src/Common/Handlers/CarryHandler.cs`
 - `src/Common/Handlers/DeathHandler.cs`
 - `src/Common/Logic/InteractionLogic.cs`

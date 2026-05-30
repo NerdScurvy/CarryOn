@@ -41,7 +41,7 @@
 			"properties": {
 				"enabledCondition": "carryon.Carryables.ChestTrunk",
 				"transformTemplates": [
-					"carryon:carry-chest"
+					"carry-chest"
 				],
 				"transformGroups": {
 					"@backpack-none": [
@@ -117,7 +117,7 @@
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Chest",
 				"transformTemplates": [
-					"carryon:carry-chest"
+					"carry-chest"
 				],
 				"transformGroups": {
 					"@backpack-none": [

@@ -288,26 +288,13 @@ namespace CarryOn.Common.Handlers
 
             var resolvedBaseGroup = baseTransformsGroup;
             CarriedGroupResolution resolverResolution = null;
+            var requestedResolverCode = carryBehavior?.TransformGroupResolver;
 
-            var transformGroupResolvers = carrySystem?.CarryManager?.GetTransformGroupResolvers();
-            if (transformGroupResolvers != null)
+            if (!string.IsNullOrEmpty(requestedResolverCode)
+                && carrySystem?.CarryManager?.TryGetTransformGroupResolver(requestedResolverCode, out var resolver) == true)
             {
-                var requestedResolverCode = carryBehavior?.TransformGroupResolver;
-                foreach (var resolver in transformGroupResolvers)
+                if (resolver.TryResolve(this.api, carried, resolvedBaseGroup, out var resolution) && resolution != null)
                 {
-                    if (resolver == null) continue;
-
-                    if (!string.IsNullOrEmpty(requestedResolverCode)
-                        && !requestedResolverCode.Equals(resolver.ResolverCode, StringComparison.OrdinalIgnoreCase))
-                    {
-                        continue;
-                    }
-
-                    if (!resolver.TryResolve(this.api, carried, resolvedBaseGroup, out var resolution) || resolution == null)
-                    {
-                        continue;
-                    }
-
                     resolverResolution = resolution;
                     if (resolution.PrimaryGroupCandidates != null && resolution.PrimaryGroupCandidates.Count > 0)
                     {
@@ -317,8 +304,6 @@ namespace CarryOn.Common.Handlers
                     {
                         resolvedBaseGroup = resolution.PrimaryGroup;
                     }
-
-                    break;
                 }
             }
 
@@ -523,29 +508,13 @@ namespace CarryOn.Common.Handlers
             var resolvedBaseGroup = baseTransformsGroup;
             CarriedGroupResolution resolverResolution = null;
             var primaryGroupCandidates = new List<string> { baseTransformsGroup };
+            var requestedResolverCode = carryBehavior?.TransformGroupResolver;
 
-            var transformGroupResolvers = carrySystem?.CarryManager?.GetTransformGroupResolvers();
-            if (transformGroupResolvers != null)
+            if (!string.IsNullOrEmpty(requestedResolverCode)
+                && carrySystem?.CarryManager?.TryGetTransformGroupResolver(requestedResolverCode, out var resolver) == true)
             {
-                var requestedResolverCode = carryBehavior?.TransformGroupResolver;
-                foreach (var resolver in transformGroupResolvers)
+                if (resolver.TryResolve(this.api, carried, resolvedBaseGroup, out var resolution) && resolution != null)
                 {
-                    if (resolver == null)
-                    {
-                        continue;
-                    }
-
-                    if (!string.IsNullOrEmpty(requestedResolverCode)
-                        && !requestedResolverCode.Equals(resolver.ResolverCode, StringComparison.OrdinalIgnoreCase))
-                    {
-                        continue;
-                    }
-
-                    if (!resolver.TryResolve(this.api, carried, resolvedBaseGroup, out var resolution) || resolution == null)
-                    {
-                        continue;
-                    }
-
                     resolverResolution = resolution;
                     if (resolution.PrimaryGroupCandidates != null && resolution.PrimaryGroupCandidates.Count > 0)
                     {
@@ -557,8 +526,6 @@ namespace CarryOn.Common.Handlers
                         primaryGroupCandidates = new List<string> { resolution.PrimaryGroup };
                         resolvedBaseGroup = resolution.PrimaryGroup;
                     }
-
-                    break;
                 }
             }
 

@@ -207,7 +207,7 @@
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Flowerpot",
 				"transformTemplates": [
-					"carryon:plants-small"
+					"plants-small"
 				],
 				"transformGroups": {
 					"hands": [
@@ -337,7 +337,7 @@
 				"enabledCondition": "carryon.Carryables.DisplayCase",
 				"renderRootFirst": false,
 				"transformTemplates": [
-					"carryon:carry-displaycase"
+					"carry-displaycase"
 				],
 				"transformGroupResolver": "displaycase",
 				"transformGroups": {
@@ -414,7 +414,7 @@
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Planter",
 				"transformTemplates": [
-					"carryon:plants-large"
+					"plants-large"
 				],
 				"transformGroups": {
 					"hands": [

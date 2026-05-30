@@ -9,8 +9,8 @@
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Planter",
 				"transformTemplates": [
-					"carryon:plants-large",
-					"carryon:carry-planter"
+					"plants-large",
+					"carry-planter"
 				],
 				"renderRootFirst": true,
 				"transformGroupResolver": "plant-container",
@@ -38,8 +38,8 @@
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Planter",
 				"transformTemplates": [
-					"carryon:carry-vat-planter",
-					"carryon:plants-small"
+					"carry-vat-planter",
+					"plants-small"
 				],
 				"renderRootFirst": true,
 				"transformGroupResolver": "plant-container",
@@ -67,8 +67,8 @@
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Planter",
 				"transformTemplates": [
-					"carryon:carry-storagevessel-planter",
-					"carryon:plants-large"
+					"carry-storagevessel-planter",
+					"plants-large"
 				],
 				"renderRootFirst": true,
 				"transformGroupResolver": "plant-container",
@@ -96,8 +96,8 @@
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Flowerpot",
 				"transformTemplates": [
-					"carryon:carry-flowerpot",
-					"carryon:plants-small"
+					"carry-flowerpot",
+					"plants-small"
 				],
 				"renderRootFirst": true,
 				"transformGroupResolver": "plant-container",

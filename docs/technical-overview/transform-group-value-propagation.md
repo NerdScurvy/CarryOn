@@ -100,8 +100,8 @@ graph TD
 
 ## 6. References
 
-- `docs/transform-template-system.md`
-- `docs/entity-carry-renderer-pipeline.md`
+- [Transform Template System](transform-template-system.md)
+- [Entity Carry Renderer Pipeline](entity-carry-renderer-pipeline.md)
 - `src/Client/Logic/CarryRenderer/CarryTransformPlanBuilder.cs`
 - `src/Client/Logic/CarryRenderer/CarryRenderInfoBuilder.cs`
 - Example patch: `resources/assets/carryon/patches/carryable/chandelier.json`

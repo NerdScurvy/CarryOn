@@ -73,7 +73,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
             var verticalAlign = settings?.VerticalAlign;
 
             // Sanitize & clamp length to avoid very large textures
-            var text = rawText.Trim();
+            var text = rawText.TrimEnd();
             if (text.Length > 240) text = text.Substring(0, 240); // expanded capacity
 
             var key = MakeKey(text, color, fontSize, wrapWidth, areaHeight, fontName, boldFont, verticalAlign);

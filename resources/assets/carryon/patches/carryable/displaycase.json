@@ -10,7 +10,7 @@
 				"enabledCondition": "carryon.Carryables.DisplayCase",
 				"renderRootFirst": false,
 				"transformTemplates": [
-					"carryon:carry-displaycase"
+					"carry-displaycase"
 				],
 				"transformGroupResolver": "displaycase",
 				"slots": {

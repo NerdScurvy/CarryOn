@@ -16,7 +16,7 @@
 					}
 				},
 				"transformTemplates": [
-					"carryon:carry-chest"
+					"carry-chest"
 				],
 				"slots": {
 					"Hands": {},

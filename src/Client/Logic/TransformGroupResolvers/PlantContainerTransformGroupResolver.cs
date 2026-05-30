@@ -24,8 +24,6 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
         private static readonly Regex CactusFamilyRegex = new("^(?<family>[^-]*cactus)(?:-(?<variant>.+))?$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
         private static readonly Regex TallPlantTypeRegex = new("^(?<plant>tallgrass)(?:-.*)?$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
-        public int Priority => 0;
-
         public bool TryResolve(ICoreAPI api, CarriedBlock carried, string baseGroup, out CarriedGroupResolution resolution)
         {
             resolution = null;
