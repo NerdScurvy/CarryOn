@@ -19,7 +19,7 @@
 					}
 				},
 				"transformTemplates": [
-					"carryon:carry-crate"
+					"carry-crate"
 				],
 				"slots": {
 					"Hands": {},
