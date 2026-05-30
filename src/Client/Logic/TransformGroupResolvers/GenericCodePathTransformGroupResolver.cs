@@ -15,9 +15,6 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
     {
         public string ResolverCode => "codepath";
 
-        // Lower priority than specialized resolvers so this acts as fallback.
-        public int Priority => -100;
-
         public bool TryResolve(ICoreAPI api, CarriedBlock carried, string baseGroup, out CarriedGroupResolution resolution)
         {
             resolution = null;

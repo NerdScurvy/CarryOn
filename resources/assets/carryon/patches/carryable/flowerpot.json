@@ -9,8 +9,8 @@
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Flowerpot",
 				"transformTemplates": [
-					"carryon:plants-small",
-					"carryon:carry-flowerpot"
+					"plants-small",
+					"carry-flowerpot"
 				],
 				"renderRootFirst": true,
 				"transformGroupResolver": "plant-container",

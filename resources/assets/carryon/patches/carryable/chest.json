@@ -21,8 +21,8 @@
 					]
 				},
 				"transformTemplates": [
-					"carryon:carry-chest",
-					"carryon:carry-chest-compact"
+					"carry-chest",
+					"carry-chest-compact"
 				],
 				"transformGroups": {
 					"backpack-none-normal": {

@@ -9,7 +9,7 @@
 			"properties": {
 				"enabledCondition": "carryon.Carryables.LootVessel",
 				"transformTemplates": [
-					"carryon:carry-storagevessel"
+					"carry-storagevessel"
 				],
 				"slots": {
 					"Hands": {},

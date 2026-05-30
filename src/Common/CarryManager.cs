@@ -24,7 +24,8 @@ namespace CarryOn.API.Common
 
         public CarryEvents CarryEvents => CarrySystem?.CarryEvents;
 
-        private readonly List<ICarriedTransformGroupResolver> transformGroupResolvers = new();
+        private readonly List<RegisteredTransformGroupResolver> transformGroupResolvers = new();
+        private readonly Dictionary<string, RegisteredTransformGroupResolver> transformGroupResolversByCode = new(StringComparer.OrdinalIgnoreCase);
         internal CarryManagerServices Services { get; }
 
         public CarryManager(ICoreAPI api, CarrySystem carrySystem)
@@ -42,19 +43,86 @@ namespace CarryOn.API.Common
         /// <summary>
         /// Registers a transform group resolver to determine the transform group for carried blocks.
         /// </summary>
+        /// <param name="modId">Owning mod id for this resolver registration.</param>
         /// <param name="resolver"> The transform group resolver to register. </param>
         /// <exception cref="ArgumentNullException"></exception>
-        public void RegisterTransformGroupResolver(ICarriedTransformGroupResolver resolver)
+        public void RegisterTransformGroupResolver(string modId, ICarriedTransformGroupResolver resolver)
         {
-            if (resolver == null) throw new ArgumentNullException(nameof(resolver));
-
-            if (transformGroupResolvers.Contains(resolver))
+            if (string.IsNullOrWhiteSpace(modId))
             {
+                throw new ArgumentException("Mod id cannot be null or empty.", nameof(modId));
+            }
+
+            if (resolver == null) throw new ArgumentNullException(nameof(resolver));
+            if (string.IsNullOrWhiteSpace(resolver.ResolverCode))
+            {
+                throw new ArgumentException("Resolver code cannot be null or empty.", nameof(resolver));
+            }
+
+            var canonicalCode = ToCanonicalResolverCode(modId, resolver.ResolverCode);
+
+            if (transformGroupResolversByCode.TryGetValue(canonicalCode, out var existing))
+            {
+                if (!ReferenceEquals(existing.Resolver, resolver))
+                {
+                    throw new InvalidOperationException(
+                        $"A transform group resolver is already registered for code '{canonicalCode}' by mod '{existing.ModId}'.");
+                }
+
                 return;
             }
 
-            transformGroupResolvers.Add(resolver);
-            transformGroupResolvers.Sort((a, b) => b.Priority.CompareTo(a.Priority));
+            var registration = new RegisteredTransformGroupResolver
+            {
+                ModId = modId.Trim(),
+                ResolverCode = canonicalCode,
+                Resolver = resolver
+            };
+
+            transformGroupResolvers.Add(registration);
+            transformGroupResolversByCode[canonicalCode] = registration;
+        }
+
+        /// <summary>
+        /// Attempts to get a registered transform group resolver by code.
+        /// </summary>
+        /// <param name="resolverCode">The resolver code to look up.</param>
+        /// <param name="resolver">The resolver instance when found.</param>
+        /// <returns>True if a matching resolver was found; otherwise false.</returns>
+        public bool TryGetTransformGroupResolver(string resolverCode, out ICarriedTransformGroupResolver resolver)
+        {
+            resolver = null;
+            if (string.IsNullOrWhiteSpace(resolverCode))
+            {
+                return false;
+            }
+
+            var canonicalCode = ToCanonicalLookupCode(resolverCode);
+            if (!transformGroupResolversByCode.TryGetValue(canonicalCode, out var registration))
+            {
+                return false;
+            }
+
+            resolver = registration.Resolver;
+            return true;
+        }
+
+        /// <summary>
+        /// Attempts to get resolver registration metadata by code.
+        /// </summary>
+        /// <param name="resolverCode">The resolver code to look up.</param>
+        /// <param name="registration">The resolver registration when found.</param>
+        /// <returns>True if a matching registration was found; otherwise false.</returns>
+        public bool TryGetTransformGroupResolverRegistration(string resolverCode, out RegisteredTransformGroupResolver registration)
+        {
+            registration = null;
+            if (string.IsNullOrWhiteSpace(resolverCode))
+            {
+                return false;
+            }
+
+            var canonicalCode = ToCanonicalLookupCode(resolverCode);
+            return transformGroupResolversByCode.TryGetValue(canonicalCode, out registration);
         }
 
         /// <summary>
@@ -65,16 +133,63 @@ namespace CarryOn.API.Common
         public bool UnregisterTransformGroupResolver(ICarriedTransformGroupResolver resolver)
         {
             if (resolver == null) return false;
-            return transformGroupResolvers.Remove(resolver);
+
+            RegisteredTransformGroupResolver registration = null;
+            for (var i = 0; i < transformGroupResolvers.Count; i++)
+            {
+                if (ReferenceEquals(transformGroupResolvers[i].Resolver, resolver))
+                {
+                    registration = transformGroupResolvers[i];
+                    transformGroupResolvers.RemoveAt(i);
+                    break;
+                }
+            }
+
+            if (registration == null)
+            {
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(registration.ResolverCode)
+                && transformGroupResolversByCode.TryGetValue(registration.ResolverCode, out var existing)
+                && ReferenceEquals(existing.Resolver, resolver))
+            {
+                transformGroupResolversByCode.Remove(registration.ResolverCode);
+            }
+
+            return true;
         }
 
         /// <summary>
-        /// Gets the list of registered transform group resolvers, ordered by priority.
+        /// Gets the list of registered transform group resolvers.
         /// </summary>
         /// <returns> A read-only list of registered transform group resolvers. </returns>
-        public IReadOnlyList<ICarriedTransformGroupResolver> GetTransformGroupResolvers()
+        public IReadOnlyList<RegisteredTransformGroupResolver> GetTransformGroupResolvers()
         {
             return transformGroupResolvers;
+        }
+
+        private static string ToCanonicalLookupCode(string resolverCode)
+        {
+            var trimmed = resolverCode?.Trim();
+            if (string.IsNullOrWhiteSpace(trimmed))
+            {
+                return null;
+            }
+
+            return trimmed.IndexOf(':') >= 0
+                ? trimmed
+                : $"{CarryCode.ModId}:{trimmed}";
+        }
+
+        private static string ToCanonicalResolverCode(string modId, string resolverCode)
+        {
+            var normalizedModId = modId?.Trim();
+            var normalizedCode = resolverCode?.Trim();
+
+            return normalizedCode.IndexOf(':') >= 0
+                ? normalizedCode
+                : $"{normalizedModId}:{normalizedCode}";
         }
 
 

@@ -11,7 +11,6 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
 {
     public class MoldRackTransformGroupResolver : ContainerSlotTransformGroupResolverBase
     {
-        public override int Priority => -5;
         public override string ResolverCode => "moldrack";
 
         public override bool TryResolve(ICoreAPI api, CarriedBlock carried, string baseGroup, out CarriedGroupResolution resolution)

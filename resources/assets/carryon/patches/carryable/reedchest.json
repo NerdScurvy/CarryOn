@@ -10,7 +10,7 @@
 				"enabledCondition": "carryon.Carryables.ReedChest",
 				"interactDelay": 0.4,
 				"transformTemplates": [
-					"carryon:carry-reedchest"
+					"carry-reedchest"
 				],
 				"slots": {
 					"Hands": {

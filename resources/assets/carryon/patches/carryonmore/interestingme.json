@@ -1,18 +1,19 @@
 [
 	{
-		"file": "game:blocktypes/wood/woodtyped/crate",
-		"side": "Server",
+		"file": "interestingme:blocktypes/muckbin",
 		"op": "add",
 		"path": "/behaviors/-",
 		"value": {
 			"name": "Carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Crate",
+				"swapBackKeyPassthrough": true,
 				"labelRenderSettings": {
 					"iconPixelSize": 128,
+					"iconFromInventory": true,
 					"transform": {
-						"translation": [ 0.78, 0.29, 0.0203 ],
-						"rotation": [ -180.0, 0.0, 0.0 ],
+						"translation": [ -0.01, 0.29, 0.23 ],
+						"rotation": [ -180.0, -90.0, 0.0 ],
 						"scale": [ 0.54, 0.54, 0.8433 ],
 						"origin": [ 0.0, 0.0, 0.0 ]
 					}
@@ -21,15 +22,19 @@
 					"carry-crate"
 				],
 				"slots": {
-					"Hands": {
-						"walkSpeedModifier": -0.3
-					},
+					"Hands": {},
 					"Back": {
-						"enabledCondition": "carryon.CarryablesOnBack.Crate",
-						"walkSpeedModifier": -0.3
+						"walkSpeedModifier": -0.2,
+						"enabledCondition": "carryon.CarryablesOnBack.Crate"
 					}
-				}
+				},
+				"patchPriority": 1
 			}
-		}
+		},
+		"dependsOn": [
+			{
+				"modid": "interestingme"
+			}
+		]
 	}
 ]

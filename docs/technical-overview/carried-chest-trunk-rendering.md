@@ -7,6 +7,8 @@ It reflects the current system, which is template-based:
 - Transform groups are defined in template JSON files under `config/transformtemplates`.
 - Runtime group selection uses base slot/backpack groups (`hands`, `backpack-none`, `backpack-small`, `backpack-large`) plus optional type-group suffixes (such as `-normal` or `-compact`).
 
+Template code canonical form is `modid:code`. Bare `transformTemplates` values default to `carryon:<code>` during lookup.
+
 ## 0. Overview: Shared Rendering Pipeline
 
 Both chest-trunk and chest use the same rendering pipeline:
@@ -29,8 +31,8 @@ The chest carryable patch is defined in:
 Key points:
 - Defines a `groups` map for type-to-suffix mapping (`normal`, `compact`).
 - Uses `transformTemplates`:
-  - `carryon:carry-chest`
-  - `carryon:carry-chest-compact`
+  - `carry-chest`
+  - `carry-chest-compact`
 - Defines local `transformGroups` aliases so normal variants resolve to `backpack-*-normal` groups by extending base backpack groups.
 - Defines slots (`Hands`, `Back`) and restrictions (`excludedTypes`).
 
@@ -41,8 +43,8 @@ Example (simplified):
   "compact": ["golden", "owl", "golden-aged", "owl-aged"]
 },
 "transformTemplates": [
-  "carryon:carry-chest",
-  "carryon:carry-chest-compact"
+  "carry-chest",
+  "carry-chest-compact"
 ],
 "transformGroups": {
   "backpack-none-normal": { "extends": "backpack-none" },
@@ -57,13 +59,13 @@ The chest-trunk carryable patch is defined in:
 - `resources/assets/carryon/patches/carryable/chest-trunk.json`
 
 Key points:
-- Uses `transformTemplates`: `carryon:carry-trunk`
+- Uses `transformTemplates`: `carry-trunk`
 - Defines slots (`Hands`, `Back`) and restrictions (`excludedTypes`).
 - Does not define local `groups` mapping for variant suffixes.
 
 Example (simplified):
 ```json
-"transformTemplates": ["carryon:carry-trunk"],
+"transformTemplates": ["carry-trunk"],
 "slots": {
   "Hands": { "animation": "carryon:holdheavy", "walkSpeedModifier": -0.5 },
   "Back":  { "walkSpeedModifier": -0.2, "enabledCondition": "..." }
