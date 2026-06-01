@@ -52,6 +52,7 @@ Default values:
 | `Barrel` | `true` |
 | `Bookshelf` | `false` |
 | `BunchOCandles` | `false` |
+| `Cabinet` | `true` |
 | `Chandelier` | `false` |
 | `ChestTrunk` | `false` |
 | `Chest` | `true` |
