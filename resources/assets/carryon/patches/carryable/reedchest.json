@@ -19,6 +19,7 @@
 					},
 					"Back": {
 						"enabledCondition": "carryon.CarryablesOnBack.ReedChest",
+            "walkSpeedModifier": 0.0,
 						"excludedTypes": [
 							"aged",
 							"aged2"
