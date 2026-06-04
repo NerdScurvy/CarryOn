@@ -160,7 +160,7 @@ This option is commonly used to avoid accidental swap/back actions when interact
     "game:chest*": { "Back": -0.15 }
   },
   "ByBlockClass": {
-    "BlockMushroom": { "Hands": -0.10 }
+    "BlockCrate": { "Hands": -0.80 }
   },
   "SlotDefaults": {
     "Hands": -0.25,
