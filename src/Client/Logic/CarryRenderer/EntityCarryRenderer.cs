@@ -455,13 +455,6 @@ namespace CarryOn.Client.Logic.CarryRenderer
 		/// <summary> Renders all carried blocks of the specified entity. </summary>
 		private void RenderAllCarried(EntityAgent entity, float deltaTime, EnumRenderStage stage, bool isShadowPass)
 		{
-			var config = this.carrySystem.ClientConfig?.Config;
-			if (config?.CarriedLightEnabled == true)
-			{
-				// Reset light so carried block light can be added later
-				entity.LightHsv = new ThreeBytes(0);
-			}
-
 			var allCarried = entity.GetCarried()?.ToList() ?? [];
 			if (allCarried.Count == 0) return; // Entity is not carrying anything.
 
@@ -475,25 +468,6 @@ namespace CarryOn.Client.Logic.CarryRenderer
 
 			// Rendered not ready?
 			if (renderer == null) return;
-
-			if (config?.CarriedLightEnabled == true)
-			{
-				// Merge carried block light into entity light so that it applies to the entity and all carried blocks, without needing to modify each CarriedRenderInfo.
-				var lightHsv = entity.LightHsv;
-				foreach (var carried in allCarried)
-				{
-					switch (carried.ItemStack?.Collectible)
-					{
-						case Block block:
-							lightHsv = ColorUtil.MergeLightHSV(block.LightHsv, lightHsv);
-							break;
-						case Item item:
-							lightHsv = ColorUtil.MergeLightHSV(item.LightHsv, lightHsv);
-							break;
-					}
-				}
-				entity.LightHsv = lightHsv;
-			}
 
 			foreach (var carried in allCarried)
 			{

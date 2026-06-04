@@ -133,7 +133,6 @@ Label subsystem responsibilities:
 - Retrieves entity carried list.
 - Determines local player / first-person / immersive first-person context.
 - Retrieves entity shape renderer and animator.
-- Optionally merges carried block/item light into `entity.LightHsv` when `CarriedLightEnabled` is active.
 - Calls `RenderCarried` for each carried block.
 
 `RenderCarried` path highlights:

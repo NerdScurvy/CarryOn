@@ -4,7 +4,6 @@ namespace CarryOn.Client.Logic
     using CarryOn.Client.Models;
     using CarryOn.Utility;
     using Vintagestory.API.Common;
-    using Vintagestory.API.MathTools;
 
     public class ClientCommands
 
@@ -26,11 +25,6 @@ namespace CarryOn.Client.Logic
             try
             {
                 api.ChatCommands.Create("carryon")
-                    .BeginSubCommand("carriedlight")
-                        .WithDescription("Enable or disable carried block lighting for all players. Usage: .carryon carriedlight true|false")
-                        .WithArgs(api.ChatCommands.Parsers.Bool("enabled"))
-                        .HandleWith(this.CmdCarryOnCarriedLight)
-                    .EndSubCommand()
                     .BeginSubCommand("gui")
                         // .carryon gui bg ... (background fill settings)
                         .BeginSubCommand("bg")
@@ -143,38 +137,6 @@ namespace CarryOn.Client.Logic
             catch (System.Exception ex)
             {
                 api.World.Logger.Warning("CarryOn: Failed to register client chat command for GUI debug: " + ex.Message);
-            }
-        }
-
-        protected TextCommandResult CmdCarryOnCarriedLight(TextCommandCallingArgs args)
-        {
-            bool enabled = args[0] is bool enabledVal ? enabledVal : throw new InvalidOperationException("expected bool");
-
-            var clientConfig = this.carrySystem?.ClientConfig;
-
-            if (clientConfig == null || clientConfig.Config == null)
-            {
-                return TextCommandResult.Error("Client config not available. Cannot update carried block lighting setting.");
-            }
-
-            clientConfig.Config.CarriedLightEnabled = enabled;
-
-            clientConfig.Save(this.api);
-
-            if (!enabled)
-            {
-                // Reset LightHsv for all player entities
-                foreach (var player in api.World.AllPlayers)
-                {
-                    var entity = player.Entity;
-                    entity?.LightHsv = new ThreeBytes(0);
-                }
-                return TextCommandResult.Success("Carried block lighting disabled. All player lights reset.");
-            }
-            else
-            {
-                // Optionally, re-enable by triggering attribute update (if needed)
-                return TextCommandResult.Success("Carried block lighting enabled.");
             }
         }
 

@@ -199,6 +199,8 @@ Example for chest compact variants:
 }
 ```
 
+These per-slot type and group values can be overridden from the world config using the `|type` pipe syntax in `ByBlockCode` (see `carryon-config.md`). For example, `"game:chest*|owl*": { "Back": -0.05 }` overrides the owl-type Back speed regardless of what the patch defines.
+
 **Slot defaults** when properties are not specified:
 
 | Slot | Default walk speed modifier | Default animation |
