@@ -26,15 +26,15 @@ namespace CarryOn.Client.Logic.CarryRenderer
 
         private class LabelEntry
         {
-            public LoadedTexture Texture;
+            public LoadedTexture Texture = null!;
             public float Width;
             public float Height;
         }
 
         private class IconEntry
         {
-            public MeshRef Mesh;
-            public LoadedTexture Texture;
+            public MeshRef? Mesh;
+            public LoadedTexture? Texture;
             public int TextureId;
             public bool Ready;
             public bool Pending;
@@ -45,7 +45,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
             this.api = api;
         }
 
-        private static string MakeKey(string text, int color, float fontSize, int areaWidth, int areaHeight, string fontName, bool boldFont, string verticalAlign)
+        private static string MakeKey(string text, int color, float fontSize, int areaWidth, int areaHeight, string? fontName, bool boldFont, string? verticalAlign)
             => fontSize.ToString("0.##") + "|" + areaWidth + "x" + areaHeight + "|" + color.ToString("X8") + "|" + (fontName ?? "") + "|" + (boldFont ? "b" : "n") + "|" + (verticalAlign ?? "") + "|" + text;
 
 
@@ -59,7 +59,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
         /// <param name="settings"> Optional settings for label rendering. </param>
         /// <param name="wrapWidth"> Optional width to wrap the text. If not provided, the default TextWidth is used. </param>
         /// <returns> A tuple containing the loaded texture, width, and height of the label, or null if the label could not be generated. </returns>
-        public (LoadedTexture texture, float w, float h)? GetLabel(string rawText, int color, float fontSize, LabelRenderSettings settings = null, int wrapWidth = 0)
+        public (LoadedTexture texture, float w, float h)? GetLabel(string rawText, int color, float fontSize, LabelRenderSettings? settings = null, int wrapWidth = 0)
         {
             if (string.IsNullOrWhiteSpace(rawText)) return null;
 
@@ -142,9 +142,10 @@ namespace CarryOn.Client.Logic.CarryRenderer
 
                 return (tex, entry.Width, entry.Height);
             }
-            catch
+            catch (Exception ex)
             {
-                return null; // silent fail
+                api.Logger.Debug("CarryOn: Failed to generate label texture for '{0}': {1}", text, ex.Message);
+                return null;
             }
         }
 
@@ -160,7 +161,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
         /// <param name="color"> The color to apply to the icon label. </param>
         /// <param name="settings"> Optional settings for label rendering. </param>
         /// <returns> A tuple containing the mesh, texture ID, and readiness status of the icon label. </returns>
-        public (MeshRef mesh, int textureId, bool ready) GetItemIconLabel(ItemStack itemStack, int color, LabelRenderSettings settings = null)
+        public (MeshRef? mesh, int textureId, bool ready) GetItemIconLabel(ItemStack itemStack, int color, LabelRenderSettings? settings = null)
         {
             if (itemStack?.Collectible == null)
             {
@@ -256,7 +257,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
         /// </summary>
         /// <param name="texPos"> The position of the texture region within the atlas. </param>
         /// <returns> A new LoadedTexture instance if successful; otherwise, null. </returns>
-        private LoadedTexture CopyAtlasRegionToStandaloneTexture(TextureAtlasPosition texPos)
+        private LoadedTexture? CopyAtlasRegionToStandaloneTexture(TextureAtlasPosition texPos)
         {
             var atlas = api.BlockTextureAtlas;
             if (atlas == null)
@@ -306,8 +307,9 @@ namespace CarryOn.Client.Logic.CarryRenderer
                 api.Render.LoadOrUpdateTextureFromBgra(pixels, true, (int)TextureWrapMode.ClampToEdge, ref texture);
                 return texture.TextureId > 0 ? texture : null;
             }
-            catch
+            catch (Exception ex)
             {
+                api.Logger.Debug("CarryOn: Failed to copy atlas region to standalone texture: {0}", ex.Message);
                 return null;
             }
         }

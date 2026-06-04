@@ -19,7 +19,7 @@ namespace CarryOn.Events
             carryManager.CarryEvents.BlockDropped += OnCarriedBlockDropped;
         }
 
-        public void OnCarriedBlockDropped(object sender, BlockDroppedEventArgs e)
+        public void OnCarriedBlockDropped(object? sender, BlockDroppedEventArgs e)
         {
             var messageKey = string.Format("{0}:drop-notice{1}{2}",
                     ModId,
@@ -29,8 +29,10 @@ namespace CarryOn.Events
 
             var player = (e.Entity as EntityPlayer)?.Player as IServerPlayer;
 
-            var name = e.CarriedBlock.ItemStack?.GetName()?.ToLower();
-            var slot = CarrySystem.GetLang($"slot-{e.CarriedBlock.Slot.ToString().ToLower()}");
+            var name = e.CarriedBlock?.ItemStack?.GetName()?.ToLower();
+            var slot = e.CarriedBlock != null
+                ? CarrySystem.GetLang($"slot-{e.CarriedBlock.Slot.ToString().ToLower()}")
+                : "unknown";
 
             player?.SendMessage(GlobalConstants.GeneralChatGroup, Lang.Get(messageKey, name, slot), EnumChatType.Notification);
         }

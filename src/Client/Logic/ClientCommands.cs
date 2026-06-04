@@ -1,21 +1,21 @@
 namespace CarryOn.Client.Logic
 {
+    using System;
+    using CarryOn.Client.Models;
     using CarryOn.Utility;
     using Vintagestory.API.Common;
-    using Vintagestory.API.MathTools;
 
     public class ClientCommands
 
     {
         private readonly CarrySystem carrySystem;
-        private readonly Vintagestory.API.Client.ICoreClientAPI api;
+        private readonly Vintagestory.API.Client.ICoreClientAPI api = null!;
 
         public ClientCommands(CarrySystem carrySystem)
         {
-            if (carrySystem == null)
-                throw new System.ArgumentNullException(nameof(carrySystem));
+            ArgumentNullException.ThrowIfNull(carrySystem);
             this.carrySystem = carrySystem;
-            this.api = carrySystem.ClientApi;
+            this.api = carrySystem.ClientApi ?? throw new InvalidOperationException("Client API not available in ClientCommands");
         }
         /// <summary>
         /// Register client-side chat commands for the CarryOn mod.
@@ -25,11 +25,6 @@ namespace CarryOn.Client.Logic
             try
             {
                 api.ChatCommands.Create("carryon")
-                    .BeginSubCommand("carriedlight")
-                        .WithDescription("Enable or disable carried block lighting for all players. Usage: .carryon carriedlight true|false")
-                        .WithArgs(api.ChatCommands.Parsers.Bool("enabled"))
-                        .HandleWith(this.CmdCarryOnCarriedLight)
-                    .EndSubCommand()
                     .BeginSubCommand("gui")
                         // .carryon gui bg ... (background fill settings)
                         .BeginSubCommand("bg")
@@ -145,45 +140,10 @@ namespace CarryOn.Client.Logic
             }
         }
 
-        protected TextCommandResult CmdCarryOnCarriedLight(TextCommandCallingArgs args)
-        {
-            bool enabled = (bool)args[0];
-
-            var clientConfig = this.carrySystem?.ClientConfig;
-
-            if (clientConfig == null)
-            {
-                return TextCommandResult.Error("Client config not available. Cannot update carried block lighting setting.");
-            }
-
-            clientConfig.Config.CarriedLightEnabled = enabled;
-
-            clientConfig.Save(this.api);
-
-            if (!enabled)
-            {
-                // Reset LightHsv for all player entities
-                foreach (var player in api.World.AllPlayers)
-                {
-                    var entity = player.Entity;
-                    if (entity != null)
-                    {
-                        entity.LightHsv = new ThreeBytes(0);
-                    }
-                }
-                return TextCommandResult.Success("Carried block lighting disabled. All player lights reset.");
-            }
-            else
-            {
-                // Optionally, re-enable by triggering attribute update (if needed)
-                return TextCommandResult.Success("Carried block lighting enabled.");
-            }
-        }
-
         protected TextCommandResult CmdCarryOnGuiSet(TextCommandCallingArgs args)
         {
-            string anchorStr = ((string)args[0])?.ToUpperInvariant();
-            string slotStr = ((string)args[1])?.ToLowerInvariant();
+            string anchorStr = (args[0] as string)?.ToUpperInvariant() ?? "";
+            string slotStr = (args[1] as string)?.ToLowerInvariant() ?? "";
 
             if (string.IsNullOrEmpty(anchorStr) || string.IsNullOrEmpty(slotStr))
             {
@@ -218,10 +178,12 @@ namespace CarryOn.Client.Logic
                 // Persist change to client config
                 try
                 {
-                    if (this.carrySystem?.ClientConfig != null)
+                    var clientCfg = this.carrySystem?.ClientConfig;
+                    if (clientCfg != null)
                     {
-                        this.carrySystem.ClientConfig.Config.HandsAnchor = HudCarried.HandsAnchor.ToString();
-                        this.carrySystem.ClientConfig.Save(this.api);
+                        var cfg = clientCfg.Config!;
+                        cfg.HandsAnchor = HudCarried.HandsAnchor.ToString();
+                        clientCfg.Save(this.api);
                     }
                 }
                 catch (System.Exception ex)
@@ -251,10 +213,12 @@ namespace CarryOn.Client.Logic
                 // Persist change to client config
                 try
                 {
-                    if (this.carrySystem?.ClientConfig != null)
+                    var clientCfg = this.carrySystem?.ClientConfig;
+                    if (clientCfg != null)
                     {
-                        this.carrySystem.ClientConfig.Config.BackAnchor = HudCarried.BackAnchor.ToString();
-                        this.carrySystem.ClientConfig.Save(this.api);
+                        var cfg = clientCfg.Config!;
+                        cfg.BackAnchor = HudCarried.BackAnchor.ToString();
+                        clientCfg.Save(this.api);
                     }
                 }
                 catch (System.Exception ex)
@@ -285,11 +249,13 @@ namespace CarryOn.Client.Logic
                 {
                     try
                     {
-                        if (this.carrySystem?.ClientConfig != null)
+                        var clientCfg = this.carrySystem?.ClientConfig;
+                        if (clientCfg != null)
                         {
-                            this.carrySystem.ClientConfig.Config.HandsAnchor = HudCarried.HandsAnchor.ToString();
-                            this.carrySystem.ClientConfig.Config.BackAnchor = HudCarried.BackAnchor.ToString();
-                            this.carrySystem.ClientConfig.Save(this.api);
+                            var cfg = clientCfg.Config!;
+                            cfg.HandsAnchor = HudCarried.HandsAnchor.ToString();
+                            cfg.BackAnchor = HudCarried.BackAnchor.ToString();
+                            clientCfg.Save(this.api);
                         }
                     }
                     catch (System.Exception ex)
@@ -333,9 +299,10 @@ namespace CarryOn.Client.Logic
 
             try
             {
-                if (this.carrySystem?.ClientConfig != null)
+                var clientCfg = this.carrySystem?.ClientConfig;
+                if (clientCfg != null)
                 {
-                    var cfg = this.carrySystem.ClientConfig.Config;
+                    var cfg = clientCfg.Config!;
                     cfg.HandsAnchor = HudCarried.HandsAnchor.ToString();
                     cfg.BackAnchor = HudCarried.BackAnchor.ToString();
 
@@ -351,7 +318,7 @@ namespace CarryOn.Client.Logic
                     cfg.IconHighlightColor = HudCarried.IconHighlightColor;
                     cfg.IconHighlightAlpha = HudCarried.IconHighlightAlpha;
 
-                    this.carrySystem.ClientConfig.Save(this.api);
+                    clientCfg.Save(this.api);
                 }
             }
             catch (System.Exception ex)
@@ -371,7 +338,7 @@ namespace CarryOn.Client.Logic
             var back = HudCarried.BackAnchor.ToString();
 
             // If a client config exists, include saved values too
-            string saved = null;
+            string? saved = null;
             try
             {
                 var cfg = this.carrySystem?.ClientConfig?.Config;
@@ -389,456 +356,245 @@ namespace CarryOn.Client.Logic
             return TextCommandResult.Success(msg);
         }
 
+        private TextCommandResult ApplySetting(
+            Action updateRuntime,
+            Action<CarryOnClientConfig> updateConfig,
+            string actionDesc,
+            string successMsg)
+        {
+            try
+            {
+                updateRuntime();
+                HudCarried.UpdateParsedColors();
+                var clientCfg = this.carrySystem?.ClientConfig;
+                if (clientCfg != null && clientCfg.Config != null)
+                {
+                    updateConfig(clientCfg.Config);
+                    clientCfg.Save(this.api);
+                }
+            }
+            catch (Exception ex)
+            {
+                this.api.Logger.Error($"Error {actionDesc}: " + ex);
+                return TextCommandResult.Error($"Failed {actionDesc} due to an error.");
+            }
+            return TextCommandResult.Success(successMsg);
+        }
+
+        private TextCommandResult ShowSetting(
+            string runtimeFormatted,
+            System.Func<CarryOnClientConfig, string> formatSaved,
+            string elementName)
+        {
+            string saved = "Saved: (none)";
+            try
+            {
+                var cfg = this.carrySystem?.ClientConfig?.Config;
+                if (cfg != null) saved = formatSaved(cfg);
+            }
+            catch (Exception ex)
+            {
+                this.api.Logger.Error($"Error showing CarryOn GUI {elementName} settings: " + ex);
+            }
+            return TextCommandResult.Success($"CarryOn {elementName} — {runtimeFormatted} | {saved}");
+        }
+
         // === Background subcommand handlers ===
-        protected TextCommandResult CmdCarryOnGuiBgEnable(Vintagestory.API.Common.TextCommandCallingArgs args)
-        {
-            try
-            {
-                // Update runtime and client config
-                HudCarried.AnchorBackgroundEnabled = true;
-                HudCarried.UpdateParsedColors();
 
-                // runtime value updated (HudCarried) and saved to client config below
-                if (this.carrySystem?.ClientConfig != null)
-                {
-                    this.carrySystem.ClientConfig.Config.AnchorBackgroundEnabled = true;
-                    this.carrySystem.ClientConfig.Save(this.api);
-                }
-            }
-            catch (System.Exception ex)
-            {
-                this.api.Logger.Error("Error enabling CarryOn anchor background: " + ex);
-                return TextCommandResult.Error("Failed to enable CarryOn anchor background due to an error.");
-            }
+        protected TextCommandResult CmdCarryOnGuiBgEnable(Vintagestory.API.Common.TextCommandCallingArgs args) =>
+            ApplySetting(
+                () => HudCarried.AnchorBackgroundEnabled = true,
+                cfg => cfg.AnchorBackgroundEnabled = true,
+                "enabling CarryOn anchor background",
+                "CarryOn anchor background: enabled");
 
-            return TextCommandResult.Success("CarryOn anchor background: enabled");
-        }
-
-        protected TextCommandResult CmdCarryOnGuiBgDisable(Vintagestory.API.Common.TextCommandCallingArgs args)
-        {
-            try
-            {
-                HudCarried.AnchorBackgroundEnabled = false;
-                HudCarried.UpdateParsedColors();
-
-                // runtime value updated (HudCarried) and saved to client config below
-                if (this.carrySystem?.ClientConfig != null)
-                {
-                    this.carrySystem.ClientConfig.Config.AnchorBackgroundEnabled = false;
-                    this.carrySystem.ClientConfig.Save(this.api);
-                }
-            }
-            catch (System.Exception ex)
-            {
-                this.api.Logger.Error("Error disabling CarryOn anchor background: " + ex);
-                return TextCommandResult.Error("Failed to disable CarryOn anchor background due to an error.");
-            }
-
-            return TextCommandResult.Success("CarryOn anchor background: disabled");
-        }
+        protected TextCommandResult CmdCarryOnGuiBgDisable(Vintagestory.API.Common.TextCommandCallingArgs args) =>
+            ApplySetting(
+                () => HudCarried.AnchorBackgroundEnabled = false,
+                cfg => cfg.AnchorBackgroundEnabled = false,
+                "disabling CarryOn anchor background",
+                "CarryOn anchor background: disabled");
 
         protected TextCommandResult CmdCarryOnGuiBgColor(Vintagestory.API.Common.TextCommandCallingArgs args)
         {
-            string hex = ((string)args[0])?.Trim();
+            string hex = (args[0] as string)?.Trim() ?? "";
             if (string.IsNullOrEmpty(hex)) return TextCommandResult.Error("Usage: .carryon gui bg color #rrggbb");
-            if (!ColorHelper.TryNormalizeHex(hex, out hex))
-            {
+            if (!ColorHelper.TryNormalizeHex(hex, out var normalized))
                 return TextCommandResult.Error("Invalid hex color. Expected formats: #RRGGBB, RRGGBB, #RGB, or RGB");
-            }
+            hex = normalized!;
 
-            try
-            {
-                // Apply to runtime and persist
-                HudCarried.AnchorBackgroundColor = hex;
-                HudCarried.UpdateParsedColors();
-
-                // runtime value updated (HudCarried) and saved to client config below
-                if (this.carrySystem?.ClientConfig != null)
-                {
-                    this.carrySystem.ClientConfig.Config.AnchorBackgroundColor = hex;
-                    this.carrySystem.ClientConfig.Save(this.api);
-                }
-            }
-            catch (System.Exception ex)
-            {
-                this.api.Logger.Error("Error setting CarryOn anchor background color: " + ex);
-                return TextCommandResult.Error("Failed to set CarryOn anchor background color due to an error.");
-            }
-
-            return TextCommandResult.Success($"CarryOn anchor background color set to {hex}");
+            return ApplySetting(
+                () => HudCarried.AnchorBackgroundColor = hex,
+                cfg => cfg.AnchorBackgroundColor = hex,
+                "setting CarryOn anchor background color",
+                $"CarryOn anchor background color set to {hex}");
         }
 
         protected TextCommandResult CmdCarryOnGuiBgAlpha(Vintagestory.API.Common.TextCommandCallingArgs args)
         {
-            float a = 0f;
-            try
-            {
-                a = (float)args[0];
-            }
-            catch
-            {
-                return TextCommandResult.Error("Usage: .carryon gui bg alpha 0.0-1.0");
-            }
-
+            float a = args[0] is float floatVal ? floatVal : 0f;
             if (a < 0f || a > 1f) return TextCommandResult.Error("Alpha must be between 0.0 and 1.0");
 
-            try
-            {
-                HudCarried.AnchorBackgroundAlpha = a;
-                HudCarried.UpdateParsedColors();
-
-                // runtime value updated (HudCarried) and saved to client config below
-                if (this.carrySystem?.ClientConfig != null)
-                {
-                    this.carrySystem.ClientConfig.Config.AnchorBackgroundAlpha = a;
-                    this.carrySystem.ClientConfig.Save(this.api);
-                }
-            }
-            catch (System.Exception ex)
-            {
-                this.api.Logger.Error("Error setting CarryOn anchor background alpha: " + ex);
-                return TextCommandResult.Error("Failed to set CarryOn anchor background alpha due to an error.");
-            }
-
-            return TextCommandResult.Success($"CarryOn anchor background alpha set to {a:0.##}");
+            return ApplySetting(
+                () => HudCarried.AnchorBackgroundAlpha = a,
+                cfg => cfg.AnchorBackgroundAlpha = a,
+                "setting CarryOn anchor background alpha",
+                $"CarryOn anchor background alpha set to {a:0.##}");
         }
 
-        protected TextCommandResult CmdCarryOnGuiBgShow(Vintagestory.API.Common.TextCommandCallingArgs args)
-        {
-            string runtime = $"Runtime: enabled={HudCarried.AnchorBackgroundEnabled}, color={HudCarried.AnchorBackgroundColor}, alpha={HudCarried.AnchorBackgroundAlpha:0.##}";
-            string saved = "Saved: (none)";
-            try
-            {
-                var cfg = this.carrySystem?.ClientConfig?.Config;
-                if (cfg != null)
+        protected TextCommandResult CmdCarryOnGuiBgShow(Vintagestory.API.Common.TextCommandCallingArgs args) =>
+            ShowSetting(
+                $"Runtime: enabled={HudCarried.AnchorBackgroundEnabled}, color={HudCarried.AnchorBackgroundColor}, alpha={HudCarried.AnchorBackgroundAlpha:0.##}",
+                cfg => $"Saved: enabled={cfg.AnchorBackgroundEnabled}, color={cfg.AnchorBackgroundColor}, alpha={cfg.AnchorBackgroundAlpha:0.##}",
+                "anchor background");
+
+        protected TextCommandResult CmdCarryOnGuiBgReset(Vintagestory.API.Common.TextCommandCallingArgs args) =>
+            ApplySetting(
+                () =>
                 {
-                    saved = $"Saved: enabled={cfg.AnchorBackgroundEnabled}, color={cfg.AnchorBackgroundColor}, alpha={cfg.AnchorBackgroundAlpha:0.##}";
-                }
-            }
-            catch (System.Exception ex)
-            {
-                this.api.Logger.Error("Error showing CarryOn GUI anchor background settings: " + ex);
-            }
-
-            return TextCommandResult.Success("CarryOn anchor background — " + runtime + " | " + saved);
-        }
-
-        protected TextCommandResult CmdCarryOnGuiBgReset(Vintagestory.API.Common.TextCommandCallingArgs args)
-        {
-            try
-            {
-                HudCarried.AnchorBackgroundEnabled = true;
-                HudCarried.AnchorBackgroundColor = HudCarried.AnchorBackgroundColorDefault;
-                HudCarried.AnchorBackgroundAlpha = HudCarried.AnchorBackgroundAlphaDefault;
-                HudCarried.UpdateParsedColors();
-
-                if (this.carrySystem?.ClientConfig != null)
+                    HudCarried.AnchorBackgroundEnabled = true;
+                    HudCarried.AnchorBackgroundColor = HudCarried.AnchorBackgroundColorDefault;
+                    HudCarried.AnchorBackgroundAlpha = HudCarried.AnchorBackgroundAlphaDefault;
+                },
+                cfg =>
                 {
-                    this.carrySystem.ClientConfig.Config.AnchorBackgroundEnabled = HudCarried.AnchorBackgroundEnabled;
-                    this.carrySystem.ClientConfig.Config.AnchorBackgroundColor = HudCarried.AnchorBackgroundColor;
-                    this.carrySystem.ClientConfig.Config.AnchorBackgroundAlpha = HudCarried.AnchorBackgroundAlpha;
-                    this.carrySystem.ClientConfig.Save(this.api);
-                }
-            }
-            catch (System.Exception ex)
-            {
-                this.api.Logger.Error("Error resetting CarryOn anchor background: " + ex);
-                return TextCommandResult.Error("Failed to reset CarryOn anchor background due to an error.");
-            }
-
-            return TextCommandResult.Success($"CarryOn anchor background reset to defaults: enabled={HudCarried.AnchorBackgroundEnabled}, color={HudCarried.AnchorBackgroundColor}, alpha={HudCarried.AnchorBackgroundAlpha:0.##}");
-        }
+                    cfg.AnchorBackgroundEnabled = HudCarried.AnchorBackgroundEnabled;
+                    cfg.AnchorBackgroundColor = HudCarried.AnchorBackgroundColor;
+                    cfg.AnchorBackgroundAlpha = HudCarried.AnchorBackgroundAlpha;
+                },
+                "resetting CarryOn anchor background",
+                $"CarryOn anchor background reset to defaults: enabled={HudCarried.AnchorBackgroundEnabled}, color={HudCarried.AnchorBackgroundColor}, alpha={HudCarried.AnchorBackgroundAlpha:0.##}");
 
         // === Border subcommand handlers ===
-        protected TextCommandResult CmdCarryOnGuiBorderEnable(TextCommandCallingArgs args)
-        {
-            try
-            {
-                HudCarried.AnchorBorderEnabled = true;
-                HudCarried.UpdateParsedColors();
 
-                if (this.carrySystem?.ClientConfig != null)
-                {
-                    this.carrySystem.ClientConfig.Config.AnchorBorderEnabled = true;
-                    this.carrySystem.ClientConfig.Save(this.api);
-                }
-            }
-            catch (System.Exception ex)
-            {
-                this.api.Logger.Error("Error enabling CarryOn anchor border: " + ex);
-                return TextCommandResult.Error("Failed to enable CarryOn anchor border due to an error.");
-            }
-            return TextCommandResult.Success("CarryOn anchor border: enabled");
-        }
+        protected TextCommandResult CmdCarryOnGuiBorderEnable(TextCommandCallingArgs args) =>
+            ApplySetting(
+                () => HudCarried.AnchorBorderEnabled = true,
+                cfg => cfg.AnchorBorderEnabled = true,
+                "enabling CarryOn anchor border",
+                "CarryOn anchor border: enabled");
 
-        protected TextCommandResult CmdCarryOnGuiBorderDisable(TextCommandCallingArgs args)
-        {
-            try
-            {
-                HudCarried.AnchorBorderEnabled = false;
-                HudCarried.UpdateParsedColors();
-
-                if (this.carrySystem?.ClientConfig != null)
-                {
-                    this.carrySystem.ClientConfig.Config.AnchorBorderEnabled = false;
-                    this.carrySystem.ClientConfig.Save(this.api);
-                }
-            }
-            catch (System.Exception ex)
-            {
-                this.api.Logger.Error("Error disabling CarryOn anchor border: " + ex);
-                return TextCommandResult.Error("Failed to disable CarryOn anchor border due to an error.");
-            }
-            return TextCommandResult.Success("CarryOn anchor border: disabled");
-        }
+        protected TextCommandResult CmdCarryOnGuiBorderDisable(TextCommandCallingArgs args) =>
+            ApplySetting(
+                () => HudCarried.AnchorBorderEnabled = false,
+                cfg => cfg.AnchorBorderEnabled = false,
+                "disabling CarryOn anchor border",
+                "CarryOn anchor border: disabled");
 
         protected TextCommandResult CmdCarryOnGuiBorderColor(TextCommandCallingArgs args)
         {
-            string hex = ((string)args[0])?.Trim();
+            string hex = (args[0] as string)?.Trim() ?? "";
             if (string.IsNullOrEmpty(hex)) return TextCommandResult.Error("Usage: .carryon gui border color #rrggbb");
-            if (!ColorHelper.TryNormalizeHex(hex, out hex))
-            {
+            if (!ColorHelper.TryNormalizeHex(hex, out var normalized))
                 return TextCommandResult.Error("Invalid hex color. Expected formats: #RRGGBB, RRGGBB, #RGB, or RGB");
-            }
+            hex = normalized!;
 
-            try
-            {
-                HudCarried.AnchorBorderColor = hex;
-                HudCarried.UpdateParsedColors();
-
-                if (this.carrySystem?.ClientConfig != null)
-                {
-                    this.carrySystem.ClientConfig.Config.AnchorBorderColor = hex;
-                    this.carrySystem.ClientConfig.Save(this.api);
-                }
-            }
-            catch (System.Exception ex)
-            {
-                this.api.Logger.Error("Error setting CarryOn anchor border color: " + ex);
-                return TextCommandResult.Error("Failed to set CarryOn anchor border color due to an error.");
-            }
-
-            return TextCommandResult.Success($"CarryOn anchor border color set to {hex}");
+            return ApplySetting(
+                () => HudCarried.AnchorBorderColor = hex,
+                cfg => cfg.AnchorBorderColor = hex,
+                "setting CarryOn anchor border color",
+                $"CarryOn anchor border color set to {hex}");
         }
 
         protected TextCommandResult CmdCarryOnGuiBorderAlpha(TextCommandCallingArgs args)
         {
-            float a = 0f;
-            try { a = (float)args[0]; }
-            catch { return TextCommandResult.Error("Usage: .carryon gui border alpha 0.0-1.0"); }
-
+            float a = args[0] is float floatVal ? floatVal : 0f;
             if (a < 0f || a > 1f) return TextCommandResult.Error("Alpha must be between 0.0 and 1.0");
 
-            try
-            {
-                HudCarried.AnchorBorderAlpha = a;
-                HudCarried.UpdateParsedColors();
-
-                if (this.carrySystem?.ClientConfig != null)
-                {
-                    this.carrySystem.ClientConfig.Config.AnchorBorderAlpha = a;
-                    this.carrySystem.ClientConfig.Save(this.api);
-                }
-            }
-            catch (System.Exception ex)
-            {
-                this.api.Logger.Error("Error setting CarryOn anchor border alpha: " + ex);
-                return TextCommandResult.Error("Failed to set CarryOn anchor border alpha due to an error.");
-            }
-
-            return TextCommandResult.Success($"CarryOn anchor border alpha set to {a:0.##}");
+            return ApplySetting(
+                () => HudCarried.AnchorBorderAlpha = a,
+                cfg => cfg.AnchorBorderAlpha = a,
+                "setting CarryOn anchor border alpha",
+                $"CarryOn anchor border alpha set to {a:0.##}");
         }
 
-        protected TextCommandResult CmdCarryOnGuiBorderReset(TextCommandCallingArgs args)
-        {
-            try
-            {
-                HudCarried.AnchorBorderEnabled = true;
-                HudCarried.AnchorBorderColor = HudCarried.AnchorBorderColorDefault;
-                HudCarried.AnchorBorderAlpha = HudCarried.AnchorBorderAlphaDefault;
-                HudCarried.UpdateParsedColors();
+        protected TextCommandResult CmdCarryOnGuiBorderShow(TextCommandCallingArgs args) =>
+            ShowSetting(
+                $"Runtime: enabled={HudCarried.AnchorBorderEnabled}, color={HudCarried.AnchorBorderColor}, alpha={HudCarried.AnchorBorderAlpha:0.##}",
+                cfg => $"Saved: enabled={cfg.AnchorBorderEnabled}, color={cfg.AnchorBorderColor}, alpha={cfg.AnchorBorderAlpha:0.##}",
+                "anchor border");
 
-                if (this.carrySystem?.ClientConfig != null)
+        protected TextCommandResult CmdCarryOnGuiBorderReset(TextCommandCallingArgs args) =>
+            ApplySetting(
+                () =>
                 {
-                    this.carrySystem.ClientConfig.Config.AnchorBorderEnabled = HudCarried.AnchorBorderEnabled;
-                    this.carrySystem.ClientConfig.Config.AnchorBorderColor = HudCarried.AnchorBorderColor;
-                    this.carrySystem.ClientConfig.Config.AnchorBorderAlpha = HudCarried.AnchorBorderAlpha;
-                    this.carrySystem.ClientConfig.Save(this.api);
-                }
-            }
-            catch (System.Exception ex)
-            {
-                this.api.Logger.Error("Error resetting CarryOn anchor border: " + ex);
-                return TextCommandResult.Error("Failed to reset CarryOn anchor border due to an error.");
-            }
-
-            return TextCommandResult.Success($"CarryOn anchor border reset to defaults: enabled={HudCarried.AnchorBorderEnabled}, color={HudCarried.AnchorBorderColor}, alpha={HudCarried.AnchorBorderAlpha:0.##}");
-        }
-
-        protected TextCommandResult CmdCarryOnGuiBorderShow(TextCommandCallingArgs args)
-        {
-            string runtime = $"Runtime: enabled={HudCarried.AnchorBorderEnabled}, color={HudCarried.AnchorBorderColor}, alpha={HudCarried.AnchorBorderAlpha:0.##}";
-            string saved = "Saved: (none)";
-            try
-            {
-                var cfg = this.carrySystem?.ClientConfig?.Config;
-                if (cfg != null)
+                    HudCarried.AnchorBorderEnabled = true;
+                    HudCarried.AnchorBorderColor = HudCarried.AnchorBorderColorDefault;
+                    HudCarried.AnchorBorderAlpha = HudCarried.AnchorBorderAlphaDefault;
+                },
+                cfg =>
                 {
-                    saved = $"Saved: enabled={cfg.AnchorBorderEnabled}, color={cfg.AnchorBorderColor}, alpha={cfg.AnchorBorderAlpha:0.##}";
-                }
-            }
-            catch (System.Exception ex)
-            {
-                this.api.Logger.Error("Error showing CarryOn GUI anchor border settings: " + ex);
-            }
-
-            return TextCommandResult.Success("CarryOn anchor border — " + runtime + " | " + saved);
-        }
+                    cfg.AnchorBorderEnabled = HudCarried.AnchorBorderEnabled;
+                    cfg.AnchorBorderColor = HudCarried.AnchorBorderColor;
+                    cfg.AnchorBorderAlpha = HudCarried.AnchorBorderAlpha;
+                },
+                "resetting CarryOn anchor border",
+                $"CarryOn anchor border reset to defaults: enabled={HudCarried.AnchorBorderEnabled}, color={HudCarried.AnchorBorderColor}, alpha={HudCarried.AnchorBorderAlpha:0.##}");
 
         // === Highlight subcommand handlers ===
-        protected TextCommandResult CmdCarryOnGuiHighlightEnable(TextCommandCallingArgs args)
-        {
-            try
-            {
-                HudCarried.IconHighlightEnabled = true;
-                HudCarried.UpdateParsedColors();
 
-                if (this.carrySystem?.ClientConfig != null)
-                {
-                    this.carrySystem.ClientConfig.Config.IconHighlightEnabled = true;
-                    this.carrySystem.ClientConfig.Save(this.api);
-                }
-            }
-            catch (System.Exception ex)
-            {
-                this.api.Logger.Error("Error enabling CarryOn icon highlight: " + ex);
-                return TextCommandResult.Error("Failed to enable CarryOn icon highlight due to an error.");
-            }
-            return TextCommandResult.Success("CarryOn icon highlight: enabled");
-        }
+        protected TextCommandResult CmdCarryOnGuiHighlightEnable(TextCommandCallingArgs args) =>
+            ApplySetting(
+                () => HudCarried.IconHighlightEnabled = true,
+                cfg => cfg.IconHighlightEnabled = true,
+                "enabling CarryOn icon highlight",
+                "CarryOn icon highlight: enabled");
 
-        protected TextCommandResult CmdCarryOnGuiHighlightDisable(TextCommandCallingArgs args)
-        {
-            try
-            {
-                HudCarried.IconHighlightEnabled = false;
-                HudCarried.UpdateParsedColors();
-
-                if (this.carrySystem?.ClientConfig != null)
-                {
-                    this.carrySystem.ClientConfig.Config.IconHighlightEnabled = false;
-                    this.carrySystem.ClientConfig.Save(this.api);
-                }
-            }
-            catch (System.Exception ex)
-            {
-                this.api.Logger.Error("Error disabling CarryOn icon highlight: " + ex);
-                return TextCommandResult.Error("Failed to disable CarryOn icon highlight due to an error.");
-            }
-            return TextCommandResult.Success("CarryOn icon highlight: disabled");
-        }
+        protected TextCommandResult CmdCarryOnGuiHighlightDisable(TextCommandCallingArgs args) =>
+            ApplySetting(
+                () => HudCarried.IconHighlightEnabled = false,
+                cfg => cfg.IconHighlightEnabled = false,
+                "disabling CarryOn icon highlight",
+                "CarryOn icon highlight: disabled");
 
         protected TextCommandResult CmdCarryOnGuiHighlightColor(TextCommandCallingArgs args)
         {
-            string hex = ((string)args[0])?.Trim();
+            string hex = (args[0] as string)?.Trim() ?? "";
             if (string.IsNullOrEmpty(hex)) return TextCommandResult.Error("Usage: .carryon gui highlight color #rrggbb");
-            if (!ColorHelper.TryNormalizeHex(hex, out hex))
-            {
+            if (!ColorHelper.TryNormalizeHex(hex, out var normalized))
                 return TextCommandResult.Error("Invalid hex color. Expected formats: #RRGGBB, RRGGBB, #RGB, or RGB");
-            }
+            hex = normalized!;
 
-            try
-            {
-                HudCarried.IconHighlightColor = hex;
-                HudCarried.UpdateParsedColors();
-
-                if (this.carrySystem?.ClientConfig != null)
-                {
-                    this.carrySystem.ClientConfig.Config.IconHighlightColor = hex;
-                    this.carrySystem.ClientConfig.Save(this.api);
-                }
-            }
-            catch (System.Exception ex)
-            {
-                this.api.Logger.Error("Error setting CarryOn icon highlight color: " + ex);
-                return TextCommandResult.Error("Failed to set CarryOn icon highlight color due to an error.");
-            }
-
-            return TextCommandResult.Success($"CarryOn icon highlight color set to {hex}");
+            return ApplySetting(
+                () => HudCarried.IconHighlightColor = hex,
+                cfg => cfg.IconHighlightColor = hex,
+                "setting CarryOn icon highlight color",
+                $"CarryOn icon highlight color set to {hex}");
         }
 
         protected TextCommandResult CmdCarryOnGuiHighlightAlpha(TextCommandCallingArgs args)
         {
-            float a = 0f;
-            try { a = (float)args[0]; }
-            catch { return TextCommandResult.Error("Usage: .carryon gui highlight alpha 0.0-1.0"); }
+            float a = args[0] is float floatVal ? floatVal : 0f;
             if (a < 0f || a > 1f) return TextCommandResult.Error("Alpha must be between 0.0 and 1.0");
 
-            try
-            {
-                HudCarried.IconHighlightAlpha = a;
-                HudCarried.UpdateParsedColors();
-
-                if (this.carrySystem?.ClientConfig != null)
-                {
-                    this.carrySystem.ClientConfig.Config.IconHighlightAlpha = a;
-                    this.carrySystem.ClientConfig.Save(this.api);
-                }
-            }
-            catch (System.Exception ex)
-            {
-                this.api.Logger.Error("Error setting CarryOn icon highlight alpha: " + ex);
-                return TextCommandResult.Error("Failed to set CarryOn icon highlight alpha due to an error.");
-            }
-
-            return TextCommandResult.Success($"CarryOn icon highlight alpha set to {a:0.##}");
+            return ApplySetting(
+                () => HudCarried.IconHighlightAlpha = a,
+                cfg => cfg.IconHighlightAlpha = a,
+                "setting CarryOn icon highlight alpha",
+                $"CarryOn icon highlight alpha set to {a:0.##}");
         }
 
-        protected TextCommandResult CmdCarryOnGuiHighlightReset(TextCommandCallingArgs args)
-        {
-            try
-            {
-                HudCarried.IconHighlightEnabled = true;
-                HudCarried.IconHighlightColor = HudCarried.IconHighlightColorDefault;
-                HudCarried.IconHighlightAlpha = HudCarried.IconHighlightAlphaDefault;
-                HudCarried.UpdateParsedColors();
+        protected TextCommandResult CmdCarryOnGuiHighlightShow(TextCommandCallingArgs args) =>
+            ShowSetting(
+                $"Runtime: enabled={HudCarried.IconHighlightEnabled}, color={HudCarried.IconHighlightColor}, alpha={HudCarried.IconHighlightAlpha:0.##}",
+                cfg => $"Saved: enabled={cfg.IconHighlightEnabled}, color={cfg.IconHighlightColor}, alpha={cfg.IconHighlightAlpha:0.##}",
+                "icon highlight");
 
-                if (this.carrySystem?.ClientConfig != null)
+        protected TextCommandResult CmdCarryOnGuiHighlightReset(TextCommandCallingArgs args) =>
+            ApplySetting(
+                () =>
                 {
-                    this.carrySystem.ClientConfig.Config.IconHighlightEnabled = HudCarried.IconHighlightEnabled;
-                    this.carrySystem.ClientConfig.Config.IconHighlightColor = HudCarried.IconHighlightColor;
-                    this.carrySystem.ClientConfig.Config.IconHighlightAlpha = HudCarried.IconHighlightAlpha;
-                    this.carrySystem.ClientConfig.Save(this.api);
-                }
-            }
-            catch (System.Exception ex)
-            {
-                // Handle any errors that occur during the reset process
-                this.api.Logger.Error("Error resetting CarryOn icon highlight to defaults: " + ex);
-                return TextCommandResult.Error("Failed to reset CarryOn icon highlight to defaults due to an error.");
-            }
-
-            return TextCommandResult.Success($"CarryOn icon highlight reset to defaults: enabled={HudCarried.IconHighlightEnabled}, color={HudCarried.IconHighlightColor}, alpha={HudCarried.IconHighlightAlpha:0.##}");
-        }
-
-        protected TextCommandResult CmdCarryOnGuiHighlightShow(TextCommandCallingArgs args)
-        {
-            string runtime = $"Runtime: enabled={HudCarried.IconHighlightEnabled}, color={HudCarried.IconHighlightColor}, alpha={HudCarried.IconHighlightAlpha:0.##}";
-            string saved = "Saved: (none)";
-            try
-            {
-                var cfg = this.carrySystem?.ClientConfig?.Config;
-                if (cfg != null)
+                    HudCarried.IconHighlightEnabled = true;
+                    HudCarried.IconHighlightColor = HudCarried.IconHighlightColorDefault;
+                    HudCarried.IconHighlightAlpha = HudCarried.IconHighlightAlphaDefault;
+                },
+                cfg =>
                 {
-                    saved = $"Saved: enabled={cfg.IconHighlightEnabled}, color={cfg.IconHighlightColor}, alpha={cfg.IconHighlightAlpha:0.##}";
-                }
-            }
-            catch (System.Exception ex)
-            {
-                this.api.Logger.Error("Error showing CarryOn GUI icon highlight settings: " + ex);
-            }
-
-            return TextCommandResult.Success("CarryOn icon highlight — " + runtime + " | " + saved);
-        }
+                    cfg.IconHighlightEnabled = HudCarried.IconHighlightEnabled;
+                    cfg.IconHighlightColor = HudCarried.IconHighlightColor;
+                    cfg.IconHighlightAlpha = HudCarried.IconHighlightAlpha;
+                },
+                "resetting CarryOn icon highlight",
+                $"CarryOn icon highlight reset to defaults: enabled={HudCarried.IconHighlightEnabled}, color={HudCarried.IconHighlightColor}, alpha={HudCarried.IconHighlightAlpha:0.##}");
     }
 }

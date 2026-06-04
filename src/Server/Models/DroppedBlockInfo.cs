@@ -11,14 +11,14 @@ namespace CarryOn.Server.Models
     public class DroppedBlockInfo
     {
         public DateTime DroppedDateTime { get; set; }
-        public string OwnerUID { get; set; }
-        public string OwnerName { get; set; }
-        public string BlockCode { get; set; }
-        public string Teleport { get; set; }
+        public string? OwnerUID { get; set; }
+        public string? OwnerName { get; set; }
+        public string? BlockCode { get; set; }
+        public string? Teleport { get; set; }
 
-        public BlockPos Position { get; set; }
+        public BlockPos? Position { get; set; }
 
-        public List<string> Inventory { get; set; }
+        public List<string>? Inventory { get; set; }
 
         private static string GetFileLocation(BlockPos pos, ICoreAPI api)
         {
@@ -26,7 +26,7 @@ namespace CarryOn.Server.Models
             var path = api.GetOrCreateDataPath(localPath);
             return Path.Combine(path, $"dropped-{pos.X}.{pos.Y}.{pos.Z}");
         }
-        public static DroppedBlockInfo Get(BlockPos pos, IPlayer player)
+        public static DroppedBlockInfo? Get(BlockPos pos, IPlayer player)
         {
             ICoreAPI api = player.Entity.Api;
             var fileLocation = GetFileLocation(pos, api);
@@ -46,7 +46,7 @@ namespace CarryOn.Server.Models
             return null;
         }
 
-        public static void Create(BlockPos pos, IPlayer player, ITreeAttribute blockEntityData)
+        public static void Create(BlockPos pos, IPlayer player, ITreeAttribute? blockEntityData)
         {
             ICoreAPI api = player.Entity.Api;
             var fileLocation = GetFileLocation(pos, api);

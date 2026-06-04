@@ -13,9 +13,6 @@ namespace CarryOn.Client.Models
     {
         public int? ConfigVersion { get; set; }
 
-        // Enables mixing of carried item LightHsv with the player's light when a block or item is carried.
-        public bool CarriedLightEnabled { get; set; } = true;
-
         // Stored as the enum name (L1,L2,...). "None" indicates not assigned.
         public string HandsAnchor { get; set; } = HudCarried.HandsAnchorDefault.ToString();
         public string BackAnchor { get; set; } = HudCarried.BackAnchorDefault.ToString();
@@ -39,6 +36,40 @@ namespace CarryOn.Client.Models
         {
             ConfigVersion = version;
         }
+
+        internal void ApplyTo()
+        {
+            if (!string.IsNullOrEmpty(HandsAnchor) && Enum.TryParse<HudCarried.Anchor>(HandsAnchor, true, out var handsAnchor))
+            {
+                HudCarried.HandsAnchor = handsAnchor;
+            }
+
+            if (!string.IsNullOrEmpty(BackAnchor) && Enum.TryParse<HudCarried.Anchor>(BackAnchor, true, out var backAnchor))
+            {
+                HudCarried.BackAnchor = backAnchor;
+            }
+
+            HudCarried.AnchorBackgroundEnabled = AnchorBackgroundEnabled;
+            if (!string.IsNullOrEmpty(AnchorBackgroundColor))
+            {
+                HudCarried.AnchorBackgroundColor = AnchorBackgroundColor;
+            }
+            HudCarried.AnchorBackgroundAlpha = AnchorBackgroundAlpha;
+
+            HudCarried.AnchorBorderEnabled = AnchorBorderEnabled;
+            if (!string.IsNullOrEmpty(AnchorBorderColor))
+            {
+                HudCarried.AnchorBorderColor = AnchorBorderColor;
+            }
+            HudCarried.AnchorBorderAlpha = AnchorBorderAlpha;
+
+            HudCarried.IconHighlightEnabled = IconHighlightEnabled;
+            if (!string.IsNullOrEmpty(IconHighlightColor))
+            {
+                HudCarried.IconHighlightColor = IconHighlightColor;
+            }
+            HudCarried.IconHighlightAlpha = IconHighlightAlpha;
+        }
     }
 
     public class ClientModConfig
@@ -46,7 +77,7 @@ namespace CarryOn.Client.Models
         private const int CurrentVersion = 1;
         private const string ConfigFileName = "CarryOnClientConfig.json";
 
-        public CarryOnClientConfig Config { get; private set; }
+        public CarryOnClientConfig? Config { get; private set; }
 
         public void Load(ICoreClientAPI api)
         {

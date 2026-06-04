@@ -97,11 +97,11 @@ namespace CarryOn.Client.Logic.CarryRenderer
 		private sealed class SignatureSidecarState
 		{
 			public int LastSeenCarriedRevision { get; set; } = -1;
-			public string LastTransformsGroup { get; set; }
-			public string LastStackCode { get; set; }
-			public ITreeAttribute LastBlockEntityDataRef { get; set; }
-			public CachedTransformPlan Plan { get; set; }
-			public string RenderVariantSignature { get; set; }
+			public string? LastTransformsGroup { get; set; }
+			public string? LastStackCode { get; set; }
+			public ITreeAttribute? LastBlockEntityDataRef { get; set; }
+			public CachedTransformPlan? Plan { get; set; }
+			public string? RenderVariantSignature { get; set; }
 		}
 
 		// Matrix pool for per-frame reuse to reduce GC pressure
@@ -146,8 +146,11 @@ namespace CarryOn.Client.Logic.CarryRenderer
 
 		private CarriedRenderInfo[] GetRenderInfoCached(EntityAgent entity, CarriedBlock carried, string transformsGroup)
 		{
-			var slotStateKey = CarryRenderHelpers.BuildSlotStateKey(entity, carried.Slot);
-			var sidecarKey = (entity.EntityId, carried.Slot);
+			if (carried == null) return Array.Empty<CarriedRenderInfo>();
+			var carriedBlock = carried;
+
+			var slotStateKey = CarryRenderHelpers.BuildSlotStateKey(entity, carriedBlock.Slot);
+			var sidecarKey = (entity.EntityId, carriedBlock.Slot);
 			if (!signatureSidecars.TryGetValue(sidecarKey, out var sidecar))
 			{
 				sidecar = new SignatureSidecarState();
@@ -155,18 +158,18 @@ namespace CarryOn.Client.Logic.CarryRenderer
 			}
 
 			var carriedRevision = this.carrySystem?.CarryManager?.GetCarriedRevision(entity) ?? 0;
-			var stackCode = carried?.ItemStack?.Collectible?.Code?.ToString() ?? "none";
+			var stackCode = carriedBlock.ItemStack?.Collectible?.Code?.ToString() ?? "none";
 
 			var signaturesDirty = sidecar.Plan == null
 				|| sidecar.LastSeenCarriedRevision != carriedRevision
 				|| !string.Equals(sidecar.LastTransformsGroup, transformsGroup, StringComparison.Ordinal)
 				|| !string.Equals(sidecar.LastStackCode, stackCode, StringComparison.Ordinal)
-				|| !ReferenceEquals(sidecar.LastBlockEntityDataRef, carried?.BlockEntityData)
+				|| !ReferenceEquals(sidecar.LastBlockEntityDataRef, carriedBlock.BlockEntityData)
 				|| string.IsNullOrEmpty(sidecar.RenderVariantSignature);
 
-			TreeAttribute containerSlots = null;
-			CachedTransformPlan plan;
-			string renderVariantSignature;
+			TreeAttribute? containerSlots = null;
+			CachedTransformPlan? plan;
+			string? renderVariantSignature;
 
 			if (signaturesDirty)
 			{
@@ -176,10 +179,10 @@ namespace CarryOn.Client.Logic.CarryRenderer
 
 				// Include BE rotation + slot content signature so cached render infos invalidate
 				// when displaycase item orientation/contents change.
-				containerSlots = TransformGroupResolverHelper.GetContainerSlots(carried);
+				containerSlots = TransformGroupResolverHelper.GetContainerSlots(carriedBlock);
 				variantRecomputeCount++;
 				renderVariantSignature = CarryRenderHelpers.BuildRenderInfoVariantSignature(
-					carried,
+					carriedBlock,
 					containerSlots,
 					plan.EffectiveSettings,
 					this.api.World);
@@ -187,7 +190,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
 				sidecar.LastSeenCarriedRevision = carriedRevision;
 				sidecar.LastTransformsGroup = transformsGroup;
 				sidecar.LastStackCode = stackCode;
-				sidecar.LastBlockEntityDataRef = carried?.BlockEntityData;
+				sidecar.LastBlockEntityDataRef = carriedBlock.BlockEntityData;
 				sidecar.Plan = plan;
 				sidecar.RenderVariantSignature = renderVariantSignature;
 			}
@@ -198,22 +201,22 @@ namespace CarryOn.Client.Logic.CarryRenderer
 				renderVariantSignature = sidecar.RenderVariantSignature;
 			}
 
-			var frameKey = CarryRenderHelpers.BuildFrameCacheKey(entity, carried, plan.Signature, renderVariantSignature);
+			var frameKey = CarryRenderHelpers.BuildFrameCacheKey(entity, carriedBlock, plan?.Signature, renderVariantSignature);
 			cache.InvalidateSlotState(slotStateKey, frameKey);
 
 			if (cache.FrameRenderInfos.TryGetValue(frameKey, out var frameCached))
 			{
 				frameRenderInfoHitCount++;
-				return CarryRenderHelpers.CloneCarriedRenderInfos(frameCached);
+							return CarryRenderHelpers.CloneCarriedRenderInfos(frameCached) ?? Array.Empty<CarriedRenderInfo>();
 			}
 
 			var now = DateTime.UtcNow;
 
-			var renderInfoKey = string.Concat(plan.Signature, "|ri|", renderVariantSignature);
+			var renderInfoKey = string.Concat(plan?.Signature, "|ri|", renderVariantSignature);
 			cache.SlotStates[slotStateKey] = new SlotCacheState
 			{
 				FrameKey = frameKey,
-				PlanSignature = plan.Signature,
+				PlanSignature = plan?.Signature,
 				RenderInfoKey = renderInfoKey
 			};
 
@@ -226,9 +229,9 @@ namespace CarryOn.Client.Logic.CarryRenderer
 				return clonedFromPersistent;
 			}
 
-			containerSlots ??= TransformGroupResolverHelper.GetContainerSlots(carried);
+			containerSlots ??= TransformGroupResolverHelper.GetContainerSlots(carriedBlock);
 			renderInfoBuildCount++;
-			var built = infoBuilder.BuildFromPlan(carried, plan, containerSlots);
+					var built = infoBuilder.BuildFromPlan(carriedBlock, plan, containerSlots);
 			cache.RenderInfos[renderInfoKey] = new CachedRenderInfos
 			{
 				Signature = renderInfoKey,
@@ -452,14 +455,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
 		/// <summary> Renders all carried blocks of the specified entity. </summary>
 		private void RenderAllCarried(EntityAgent entity, float deltaTime, EnumRenderStage stage, bool isShadowPass)
 		{
-			var config = this.carrySystem.ClientConfig.Config;
-			if (config.CarriedLightEnabled)
-			{
-				// Reset light so carried block light can be added later
-				entity.LightHsv = new ThreeBytes(0);
-			}
-
-			var allCarried = entity.GetCarried().ToList();
+			var allCarried = entity.GetCarried()?.ToList() ?? [];
 			if (allCarried.Count == 0) return; // Entity is not carrying anything.
 
 			var player = this.api.World.Player;
@@ -472,25 +468,6 @@ namespace CarryOn.Client.Logic.CarryRenderer
 
 			// Rendered not ready?
 			if (renderer == null) return;
-
-			if (config.CarriedLightEnabled)
-			{
-				// Merge carried block light into entity light so that it applies to the entity and all carried blocks, without needing to modify each CarriedRenderInfo.
-				var lightHsv = entity.LightHsv;
-				foreach (var carried in allCarried)
-				{
-					switch (carried.ItemStack?.Collectible)
-					{
-						case Block block:
-							lightHsv = ColorUtil.MergeLightHSV(block.LightHsv, lightHsv);
-							break;
-						case Item item:
-							lightHsv = ColorUtil.MergeLightHSV(item.LightHsv, lightHsv);
-							break;
-					}
-				}
-				entity.LightHsv = lightHsv;
-			}
 
 			foreach (var carried in allCarried)
 			{
@@ -576,9 +553,8 @@ namespace CarryOn.Client.Logic.CarryRenderer
 								   bool isFirstPerson, bool isImmersiveFirstPerson, EnumRenderStage stage, bool isShadowPass,
 								   EntityShapeRenderer renderer, IAnimator animator)
 		{
-			var rapi = this.api.Render;
 			var inHands = carried.Slot == CarrySlot.Hands;
-			if (!inHands && isFirstPerson && !isShadowPass) return; // Only Hands slot is rendered in first person.
+			if (!inHands && isFirstPerson && !isShadowPass) return;
 
 			var deferHandsOpaqueUntilAfterOit = inHands && isFirstPerson && !isImmersiveFirstPerson;
 			if (!isShadowPass)
@@ -586,7 +562,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
 				if (stage == EnumRenderStage.Opaque && deferHandsOpaqueUntilAfterOit) return;
 			}
 
-			var viewMat = Array.ConvertAll(rapi.CameraMatrixOrigin, i => (float)i);
+			var viewMat = Array.ConvertAll(this.api.Render.CameraMatrixOrigin, i => (float)i);
 
 			string transformGroupName = entity.ResolveCarryTransformGroupBase(carrySystem, carried.Slot);
 
@@ -596,8 +572,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
 			if (renderSettings == null) return;
 
 			var carriedRenderInfo = GetRenderInfoCached(entity, carried, transformGroupName);
-
-			if (carriedRenderInfo == null || carriedRenderInfo.Length == 0) return; // No render info for this carried block.
+			if (carriedRenderInfo == null || carriedRenderInfo.Length == 0) return;
 
 			float[] modelMat;
 			if (inHands && isFirstPerson && !isImmersiveFirstPerson && !isShadowPass)
@@ -609,15 +584,16 @@ namespace CarryOn.Client.Logic.CarryRenderer
 			else
 			{
 				if (animator == null) return;
-				var attachPointAndPose = animator.GetAttachmentPointPose(renderSettings.AttachmentPoint);
-				if (attachPointAndPose == null) return; // Couldn't find attachment point.
-				modelMat = CarryRenderHelpers.GetAttachmentPointMatrix(renderer, attachPointAndPose);
+				AttachmentPointAndPose? attachPointAndPose = animator.GetAttachmentPointPose(renderSettings.AttachmentPoint);
+				if (attachPointAndPose == null) return;
+				var attachmentPointMatrix = CarryRenderHelpers.GetAttachmentPointMatrix(renderer, attachPointAndPose);
+				if (attachmentPointMatrix == null) return;
+				modelMat = attachmentPointMatrix;
 			}
 
 			float[] initialMatrix = RentMatrix();
-			float[] matrix;
 
-			var initial = carriedRenderInfo.FirstOrDefault();
+			var initial = carriedRenderInfo[0];
 			initial.SkipTransform = true;
 			Array.Copy(modelMat, initialMatrix, 16);
 			CarryRenderHelpers.ApplyTransformInPlace(initial.RenderInfo.Transform, initialMatrix, renderSettings.Offset);
@@ -628,137 +604,150 @@ namespace CarryOn.Client.Logic.CarryRenderer
 				carriedRenderInfo = carriedRenderInfo.Skip(1).Append(initial).ToArray();
 			}
 
-			// Zero offset for secondary transforms - they're already positioned relative to the root
 			var zeroOffset = new Vec3f(0, 0, 0);
 
 			if (isShadowPass)
 			{
-				var prog = rapi.CurrentActiveShader;
-				foreach (var info in carriedRenderInfo)
-				{
-					if (!info.RenderEnabled) continue;
-					if (info.SkipTransform)
-					{
-						matrix = initialMatrix;
-					}
-					else
-					{
-						matrix = RentMatrix();
-						Array.Copy(initialMatrix, matrix, 16);
-						CarryRenderHelpers.ApplyTransformInPlace(info.RenderInfo.Transform, matrix, zeroOffset);
-						if (info.SecondaryTransform != null)
-						{
-							CarryRenderHelpers.ApplyTransformInPlace(info.SecondaryTransform, matrix, zeroOffset);
-						}
-					}
-
-					var shadowMatrix = RentMatrix();
-					Array.Copy(matrix, shadowMatrix, 16);
-					Mat4f.Mul(shadowMatrix, rapi.CurrentShadowProjectionMatrix, shadowMatrix);
-
-					bool disabledCull = false;
-					if (!info.RenderInfo.CullFaces)
-					{
-						rapi.GlDisableCullFace();
-						disabledCull = true;
-					}
-
-					try
-					{
-						prog.BindTexture2D("tex2d", info.RenderInfo.TextureId, 0);
-						prog.UniformMatrix("mvpMatrix", shadowMatrix);
-						prog.Uniform("origin", renderer.OriginPos);
-
-						rapi.RenderMultiTextureMesh(info.RenderInfo.ModelRef, "tex2d");
-					}
-					finally
-					{
-						if (disabledCull)
-						{
-							rapi.GlEnableCullFace();
-						}
-					}
-					matrixPool.Push(matrix);
-					matrixPool.Push(shadowMatrix);
-				}
+				RenderCarriedShadowPass(carriedRenderInfo, initialMatrix, zeroOffset, renderer);
 			}
 			else
 			{
-				var renderOpaquePhase = stage == EnumRenderStage.Opaque || (stage == EnumRenderStage.AfterOIT && deferHandsOpaqueUntilAfterOit);
-				var renderTranslucentPhase = stage == EnumRenderStage.AfterOIT;
-
-				if (!renderOpaquePhase && !renderTranslucentPhase)
-				{
-					return;
-				}
-
-				var prog = rapi.PreparedStandardShader((int)entity.Pos.X, (int)entity.Pos.Y, (int)entity.Pos.Z);
-
-				// 1) Build draw queue
-				var draws = new List<QueuedDraw>(carriedRenderInfo.Length);
-				foreach (var info in carriedRenderInfo)
-				{
-					if (!info.RenderEnabled) continue;
-
-					var drawMatrix = RentMatrix();
-					Array.Copy(initialMatrix, drawMatrix, 16);
-					if (!info.SkipTransform)
-					{
-						CarryRenderHelpers.ApplyTransformInPlace(info.RenderInfo.Transform, drawMatrix, zeroOffset);
-						if (info.SecondaryTransform != null)
-						{
-							CarryRenderHelpers.ApplyTransformInPlace(info.SecondaryTransform, drawMatrix, zeroOffset);
-						}
-					}
-
-					draws.Add(new QueuedDraw
-					(
-						Info: info,
-						Matrix: drawMatrix,
-						IsRoot: info.SkipTransform,
-						Phases: CarryRenderHelpers.ResolveDefaultPhases(info),
-						AlphaTestOpaque: info.AlphaTestOpaque ?? 0.5f,
-						AlphaTestBlend: info.AlphaTestBlend ?? 0.15f
-					));
-				}
-
-				// 2) Add root to either the front or back of the queue, depending on whether root-first rendering is specified. Root-first rendering is important for certain cases where the root transform has alpha and we want to render it in the opaque pass, while rendering secondary transforms in the translucent pass.
-				// renderRootFirst=true => root first
-				var roots = new List<QueuedDraw>();
-				var nonRoots = new List<QueuedDraw>();
-				foreach (var d in draws)
-				{
-					if (d.IsRoot) roots.Add(d);
-					else nonRoots.Add(d);
-				}
-				draws = renderRootFirst
-					? [.. roots, .. nonRoots]
-					: [.. nonRoots, .. roots];
-
-				if (renderOpaquePhase)
-				{
-					// Global phase A: opaque for all draws
-					RenderQueuedPhase(draws, translucentPhase: false, prog, viewMat, renderer);
-				}
-
-				if (renderTranslucentPhase)
-				{
-					// Global phase B: translucent for all draws
-					RenderQueuedPhase(draws, translucentPhase: true, prog, viewMat, renderer);
-				}
-
-				if (renderOpaquePhase && initialMatrix != null)
-				{
-					labelRenderer.TryRender(carried, initialMatrix, viewMat, prog, entity.Pos.AsBlockPos);
-				}
-
-				foreach (var d in draws)
-				{
-					matrixPool.Push(d.Matrix);
-				}
-
-				prog.Stop();
+				RenderCarriedMainPass(entity, carried, carriedRenderInfo, initialMatrix, zeroOffset,
+									  stage, deferHandsOpaqueUntilAfterOit, viewMat, renderer);
 			}
+		}
+
+		private void RenderCarriedShadowPass(CarriedRenderInfo[] carriedRenderInfo, float[] initialMatrix, Vec3f zeroOffset, EntityShapeRenderer renderer)
+		{
+			var rapi = this.api.Render;
+			var prog = rapi.CurrentActiveShader;
+			float[] matrix;
+
+			foreach (var info in carriedRenderInfo)
+			{
+				if (!info.RenderEnabled) continue;
+				if (info.SkipTransform)
+				{
+					matrix = initialMatrix;
+				}
+				else
+				{
+					matrix = RentMatrix();
+					Array.Copy(initialMatrix, matrix, 16);
+					CarryRenderHelpers.ApplyTransformInPlace(info.RenderInfo.Transform, matrix, zeroOffset);
+					if (info.SecondaryTransform != null)
+					{
+						CarryRenderHelpers.ApplyTransformInPlace(info.SecondaryTransform, matrix, zeroOffset);
+					}
+				}
+
+				var shadowMatrix = RentMatrix();
+				Array.Copy(matrix, shadowMatrix, 16);
+				Mat4f.Mul(shadowMatrix, rapi.CurrentShadowProjectionMatrix, shadowMatrix);
+
+				bool disabledCull = false;
+				if (!info.RenderInfo.CullFaces)
+				{
+					rapi.GlDisableCullFace();
+					disabledCull = true;
+				}
+
+				try
+				{
+					prog.BindTexture2D("tex2d", info.RenderInfo.TextureId, 0);
+					prog.UniformMatrix("mvpMatrix", shadowMatrix);
+					prog.Uniform("origin", renderer.OriginPos);
+
+					rapi.RenderMultiTextureMesh(info.RenderInfo.ModelRef, "tex2d");
+				}
+				finally
+				{
+					if (disabledCull)
+					{
+						rapi.GlEnableCullFace();
+					}
+				}
+				matrixPool.Push(matrix);
+				matrixPool.Push(shadowMatrix);
+			}
+		}
+
+		private void RenderCarriedMainPass(EntityAgent entity, CarriedBlock carried, CarriedRenderInfo[] carriedRenderInfo,
+										   float[] initialMatrix, Vec3f zeroOffset,
+										   EnumRenderStage stage, bool deferHandsOpaqueUntilAfterOit,
+										   float[] viewMat, EntityShapeRenderer renderer)
+		{
+			var rapi = this.api.Render;
+			var renderOpaquePhase = stage == EnumRenderStage.Opaque || (stage == EnumRenderStage.AfterOIT && deferHandsOpaqueUntilAfterOit);
+			var renderTranslucentPhase = stage == EnumRenderStage.AfterOIT;
+
+			if (!renderOpaquePhase && !renderTranslucentPhase)
+			{
+				return;
+			}
+
+			var prog = rapi.PreparedStandardShader((int)entity.Pos.X, (int)entity.Pos.Y, (int)entity.Pos.Z);
+
+			var draws = new List<QueuedDraw>(carriedRenderInfo.Length);
+			foreach (var info in carriedRenderInfo)
+			{
+				if (!info.RenderEnabled) continue;
+
+				var drawMatrix = RentMatrix();
+				Array.Copy(initialMatrix, drawMatrix, 16);
+				if (!info.SkipTransform)
+				{
+					CarryRenderHelpers.ApplyTransformInPlace(info.RenderInfo.Transform, drawMatrix, zeroOffset);
+					if (info.SecondaryTransform != null)
+					{
+						CarryRenderHelpers.ApplyTransformInPlace(info.SecondaryTransform, drawMatrix, zeroOffset);
+					}
+				}
+
+				draws.Add(new QueuedDraw
+				(
+					Info: info,
+					Matrix: drawMatrix,
+					IsRoot: info.SkipTransform,
+					Phases: CarryRenderHelpers.ResolveDefaultPhases(info),
+					AlphaTestOpaque: info.AlphaTestOpaque ?? 0.5f,
+					AlphaTestBlend: info.AlphaTestBlend ?? 0.15f
+				));
+			}
+
+			var renderRootFirst = carried.GetCarryableBehavior()?.RenderRootFirst ?? false;
+			var roots = new List<QueuedDraw>();
+			var nonRoots = new List<QueuedDraw>();
+			foreach (var d in draws)
+			{
+				if (d.IsRoot) roots.Add(d);
+				else nonRoots.Add(d);
+			}
+			draws = renderRootFirst
+				? [.. roots, .. nonRoots]
+				: [.. nonRoots, .. roots];
+
+			if (renderOpaquePhase)
+			{
+				RenderQueuedPhase(draws, translucentPhase: false, prog, viewMat, renderer);
+			}
+
+			if (renderTranslucentPhase)
+			{
+				RenderQueuedPhase(draws, translucentPhase: true, prog, viewMat, renderer);
+			}
+
+			if (renderOpaquePhase && initialMatrix != null)
+			{
+				labelRenderer.TryRender(carried, initialMatrix, viewMat, prog, entity.Pos.AsBlockPos);
+			}
+
+			foreach (var d in draws)
+			{
+				matrixPool.Push(d.Matrix);
+			}
+
+prog.Stop();
 		}
 
 		// The most recent tick that the hands were rendered.

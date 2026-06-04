@@ -10,7 +10,7 @@ namespace CarryOn.Client.Logic
     public class HudCarried : IDisposable
     {
         private readonly ICoreClientAPI api;
-        private IRenderer renderer;
+        private IRenderer? renderer;
         // Toggle to show debug icons (can be controlled by client chat command)
         public static bool ShowDebugIcons { get; set; } = false;
 
@@ -47,19 +47,19 @@ namespace CarryOn.Client.Logic
         public static float AnchorBackgroundAlpha { get; set; } = AnchorBackgroundAlphaDefault;
         public static string AnchorBackgroundColor { get; set; } = AnchorBackgroundColorDefault;
         // Cached parsed colors (Vec4f) to avoid reparsing on every frame
-        public static Vec4f AnchorBackgroundVec { get; private set; }
+        public static Vec4f AnchorBackgroundVec { get; private set; } = new();
 
         // Border (outline) options
         public static bool AnchorBorderEnabled { get; set; } = true;
         public static float AnchorBorderAlpha { get; set; } = AnchorBorderAlphaDefault;
         public static string AnchorBorderColor { get; set; } = AnchorBorderColorDefault;
-        public static Vec4f AnchorBorderVec { get; private set; }
+        public static Vec4f AnchorBorderVec { get; private set; } = new();
 
         // Icon highlight options
         public static bool IconHighlightEnabled { get; set; } = true;
         public static string IconHighlightColor { get; set; } = IconHighlightColorDefault;
         public static float IconHighlightAlpha { get; set; } = IconHighlightAlphaDefault;
-        public static Vec4f IconHighlightVec { get; private set; }
+        public static Vec4f IconHighlightVec { get; private set; } = new();
 
         // Highlight timers (seconds remaining). When > 0 the corresponding icon will be tinted.
         // Trigger these from other client-side code when the player starts interacting with that carried item.
@@ -70,6 +70,14 @@ namespace CarryOn.Client.Logic
         public const float DefaultHighlightDuration = 1.0f;
         // Extra time after the main shrink where the alpha will fade out (seconds)
         public const float HighlightFadeExtra = 0.4f;
+
+        // Layout constants (unscaled pixels)
+        private const float BaseSlotSizePixels = 32.0f;
+        private const float GroupMarginPixels = 16.0f;
+        private const float IconSpacingPixels = 16.0f;
+        private const float HotbarWidthPixels = 850.0f;
+        private const float VerticalOffsetPixels = 36.0f;
+        private const float BackgroundSizePixels = 64.0f;
 
         // Trigger the hands highlight for the given duration (seconds). Use when the player starts interacting with the hands-carried item.
         public static void TriggerHandsHighlight(float seconds = DefaultHighlightDuration + HighlightFadeExtra)
@@ -138,8 +146,8 @@ namespace CarryOn.Client.Logic
             // Pre-calculated positions for multiple icons (3 left, 3 right of hotbar)
             private readonly (int x, int y)[] cachedLeftPositions = new (int, int)[3];
             private readonly (int x, int y)[] cachedRightPositions = new (int, int)[3];
-            private MeshRef highlightMesh = null;
-            private MeshRef rectMesh = null;
+            private MeshRef? highlightMesh;
+            private MeshRef? rectMesh;
 
             public HudCarriedRenderer(ICoreClientAPI api)
             {
@@ -565,23 +573,21 @@ namespace CarryOn.Client.Logic
             private void UpdateCachedPositions(float guiScale, float frameWidth, float frameHeight)
             {
                 // Use GuiElement.scaled() for proper GUI scaling like StatusHud renderer
-                this.cachedSlotSize = (float)GuiElement.scaled(32.0); // base slot size of 32 pixels
-                int margin = (int)GuiElement.scaled(16.0); // increased margin between left/right groups and hotbar
-                int spacingBetweenIcons = (int)GuiElement.scaled(16.0); // spacing between icons within a group
+                this.cachedSlotSize = (float)GuiElement.scaled(BaseSlotSizePixels);
+                int margin = (int)GuiElement.scaled(GroupMarginPixels);
+                int spacingBetweenIcons = (int)GuiElement.scaled(IconSpacingPixels);
 
-                // Hotbar dimensions (before scaling)
-                float baseHotbarWidth = 850f;
-                this.cachedHotbarWidth = (float)GuiElement.scaled(baseHotbarWidth);
+                this.cachedHotbarWidth = (float)GuiElement.scaled(HotbarWidthPixels);
                 
                 // Center of screen and hotbar position
                 this.cachedHotbarCenterX = frameWidth / 2f; 
 
                 // Vertical positioning: place the center of icons at 36 pixels from bottom (GUI-scaled)
                 // Note: RenderItemstackToGui expects center coordinates, so cachedHotbarY represents the icon center Y
-                this.cachedHotbarY = frameHeight - (float)GuiElement.scaled(36.0);
+                this.cachedHotbarY = frameHeight - (float)GuiElement.scaled(VerticalOffsetPixels);
 
                 // Cache background size for anchor outlines
-                this.cachedBackgroundSize = (float)GuiElement.scaled(64.0);
+                this.cachedBackgroundSize = (float)GuiElement.scaled(BackgroundSizePixels);
 
                 // Calculate positions to the left of hotbar (right to left: closest to farthest)
                 // Start from the left edge of hotbar, move left by margin, then place icons

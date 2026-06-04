@@ -6,7 +6,7 @@ namespace CarryOn.Common.Network
     [ProtoContract(ImplicitFields = ImplicitFields.AllFields)]
     public record QuickDropMessage
     {
-        public CarrySlot[] CarrySlots { get; init; }
+        public CarrySlot[] CarrySlots { get; init; } = null!;
 
         private QuickDropMessage() { }
 

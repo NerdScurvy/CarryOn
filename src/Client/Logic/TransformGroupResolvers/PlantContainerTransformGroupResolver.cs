@@ -24,7 +24,7 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
         private static readonly Regex CactusFamilyRegex = new("^(?<family>[^-]*cactus)(?:-(?<variant>.+))?$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
         private static readonly Regex TallPlantTypeRegex = new("^(?<plant>tallgrass)(?:-.*)?$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
-        public bool TryResolve(ICoreAPI api, CarriedBlock carried, string baseGroup, out CarriedGroupResolution resolution)
+        public bool TryResolve(ICoreAPI api, CarriedBlock carried, string baseGroup, out CarriedGroupResolution? resolution)
         {
             resolution = null;
 
@@ -260,7 +260,7 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
                 if (plantItem is not null && plantItem.GetType().Name == "ItemCattailRoot")
                 {
                     // Strip root suffix to get base reed type for transform group naming
-                    var plantCodePath = plantItem?.Code?.Path;
+                    var plantCodePath = plantItem.Code?.Path ?? string.Empty;
                     var baseType = plantCodePath.EndsWith("root", StringComparison.Ordinal)
                         ? plantCodePath.Substring(0, plantCodePath.Length - 4)
                         : plantCodePath;
@@ -288,7 +288,7 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
             return true;
         }
 
-        private string ExtractSaplingType(string codePath)
+        private string? ExtractSaplingType(string? codePath)
         {
             if (string.IsNullOrEmpty(codePath)) return null;
 
@@ -296,7 +296,7 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
             return match.Success ? match.Groups["wood"].Value : null;
         }
 
-        private string ExtractFlowerType(string codePath)
+        private string? ExtractFlowerType(string? codePath)
         {
             if (string.IsNullOrEmpty(codePath)) return null;
 
@@ -307,7 +307,7 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
             return match.Success ? match.Groups["plant"].Value : null;
         }
 
-        private string ExtractMushroomType(string codePath)
+        private string? ExtractMushroomType(string? codePath)
         {
             if (string.IsNullOrEmpty(codePath)) return null;
 
@@ -315,7 +315,7 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
             return match.Success ? match.Groups["mushroom"].Value : null;
         }
 
-        private string ExtractFernType(string codePath)
+        private string? ExtractFernType(string? codePath)
         {
             if (string.IsNullOrEmpty(codePath)) return null;
 
@@ -323,33 +323,33 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
             return match.Success ? match.Groups["fern"].Value : null;
         }
 
-        private string ExtractCrotonType(string codePath)
+        private string? ExtractCrotonType(string? codePath)
         {
             if (string.IsNullOrEmpty(codePath)) return null;
             var match = CrotonTypeRegex.Match(codePath);
             return match.Success ? match.Groups["croton"].Value : null;
         }
 
-        private string ExtractCactusFamily(string codePath)
+        private string? ExtractCactusFamily(string? codePath)
         {
             if (string.IsNullOrEmpty(codePath)) return null;
             var match = CactusFamilyRegex.Match(codePath);
             return match.Success ? match.Groups["family"].Value : null;
         }
 
-        private static bool IsCrotonCode(string codePath)
+        private static bool IsCrotonCode(string? codePath)
         {
             return !string.IsNullOrEmpty(codePath)
             && codePath.StartsWith("flower-croton-", StringComparison.Ordinal);
         }
 
-        private bool IsCactusCode(string codePath)
+        private bool IsCactusCode(string? codePath)
         {
             return !string.IsNullOrEmpty(codePath)
                 && codePath.IndexOf("cactus", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
-        private bool IsTallFernCode(string codePath)
+        private bool IsTallFernCode(string? codePath)
         {
             return !string.IsNullOrEmpty(codePath)
                 && codePath.StartsWith("tallfern", StringComparison.Ordinal);
@@ -370,7 +370,7 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
             result.PrimaryGroupCandidates.Insert(0, group);
         }
 
-        private bool IsLargePlantContainer(Block containerBlock)
+        private bool IsLargePlantContainer(Block? containerBlock)
         {
             if (containerBlock == null)
             {
@@ -397,7 +397,7 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
             return codePath.IndexOf("planter", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
-        public string GetCacheSignature(ICoreAPI api, CarriedBlock carried, string baseGroup, CarriedGroupResolution resolution)
+        public string? GetCacheSignature(ICoreAPI api, CarriedBlock carried, string baseGroup, CarriedGroupResolution? resolution)
         {
             var slots = TransformGroupResolverHelper.GetContainerSlots(carried);
             var plantStack = slots?.GetItemstack("0");

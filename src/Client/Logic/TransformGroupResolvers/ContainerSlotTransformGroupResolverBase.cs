@@ -14,7 +14,7 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
     {
         public virtual string ResolverCode => "container-slot";
 
-        public virtual bool TryResolve(ICoreAPI api, CarriedBlock carried, string baseGroup, out CarriedGroupResolution resolution)
+        public virtual bool TryResolve(ICoreAPI api, CarriedBlock carried, string baseGroup, out CarriedGroupResolution? resolution)
         {
             resolution = null;
 
@@ -41,7 +41,7 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
             return true;
         }
 
-        public virtual string GetCacheSignature(ICoreAPI api, CarriedBlock carried, string baseGroup, CarriedGroupResolution resolution)
+        public virtual string? GetCacheSignature(ICoreAPI api, CarriedBlock carried, string baseGroup, CarriedGroupResolution? resolution)
         {
             var slots = TransformGroupResolverHelper.GetContainerSlots(carried);
             if (slots == null || slots.Count == 0)

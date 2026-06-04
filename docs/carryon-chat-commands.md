@@ -10,19 +10,6 @@ Carry On exposes a client-side `.carryon` chat command tree for gameplay toggles
 
 ## Top-Level Commands
 
-### `.carryon carriedlight true|false`
-
-Enables or disables carried block lighting for all players.
-
-- `true` enables carried light.
-- `false` disables carried light and resets player light state on the client.
-
-Example:
-
-```text
-.carryon carriedlight false
-```
-
 ## GUI Debug Commands
 
 The `.carryon gui` branch manages the on-screen carry HUD anchors and visual styling.

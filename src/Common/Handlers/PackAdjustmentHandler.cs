@@ -56,17 +56,17 @@ namespace CarryOn.Common.Handlers
         private bool scaleAllAxesMode = false;
         private int transformIndex = 0;
 
-        private Block block = null;
+        private Block? block = null;
 
-        private string transformsGroup = null;
+        private string? transformsGroup = null;
         private CarrySlot carrySlot = CarrySlot.Back;
 
-        private TransformSettings[] transformSettings = null;
-        private ModelTransform selectedLabelTransform = null;
+        private TransformSettings[]? transformSettings = null;
+        private ModelTransform? selectedLabelTransform = null;
         private int selectedLabelTransformIndex = 0;
         private readonly List<string> availableChildGroups = new();
         private int childGroupIndex = -1;
-        private string selectedChildGroup = null;
+        private string? selectedChildGroup = null;
 
         public void InitClient()
         {
@@ -81,7 +81,7 @@ namespace CarryOn.Common.Handlers
                 .BeginSubCommand("setid")
                     .WithDescription("Set the id of the currently selected transform")
                     .WithArgs(api.ChatCommands.Parsers.Word("id"))
-                    .HandleWith(args => SetCurrentTransformId((string)args[0]))
+                    .HandleWith(args => SetCurrentTransformId((string)args[0]!))
                 .EndSubCommand();
         }
 
@@ -140,6 +140,9 @@ namespace CarryOn.Common.Handlers
             if (transformSettings == null || transformSettings.Length == 0)
                 return TextCommandResult.Error("No transform selected.");
 
+            if (this.transformsGroup == null)
+                return TextCommandResult.Error("No transform group selected.");
+
             transformSettings[transformIndex] = transformSettings[transformIndex] with { Id = newId };
 
             var behavior = GetCarryableBehavior(this.carrySlot);
@@ -186,8 +189,8 @@ namespace CarryOn.Common.Handlers
         private void ToggleTransformScope()
         {
             var includeLabelScope = false;
-            CarriedBlock carried;
-            BlockBehaviorCarryable carryBehavior;
+            CarriedBlock? carried;
+            BlockBehaviorCarryable? carryBehavior;
             var entityPlayer = api?.World?.Player?.Entity;
 
             if (TryGetCurrentCarried(out carried, out carryBehavior))
@@ -236,14 +239,14 @@ namespace CarryOn.Common.Handlers
             ShowOnScreen($"Transform Scope: {currentTransformScope} | {GetCurrentTransformInfo()}");
         }
 
-        private bool TryGetCurrentCarried(out CarriedBlock carried, out BlockBehaviorCarryable carryBehavior)
+        private bool TryGetCurrentCarried(out CarriedBlock? carried, out BlockBehaviorCarryable? carryBehavior)
         {
             carried = api?.World?.Player?.Entity?.GetCarried(this.carrySlot);
             carryBehavior = carried?.GetCarryableBehavior();
             return carried != null && carryBehavior != null;
         }
 
-        private bool HasCarriedLabel(CarriedBlock carried, BlockBehaviorCarryable carryBehavior)
+        private bool HasCarriedLabel(CarriedBlock? carried, BlockBehaviorCarryable? carryBehavior)
         {
             if (carried == null || carryBehavior?.LabelRenderSettings?.Transform == null)
             {
@@ -280,30 +283,23 @@ namespace CarryOn.Common.Handlers
             return labelStack?.Collectible != null;
         }
 
-        private void RefreshAvailableChildGroups(CarriedBlock carried, BlockBehaviorCarryable carryBehavior, string baseTransformsGroup)
+        private void RefreshAvailableChildGroups(CarriedBlock carried, BlockBehaviorCarryable? carryBehavior, string baseTransformsGroup)
         {
+            if (carryBehavior == null) return;
             availableChildGroups.Clear();
             selectedChildGroup = null;
             childGroupIndex = -1;
 
             var resolvedBaseGroup = baseTransformsGroup;
-            CarriedGroupResolution resolverResolution = null;
-            var requestedResolverCode = carryBehavior?.TransformGroupResolver;
+            CarriedGroupResolution? resolverResolution = null;
+            var requestedResolverCode = carryBehavior.TransformGroupResolver;
 
             if (!string.IsNullOrEmpty(requestedResolverCode)
-                && carrySystem?.CarryManager?.TryGetTransformGroupResolver(requestedResolverCode, out var resolver) == true)
+                && carrySystem?.CarryManager?.TryGetTransformGroupResolver(requestedResolverCode, out var resolver) == true && resolver != null)
             {
                 if (resolver.TryResolve(this.api, carried, resolvedBaseGroup, out var resolution) && resolution != null)
                 {
                     resolverResolution = resolution;
-                    if (resolution.PrimaryGroupCandidates != null && resolution.PrimaryGroupCandidates.Count > 0)
-                    {
-                        resolvedBaseGroup = resolution.PrimaryGroupCandidates[0];
-                    }
-                    else if (!string.IsNullOrEmpty(resolution.PrimaryGroup))
-                    {
-                        resolvedBaseGroup = resolution.PrimaryGroup;
-                    }
                 }
             }
 
@@ -384,7 +380,7 @@ namespace CarryOn.Common.Handlers
             return $"{id}, {asset}";
         }
 
-        private AttachmentPoint GetFrontCarryAttachPoint()
+        private AttachmentPoint? GetFrontCarryAttachPoint()
         {
             var apPose = api?.World?.Player?.Entity?.AnimManager?.Animator?.GetAttachmentPointPose("carryon:FrontCarry");
             return apPose?.AttachPoint;
@@ -405,7 +401,7 @@ namespace CarryOn.Common.Handlers
             if (carried?.Block != this.block)
             {
                 ShowOnScreen("Carried Block changed");
-                this.block = carried.Block;
+                this.block = carried!.Block;
 
                 hasChanged = true;
                 availableChildGroups.Clear();
@@ -414,7 +410,7 @@ namespace CarryOn.Common.Handlers
             }
 
             var baseTransformsGroup = entityPlayer?.ResolveCarryTransformGroupBase(carrySystem, carrySlot);
-            var carryBehavior = carried.GetCarryableBehavior();
+            var carryBehavior = carried!.GetCarryableBehavior();
             if (carryBehavior == null)
             {
                 ShowOnScreen("No carryable behavior found");
@@ -464,14 +460,14 @@ namespace CarryOn.Common.Handlers
                 }
             }
 
-            string transformsGroup = ResolveTransformsGroup(carried, carryBehavior, baseTransformsGroup);
+            string transformsGroup = ResolveTransformsGroup(carried!, carryBehavior, baseTransformsGroup!);
 
-            if (!carryBehavior.TransformGroupExists(carried, transformsGroup))
+            if (!carryBehavior.TransformGroupExists(carried!, transformsGroup))
             {
-                transformsGroup = baseTransformsGroup;
+                transformsGroup = baseTransformsGroup!;
             }
 
-            if (!carryBehavior.TransformGroupExists(carried, transformsGroup))
+            if (!carryBehavior.TransformGroupExists(carried!, transformsGroup))
             {
                 transformsGroup = "default";
             }
@@ -486,7 +482,7 @@ namespace CarryOn.Common.Handlers
             if (hasChanged)
             {
 
-                var carriedSlot = carryBehavior.Slots[carried.Slot];
+                var carriedSlot = carryBehavior.Slots[carried!.Slot];
                 if (carriedSlot == null)
                 {
                     ShowOnScreen("Invalid carry slot");
@@ -503,15 +499,16 @@ namespace CarryOn.Common.Handlers
             }
         }
 
-        private string ResolveTransformsGroup(CarriedBlock carried, BlockBehaviorCarryable carryBehavior, string baseTransformsGroup)
+        private string ResolveTransformsGroup(CarriedBlock carried, BlockBehaviorCarryable? carryBehavior, string baseTransformsGroup)
         {
+            if (carryBehavior == null) return baseTransformsGroup;
             var resolvedBaseGroup = baseTransformsGroup;
-            CarriedGroupResolution resolverResolution = null;
+            CarriedGroupResolution? resolverResolution = null;
             var primaryGroupCandidates = new List<string> { baseTransformsGroup };
-            var requestedResolverCode = carryBehavior?.TransformGroupResolver;
+            var requestedResolverCode = carryBehavior.TransformGroupResolver;
 
             if (!string.IsNullOrEmpty(requestedResolverCode)
-                && carrySystem?.CarryManager?.TryGetTransformGroupResolver(requestedResolverCode, out var resolver) == true)
+                && carrySystem?.CarryManager?.TryGetTransformGroupResolver(requestedResolverCode, out var resolver) == true && resolver != null)
             {
                 if (resolver.TryResolve(this.api, carried, resolvedBaseGroup, out var resolution) && resolution != null)
                 {
@@ -708,171 +705,31 @@ namespace CarryOn.Common.Handlers
             var setting = transformSettings?[transformIndex];
             if (!isLabelScope && setting == null) return;
 
-            var transform = isLabelScope ? selectedLabelTransform : setting.Transform;
+            var transform = isLabelScope ? selectedLabelTransform : setting!.Transform;
             if (transform == null)
             {
-                // Label scope has no fallback source; keep current behavior.
                 if (isLabelScope) return;
 
-                // If a transform entry omitted translation/rotation/scale/origin in JSON,
-                // it can flatten to null. Seed from defaults so adjustment can edit it.
                 var currentBehavior = api?.World?.Player?.Entity?.GetCarried(this.carrySlot)?.GetCarryableBehavior();
                 var defaultTransform = currentBehavior?.DefaultTransform ?? DefaultBlockTransform;
 
                 transform = defaultTransform.Clone();
-                transformSettings[transformIndex] = transformSettings[transformIndex] with
+                transformSettings![transformIndex] = transformSettings![transformIndex] with
                 {
                     Transform = transform
                 };
             }
 
-            float amount;
-            var result = 0f;
+            float amount = CalculateAdjustmentAmount();
 
-            var shiftDown = api.Input.KeyboardKeyState[(int)GlKeys.ShiftLeft];
-            var ctrlDown = api.Input.KeyboardKeyState[(int)GlKeys.ControlLeft];
-
-            if (currentMode == AdjustmentMode.Rotation)
+            float result = currentMode switch
             {
-                if (shiftDown && ctrlDown) amount = 0.01F;
-                else if (shiftDown) amount = 0.1F;
-                else if (ctrlDown) amount = 1F;
-                else amount = 10F;
-            }
-            else
-            {
-                if (shiftDown && ctrlDown) amount = 0.0001F;
-                else if (shiftDown) amount = 0.001F;
-                else if (ctrlDown) amount = 0.01F;
-                else amount = 0.1F;
-            }
-
-            switch (currentMode)
-            {
-                case AdjustmentMode.Translation:
-                    switch (axis)
-                    {
-                        case 'X':
-                            result = float.Round(transform.Translation.X + direction * amount, 4);
-                            transform.Translation.X = result;
-                            break;
-                        case 'Y':
-                            result = float.Round(transform.Translation.Y + direction * amount, 4);
-                            transform.Translation.Y = result;
-                            break;
-                        case 'Z':
-                            result = float.Round(transform.Translation.Z + direction * amount, 4);
-                            transform.Translation.Z = result;
-                            break;
-                    }
-                    break;
-
-                case AdjustmentMode.Scale:
-                    if (scaleAllAxesMode)
-                    {
-                        var scaleX = transform.ScaleXYZ.X;
-                        var scaleY = transform.ScaleXYZ.Y;
-                        var scaleZ = transform.ScaleXYZ.Z;
-
-                        var referenceScale = axis switch
-                        {
-                            'X' => scaleX,
-                            'Y' => scaleY,
-                            'Z' => scaleZ,
-                            _ => scaleX
-                        };
-
-                        if (Math.Abs(referenceScale) < 0.0001f)
-                        {
-                            // Degenerate ratio case: fallback to equal additive scaling
-                            scaleX = float.Round(scaleX + direction * amount, 4);
-                            scaleY = float.Round(scaleY + direction * amount, 4);
-                            scaleZ = float.Round(scaleZ + direction * amount, 4);
-
-                            transform.ScaleXYZ = new Vec3f(scaleX, scaleY, scaleZ);
-
-                            result = axis switch
-                            {
-                                'X' => scaleX,
-                                'Y' => scaleY,
-                                'Z' => scaleZ,
-                                _ => scaleX
-                            };
-                            break;
-                        }
-
-                        var newReferenceScale = float.Round(referenceScale + direction * amount, 4);
-                        var scaleFactor = newReferenceScale / referenceScale;
-
-                        scaleX = float.Round(scaleX * scaleFactor, 4);
-                        scaleY = float.Round(scaleY * scaleFactor, 4);
-                        scaleZ = float.Round(scaleZ * scaleFactor, 4);
-
-                        transform.ScaleXYZ = new Vec3f(scaleX, scaleY, scaleZ);
-
-                        result = axis switch
-                        {
-                            'X' => scaleX,
-                            'Y' => scaleY,
-                            'Z' => scaleZ,
-                            _ => scaleX
-                        };
-                        break;
-                    }
-
-                    switch (axis)
-                    {
-                        case 'X':
-                            result = float.Round(transform.ScaleXYZ.X + direction * amount, 4);
-                            transform.ScaleXYZ.X = result;
-                            break;
-                        case 'Y':
-                            result = float.Round(transform.ScaleXYZ.Y + direction * amount, 4);
-                            transform.ScaleXYZ.Y = result;
-                            break;
-                        case 'Z':
-                            result = float.Round(transform.ScaleXYZ.Z + direction * amount, 4);
-                            transform.ScaleXYZ.Z = result;
-                            break;
-                    }
-                    break;
-
-                case AdjustmentMode.Rotation:
-                    switch (axis)
-                    {
-                        case 'X':
-                            result = float.Round(transform.Rotation.X + direction * amount, 1);
-                            transform.Rotation.X = result;
-                            break;
-                        case 'Y':
-                            result = float.Round(transform.Rotation.Y + direction * amount, 1);
-                            transform.Rotation.Y = result;
-                            break;
-                        case 'Z':
-                            result = float.Round(transform.Rotation.Z + direction * amount, 1);
-                            transform.Rotation.Z = result;
-                            break;
-                    }
-                    break;
-
-                case AdjustmentMode.Origin:
-                    switch (axis)
-                    {
-                        case 'X':
-                            result = float.Round(transform.Origin.X + direction * amount, 4);
-                            transform.Origin.X = result;
-                            break;
-                        case 'Y':
-                            result = float.Round(transform.Origin.Y + direction * amount, 4);
-                            transform.Origin.Y = result;
-                            break;
-                        case 'Z':
-                            result = float.Round(transform.Origin.Z + direction * amount, 4);
-                            transform.Origin.Z = result;
-                            break;
-                    }
-                    break;
-            }
+                AdjustmentMode.Translation => AdjustTranslation(transform, axis, amount, direction),
+                AdjustmentMode.Scale => AdjustScale(transform, axis, amount, direction),
+                AdjustmentMode.Rotation => AdjustRotation(transform, axis, amount, direction),
+                AdjustmentMode.Origin => AdjustOrigin(transform, axis, amount, direction),
+                _ => 0f
+            };
 
             if (isLabelScope)
             {
@@ -889,7 +746,7 @@ namespace CarryOn.Common.Handlers
                 }
                 else
                 {
-                    behavior.ResolvedTransformGroups[this.transformsGroup] = transformSettings;
+                    behavior.ResolvedTransformGroups[this.transformsGroup!] = transformSettings!;
                 }
 
                 InvalidateCarryRendererCaches();
@@ -897,9 +754,120 @@ namespace CarryOn.Common.Handlers
             ShowOnScreen($"Adjust {axis} {result} ({currentMode})");
         }
 
+        private float CalculateAdjustmentAmount()
+        {
+            var shiftDown = api!.Input.KeyboardKeyState[(int)GlKeys.ShiftLeft];
+            var ctrlDown = api!.Input.KeyboardKeyState[(int)GlKeys.ControlLeft];
+
+            if (currentMode == AdjustmentMode.Rotation)
+            {
+                if (shiftDown && ctrlDown) return 0.01f;
+                if (shiftDown) return 0.1f;
+                if (ctrlDown) return 1f;
+                return 10f;
+            }
+
+            if (shiftDown && ctrlDown) return 0.0001f;
+            if (shiftDown) return 0.001f;
+            if (ctrlDown) return 0.01f;
+            return 0.1f;
+        }
+
+        private static float AdjustTranslation(ModelTransform transform, char axis, float amount, int direction)
+        {
+            return axis switch
+            {
+                'X' => transform.Translation.X = float.Round(transform.Translation.X + direction * amount, 4),
+                'Y' => transform.Translation.Y = float.Round(transform.Translation.Y + direction * amount, 4),
+                'Z' => transform.Translation.Z = float.Round(transform.Translation.Z + direction * amount, 4),
+                _ => 0f
+            };
+        }
+
+        private float AdjustScale(ModelTransform transform, char axis, float amount, int direction)
+        {
+            if (scaleAllAxesMode)
+            {
+                var scaleX = transform.ScaleXYZ.X;
+                var scaleY = transform.ScaleXYZ.Y;
+                var scaleZ = transform.ScaleXYZ.Z;
+
+                var referenceScale = axis switch
+                {
+                    'X' => scaleX,
+                    'Y' => scaleY,
+                    'Z' => scaleZ,
+                    _ => scaleX
+                };
+
+                if (Math.Abs(referenceScale) < 0.0001f)
+                {
+                    scaleX = float.Round(scaleX + direction * amount, 4);
+                    scaleY = float.Round(scaleY + direction * amount, 4);
+                    scaleZ = float.Round(scaleZ + direction * amount, 4);
+
+                    transform.ScaleXYZ = new Vec3f(scaleX, scaleY, scaleZ);
+
+                    return axis switch
+                    {
+                        'X' => scaleX,
+                        'Y' => scaleY,
+                        'Z' => scaleZ,
+                        _ => scaleX
+                    };
+                }
+
+                var newReferenceScale = float.Round(referenceScale + direction * amount, 4);
+                var scaleFactor = newReferenceScale / referenceScale;
+
+                scaleX = float.Round(scaleX * scaleFactor, 4);
+                scaleY = float.Round(scaleY * scaleFactor, 4);
+                scaleZ = float.Round(scaleZ * scaleFactor, 4);
+
+                transform.ScaleXYZ = new Vec3f(scaleX, scaleY, scaleZ);
+
+                return axis switch
+                {
+                    'X' => scaleX,
+                    'Y' => scaleY,
+                    'Z' => scaleZ,
+                    _ => scaleX
+                };
+            }
+
+            return axis switch
+            {
+                'X' => transform.ScaleXYZ.X = float.Round(transform.ScaleXYZ.X + direction * amount, 4),
+                'Y' => transform.ScaleXYZ.Y = float.Round(transform.ScaleXYZ.Y + direction * amount, 4),
+                'Z' => transform.ScaleXYZ.Z = float.Round(transform.ScaleXYZ.Z + direction * amount, 4),
+                _ => 0f
+            };
+        }
+
+        private static float AdjustRotation(ModelTransform transform, char axis, float amount, int direction)
+        {
+            return axis switch
+            {
+                'X' => transform.Rotation.X = float.Round(transform.Rotation.X + direction * amount, 1),
+                'Y' => transform.Rotation.Y = float.Round(transform.Rotation.Y + direction * amount, 1),
+                'Z' => transform.Rotation.Z = float.Round(transform.Rotation.Z + direction * amount, 1),
+                _ => 0f
+            };
+        }
+
+        private static float AdjustOrigin(ModelTransform transform, char axis, float amount, int direction)
+        {
+            return axis switch
+            {
+                'X' => transform.Origin.X = float.Round(transform.Origin.X + direction * amount, 4),
+                'Y' => transform.Origin.Y = float.Round(transform.Origin.Y + direction * amount, 4),
+                'Z' => transform.Origin.Z = float.Round(transform.Origin.Z + direction * amount, 4),
+                _ => 0f
+            };
+        }
+
         private void AdjustAmount(int direction)
         {
-            // TODO: Implement amount adjustment logic
             ShowOnScreen($"Amount {(direction > 0 ? "+" : "-")}");
         }
 
@@ -943,11 +911,11 @@ namespace CarryOn.Common.Handlers
                 return;
             }
 
-            this.transformIndex = Math.Clamp(index, 0, this.transformSettings.Length - 1);
+            this.transformIndex = Math.Clamp(index, 0, this.transformSettings!.Length - 1);
             ShowOnScreen($"Transform: {this.transformIndex + 1}/{this.transformSettings.Length} | {GetCurrentTransformInfo()}");
         }
 
-        private static int GetLabelTransformCount(LabelRenderSettings settings)
+        private static int GetLabelTransformCount(LabelRenderSettings? settings)
         {
             if (settings?.Transform == null)
             {
@@ -957,7 +925,7 @@ namespace CarryOn.Common.Handlers
             return 1 + (settings.AdditionalTransforms?.Count ?? 0);
         }
 
-        private static ModelTransform GetLabelTransformAt(LabelRenderSettings settings, int index)
+        private static ModelTransform? GetLabelTransformAt(LabelRenderSettings? settings, int index)
         {
             if (settings == null || index < 0)
             {
@@ -979,7 +947,7 @@ namespace CarryOn.Common.Handlers
             return additional[additionalIndex];
         }
 
-        private static void SetLabelTransformAt(LabelRenderSettings settings, int index, ModelTransform transform)
+        private static void SetLabelTransformAt(LabelRenderSettings? settings, int index, ModelTransform? transform)
         {
             if (settings == null || index < 0)
             {
@@ -1100,7 +1068,7 @@ namespace CarryOn.Common.Handlers
                 });
 
                 var localPathLabel = Path.Combine("ModData", CarryCode.ModId, "pack-adjustment");
-                var modDataDirLabel = api.GetOrCreateDataPath(localPathLabel);
+                var modDataDirLabel = api!.GetOrCreateDataPath(localPathLabel);
                 string timestampLabel = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
                 var blockCodeLabel = this.block?.Code?.ToShortString() ?? "unknown";
                 string filenameLabel = $"{timestampLabel}-{blockCodeLabel}-labelTransform.json".Replace(':', '+');
@@ -1179,7 +1147,7 @@ namespace CarryOn.Common.Handlers
 
             var output = new Dictionary<string, object>
             {
-                [this.transformsGroup] = list
+                [this.transformsGroup!] = list
             };
 
             string json = JsonConvert.SerializeObject(output, Formatting.Indented);
@@ -1199,14 +1167,14 @@ namespace CarryOn.Common.Handlers
             // Timestamp string
             string timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
 
-            string filename = $"{timestamp}-{this.block.Code.ToShortString()}-{this.transformsGroup}.json".Replace(':', '+');
+            string filename = $"{timestamp}-{this.block?.Code?.ToShortString() ?? "unknown"}-{this.transformsGroup ?? "unknown"}.json".Replace(':', '+');
             string filePath = Path.Combine(modDataDir, filename);
             File.WriteAllText(filePath, json);
             ShowOnScreen($"Transform settings logged to {filename} : {list.Count} entries");
 
         }
 
-        private BlockBehaviorCarryable GetCarryableBehavior(CarrySlot carrySlot)
+        private BlockBehaviorCarryable? GetCarryableBehavior(CarrySlot carrySlot)
         {
             var carried = api?.World?.Player?.Entity?.GetCarried(carrySlot);
             if (carried == null)
@@ -1225,7 +1193,7 @@ namespace CarryOn.Common.Handlers
             return carryBehavior;
         }
 
-        private SlotSettings GetCarriedSlotSettings(CarrySlot carrySlot)
+        private SlotSettings? GetCarriedSlotSettings(CarrySlot carrySlot)
         {
             var carried = api?.World?.Player?.Entity?.GetCarried(carrySlot);
             if (carried == null)
@@ -1234,7 +1202,7 @@ namespace CarryOn.Common.Handlers
                 return null;
             }
 
-            var carryBehavior = carried.GetCarryableBehavior();
+            var carryBehavior = carried.GetCarryableBehavior()!;
 
             var slotSettings = carryBehavior.Slots[carried.Slot];
             return slotSettings;
@@ -1302,7 +1270,7 @@ namespace CarryOn.Common.Handlers
             Array.Resize(ref this.transformSettings, this.transformSettings.Length + 1);
             this.transformSettings[this.transformSettings.Length - 1] = transformSetting;
 
-            var behavior = GetCarryableBehavior(this.carrySlot);
+            var behavior = GetCarryableBehavior(this.carrySlot)!;
 
             var carriedSlot = GetCarriedSlotSettings(this.carrySlot);
             if (carriedSlot == null)
@@ -1311,7 +1279,7 @@ namespace CarryOn.Common.Handlers
                 return;
             }
 
-            behavior.ResolvedTransformGroups[this.transformsGroup] = transformSettings;
+            behavior.ResolvedTransformGroups[this.transformsGroup!] = this.transformSettings;
             InvalidateCarryRendererCaches();
             ShowOnScreen($"Transform added as index {this.transformSettings.Length}");
         }
@@ -1337,23 +1305,41 @@ namespace CarryOn.Common.Handlers
                 return;
             }
             // Remove current transform index from transformSettings (except for the first one)
-            if (transformSettings != null && transformIndex > 0 && transformIndex < transformSettings.Length)
+            if (this.transformSettings != null && transformIndex > 0 && transformIndex < this.transformSettings.Length)
             {
-                var newSettings = new TransformSettings[transformSettings.Length - 1];
+                var newSettings = new TransformSettings[this.transformSettings.Length - 1];
                 int newIndex = 0;
-                for (int i = 0; i < transformSettings.Length; i++)
+                for (int i = 0; i < this.transformSettings.Length; i++)
                 {
                     if (i != transformIndex)
                     {
-                        newSettings[newIndex++] = transformSettings[i];
+                        newSettings[newIndex++] = this.transformSettings[i];
                     }
                 }
-                transformSettings = newSettings;
+                this.transformSettings = newSettings;
             }            // Set the value to ensure it is clamped to the array size
+            if (this.transformSettings == null || this.transformSettings.Length == 0)
+            {
+                ShowOnScreen("No transform settings available");
+                return;
+            }
+
+            if (string.IsNullOrEmpty(this.transformsGroup))
+            {
+                ShowOnScreen("No transform group selected");
+                return;
+            }
+
             SetTransformIndex(this.transformIndex);
 
             var behavior = GetCarryableBehavior(this.carrySlot);
-            behavior.ResolvedTransformGroups[this.transformsGroup] = transformSettings;
+            if (behavior == null)
+            {
+                ShowOnScreen("No carryable behavior found");
+                return;
+            }
+
+            behavior.ResolvedTransformGroups[this.transformsGroup] = this.transformSettings;
             InvalidateCarryRendererCaches();
 
             ShowOnScreen("Transform removed");

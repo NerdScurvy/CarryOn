@@ -9,22 +9,26 @@ namespace CarryOn.Server.Logic
 {
     public class ModConfig
     {
-        public CarryOnConfig ServerConfig { get; private set; }
-        public IWorldAccessor World { get; private set; }
+        public CarryOnConfig? ServerConfig { get; private set; }
+        public IWorldAccessor? World { get; private set; }
 
         public void Load(ICoreAPI api)
         {
-            World = api.World;
-            if (api.Side != EnumAppSide.Server)
+            var coreApi = api ?? throw new ArgumentNullException(nameof(api));
+
+            World = coreApi.World;
+            if (coreApi.Side != EnumAppSide.Server)
             {
                 return;
             }
             else
             {
                 const int currentVersion = 3;
+                var logger = coreApi.Logger;
+
                 try
                 {
-                    var loadedConfig = api.LoadModConfig<CarryOnConfig>(ConfigFile);
+                    var loadedConfig = coreApi.LoadModConfig<CarryOnConfig>(ConfigFile);
                     if (loadedConfig != null)
                     {
                         loadedConfig.UpgradeVersion();
@@ -35,7 +39,7 @@ namespace CarryOn.Server.Logic
                     }
 
                     // Save the upgraded or default config back to the file
-                    api.StoreModConfig(loadedConfig, ConfigFile);
+                    coreApi.StoreModConfig(loadedConfig, ConfigFile);
 
                     ServerConfig = loadedConfig;
 
@@ -43,21 +47,21 @@ namespace CarryOn.Server.Logic
                 catch (Exception ex)
                 {
                     // Log the exception and create a default config but not save it
-                    api.Logger.Error("CarryOn: Exception loading config: " + ex);
+                    logger?.Error("CarryOn: Exception loading config: " + ex);
                     ServerConfig = new CarryOnConfig(currentVersion);
                 }
 
-                var worldConfig = api?.World?.Config;
+                var worldConfig = coreApi.World?.Config;
 
                 if (worldConfig == null)
                 {
-                    api.Logger.Error("CarryOn: Unable to access world config. CarryOn features may not work correctly.");
+                    logger?.Error("CarryOn: Unable to access world config. CarryOn features may not work correctly.");
                     return;
                 }
 
                 if (ServerConfig == null)
                 {
-                    api.Logger.Error("CarryOn: ServerConfig did not load correctly. CarryOn features may not work correctly.");
+                    logger?.Error("CarryOn: ServerConfig did not load correctly. CarryOn features may not work correctly.");
                     return;
                 }
 
@@ -74,15 +78,16 @@ namespace CarryOn.Server.Logic
                     }
                     foreach (var key in keysToRemove)
                     {
-                        worldConfig.RemoveAttribute(key);
+                        tree.RemoveAttribute(key);
                     }
 
                     // Save the value to the world config so it is available for both server and client
-                    worldConfig.GetOrAddTreeAttribute(ModId).MergeTree(ServerConfig.ToTreeAttribute());
+                    tree.GetOrAddTreeAttribute(ModId).MergeTree(ServerConfig.ToTreeAttribute());
                 }
                 else
                 {
-                    api.Logger.Warning("CarryOn: World.Config is not a TreeAttribute; skipping legacy key cleanup.");
+                    
+                    logger?.Warning("CarryOn: World.Config is not a TreeAttribute; skipping legacy key cleanup.");
                 }
             }
 

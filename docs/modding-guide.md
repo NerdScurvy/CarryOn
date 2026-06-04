@@ -158,7 +158,6 @@ Slot keys recognized in `slots`:
 
 - `Hands`
 - `Back`
-- `Shoulder` (Not implemented)
 
 Per-slot properties:
 
@@ -168,8 +167,39 @@ Per-slot properties:
 | `animationSit` | Animation code played while sitting and carrying. |
 | `animationCrouch` | Animation code played while crouching and carrying. |
 | `walkSpeedModifier` | Walk speed penalty applied in this slot. Negative values slow the player. |
+| `walkSpeedModifierByBlockType` | Optional map of `type` value to walk speed modifier for this slot. Supports exact keys and trailing `*` prefix wildcards (for example `owl*`). |
+| `walkSpeedModifierByGroup` | Optional map of carryable `groups` name to walk speed modifier for this slot. |
 | `enabledCondition` | Condition evaluated specifically for this slot. If false, this slot is unavailable. |
 | `excludedTypes` | Block type wildcards excluded from using this slot. |
+
+If both maps are present, slot speed resolution is:
+
+1. `walkSpeedModifierByBlockType` (most specific)
+2. `walkSpeedModifierByGroup`
+3. `walkSpeedModifier`
+
+Example for chest compact variants:
+
+```json
+"groups": {
+  "normal": ["normal-generic", "normal-aged"],
+  "compact": ["golden", "owl", "golden-aged", "owl-aged"]
+},
+"slots": {
+  "Back": {
+    "walkSpeedModifier": -0.15,
+    "walkSpeedModifierByGroup": {
+      "normal": -0.15,
+      "compact": -0.10
+    },
+    "walkSpeedModifierByBlockType": {
+      "owl*": -0.08
+    }
+  }
+}
+```
+
+These per-slot type and group values can be overridden from the world config using the `|type` pipe syntax in `ByBlockCode` (see `carryon-config.md`). For example, `"game:chest*|owl*": { "Back": -0.05 }` overrides the owl-type Back speed regardless of what the patch defines.
 
 **Slot defaults** when properties are not specified:
 
@@ -177,7 +207,6 @@ Per-slot properties:
 |---|---|---|
 | `Hands` | `-0.25` | `carryon:holdheavy` |
 | `Back` | `-0.15` | _(none)_ |
-| `Shoulder` | `-0.15` | `carryon:shoulder` |
 
 ### Multiple Patches and Priority
 

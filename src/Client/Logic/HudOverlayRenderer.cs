@@ -14,9 +14,9 @@ namespace CarryOn.Client.Logic
         private const float OuterRadius = 24;
         private const float InnerRadius = 18;
 
-        private MeshRef circleMesh = null;
+        private MeshRef? circleMesh = null;
 
-        private ICoreClientAPI api;
+        private readonly ICoreClientAPI api;
 
         private float circleAlpha = 0.0F;
         private float circleProgress = 0.0F;

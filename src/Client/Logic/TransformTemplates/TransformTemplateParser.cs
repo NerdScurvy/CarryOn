@@ -32,15 +32,14 @@ namespace CarryOn.Client.Logic.TransformTemplates
         /// <param name="settingsJson"> The JSON object containing the transform group settings. </param>
         /// <param name="transformGroups"> The dictionary to populate with parsed transform groups. </param>
         /// <returns> True if parsing was successful, false otherwise. </returns>
-        public bool TryParseTransformGroups(JsonObject settingsJson, out Dictionary<string, TransformGroup> transformGroups)
+        public bool TryParseTransformGroups(JsonObject settingsJson, out Dictionary<string, TransformGroup?>? transformGroups)
         {
             transformGroups = null;
 
             if (settingsJson == null || !settingsJson.Exists) return false;
-            if (!settingsJson.KeyExists("transformGroups")) return false;
-            if (settingsJson["transformGroups"]?.Token is not JObject groupsJObj) return false;
+            if (!JsonHelper.TryGetObject(settingsJson, "transformGroups", out var groupsJObj) || groupsJObj == null) return false;
 
-            var parsed = new Dictionary<string, TransformGroup>(StringComparer.OrdinalIgnoreCase);
+            var parsed = new Dictionary<string, TransformGroup?>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var prop in groupsJObj.Properties())
             {
@@ -83,7 +82,7 @@ namespace CarryOn.Client.Logic.TransformTemplates
             return true;
         }
 
-        public TransformGroup ParseTransformGroup(JsonObject groupJson, string groupName = null)
+        public TransformGroup ParseTransformGroup(JsonObject groupJson, string? groupName = null)
         {
             if (groupJson == null || !groupJson.Exists)
             {
@@ -96,7 +95,7 @@ namespace CarryOn.Client.Logic.TransformTemplates
                 );
             }
 
-            string extendsGroup = null;
+            string? extendsGroup = null;
             if (JsonHelper.TryGetString(groupJson, "extends", out var ext)) extendsGroup = ext;
 
             var baseList = new List<TransformGroupSettings>();
@@ -122,15 +121,15 @@ namespace CarryOn.Client.Logic.TransformTemplates
         /// </summary>
         /// <param name="settingsJson"> The JSON object containing the transform group settings. </param>
         /// <returns> A TransformGroupSettings instance populated with the parsed values, or null if the JSON is invalid. </returns>
-        public TransformGroupSettings ParseTransformGroupSettings(JsonObject settingsJson)
+        public TransformGroupSettings? ParseTransformGroupSettings(JsonObject settingsJson)
         {
             if (settingsJson == null || !settingsJson.Exists) return null;
 
-            string id = null;
+            string? id = null;
             EnumAssetType assetType = EnumAssetType.None;
-            string assetName = null;
-            string disableIfItemStackPath = null;
-            string beDataItemStackPath = null;
+            string? assetName = null;
+            string? disableIfItemStackPath = null;
+            string? beDataItemStackPath = null;
             float? translationX = null, translationY = null, translationZ = null;
             float? rotationX = null, rotationY = null, rotationZ = null;
             float? scaleX = null, scaleY = null, scaleZ = null;
@@ -138,9 +137,9 @@ namespace CarryOn.Client.Logic.TransformTemplates
             bool? cullFaces = null;
             float? alphaTestOpaque = null, alphaTestBlend = null;
             bool? normalShaded = null;
-            string renderPass = null;
-            Vec4f tintColor = null;
-            string climateTintMap = null, seasonalTintMap = null;
+            string? renderPass = null;
+            Vec4f? tintColor = null;
+            string? climateTintMap = null, seasonalTintMap = null;
             float? glowIntensity = null;
             bool enabled = true;
 
@@ -167,25 +166,25 @@ namespace CarryOn.Client.Logic.TransformTemplates
                 beDataItemStackPath = bePath;
             }
 
-            if (JsonHelper.TryGetVec3f(settingsJson, "translation", out var translation))
+            if (JsonHelper.TryGetVec3f(settingsJson, "translation", out var translation) && translation != null)
             {
                 translationX = translation.X;
                 translationY = translation.Y;
                 translationZ = translation.Z;
             }
-            if (JsonHelper.TryGetVec3f(settingsJson, "rotation", out var rotation))
+            if (JsonHelper.TryGetVec3f(settingsJson, "rotation", out var rotation) && rotation != null)
             {
                 rotationX = rotation.X;
                 rotationY = rotation.Y;
                 rotationZ = rotation.Z;
             }
-            if (JsonHelper.TryGetVec3f(settingsJson, "origin", out var origin))
+            if (JsonHelper.TryGetVec3f(settingsJson, "origin", out var origin) && origin != null)
             {
                 originX = origin.X;
                 originY = origin.Y;
                 originZ = origin.Z;
             }
-            if (JsonHelper.TryGetVec3f(settingsJson, "scale", out var scaleVec))
+            if (JsonHelper.TryGetVec3f(settingsJson, "scale", out var scaleVec) && scaleVec != null)
             {
                 scaleX = scaleVec.X;
                 scaleY = scaleVec.Y;
@@ -265,16 +264,16 @@ namespace CarryOn.Client.Logic.TransformTemplates
                  JsonObject parent,
                  string key,
                  Action<TransformGroupSettings> add,
-                 string groupName)
+                 string? groupName)
         {
             var token = parent[key]?.Token;
 
-            if (token == null || token.Type == JTokenType.Null || token.Type == JTokenType.Undefined)
+            if (token == null || JsonHelper.IsNullOrUndefined(token))
             {
                 return;
             }
 
-            if (token is not JArray arr)
+            if (!JsonHelper.TryGetArray(parent, key, out var arr) || arr == null)
             {
                 capi.Logger.Error(
                     $"CarryOn: transform group '{groupName ?? "<unknown>"}' has invalid '{key}'. " +

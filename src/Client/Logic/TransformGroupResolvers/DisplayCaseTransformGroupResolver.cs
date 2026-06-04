@@ -14,7 +14,7 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
 
         public override bool TryResolve(ICoreAPI api, CarriedBlock carried, string baseGroup, out CarriedGroupResolution resolution)
         {
-            resolution = null;
+            resolution = new CarriedGroupResolution();
 
             if (api?.World == null || carried?.Block == null || string.IsNullOrEmpty(baseGroup)) return false;
 
@@ -83,7 +83,7 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
             return path.Contains("crystal", StringComparison.OrdinalIgnoreCase);
         }
 
-        public override string GetCacheSignature(ICoreAPI api, CarriedBlock carried, string baseGroup, CarriedGroupResolution resolution)
+        public override string? GetCacheSignature(ICoreAPI api, CarriedBlock carried, string baseGroup, CarriedGroupResolution? resolution)
         {
             var haveCenterPlacement = carried?.BlockEntityData?.GetBool("haveCenterPlacement", false) == true ? "1" : "0";
             var containerSlots = TransformGroupResolverHelper.GetContainerSlots(carried);

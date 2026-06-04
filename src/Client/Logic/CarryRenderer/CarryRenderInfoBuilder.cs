@@ -20,11 +20,19 @@ namespace CarryOn.Client.Logic.CarryRenderer
             this.api = api;
         }
 
-        internal CarriedRenderInfo[] BuildFromPlan(CarriedBlock carried, CachedTransformPlan plan, TreeAttribute containerSlots = null)
+        internal CarriedRenderInfo[] BuildFromPlan(CarriedBlock carried, CachedTransformPlan? plan, TreeAttribute? containerSlots = null)
         {
-            var slot = new DummySlot(carried.ItemStack);
+            var world = this.api.World;
+            if (carried == null || world == null)
+            {
+                return Array.Empty<CarriedRenderInfo>();
+            }
+
+            var carriedBlock = carried;
+
+            var slot = new DummySlot(carriedBlock.ItemStack);
             var baseRenderInfo = this.api.Render.GetItemStackRenderInfo(slot, EnumItemRenderTarget.Ground, 0);
-            var carryBehavior = carried.GetCarryableBehavior();
+            var carryBehavior = carriedBlock.GetCarryableBehavior();
 
             if (carryBehavior == null || plan == null || plan.EffectiveSettings == null || plan.EffectiveSettings.Length == 0)
             {
@@ -38,10 +46,12 @@ namespace CarryOn.Client.Logic.CarryRenderer
 
             foreach (var effective in plan.EffectiveSettings)
             {
-                var setting = effective?.Setting;
+                if (effective == null) continue;
+
+                var setting = effective.Setting;
                 if (setting == null) continue;
 
-                Vec4f customTint = null;
+                Vec4f? customTint = null;
                 if (!string.IsNullOrEmpty(setting.ClimateTintMap) || !string.IsNullOrEmpty(setting.SeasonalTintMap))
                 {
                     if (playerPos != null)
@@ -57,7 +67,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
                 ItemRenderInfo targetRenderInfo;
 
                 // Resolve source stack directly via resolver-provided slot key
-                ItemStack slotItemStack = null;
+                ItemStack? slotItemStack = null;
                 if (containerSlots != null && !string.IsNullOrEmpty(effective.SourceSlotKey))
                 {
                     slotItemStack = CarryRenderHelpers.TryGetSlotItemStackByKey(containerSlots, effective.SourceSlotKey);
@@ -67,20 +77,20 @@ namespace CarryOn.Client.Logic.CarryRenderer
                     }
                 }
 
-                ItemStack beDataItemStack = null;
+                ItemStack? beDataItemStack = null;
                 if (!string.IsNullOrWhiteSpace(setting.BlockEntityDataItemStackPath))
                 {
                     beDataItemStack = CarryRenderHelpers.TryGetItemStackByPath(
-                        carried?.BlockEntityData,
+                        carriedBlock.BlockEntityData,
                         setting.BlockEntityDataItemStackPath,
-                        this.api.World);
+                        world);
                 }
 
                 var disableIfItemStack = !string.IsNullOrWhiteSpace(setting.DisableIfItemStackPath)
                     && CarryRenderHelpers.TryGetItemStackByPath(
-                        carried?.BlockEntityData,
+                        carriedBlock.BlockEntityData,
                         setting.DisableIfItemStackPath,
-                        this.api.World) != null;
+                        world) != null;
 
                 bool useSlotStack =
                     slotItemStack != null &&
@@ -108,16 +118,16 @@ namespace CarryOn.Client.Logic.CarryRenderer
                 }
                 else if (!string.IsNullOrEmpty(setting.AssetName))
                 {
-                    CollectibleObject itemOrBlock = null;
+                    CollectibleObject? itemOrBlock = null;
                     var assetLocation = new AssetLocation(setting.AssetName);
-
+                    
                     switch (setting.AssetType)
                     {
                         case EnumAssetType.Item:
-                            itemOrBlock = this.api.World.GetItem(assetLocation);
+                            itemOrBlock = world.GetItem(assetLocation);
                             break;
                         case EnumAssetType.Block:
-                            itemOrBlock = this.api.World.GetBlock(assetLocation);
+                            itemOrBlock = world.GetBlock(assetLocation);
                             break;
                     }
 
@@ -150,7 +160,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
                 }
 
                 var (resolvedTransform, secondaryTransform) = ResolveDisplayTransforms(
-                    carried,
+                    carriedBlock,
                     effective,
                     setting,
                     carryBehavior,
@@ -177,12 +187,12 @@ namespace CarryOn.Client.Logic.CarryRenderer
             return renderInfoList.Count > 0 ? renderInfoList.ToArray() : new[] { new CarriedRenderInfo { RenderInfo = baseRenderInfo } };
         }
 
-        private static (ModelTransform primary, ModelTransform secondary) ResolveDisplayTransforms(
+        private static (ModelTransform primary, ModelTransform? secondary) ResolveDisplayTransforms(
             CarriedBlock carried,
             EffectiveTransformSetting effective,
             TransformSettings setting,
             BlockBehaviorCarryable carryBehavior,
-            ItemStack slotItemStack)
+            ItemStack? slotItemStack)
         {
             var baseTransform =
                 setting.Transform?.Clone()
@@ -231,7 +241,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
             return yawDeg;
         }
 
-        private static ModelTransform TryGetOnDisplayTransform(ItemStack stack)
+        private static ModelTransform? TryGetOnDisplayTransform(ItemStack? stack)
         {
             var displayTransform = stack?.Collectible?.Attributes?["onDisplayTransform"];
             if (displayTransform == null || !displayTransform.Exists)
@@ -242,22 +252,22 @@ namespace CarryOn.Client.Logic.CarryRenderer
             var transform = new ModelTransform();
             transform.EnsureDefaultValues();
 
-            if (CarryRenderHelpers.TryReadVec3(displayTransform["translation"], out var translation))
+            if (CarryRenderHelpers.TryReadVec3(displayTransform["translation"], out var translation) && translation != null)
             {
                 transform.Translation.Set(translation.X, translation.Y, translation.Z);
             }
 
-            if (CarryRenderHelpers.TryReadVec3(displayTransform["rotation"], out var rotation))
+            if (CarryRenderHelpers.TryReadVec3(displayTransform["rotation"], out var rotation) && rotation != null)
             {
                 transform.Rotation.Set(rotation.X, rotation.Y, rotation.Z);
             }
 
-            if (CarryRenderHelpers.TryReadVec3(displayTransform["origin"], out var origin))
+            if (CarryRenderHelpers.TryReadVec3(displayTransform["origin"], out var origin) && origin != null)
             {
                 transform.Origin.Set(origin.X, origin.Y, origin.Z);
             }
 
-            if (CarryRenderHelpers.TryReadScale(displayTransform, out var scale))
+            if (CarryRenderHelpers.TryReadScale(displayTransform, out var scale) && scale != null)
             {
                 transform.ScaleXYZ.Set(scale.X, scale.Y, scale.Z);
             }

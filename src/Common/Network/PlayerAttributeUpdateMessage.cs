@@ -2,14 +2,11 @@ using ProtoBuf;
 
 namespace CarryOn.Common.Network
 {
-    [ProtoContract]
+    [ProtoContract(ImplicitFields = ImplicitFields.AllFields)]
     public record PlayerAttributeUpdateMessage
     {
-        [ProtoMember(1)]
-        public string AttributeKey { get; init; }
-        [ProtoMember(2)]
+        public string AttributeKey { get; init; } = null!;
         public bool? BoolValue { get; init; }
-        [ProtoMember(3)]
         public bool IsWatchedAttribute { get; init; }
 
         private PlayerAttributeUpdateMessage() { }

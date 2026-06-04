@@ -13,38 +13,9 @@ using static CarryOn.API.Common.Models.CarryCode;
 
 namespace CarryOn.Common.Services
 {
-    /// <summary>
-    /// Encapsulates attach and detach flows between carried blocks and attachable entities.
-    /// </summary>
-    internal sealed class CarryAttachmentService
+    internal sealed class CarryAttachmentService(ICoreAPI api, CarrySystem carrySystem, ICarryManager carryManager)
     {
-        /// <summary>
-        /// Gets the core API for world access and side checks.
-        /// </summary>
-        public ICoreAPI Api { get; }
-
-        /// <summary>
-        /// Gets the owning carry system and configuration.
-        /// </summary>
-        public CarrySystem CarrySystem { get; }
-
-        /// <summary>
-        /// Gets the carry manager facade used for cross-domain operations.
-        /// </summary>
-        public ICarryManager CarryManager { get; }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CarryAttachmentService"/> class.
-        /// </summary>
-        /// <param name="api">Core API instance.</param>
-        /// <param name="carrySystem">Owning carry system.</param>
-        /// <param name="carryManager">Carry manager facade.</param>
-        public CarryAttachmentService(ICoreAPI api, CarrySystem carrySystem, ICarryManager carryManager)
-        {
-            Api = api ?? throw new ArgumentNullException(nameof(api));
-            CarrySystem = carrySystem ?? throw new ArgumentNullException(nameof(carrySystem));
-            CarryManager = carryManager ?? throw new ArgumentNullException(nameof(carryManager));
-        }
+        private const string MountedBagInventoryPrefix = "mountedbaginv";
 
         /// <summary>
         /// Attempts to attach the carried block in hands to a target entity slot.
@@ -77,7 +48,7 @@ namespace CarryOn.Common.Services
 
             if (slotIndex < 0)
             {
-                failureCode = "slot-not-found";
+                failureCode = FailureCode.SlotNotFound;
                 return false;
             }
 
@@ -91,9 +62,14 @@ namespace CarryOn.Common.Services
                 return false;
             }
 
-            var world = Api.World;
+            var world = api.World;
             var targetEntity = validation.TargetEntity;
             var attachableBehavior = validation.AttachableBehavior;
+
+            if (targetEntity == null || attachableBehavior == null)
+            {
+                return false;
+            }
 
             var carriedBlock = player.Entity.GetCarried(CarrySlot.Hands);
             if (carriedBlock == null)
@@ -104,7 +80,7 @@ namespace CarryOn.Common.Services
             var blockEntityData = carriedBlock.BlockEntityData;
             if (blockEntityData == null)
             {
-                failureCode = "slot-data-missing";
+                failureCode = FailureCode.SlotDataMissing;
                 return false;
             }
 
@@ -129,7 +105,7 @@ namespace CarryOn.Common.Services
             sourceItemSlot.Itemstack = carriedBlock.ItemStack.Clone();
             if (sourceItemSlot.Itemstack?.Attributes is not TreeAttribute attr)
             {
-                failureCode = "slot-data-missing";
+                failureCode = FailureCode.SlotDataMissing;
                 return false;
             }
 
@@ -143,28 +119,28 @@ namespace CarryOn.Common.Services
 
             if (!targetSlot.CanTakeFrom(sourceItemSlot))
             {
-                failureCode = "slot-incompatible-block";
+                failureCode = FailureCode.SlotIncompatibleBlock;
                 return false;
             }
 
             var carryableBehavior = sourceItemSlot.Itemstack.Block.GetBehavior<BlockBehaviorCarryable>();
             if (carryableBehavior?.PreventAttaching ?? false)
             {
-                failureCode = "slot-prevent-attaching";
+                failureCode = FailureCode.SlotPreventAttaching;
                 return false;
             }
 
             var iai = sourceItemSlot.Itemstack.Collectible.GetCollectibleInterface<IAttachedInteractions>();
             if (iai?.OnTryAttach(sourceItemSlot, slotIndex, targetEntity) == false)
             {
-                failureCode = "attach-unavailable";
+                failureCode = FailureCode.AttachUnavailable;
                 return false;
             }
 
             var moved = sourceItemSlot.TryPutInto(targetEntity.World, targetSlot) > 0;
             if (!moved)
             {
-                failureCode = "attach-failed";
+                failureCode = FailureCode.AttachFailed;
                 return false;
             }
 
@@ -172,13 +148,11 @@ namespace CarryOn.Common.Services
             targetEntity.MarkShapeModified();
             targetEntity.World.BlockAccessor.GetChunkAtBlockPos(targetEntity.Pos.AsBlockPos).MarkModified();
 
-            CarryManager.RemoveCarried(player.Entity, CarrySlot.Hands);
+            carryManager.RemoveCarried(player.Entity, CarrySlot.Hands);
 
             if (playSound)
             {
-                var block = carriedBlock.Block;
-                var sound = block?.Sounds?.Place.Location ?? new AssetLocation("sounds/player/build");
-                world.PlaySoundAt(sound, targetEntity, null, true, 16);
+                PlayPlaceSoundAt(carriedBlock.Block, targetEntity);
             }
 
             world.Logger.Audit($"[{ModId}] Player {player?.PlayerName} attached block {carriedBlock.Block.Code} to entity {targetEntity.EntityId} {targetEntity.GetName()} slot {slotIndex} at position {targetEntity.Pos.AsBlockPos}");
@@ -224,9 +198,14 @@ namespace CarryOn.Common.Services
                 return false;
             }
 
-            var world = Api.World;
+            var world = api.World;
             var targetEntity = validation.TargetEntity;
             var attachableBehavior = validation.AttachableBehavior;
+
+            if (targetEntity == null || attachableBehavior == null)
+            {
+                return false;
+            }
 
             var sourceSlot = attachableBehavior.GetSlotFromSelectionBoxIndex(slotIndex);
             if (sourceSlot == null || sourceSlot.Empty)
@@ -237,7 +216,7 @@ namespace CarryOn.Common.Services
 
             if (!sourceSlot.CanTake())
             {
-                failureCode = "detach-unavailable";
+                failureCode = FailureCode.DetachUnavailable;
                 return false;
             }
 
@@ -249,11 +228,11 @@ namespace CarryOn.Common.Services
 
             if (!block.HasBehavior<BlockBehaviorCarryable>())
             {
-                failureCode = "slot-not-carryable";
+                failureCode = FailureCode.SlotNotCarryable;
                 return false;
             }
 
-            var inventoryName = $"mountedbaginv-{slotIndex}-{targetEntityId}";
+            var inventoryName = $"{MountedBagInventoryPrefix}-{slotIndex}-{targetEntityId}";
             var hasOpenBoatStorage = world.AllOnlinePlayers
                 .OfType<IServerPlayer>()
                 .Where(serverPlayer => serverPlayer.PlayerUID != player.PlayerUID)
@@ -262,7 +241,7 @@ namespace CarryOn.Common.Services
 
             if (hasOpenBoatStorage)
             {
-                failureCode = "slot-inventory-open";
+                failureCode = FailureCode.SlotInventoryOpen;
                 return false;
             }
 
@@ -273,11 +252,16 @@ namespace CarryOn.Common.Services
             }
 
             var itemstack = sourceSlot.Itemstack;
-            var sourceBackpack = itemstack?.Attributes?["backpack"] as ITreeAttribute;
+            if (itemstack == null)
+            {
+                return false;
+            }
+
+            var sourceBackpack = itemstack.Attributes?["backpack"] as ITreeAttribute;
             var destInventory = BlockUtils.ConvertBackpackToBlockInventory(sourceBackpack);
 
             TreeAttribute blockEntityData;
-            if (itemstack?.Attributes?["carryonbackup"] is not TreeAttribute backupAttributes)
+            if (itemstack.Attributes?["carryonbackup"] is not TreeAttribute backupAttributes)
             {
                 blockEntityData = new TreeAttribute();
             }
@@ -289,23 +273,24 @@ namespace CarryOn.Common.Services
             blockEntityData.SetString("blockCode", block.Code.ToShortString());
             blockEntityData.SetAttribute("inventory", destInventory);
             blockEntityData.SetString("forBlockCode", block.Code.ToShortString());
-            blockEntityData.SetString("type", itemstack.Attributes.GetString("type"));
+            var itemAttributes = itemstack.Attributes;
+            var itemType = itemAttributes != null ? itemAttributes.GetString("type") : string.Empty;
+            blockEntityData.SetString("type", itemType ?? string.Empty);
 
             var itemstackCopy = itemstack.Clone();
             itemstackCopy.Attributes.Remove("backpack");
 
             var carriedBlock = new CarriedBlock(CarrySlot.Hands, itemstackCopy, blockEntityData);
-            CarryManager.SetCarried(player.Entity, carriedBlock);
+            carryManager.SetCarried(player.Entity, carriedBlock);
 
             if (playSound)
             {
-                var sound = block.Sounds?.Place.Location ?? new AssetLocation("sounds/player/build");
-                world.PlaySoundAt(sound, targetEntity, null, true, 16);
+                PlayPlaceSoundAt(block, targetEntity);
             }
 
             itemstack.Collectible.GetCollectibleInterface<IAttachedListener>()?.OnDetached(sourceSlot, slotIndex, targetEntity, player.Entity);
 
-            EntityBehaviorAttachableCarryable.ClearCachedSlotStorage(Api, slotIndex, sourceSlot, targetEntity);
+            EntityBehaviorAttachableCarryable.ClearCachedSlotStorage(api, slotIndex, sourceSlot, targetEntity);
             sourceSlot.Itemstack = null;
             attachableBehavior.storeInv();
 
@@ -319,11 +304,11 @@ namespace CarryOn.Common.Services
         private sealed class AttachTargetValidationResult
         {
             public bool IsValid { get; }
-            public string FailureCode { get; }
-            public Entity TargetEntity { get; }
-            public EntityBehaviorAttachable AttachableBehavior { get; }
+            public string? FailureCode { get; }
+            public Entity? TargetEntity { get; }
+            public EntityBehaviorAttachable? AttachableBehavior { get; }
 
-            private AttachTargetValidationResult(bool isValid, string failureCode, Entity targetEntity, EntityBehaviorAttachable attachableBehavior)
+            private AttachTargetValidationResult(bool isValid, string? failureCode, Entity? targetEntity, EntityBehaviorAttachable? attachableBehavior)
             {
                 IsValid = isValid;
                 FailureCode = failureCode;
@@ -331,7 +316,7 @@ namespace CarryOn.Common.Services
                 AttachableBehavior = attachableBehavior;
             }
 
-            public static AttachTargetValidationResult Fail(string failureCode = null)
+            public static AttachTargetValidationResult Fail(string? failureCode = null)
                 => new(false, failureCode, null, null);
 
             public static AttachTargetValidationResult Success(Entity targetEntity, EntityBehaviorAttachable attachableBehavior)
@@ -340,7 +325,7 @@ namespace CarryOn.Common.Services
 
         private AttachTargetValidationResult ValidateAttachDetachTarget(IServerPlayer player, long targetEntityId)
         {
-            var world = Api.World;
+            var world = api.World;
             var targetEntity = world.GetEntityById(targetEntityId);
             if (targetEntity == null)
             {
@@ -368,7 +353,13 @@ namespace CarryOn.Common.Services
             return AttachTargetValidationResult.Success(targetEntity, attachableBehavior);
         }
 
+        private void PlayPlaceSoundAt(Block? block, Entity targetEntity)
+        {
+            var sound = block?.Sounds?.Place.Location ?? new AssetLocation("sounds/player/build");
+            api.World.PlaySoundAt(sound, targetEntity, null, true, 16);
+        }
+
         private int GetMaxInteractionDistance()
-            => CarrySystem?.Config?.CarryOptions?.MaxInteractionDistance ?? Default.MaxInteractionDistance;
+            => carrySystem?.Config?.CarryOptions?.MaxInteractionDistance ?? Default.MaxInteractionDistance;
     }
 }

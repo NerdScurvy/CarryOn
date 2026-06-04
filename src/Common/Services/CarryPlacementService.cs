@@ -1,8 +1,6 @@
 using System;
-using System.Linq;
 using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
-using CarryOn.API.Event.Delegates;
 using CarryOn.Common.Behaviors;
 using CarryOn.Utility;
 using Vintagestory.API.Common;
@@ -13,38 +11,8 @@ using static CarryOn.API.Common.Models.CarryCode;
 
 namespace CarryOn.Common.Services
 {
-    /// <summary>
-    /// Encapsulates pickup, placement, and carried block world transfer behavior.
-    /// </summary>
-    internal sealed class CarryPlacementService
+    internal sealed class CarryPlacementService(ICoreAPI api, ICarryManager carryManager)
     {
-        /// <summary>
-        /// Gets the core API for world access and side checks.
-        /// </summary>
-        public ICoreAPI Api { get; }
-
-        /// <summary>
-        /// Gets the owning carry system and configuration.
-        /// </summary>
-        public CarrySystem CarrySystem { get; }
-
-        /// <summary>
-        /// Gets the carry manager facade used for cross-domain calls and events.
-        /// </summary>
-        public ICarryManager CarryManager { get; }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CarryPlacementService"/> class.
-        /// </summary>
-        /// <param name="api">Core API instance.</param>
-        /// <param name="carrySystem">Owning carry system.</param>
-        /// <param name="carryManager">Carry manager facade.</param>
-        public CarryPlacementService(ICoreAPI api, CarrySystem carrySystem, ICarryManager carryManager)
-        {
-            Api = api ?? throw new ArgumentNullException(nameof(api));
-            CarrySystem = carrySystem ?? throw new ArgumentNullException(nameof(carrySystem));
-            CarryManager = carryManager ?? throw new ArgumentNullException(nameof(carryManager));
-        }
 
         /// <summary>
         /// Checks whether an entity has permission to pick up the block at the given position.
@@ -57,27 +25,8 @@ namespace CarryOn.Common.Services
             var isReinforced = entity.Api.ModLoader.GetModSystem<ModSystemBlockReinforcement>()?.IsReinforced(pos) ?? false;
             if (entity is EntityPlayer playerEntity)
             {
-                var delegates = entity.World.GetCarryEvents()?.CheckPermissionToCarry?.GetInvocationList();
-
-                if (delegates != null)
-                {
-                    foreach (var checkPermissionToCarryDelegate in delegates.Cast<CheckPermissionToCarryDelegate>())
-                    {
-                        try
-                        {
-                            checkPermissionToCarryDelegate(playerEntity, pos, isReinforced, out bool? hasPermission);
-
-                            if (hasPermission != null)
-                            {
-                                return hasPermission.Value;
-                            }
-                        }
-                        catch (Exception e)
-                        {
-                            entity.World.Logger.Error(e.Message);
-                        }
-                    }
-                }
+                var result = entity.World.GetCarryEvents()?.TriggerCheckPermissionToCarry(playerEntity, pos, isReinforced);
+                if (result.HasValue) return result.Value;
 
                 var isCreative = playerEntity.Player.WorldData.CurrentGameMode == EnumGameMode.Creative;
 
@@ -93,25 +42,7 @@ namespace CarryOn.Common.Services
 
         private bool CanPickUp(Entity entity, BlockPos pos, CarrySlot slot, CarriedBlock carried, ref string failureCode)
         {
-            var delegates = CarryManager.CarryEvents?.BeforePickUpBlock?.GetInvocationList();
-            if (delegates == null) return true;
-
-            foreach (var del in delegates.Cast<BeforePickUpBlockDelegate>())
-            {
-                try
-                {
-                    del(entity, pos, slot, carried, out bool? canPickUp, out string delegateFailureCode);
-
-                    if (delegateFailureCode != null) failureCode = delegateFailureCode;
-                    if (canPickUp != null) return canPickUp.Value;
-                }
-                catch (Exception e)
-                {
-                    entity.World.Logger.Error(e.Message);
-                }
-            }
-
-            return true;
+            return carryManager.CarryEvents?.TriggerBeforePickUpBlock(entity, pos, slot, carried, ref failureCode) ?? true;
         }
 
         /// <summary>
@@ -121,11 +52,10 @@ namespace CarryOn.Common.Services
         /// <param name="slot">Destination carry slot metadata.</param>
         /// <param name="checkIsCarryable">Whether to enforce carryability checks for the slot.</param>
         /// <returns>The carried block, or null when conversion fails.</returns>
-        public CarriedBlock GetCarriedFromWorld(BlockPos pos, CarrySlot slot, bool checkIsCarryable = false)
+        public CarriedBlock? GetCarriedFromWorld(BlockPos pos, CarrySlot slot, bool checkIsCarryable = false)
         {
-            var delegates = CarryManager.CarryEvents?.BeforeRemoveBlockFromWorld?.GetInvocationList();
             string failureCode = FailureCode.Ignore;
-            return GetCarriedFromWorld(null, pos, slot, ref failureCode, delegates: delegates, checkIsCarryable: checkIsCarryable);
+            return GetCarriedFromWorld(null, pos, slot, ref failureCode, checkIsCarryable);
         }
 
         /// <summary>
@@ -138,30 +68,17 @@ namespace CarryOn.Common.Services
         /// <param name="delegates">Optional callbacks invoked before world block removal.</param>
         /// <param name="checkIsCarryable">Whether to enforce carryability checks for the slot.</param>
         /// <returns>The carried block, or null when conversion fails.</returns>
-        public CarriedBlock GetCarriedFromWorld(Entity entity, BlockPos pos, CarrySlot slot, ref string failureCode, Delegate[] delegates = null, bool checkIsCarryable = false)
+        public CarriedBlock? GetCarriedFromWorld(Entity? entity, BlockPos pos, CarrySlot slot, ref string failureCode, bool checkIsCarryable = false)
         {
-            var world = Api.World;
+            var world = api.World;
             var carried = BlockUtils.CreateCarriedFromBlockPos(world, pos, slot);
             if (carried == null) return null;
 
-            if (checkIsCarryable && !CarryManager.IsCarryable(carried.Block, slot)) return null;
+            if (checkIsCarryable && !carryManager.IsCarryable(carried.Block, slot)) return null;
 
             if (entity != null && !CanPickUp(entity, pos, slot, carried, ref failureCode)) return null;
 
-            if (delegates != null)
-            {
-                foreach (var removeBlockDelegate in delegates.Cast<BeforeRemoveBlockDelegate>())
-                {
-                    try
-                    {
-                        removeBlockDelegate(carried, pos);
-                    }
-                    catch (Exception e)
-                    {
-                        world.Logger.Error(e.Message);
-                    }
-                }
-            }
+            carryManager.CarryEvents?.TriggerBeforeRemoveBlockFromWorld(carried, pos);
 
             world.BlockAccessor.SetBlock(0, pos);
             world.Api.ModLoader.GetModSystem<ModSystemBlockReinforcement>()?.ClearReinforcement(pos);
@@ -180,22 +97,6 @@ namespace CarryOn.Common.Services
         {
             if ((world.Side != EnumAppSide.Server) || (carriedBlock?.BlockEntityData == null)) return;
 
-            var delegates = CarryManager.CarryEvents?.BeforeRestoreBlockEntityData?.GetInvocationList();
-            RestoreBlockEntityData(world, carriedBlock, pos, delegates: delegates, dropped: dropped);
-        }
-
-        /// <summary>
-        /// Restores serialized block entity data after a carried block is placed with explicit callbacks.
-        /// </summary>
-        /// <param name="world">World accessor for placement context.</param>
-        /// <param name="carriedBlock">Carried block containing serialized block entity data.</param>
-        /// <param name="pos">Target placement position.</param>
-        /// <param name="delegates">Optional callbacks invoked before data is applied.</param>
-        /// <param name="dropped">Whether placement originated from drop flow.</param>
-        public void RestoreBlockEntityData(IWorldAccessor world, CarriedBlock carriedBlock, BlockPos pos, Delegate[] delegates = null, bool dropped = false)
-        {
-            if (carriedBlock?.BlockEntityData == null) return;
-
             var blockEntityData = carriedBlock.BlockEntityData;
             blockEntityData.SetInt("posx", pos.X);
             blockEntityData.SetInt("posy", pos.Y);
@@ -203,20 +104,7 @@ namespace CarryOn.Common.Services
 
             var blockEntity = world.BlockAccessor.GetBlockEntity(pos);
 
-            if (delegates != null)
-            {
-                foreach (var blockEntityDataDelegate in delegates.Cast<BlockEntityDataDelegate>())
-                {
-                    try
-                    {
-                        blockEntityDataDelegate(blockEntity, blockEntityData, dropped);
-                    }
-                    catch (Exception e)
-                    {
-                        world.Logger.Error(e.Message);
-                    }
-                }
-            }
+            carryManager.CarryEvents?.TriggerBeforeRestoreBlockEntityData(blockEntity, blockEntityData, dropped);
 
             blockEntity?.FromTreeAttributes(blockEntityData, world);
             blockEntity?.MarkDirty(true);
@@ -247,20 +135,20 @@ namespace CarryOn.Common.Services
 
             if (entity.GetCarried(slot) != null)
             {
-                failureCode = "already-carrying";
+                failureCode = FailureCode.AlreadyCarrying;
                 return false;
             }
 
             if (entity.Api.Side == EnumAppSide.Server && !HasPermissionToCarry(entity, pos))
             {
-                failureCode = "no-permission";
+                failureCode = FailureCode.NoPermission;
                 return false;
             }
 
             var block = entity.World.BlockAccessor.GetBlock(pos);
-            if (checkIsCarryable && !CarryManager.IsCarryable(block, slot))
+            if (checkIsCarryable && !carryManager.IsCarryable(block, slot))
             {
-                failureCode = "not-carryable";
+                failureCode = FailureCode.NotCarryable;
                 return false;
             }
 
@@ -271,11 +159,10 @@ namespace CarryOn.Common.Services
             }
 
             var optimisticPickup = carryBehavior?.OptimisticPickup ?? true;
-            var delegates = CarryManager.CarryEvents?.BeforeRemoveBlockFromWorld?.GetInvocationList();
-            var carried = GetCarriedFromWorld(entity, pos, slot, ref failureCode, delegates, checkIsCarryable);
+            var carried = GetCarriedFromWorld(entity, pos, slot, ref failureCode, checkIsCarryable);
             if (carried == null) return false;
 
-            CarryManager.SetCarried(entity, carried);
+            carryManager.SetCarried(entity, carried);
 
             if (playSound)
             {
@@ -284,7 +171,7 @@ namespace CarryOn.Common.Services
 
             if (entity.Api.Side == EnumAppSide.Server)
             {
-                var entityName = entity?.GetName() ?? "Unknown Entity";
+                var entityName = entity.GetName() ?? "Unknown Entity";
                 entity.World.Logger.Audit($"[{ModId}] {entityName} picked up block {carried.Block.Code.GetName()} at {pos}");
             }
 
@@ -340,16 +227,14 @@ namespace CarryOn.Common.Services
 
             if (carriedBlock == null)
             {
-                failureCode = "not-carrying";
+                failureCode = FailureCode.NotCarrying;
                 return false;
             }
 
-            var world = Api.World;
+            var world = api.World;
 
             if (carriedBlock?.Block == null || carriedBlock.ItemStack == null) return false;
             if (!world.BlockAccessor.IsValidPos(selection.Position)) return false;
-
-            failureCode ??= FailureCode.Ignore;
 
             var placed = (entity is EntityPlayer playerEntity && !dropped)
                 ? TryPlaceDownAsPlayer(world, playerEntity, carriedBlock, selection, ref failureCode)
@@ -436,7 +321,7 @@ namespace CarryOn.Common.Services
             world.BlockAccessor.MarkBlockDirty(position);
             world.BlockAccessor.TriggerNeighbourBlockUpdate(position);
 
-            CarryManager.RemoveCarried(entity, carriedBlock.Slot);
+            carryManager.RemoveCarried(entity, carriedBlock.Slot);
             if (playSound)
             {
                 PlaySound(carriedBlock.Block, position, dropped ? null : entity as EntityPlayer);
@@ -444,12 +329,12 @@ namespace CarryOn.Common.Services
 
             if (dropped)
             {
-                CarryManager.CarryEvents?.TriggerBlockDropped(position, entity, carriedBlock);
+                carryManager.CarryEvents?.TriggerBlockDropped(position, entity, carriedBlock);
             }
             if (world.Side == EnumAppSide.Server)
             {
                 var entityName = entity?.GetName() ?? "Unknown Entity";
-                Api.World.Logger.Audit($"[{ModId}] Player {entityName}  {(dropped ? "dropped" : "placed down")}  block {carriedBlock?.Block?.Code.GetName()} at {position}");
+                api.World.Logger.Audit($"[{ModId}] Player {entityName}  {(dropped ? "dropped" : "placed down")}  block {carriedBlock?.Block?.Code.GetName()} at {position}");
             }
         }
 
@@ -461,7 +346,7 @@ namespace CarryOn.Common.Services
         /// <param name="selection">Original selected block.</param>
         /// <param name="placedAt">Resolved placement position on success.</param>
         /// <returns>True when placement succeeds; otherwise false.</returns>
-        public bool TryPlaceDownAt(IPlayer player, CarrySlot carrySlot, BlockSelection selection, out BlockPos placedAt)
+        public bool TryPlaceDownAt(IPlayer player, CarrySlot carrySlot, BlockSelection selection, out BlockPos? placedAt)
         {
             string failureCode = FailureCode.Ignore;
             return TryPlaceDownAt(player, carrySlot, selection, out placedAt, ref failureCode);
@@ -476,7 +361,7 @@ namespace CarryOn.Common.Services
         /// <param name="placedAt">Resolved placement position on success.</param>
         /// <param name="failureCode">Failure code output when placement fails.</param>
         /// <returns>True when placement succeeds; otherwise false.</returns>
-        public bool TryPlaceDownAt(IPlayer player, CarrySlot carrySlot, BlockSelection selection, out BlockPos placedAt, ref string failureCode)
+        public bool TryPlaceDownAt(IPlayer player, CarrySlot carrySlot, BlockSelection selection, out BlockPos? placedAt, ref string failureCode)
         {
             placedAt = null;
             var blockSelection = selection.Clone();
@@ -484,10 +369,10 @@ namespace CarryOn.Common.Services
 
             if (selectedBlock == null) return false;
 
-            var carried = player.Entity.GetCarried(carrySlot);
+            var carried = player.Entity!.GetCarried(carrySlot);
             if (carried == null)
             {
-                failureCode = "not-carrying";
+                failureCode = FailureCode.NotCarrying;
                 return false;
             }
 
@@ -503,22 +388,27 @@ namespace CarryOn.Common.Services
             }
 
             placedAt = blockSelection.Position;
-            return TryPlaceDown(player.Entity, carried, blockSelection, ref failureCode);
+            return TryPlaceDown(player.Entity!, carried, blockSelection, ref failureCode);
         }
+
+        private static readonly float AngleNorth = 0f;
+        private static readonly float AngleEast = (float)(Math.PI / 2);
+        private static readonly float AngleSouth = (float)Math.PI;
+        private static readonly float AngleWest = (float)(3 * Math.PI / 2);
 
         private float GetMeshAngle(BlockFacing facing)
         {
             switch (facing.Code)
             {
-                case "north": return 0f;
-                case "east": return (float)(Math.PI / 2);
-                case "south": return (float)Math.PI;
-                case "west": return (float)(3 * Math.PI / 2);
-                default: return 0f;
+                case "north": return AngleNorth;
+                case "east": return AngleEast;
+                case "south": return AngleSouth;
+                case "west": return AngleWest;
+                default: return AngleNorth;
             }
         }
 
-        internal void PlaySound(Block block, BlockPos pos, EntityPlayer entityPlayer = null, bool dualCall = true)
+        internal void PlaySound(Block block, BlockPos pos, EntityPlayer? entityPlayer = null, bool dualCall = true)
         {
             const float SOUND_RANGE = 16.0F;
             const float SOUND_VOLUME = 1.0F;
@@ -527,7 +417,7 @@ namespace CarryOn.Common.Services
 
             if (sound == null) return;
 
-            var world = Api.World;
+            var world = api.World;
             var player = dualCall && (entityPlayer != null) && (world.Side == EnumAppSide.Server)
                 ? entityPlayer?.Player : null;
 
