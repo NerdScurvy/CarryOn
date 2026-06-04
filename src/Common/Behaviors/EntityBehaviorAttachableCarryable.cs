@@ -18,28 +18,28 @@ namespace CarryOn.Common.Behaviors
         public readonly ICoreAPI Api;
 
             
-        private static ItemStack[] putStacks;
-        private static ItemStack[] takeStacks;
-        private static ItemStack[] nohandsfreeStacks;
+        private static ItemStack[]? putStacks = null;
+        private static ItemStack[]? takeStacks = null;
+        private static ItemStack[]? nohandsfreeStacks = null;
         public EntityBehaviorAttachableCarryable(Entity entity) : base(entity)
         {
             Api = entity.World.Api;
         }
 
-        private EntityBehaviorAttachable behaviorAttachable;
+        private EntityBehaviorAttachable? behaviorAttachable = null;
 
         public int GetSlotIndex(int selBoxIndex)
         {
             if (selBoxIndex <= 0) return -1;
 
-            var attachable = behaviorAttachable ??= entity.GetBehavior<EntityBehaviorAttachable>();
+            var attachable = behaviorAttachable ??= entity.GetBehavior<EntityBehaviorAttachable>()!;
             if (attachable == null) return -1;
 
             return attachable.GetSlotIndexFromSelectionBoxIndex(selBoxIndex - 1);
         }
-        public ItemSlot GetItemSlot(int slotIndex)
+        public ItemSlot? GetItemSlot(int slotIndex)
         {
-            var attachable = behaviorAttachable ??= entity.GetBehavior<EntityBehaviorAttachable>();
+            var attachable = behaviorAttachable ??= entity.GetBehavior<EntityBehaviorAttachable>()!;
             if (attachable == null || slotIndex < 0 || slotIndex >= attachable.Inventory.Count) return null;
 
             return attachable.Inventory[slotIndex];
@@ -61,7 +61,7 @@ namespace CarryOn.Common.Behaviors
 
         public bool TransparentCenter => false;
 
-        public override WorldInteraction[] GetInteractionHelp(IClientWorldAccessor world, EntitySelection es, IClientPlayer player, ref EnumHandling handled)
+        public override WorldInteraction[]? GetInteractionHelp(IClientWorldAccessor world, EntitySelection es, IClientPlayer player, ref EnumHandling handled)
         {
 
             if (es.SelectionBoxIndex == 0) return null;
@@ -85,8 +85,8 @@ namespace CarryOn.Common.Behaviors
             nohandsfreeStacks ??= [new ItemStack(world.GetItem(new AssetLocation("carryon:icon-nohandsfree")))];
 
 
-            string langCode = null;
-             ItemStack[] itemstacks = null;
+            string? langCode = null;
+             ItemStack[]? itemstacks = null;
 
             // If slot has an item then check if block is carryable
             if (!targetSlot.Empty)
@@ -130,18 +130,18 @@ namespace CarryOn.Common.Behaviors
                         }];
         }
 
-        public Vec3d GetInteractionHelpPosition()
+        public Vec3d? GetInteractionHelpPosition()
         {
             var capi = entity.Api as ICoreClientAPI;
-            if (capi.World.Player.CurrentEntitySelection == null) return null;
+            if (capi?.World?.Player?.CurrentEntitySelection == null) return null;
 
             var selebox = capi.World.Player.CurrentEntitySelection.SelectionBoxIndex - 1;
             if (selebox < 0) return null;
 
-            return entity.GetBehavior<EntityBehaviorSelectionBoxes>().GetCenterPosOfBox(selebox)?.Add(0, 0.5, 0);
+            return entity.GetBehavior<EntityBehaviorSelectionBoxes>()?.GetCenterPosOfBox(selebox)?.Add(0, 0.5, 0);
         }
 
-        public void OnAttachmentToggled(bool isAttached, EntityAgent byEntity, ItemSlot itemslot, int targetSlotIndex)
+        public void OnAttachmentToggled(bool isAttached, EntityAgent byEntity, ItemSlot? itemslot, int targetSlotIndex)
         {
             // This will close the containers inventory on detach
             var attachedListener = itemslot?.Itemstack?.Collectible?.GetCollectibleInterface<IAttachedListener>();
@@ -162,7 +162,7 @@ namespace CarryOn.Common.Behaviors
             }
         }
 
-        public static void ClearCachedSlotStorage(ICoreAPI api, int slotIndex, ItemSlot slot, Entity targetEntity)
+        public static void ClearCachedSlotStorage(ICoreAPI api, int slotIndex, ItemSlot? slot, Entity targetEntity)
         {
             if (slotIndex < 0 || targetEntity == null || slot?.Itemstack == null) return;
             ObjectCacheUtil.Delete(api, "att-cont-workspace-" + slotIndex.ToString() + "-" + targetEntity.EntityId.ToString() + "-" + slot.Itemstack.Id.ToString());
@@ -172,7 +172,7 @@ namespace CarryOn.Common.Behaviors
 
     public class AttachableCarryableInteractionHelp
     {
-        public static List<ItemStack> GetInteractionItemStacks(ICoreAPI api, Entity entity, int slotIndex, ItemSlot slot)
+        public static List<ItemStack>? GetInteractionItemStacks(ICoreAPI api, Entity entity, int slotIndex, ItemSlot slot)
         {
             var carryableKey = "carryable-stack-" + entity.Code + "-" + slotIndex;
             var carryableStacks = ObjectCacheUtil.TryGet<List<ItemStack>>(api, carryableKey);
@@ -182,7 +182,7 @@ namespace CarryOn.Common.Behaviors
                 var attachableKey = "interactionhelp-attachable-" + entity.Code + "-" + slotIndex;
                 var attachableStacks = ObjectCacheUtil.TryGet<List<ItemStack>>(api, attachableKey);
 
-                if (attachableStacks == null || attachableStacks?.Count == 0)
+                if (attachableStacks == null || attachableStacks.Count == 0)
                 {
                     return null;
                 }
@@ -192,12 +192,9 @@ namespace CarryOn.Common.Behaviors
                     var stacks = new List<ItemStack>();
                     foreach (var item in attachableStacks)
                     {
-                        if (item.Block != null)
+                        if (item?.Block?.IsCarryable() == true)
                         {
-                            if (item.Block.IsCarryable())
-                            {
-                                stacks.Add(item.Clone());
-                            }
+                            stacks.Add(item.Clone());
                         }
                     }
                     return stacks;

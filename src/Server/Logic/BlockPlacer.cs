@@ -15,9 +15,9 @@ namespace CarryOn.Server.Logic
         public ICoreAPI Api { get; }
 
         private static readonly ThreadLocal<Random> ThreadLocalRandom = new ThreadLocal<Random>(() => new Random());
-        public static Random Rand => ThreadLocalRandom.Value;
+        public static Random Rand => ThreadLocalRandom.Value ?? throw new InvalidOperationException("ThreadLocal Random not initialized");
 
-        public IBlockAccessor BlockAccessor => Api?.World?.BlockAccessor;
+        public IBlockAccessor BlockAccessor => Api.World!.BlockAccessor!;
 
         public BlockPlacer(ICoreAPI api)
         {
@@ -59,7 +59,7 @@ namespace CarryOn.Server.Logic
         /// Get a valid placement position for a block with gravity consideration.
         /// TODO: Consider caching visited positions for performance.
         /// </summary>
-        private BlockSelection GetValidPlacementWithGravity(Block droppedBlock, BlockPos startPos)
+        private BlockSelection? GetValidPlacementWithGravity(Block droppedBlock, BlockPos startPos)
         {
             for (int y = startPos.Y; y >= 0; y--)
             {
@@ -82,7 +82,7 @@ namespace CarryOn.Server.Logic
         /// Find the closest valid placement for a chest around the player.
         /// Priority: directly under player, then nearby accessible air blocks (down first, then sides, then up).
         /// </summary>
-        public BlockSelection FindBlockPlacement(Block droppedBlock, BlockPos centrePos, int searchRadius)
+        public BlockSelection? FindBlockPlacement(Block droppedBlock, BlockPos centrePos, int searchRadius)
         {
 
             var accessible = GetAccessibleArea(centrePos, searchRadius);
@@ -122,11 +122,11 @@ namespace CarryOn.Server.Logic
             var multiblockOrigin = BlockUtils.GetMultiblockOriginSelection(BlockAccessor, new BlockSelection() { Position = pos, Block = block });
 
             // Shouldn't be null since we are passing in the block and position, but just in case
-            if (multiblockOrigin?.Position == null)
+            if (multiblockOrigin == null || multiblockOrigin.Position == null)
             {
                 return false;
             }
-            var testBlock = multiblockOrigin?.Block ?? block;
+            var testBlock = multiblockOrigin.Block ?? block;
 
             if (testBlock.HasBehavior<BlockBehaviorDoor>())
             {
@@ -217,7 +217,7 @@ namespace CarryOn.Server.Logic
         }
 
 
-        public BlockSelection CheckCanPlaceBlock(Block droppedBlock, BlockPos position)
+        public BlockSelection? CheckCanPlaceBlock(Block droppedBlock, BlockPos position)
         {
             var testBlock = BlockAccessor.GetBlock(position);
             if (!testBlock.IsReplacableBy(droppedBlock)) return null;

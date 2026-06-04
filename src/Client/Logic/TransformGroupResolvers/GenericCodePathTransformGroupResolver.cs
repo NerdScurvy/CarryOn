@@ -15,7 +15,7 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
     {
         public string ResolverCode => "codepath";
 
-        public bool TryResolve(ICoreAPI api, CarriedBlock carried, string baseGroup, out CarriedGroupResolution resolution)
+        public bool TryResolve(ICoreAPI api, CarriedBlock carried, string baseGroup, out CarriedGroupResolution? resolution)
         {
             resolution = null;
 
@@ -53,10 +53,10 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
             return true;
         }
 
-        public string GetCacheSignature(ICoreAPI api, CarriedBlock carried, string baseGroup, CarriedGroupResolution resolution)
+        public string? GetCacheSignature(ICoreAPI api, CarriedBlock carried, string baseGroup, CarriedGroupResolution? resolution)
         {
             // Static derivation from block code and base group only; no extra signature needed.
-            return null;
+            return string.Empty;
         }
     }
 }

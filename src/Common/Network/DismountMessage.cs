@@ -2,13 +2,11 @@ using ProtoBuf;
 
 namespace CarryOn.Common.Network
 {
-    [ProtoContract]
+    [ProtoContract(ImplicitFields = ImplicitFields.AllFields)]
     public record DismountMessage
     {
-        [ProtoMember(1)]
         public long EntityId { get; init; }
-        [ProtoMember(2)]
-        public string SeatId { get; init; }
+        public string SeatId { get; init; } = null!;
 
         private DismountMessage() { }
 

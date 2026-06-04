@@ -39,6 +39,14 @@
 					"Hands": {},
 					"Back": {
 						"enabledCondition": "carryon.CarryablesOnBack.Chest",
+						"walkSpeedModifier": -0.15,
+						"walkSpeedModifierByGroup": {
+							"normal": -0.15,
+							"compact": -0.10
+						},
+						"walkSpeedModifierByBlockType": {
+							"owl*": -0.08
+						},
 						"excludedTypes": [
 							"collapsed1",
 							"collapsed2",

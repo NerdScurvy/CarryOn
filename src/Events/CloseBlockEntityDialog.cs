@@ -17,7 +17,7 @@ namespace CarryOn.Events
     /// </summary>
     public class CloseBlockEntityDialog : ICarryEvent
     {
-        private ICarryManager carryManager;
+        private ICarryManager? carryManager;
 
         public void Init(ICarryManager carryManager)
         {
@@ -30,7 +30,10 @@ namespace CarryOn.Events
         private void OnBeforeRemoveBlockFromWorld(CarriedBlock carriedBlock, BlockPos pos)
         {
             // Get BlockEntity from pos
-            var blockEntity = carryManager.Api.World.BlockAccessor.GetBlockEntity(pos);
+            var api = carryManager?.Api;
+            if (api == null) return;
+
+            var blockEntity = api.World.BlockAccessor.GetBlockEntity(pos);
             if (blockEntity == null) return;
 
 

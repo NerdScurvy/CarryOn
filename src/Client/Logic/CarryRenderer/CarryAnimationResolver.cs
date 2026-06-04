@@ -10,8 +10,8 @@ namespace CarryOn.Client.Logic.CarryRenderer
     {
         private sealed class DefaultAnimationSet
         {
-            public string Sit { get; init; }
-            public string Crouch { get; init; }
+            public string? Sit { get; init; }
+            public string? Crouch { get; init; }
         }
 
         private static readonly IReadOnlyDictionary<string, DefaultAnimationSet> DefaultSets
@@ -34,10 +34,12 @@ namespace CarryOn.Client.Logic.CarryRenderer
             return (player?.Controls?.FloorSitting ?? false) || player?.MountedOn != null;
         }
 
-        internal static string ResolveHandsAnimation(BlockBehaviorCarryable.SlotSettings slotSettings, bool isSneaking, bool isSitting)
+        internal static string ResolveHandsAnimation(BlockBehaviorCarryable.SlotSettings? slotSettings, bool isSneaking, bool isSitting)
         {
-            var baseAnimation = slotSettings?.Animation;
-            if (string.IsNullOrWhiteSpace(baseAnimation)) return baseAnimation;
+            if (slotSettings == null) return string.Empty;
+
+            var baseAnimation = slotSettings.Animation;
+            if (string.IsNullOrWhiteSpace(baseAnimation)) return string.Empty;
 
             if (isSitting)
             {
@@ -67,10 +69,12 @@ namespace CarryOn.Client.Logic.CarryRenderer
             return baseAnimation;
         }
 
-        internal static HashSet<string> GetHandAnimationCodes(BlockBehaviorCarryable.SlotSettings slotSettings)
+        internal static HashSet<string> GetHandAnimationCodes(BlockBehaviorCarryable.SlotSettings? slotSettings)
         {
             var codes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            var baseAnimation = slotSettings?.Animation;
+            if (slotSettings == null) return codes;
+
+            var baseAnimation = slotSettings.Animation;
             if (string.IsNullOrWhiteSpace(baseAnimation)) return codes;
 
             codes.Add(baseAnimation);

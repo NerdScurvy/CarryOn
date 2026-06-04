@@ -4,11 +4,11 @@ using System.Linq;
 namespace CarryOn.Client.Models
 {
     public record TransformGroup(
-        string GroupName,
-        string ExtendsGroup,
-        IReadOnlyList<TransformGroupSettings> Base,
-        IReadOnlyList<TransformGroupSettings> Overrides,
-        IReadOnlyList<TransformGroupSettings> Appends
+        string? GroupName,
+        string? ExtendsGroup,
+        IReadOnlyList<TransformGroupSettings>? Base,
+        IReadOnlyList<TransformGroupSettings>? Overrides,
+        IReadOnlyList<TransformGroupSettings>? Appends
     )
     {
         // Deep clone method

@@ -27,7 +27,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
     {
         internal static readonly Vec4f DefaultTint = new(1f, 1f, 1f, 1f);
 
-        internal static bool TryReadVec3(JsonObject json, out Vec3f value)
+        internal static bool TryReadVec3(JsonObject json, out Vec3f? value)
         {
             value = null;
             if (json == null || !json.Exists) return false;
@@ -43,7 +43,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
             return true;
         }
 
-        internal static bool TryReadScale(JsonObject json, out Vec3f value)
+        internal static bool TryReadScale(JsonObject json, out Vec3f? value)
         {
             value = null;
             if (json == null || !json.Exists) return false;
@@ -80,7 +80,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
 
         internal static CarriedRenderInfo[] CloneCarriedRenderInfos(CarriedRenderInfo[] source)
         {
-            if (source == null) return null;
+            if (source == null) return Array.Empty<CarriedRenderInfo>();
 
             var clone = new CarriedRenderInfo[source.Length];
             for (int i = 0; i < source.Length; i++)
@@ -117,7 +117,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
             );
         }
 
-        internal static ItemStack TryGetSlotItemStackByKey(TreeAttribute containerSlots, string slotKey)
+        internal static ItemStack? TryGetSlotItemStackByKey(TreeAttribute containerSlots, string slotKey)
         {
             if (containerSlots == null || string.IsNullOrEmpty(slotKey))
             {
@@ -127,7 +127,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
             return containerSlots.GetItemstack(slotKey);
         }
 
-        internal static ItemStack TryGetItemStackByPath(ITreeAttribute root, string path, IWorldAccessor world)
+        internal static ItemStack? TryGetItemStackByPath(ITreeAttribute? root, string path, IWorldAccessor world)
         {
             if (root == null || string.IsNullOrWhiteSpace(path))
             {
@@ -177,7 +177,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
             return string.Concat(entity?.EntityId.ToString() ?? "0", "|", ((int)slot).ToString());
         }
 
-        internal static string BuildFrameCacheKey(EntityAgent entity, CarriedBlock carried, string planSignature, string renderVariantSignature)
+        internal static string BuildFrameCacheKey(EntityAgent entity, CarriedBlock carried, string? planSignature, string? renderVariantSignature)
         {
             return string.Concat(
                 entity?.EntityId.ToString() ?? "0", "|",
@@ -187,7 +187,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
                 renderVariantSignature ?? "novariant");
         }
 
-        internal static string BuildRenderInfoVariantSignature(CarriedBlock carried, TreeAttribute containerSlots, IReadOnlyList<EffectiveTransformSetting> effectiveSettings, IWorldAccessor world)
+        internal static string BuildRenderInfoVariantSignature(CarriedBlock carried, TreeAttribute? containerSlots, IReadOnlyList<EffectiveTransformSetting> effectiveSettings, IWorldAccessor world)
         {
             var sb = new StringBuilder(160);
             var be = carried?.BlockEntityData;
@@ -235,7 +235,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
             return sb.ToString();
         }
 
-        private static void AppendBeStackPathSignature(StringBuilder sb, ITreeAttribute be, IWorldAccessor world, string path, string kind)
+        private static void AppendBeStackPathSignature(StringBuilder sb, ITreeAttribute? be, IWorldAccessor world, string? path, string kind)
         {
             if (string.IsNullOrWhiteSpace(path)) return;
 
@@ -243,7 +243,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
             sb.Append(kind).Append(':').Append(path).Append(':').Append(BuildItemStackContentSignature(stack)).Append(',');
         }
 
-        private static string BuildItemStackContentSignature(ItemStack stack)
+        private static string BuildItemStackContentSignature(ItemStack? stack)
         {
             if (stack == null)
             {
@@ -345,10 +345,10 @@ namespace CarryOn.Client.Logic.CarryRenderer
         }
 
         internal static string BuildTransformPlanSignature(
-            CarriedBlock carried,
+            CarriedBlock? carried,
             string transformsGroupBase,
-            string matchedResolverCode,
-            string resolverCacheSignature)
+            string? matchedResolverCode,
+            string? resolverCacheSignature)
         {
             var sb = new StringBuilder(192);
             sb.Append(carried?.Block?.Code?.ToString() ?? "noblock").Append('|');
@@ -356,8 +356,8 @@ namespace CarryOn.Client.Logic.CarryRenderer
             var variantType = carried?.BlockEntityData?.GetString("type", "none") ?? "none";
             sb.Append(variantType).Append('|');
             sb.Append(transformsGroupBase ?? "default").Append('|');
-            sb.Append((int)carried.Slot).Append('|');
-            sb.Append(carried.ItemStack?.Collectible?.Code?.ToString() ?? "nostack").Append('|');
+            sb.Append((int?)carried?.Slot ?? 0).Append('|');
+            sb.Append(carried?.ItemStack?.Collectible?.Code?.ToString() ?? "nostack").Append('|');
 
             if (!string.IsNullOrEmpty(matchedResolverCode))
             {
@@ -389,7 +389,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
             Mat4f.Translate(matrix, matrix, -transform.Origin.X, -transform.Origin.Y, -transform.Origin.Z);
         }
 
-        internal static float[] GetAttachmentPointMatrix(EntityShapeRenderer renderer, AttachmentPointAndPose attachPointAndPose)
+        internal static float[]? GetAttachmentPointMatrix(EntityShapeRenderer renderer, AttachmentPointAndPose attachPointAndPose)
         {
             var modelMat = renderer?.ModelMat == null ? null : Mat4f.CloneIt(renderer.ModelMat);
             var animModelMat = attachPointAndPose.AnimModelMatrix;
@@ -420,7 +420,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
                 : RenderPhaseMask.Opaque;
         }
 
-        internal static RenderPhaseMask? ParseRenderPass(string renderPass)
+        internal static RenderPhaseMask? ParseRenderPass(string? renderPass)
         {
             if (string.IsNullOrWhiteSpace(renderPass))
             {
@@ -447,7 +447,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
                 : (mask & RenderPhaseMask.Opaque) != 0;
         }
 
-        internal static Vec4f SampleColorMapTint(string climateTintMap, string seasonalTintMap, BlockPos pos, ICoreClientAPI api)
+        internal static Vec4f? SampleColorMapTint(string climateTintMap, string seasonalTintMap, BlockPos pos, ICoreClientAPI api)
         {
             if (api?.World == null) return null;
             if (string.IsNullOrEmpty(climateTintMap) && string.IsNullOrEmpty(seasonalTintMap)) return null;
@@ -485,7 +485,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
             {
             }
 
-            Vec4f climateTint = null;
+            Vec4f? climateTint = null;
             if (!string.IsNullOrEmpty(climateTintMap))
             {
                 try
@@ -507,7 +507,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
                 }
             }
 
-            Vec4f seasonalTint = null;
+            Vec4f? seasonalTint = null;
             if (!string.IsNullOrEmpty(seasonalTintMap))
             {
                 try

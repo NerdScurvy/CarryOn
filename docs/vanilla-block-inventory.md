@@ -19,7 +19,7 @@ Walk speed values shown are explicit overrides. A blank entry means the slot's c
 | game:blocktypes/wood/bookshelf-clutter* | `carryon.Carryables.Clutter & Bookshelf` | Yes | — | — | 0.8 / 0.6 / 1.2 | — | — | — |
 | game:blocktypes/legacy/bookshelves | `carryon.Carryables.Bookshelf` | Yes | — | — | 0.8 / 0.6 / 1.2 | — | — | — |
 | game:blocktypes/wax/bunchocandles | `carryon.Carryables.BunchOCandles` | Yes | — | — | 0.8 / 0.6 / 1.2 | — | — | — |
-| game:blocktypes/wood/woodtyped/cabinet | *(always enabled)* | Yes | — | -0.15 / — | 0.8 / 0.6 / 1.2 | — | — | — |
+| game:blocktypes/wood/woodtyped/cabinet | `carryon.Carryables.Cabinet` | Yes | — | -0.15 / — | 0.8 / 0.6 / 1.2 | — | — | — |
 | game:blocktypes/metal/chandelier | `carryon.Carryables.Chandelier` | Yes | — | — | 0.8 / 0.6 / 1.2 | — | — | — |
 | game:blocktypes/wood/chest | `carryon.Carryables.Chest` | Yes | Yes | — | 0.8 / 0.6 / 1.2 | `carryon.CarryablesOnBack.Chest` | Yes | carryon:carry-chest, carryon:carry-chest-compact |
 | game:blocktypes/wood/chest-labeled | `carryon.Carryables.Chest` | Yes | Yes | — | 0.8 / 0.6 / 1.2 | `carryon.CarryablesOnBack.Chest` | Yes | carryon:carry-chest |
@@ -39,7 +39,7 @@ Walk speed values shown are explicit overrides. A blank entry means the slot's c
 | game:blocktypes/clay/fired/planter | `carryon.Carryables.Planter` | Yes | Yes | — | 0.8 / 0.6 / 1.2 | `carryon.CarryablesOnBack.Planter` | — | carryon:plants-large, carryon:carry-planter |
 | game:blocktypes/metal/plaque | `carryon.Carryables.Sign` ¹ | Yes | — | -0.50 / — | 0.8 / 0.6 / 1.2 | — | — | — |
 | game:blocktypes/stone/quern | `carryon.Carryables.Quern` | Yes | — | -0.40 / — | 1.0 / 0.75 / 1.5 | — | — | — |
-| game:blocktypes/reed/reedchest | `carryon.Carryables.ReedChest` | Yes | Yes | -0.15 / — | 0.4 / 0.3 / 0.6 | `carryon.CarryablesOnBack.ReedChest` | Yes | carryon:carry-reedchest |
+| game:blocktypes/reed/reedchest | `carryon.Carryables.ReedChest` | Yes | Yes | -0.15 / 0.0 | 0.4 / 0.3 / 0.6 | `carryon.CarryablesOnBack.ReedChest` | Yes | carryon:carry-reedchest |
 | game:blocktypes/machine/resonator | `carryon.Carryables.Resonator` | Yes | — | -0.15 / — | 0.4 / 0.3 / 0.6 | — | — | — |
 | game:blocktypes/wood/shelf | `carryon.Carryables.Shelf` | Yes | — | — | 0.8 / 0.6 / 1.2 | — | — | — |
 | game:blocktypes/wood/sign | `carryon.Carryables.Sign` | Yes | — | — | 0.8 / 0.6 / 1.2 | — | — | — |
@@ -50,8 +50,6 @@ Walk speed values shown are explicit overrides. A blank entry means the slot's c
 
 ¹ Banner and plaque share another block type's config key rather than having their own.  
 ² Ingot mold and tool mold both use the shared `Mold` config key.
-
-The `cabinet` patch carries no `enabledCondition` and is always applied when CarryOn is installed.
 
 The `log-withresin` patch uses `behaviorsByType` to target all variants plus a separate entry for the `log-resinharvested-*` state with different transform groups.
 

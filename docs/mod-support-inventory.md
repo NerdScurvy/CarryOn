@@ -4,7 +4,7 @@ Compatibility patches are located in `resources/assets/carryon/patches/carryonmo
 
 There are three patch types used across CarryOnMore:
 
-- **Carryable** — block behavior allowing players to pick up and carry the block. Supports hand, back, and shoulder slots.
+- **Carryable** — block behavior allowing players to pick up and carry the block. Supports hand and back slots.
 - **CarryableInteract** — block behavior that enables interaction with the block (e.g. opening a container) while it is being carried. Added alongside `Carryable` where appropriate.
 - **AttachableCarryable** — entity behavior applied to entity types (not blocks), enabling players to attach to and carry a living or non-living entity.
 

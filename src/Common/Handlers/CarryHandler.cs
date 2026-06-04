@@ -17,7 +17,7 @@ using CarryOn.Common.Logic;
 using static CarryOn.API.Common.Models.CarryCode;
 using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
-using Vintagestory.API.Config;
+using CarryOn.Client.Logic.Interaction;
 
 namespace CarryOn.Common.Handlers
 {
@@ -44,7 +44,7 @@ namespace CarryOn.Common.Handlers
 
         private long gameTickListenerId;
 
-        private readonly CarrySystem carrySystem;
+        private readonly CarrySystem carrySystem = null!;
 
         public bool IsCarryOnEnabled => this.carrySystem.CarryOnEnabled;
 
@@ -52,32 +52,37 @@ namespace CarryOn.Common.Handlers
 
         public bool BackSlotEnabled { get; private set; }
 
-        private ICarryManager carryManager;
+        private ICarryManager? carryManager;
 
-        private ICoreAPI api;
+        private ICoreAPI? api;
 
-        public ICoreAPI Api => this.api;
-        public ICoreClientAPI ClientApi => this.api as ICoreClientAPI;
-        public ICoreServerAPI ServerApi => this.api as ICoreServerAPI;
-        public ICarryManager CarryManager => this.carryManager ??= this.carrySystem.CarryManager;
+        public ICoreAPI Api => this.api!;
+        public ICoreClientAPI? ClientApi => this.api as ICoreClientAPI;
+        public ICoreServerAPI? ServerApi => this.api as ICoreServerAPI;
+        public ICarryManager CarryManager => (this.carryManager ??= this.carrySystem.CarryManager)!;
 
         // Clientside
-        private InteractionLogic interactionLogic { get; set; }
-        private TreeModifiedListener entityCarriedListener;
-        private Entity watchedClientPlayerEntity;
-        private Vintagestory.API.Common.Func<ActiveSlotChangeEventArgs, EnumHandling> clientBeforeActiveSlotChangedDelegate;
-        private Vintagestory.API.Common.Func<IServerPlayer, ActiveSlotChangeEventArgs, EnumHandling> serverBeforeActiveSlotChangedDelegate;
+        private CarryInteractionController interactionLogic { get; set; } = null!;
+        private TreeModifiedListener? entityCarriedListener;
+        private Entity? watchedClientPlayerEntity;
+        private Vintagestory.API.Common.Func<ActiveSlotChangeEventArgs, EnumHandling>? clientBeforeActiveSlotChangedDelegate;
+        private Vintagestory.API.Common.Func<IServerPlayer, ActiveSlotChangeEventArgs, EnumHandling>? serverBeforeActiveSlotChangedDelegate;
 
         // Serverside
-        private TransferLogic transferLogic { get; set; }
+        private TransferLogic? TransferLogic { get; set; } = null;
 
 
         /// <summary>
         /// Sets the HUD element for interaction help, so that it can be updated when carrying interactable blocks.
         /// </summary>
         /// <param name="hudHelp"> The HUD element for interaction help. </param>
-        public void SetHudHelp(Vintagestory.Client.NoObf.HudElementInteractionHelp hudHelp)
+        public void SetHudHelp(Vintagestory.Client.NoObf.HudElementInteractionHelp? hudHelp)
         {
+            if (this.interactionLogic == null)
+            {
+                throw new InvalidOperationException("SetHudHelp can only be called after InitClient has been called.");
+            }
+
             this.interactionLogic.HudHelp = hudHelp;
         }
 
@@ -88,7 +93,7 @@ namespace CarryOn.Common.Handlers
         /// <exception cref="ArgumentNullException"> Thrown if the provided CarrySystem instance is null. </exception>
         public CarryHandler(CarrySystem carrySystem)
         {
-            if (carrySystem == null) throw new ArgumentNullException(nameof(carrySystem));
+            ArgumentNullException.ThrowIfNull(carrySystem);
             this.carrySystem = carrySystem;
 
             this.BackSlotEnabled = this.carrySystem?.Config?.CarryOptions?.BackSlotEnabled ?? false;
@@ -115,9 +120,14 @@ namespace CarryOn.Common.Handlers
                 throw new InvalidOperationException("CarryHandler.InitClient requires Input to be initialized.");
             }
 
-            this.interactionLogic = new InteractionLogic(ClientApi, this.carrySystem);
+            if (this.carrySystem.ClientChannel == null)
+            {
+                throw new InvalidOperationException("CarryHandler.InitClient requires ClientChannel to be initialized in CarrySystem.");
+            }
 
-            RegisterCarryMessageTypes(this.carrySystem.ClientChannel)
+            this.interactionLogic = new CarryInteractionController(ClientApi, this.carrySystem);
+
+            RegisterCarryMessageTypes(this.carrySystem.ClientChannel)!
                 .SetMessageHandler<LockSlotsMessage>(OnLockSlotsMessage);
 
             input.RegisterHotKey(HotKeyCode.Pickup, GetLang("pickup-hotkey"), Default.PickupKeybind);
@@ -142,10 +152,14 @@ namespace CarryOn.Common.Handlers
         public void InitServer(ICoreServerAPI api)
         {
             this.api = api ?? throw new ArgumentNullException(nameof(api));
+            if (this.carrySystem.ServerChannel == null)
+            {
+                throw new InvalidOperationException("CarryHandler.InitServer requires ServerChannel to be initialized in CarrySystem.");
+            }
 
             var serverEvent = api.Event;
 
-            this.transferLogic = new TransferLogic(api, this.carrySystem);
+            this.TransferLogic = new TransferLogic(api, this.carrySystem);
 
             RegisterCarryMessageTypes(this.carrySystem.ServerChannel)
                 .SetMessageHandler<InteractMessage>(OnInteractMessage)
@@ -170,10 +184,7 @@ namespace CarryOn.Common.Handlers
 
         private static TChannel RegisterCarryMessageTypes<TChannel>(TChannel channel) where TChannel : class
         {
-            if (channel == null)
-            {
-                throw new ArgumentNullException(nameof(channel));
-            }
+            ArgumentNullException.ThrowIfNull(channel);
 
             var registerMessageTypeMethod = typeof(TChannel)
                 .GetMethods()
@@ -186,13 +197,20 @@ namespace CarryOn.Common.Handlers
                 throw new InvalidOperationException($"Could not find RegisterMessageType<T>() on channel type {typeof(TChannel).Name}.");
             }
 
-            object current = channel;
+            var current = channel;
             foreach (var messageType in CarryMessageTypes)
             {
-                current = registerMessageTypeMethod.MakeGenericMethod(messageType).Invoke(current, null);
-            }
+                var result = registerMessageTypeMethod.MakeGenericMethod(messageType).Invoke(current, null);
 
-            return (TChannel)current;
+                if (result is not TChannel typedChannel)
+                {
+                    throw new InvalidOperationException(
+                        $"RegisterMessageType<{messageType.Name}> returned null or unexpected type on {typeof(TChannel).Name}.");
+                }
+
+                current = typedChannel;
+            }
+            return current;
         }
 
 
@@ -206,6 +224,11 @@ namespace CarryOn.Common.Handlers
         /// <param name="message"> The message containing the hotbar slot information. </param>
         public void OnLockSlotsMessage(LockSlotsMessage message)
         {
+            if (ClientApi == null)
+            {
+                throw new InvalidOperationException("OnLockSlotsMessage can only be handled on the client side.");
+            }
+
             var player = ClientApi.World.Player;
             var hotbar = player.InventoryManager.GetHotbarInventory();
             for (var i = 0; i < hotbar.Count; i++)
@@ -242,7 +265,7 @@ namespace CarryOn.Common.Handlers
                     blockSelection.Position = message.Position;
                     blockSelection.Block = block;
                     // TODO: add event hook here
-                    block?.OnBlockInteractStart(world, player, blockSelection);
+                    block.OnBlockInteractStart(world, player, blockSelection);
                 }
             }
         }
@@ -257,16 +280,16 @@ namespace CarryOn.Common.Handlers
 
             if (message == null || message.Position == null)
             {
-                FailCarryAction(player, message?.Position, "invalid-data", "pick-up-failed");
+                FailCarryAction(player, message?.Position, FailureCode.InvalidData, FailureCode.PickUpFailed);
                 return;
             }
 
             if (message.Slot != CarrySlot.Hands || !player.Entity.CanInteract(requireEmptyHanded: true))
             {
-                FailCarryAction(player, message?.Position, "cannot-interact", "pick-up-failed");
+                FailCarryAction(player, message?.Position, FailureCode.CannotInteract, FailureCode.PickUpFailed);
                 return;
             }
-            
+
             string failureCode = FailureCode.Ignore;
             if (CarryManager.TryPickUp(
                 player.Entity,
@@ -279,7 +302,7 @@ namespace CarryOn.Common.Handlers
                 return;
             }
 
-            FailCarryAction(player, message.Position, failureCode, "pick-up-failed");
+            FailCarryAction(player, message.Position, failureCode, FailureCode.PickUpFailed);
         }
 
         /// <summary>
@@ -291,13 +314,13 @@ namespace CarryOn.Common.Handlers
         {
             if (message == null || message.Position == null || message.HitPosition == null || message.PlacedAt == null)
             {
-                FailCarryAction(player, message?.Position, "invalid-data", "place-down-failed");
+                FailCarryAction(player, message?.Position, FailureCode.InvalidData, FailureCode.PlaceDownFailed);
                 return;
             }
 
             if (!player.Entity.CanInteract(requireEmptyHanded: message.Slot != CarrySlot.Hands))
             {
-                FailCarryAction(player, message?.Position, "cannot-interact", "place-down-failed");
+                FailCarryAction(player, message?.Position, FailureCode.CannotInteract, FailureCode.PlaceDownFailed);
                 return;
             }
 
@@ -312,21 +335,26 @@ namespace CarryOn.Common.Handlers
                 if (placedAt != message.PlacedAt)
                 {
                     player.Entity.World.BlockAccessor.MarkBlockDirty(message.PlacedAt);
-                }                
+                }
                 return;
             }
 
-            FailCarryAction(player, message.Position, failureCode, "place-down-failed");
+            FailCarryAction(player, message.Position, failureCode, FailureCode.PlaceDownFailed);
         }
 
 
-        private void FailCarryAction(IServerPlayer player, BlockPos pos, string failureCode, string defaultCode)
+        private void FailCarryAction(IServerPlayer player, BlockPos? pos, string failureCode, string defaultCode)
         {
+            if (ServerApi == null)
+            {
+                throw new InvalidOperationException("FailCarryAction can only be called on the server side.");
+            }
+
             // Invalidate the carry state for the player and block, so that the client can update and show the correct block and carry state after a failed pick-up or place-down attempt.
             if (pos != null) player.Entity.World.BlockAccessor.MarkBlockDirty(pos);
             CarryManager.TouchCarriedAttributes(player.Entity);
             player.Entity.WatchedAttributes.MarkPathDirty("stats/walkspeed");
-            CarryManager.LockHotbarSlots(player);                
+            CarryManager.LockHotbarSlots(player);
 
             if (!string.IsNullOrEmpty(failureCode) && failureCode != FailureCode.Ignore)
             {
@@ -404,11 +432,15 @@ namespace CarryOn.Common.Handlers
 
         }
 
-        private void SendAttachDetachFailure(IServerPlayer player, string failureCode)
+        private void SendAttachDetachFailure(IServerPlayer player, string? failureCode)
         {
             if (failureCode == null || failureCode == FailureCode.Ignore)
             {
                 return;
+            }
+            if (ServerApi == null)
+            {
+                throw new InvalidOperationException("ServerApi is not initialized.");
             }
 
             ServerApi.SendIngameError(player, failureCode, GetLang(failureCode));
@@ -436,7 +468,13 @@ namespace CarryOn.Common.Handlers
             string failureCode;
             string onScreenErrorMessage;
 
-            if (!this.transferLogic.TryPutCarryable(player, message, out failureCode, out onScreenErrorMessage))
+            if(this.TransferLogic == null)
+            {
+                api.Logger.Error("OnPutMessage: TransferLogic is not initialized");
+                return;
+            }
+
+            if (!this.TransferLogic.TryPutCarryable(player, message, out failureCode, out onScreenErrorMessage))
             {
                 if (onScreenErrorMessage != null)
                 {
@@ -453,7 +491,19 @@ namespace CarryOn.Common.Handlers
         public void OnTakeMessage(IServerPlayer player, TakeMessage message)
         {
 
-            if (!this.transferLogic.TryTakeCarryable(player, message, out string failureCode, out string onScreenErrorMessage))
+            var api = ServerApi;
+            if (api == null)
+            {
+                throw new InvalidOperationException("ServerApi is not initialized.");
+            }
+            
+            if (this.TransferLogic == null)
+            {
+                api.Logger.Error("OnTakeMessage: TransferLogic is not initialized");
+                return;
+            }
+
+            if (!this.TransferLogic.TryTakeCarryable(player, message, out string failureCode, out string onScreenErrorMessage))
             {
                 if (onScreenErrorMessage != null)
                 {
@@ -630,7 +680,7 @@ namespace CarryOn.Common.Handlers
             if (entity is EntityPlayer) return;
 
             // Set this again so walk speed modifiers and animations can be applied.
-            foreach (var carried in entity.GetCarried())
+            foreach (var carried in entity.GetCarried()!)
                 carried.Set(entity, carried.Slot);
         }
 
@@ -640,7 +690,7 @@ namespace CarryOn.Common.Handlers
         /// <param name="player"> The player who has started playing. </param>
         public void OnServerPlayerNowPlaying(IServerPlayer player)
         {
-            foreach (var carried in player.Entity.GetCarried())
+            foreach (var carried in player.Entity.GetCarried()!)
                 carried.Set(player.Entity, carried.Slot);
         }
 

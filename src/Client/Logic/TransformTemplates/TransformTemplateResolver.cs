@@ -34,9 +34,9 @@ namespace CarryOn.Client.Logic.TransformTemplates
         /// <param name="localTransformGroups"> Optional local transform groups that can override or extend the templates. </param>
         /// <returns> A dictionary mapping transform group names to arrays of resolved TransformSettings. </returns>
         public Dictionary<string, TransformSettings[]> ResolveAndFlatten(
-            IDictionary<string, Dictionary<string, TransformGroup>> templatesByCode,
+            IDictionary<string, Dictionary<string, TransformGroup?>> templatesByCode,
             IList<string> templateCodes,
-            Dictionary<string, TransformGroup> localTransformGroups = null)
+            Dictionary<string, TransformGroup?>? localTransformGroups = null)
         {
             var mergedDefinitions = MergeDefinitions(templatesByCode, templateCodes, localTransformGroups);
 
@@ -65,12 +65,12 @@ namespace CarryOn.Client.Logic.TransformTemplates
         /// <param name="templateCodes"> A list of template codes to be processed. </param>
         /// <param name="localTransformGroups"> Optional local transform groups that can override or extend the templates. </param>
         /// <returns> A dictionary mapping transform group names to their merged TransformGroup definitions. </returns>
-        public Dictionary<string, TransformGroup> MergeDefinitions(
-            IDictionary<string, Dictionary<string, TransformGroup>> templatesByCode,
+        public Dictionary<string, TransformGroup?> MergeDefinitions(
+            IDictionary<string, Dictionary<string, TransformGroup?>> templatesByCode,
             IList<string> templateCodes,
-            Dictionary<string, TransformGroup> localTransformGroups)
+            Dictionary<string, TransformGroup?>? localTransformGroups)
         {
-            var merged = new Dictionary<string, TransformGroup>(StringComparer.OrdinalIgnoreCase);
+            var merged = new Dictionary<string, TransformGroup?>(StringComparer.OrdinalIgnoreCase);
 
             if (templateCodes != null)
             {
@@ -83,7 +83,7 @@ namespace CarryOn.Client.Logic.TransformTemplates
 
                     foreach (var kv in groups)
                     {
-                        merged[kv.Key] = kv.Value?.DeepClone();
+                        merged[kv.Key] = kv.Value?.DeepClone()!;
                     }
                 }
             }
@@ -92,7 +92,7 @@ namespace CarryOn.Client.Logic.TransformTemplates
             {
                 foreach (var kv in localTransformGroups)
                 {
-                    merged[kv.Key] = kv.Value?.DeepClone();
+                    merged[kv.Key] = kv.Value?.DeepClone()!;
                 }
             }
 
@@ -107,9 +107,9 @@ namespace CarryOn.Client.Logic.TransformTemplates
         /// <param name="resolved"> A dictionary to store resolved transform groups. </param>
         /// <param name="resolving"> A set to track currently resolving groups to detect cycles. </param>
         /// <returns> A list of resolved TransformGroupSettings for the specified group. </returns>
-        private List<TransformGroupSettings> ResolveGroupRecursive(
+        private List<TransformGroupSettings>? ResolveGroupRecursive(
             string groupName,
-            IDictionary<string, TransformGroup> definitions,
+            IDictionary<string, TransformGroup?> definitions,
             IDictionary<string, List<TransformGroupSettings>> resolved,
             ISet<string> resolving)
         {
@@ -174,7 +174,7 @@ namespace CarryOn.Client.Logic.TransformTemplates
         /// </summary>
         /// <param name="target"> The list of target TransformGroupSettings to apply overrides to. </param>
         /// <param name="incoming"> The list of incoming TransformGroupSettings containing overrides. </param>
-        private static void ApplyUpsertById(List<TransformGroupSettings> target, IReadOnlyList<TransformGroupSettings> incoming)
+        private static void ApplyUpsertById(List<TransformGroupSettings> target, IReadOnlyList<TransformGroupSettings>? incoming)
         {
             if (incoming == null) return;
 
@@ -190,7 +190,7 @@ namespace CarryOn.Client.Logic.TransformTemplates
 
                     if (idx >= 0)
                     {
-                        target[idx] = target[idx]?.MergeOverlay(s) ?? s?.DeepClone();
+                        target[idx] = target[idx]?.MergeOverlay(s) ?? s?.DeepClone()!;
                         continue;
                     }
                 }
@@ -308,7 +308,7 @@ namespace CarryOn.Client.Logic.TransformTemplates
         /// The "^" groups themselves are not included in the final resolved output.
         /// </summary>
         /// <param name="definitions"> A dictionary mapping transform group names to their TransformGroup definitions. </param>
-        private void ApplyCaretPrefixedPreResolveAdjustments(IDictionary<string, TransformGroup> definitions)
+        private void ApplyCaretPrefixedPreResolveAdjustments(IDictionary<string, TransformGroup?> definitions)
         {
             if (definitions == null || definitions.Count == 0) return;
 
@@ -356,7 +356,7 @@ namespace CarryOn.Client.Logic.TransformTemplates
         /// <param name="incoming"> The incoming TransformGroupSettings containing the relative adjustments. </param>
         /// <param name="patchGroupName"> The name of the patch group (with "^" prefix). </param>
         /// <param name="targetGroupName"> The name of the target group. </param>
-        private TransformGroup ApplyRelativeAdjustmentsToDefinition(
+        private TransformGroup? ApplyRelativeAdjustmentsToDefinition(
             TransformGroup targetGroup,
             IEnumerable<TransformGroupSettings> incoming,
             string patchGroupName,
@@ -365,9 +365,9 @@ namespace CarryOn.Client.Logic.TransformTemplates
             if (targetGroup == null || incoming == null) return targetGroup;
 
             // Work on local copies of the lists
-            var baseList = targetGroup.Base?.ToList() ?? [];
-            var overridesList = targetGroup.Overrides?.ToList() ?? [];
-            var appendsList = targetGroup.Appends?.ToList() ?? [];
+            List<TransformGroupSettings> baseList = targetGroup.Base?.ToList() ?? new List<TransformGroupSettings>();
+            List<TransformGroupSettings> overridesList = targetGroup.Overrides?.ToList() ?? new List<TransformGroupSettings>();
+            List<TransformGroupSettings> appendsList = targetGroup.Appends?.ToList() ?? new List<TransformGroupSettings>();
 
             foreach (var patch in incoming)
             {
@@ -385,7 +385,7 @@ namespace CarryOn.Client.Logic.TransformTemplates
                 }
 
                 // No id: allow only if target definition has exactly one entry total.
-                var total = (baseList?.Count ?? 0) + (overridesList?.Count ?? 0) + (appendsList?.Count ?? 0);
+                var total = baseList.Count + overridesList.Count + appendsList.Count;
                 if (total == 1)
                 {
                     if (TryMergeRelativeFirst(baseList, patch)) continue;
@@ -470,7 +470,7 @@ namespace CarryOn.Client.Logic.TransformTemplates
                 var list = new List<TransformSettings>();
                 foreach (var s in kv.Value)
                 {
-                    list.Add(s?.ToTransformSettings(BlockBehaviorCarryable.DefaultBlockTransform));
+                    list.Add(s?.ToTransformSettings(BlockBehaviorCarryable.DefaultBlockTransform)!);
                 }
                 flattened[kv.Key] = list.ToArray();
             }
@@ -486,7 +486,7 @@ namespace CarryOn.Client.Logic.TransformTemplates
         /// <param name="list"> The list of TransformGroupSettings to merge into. </param>
         /// <param name="patch"> The TransformGroupSettings containing the relative adjustments. </param>
         /// <returns> True if a merge was performed, false otherwise. </returns>
-        private static bool TryMergeRelativeById(IList<TransformGroupSettings> list, TransformGroupSettings patch)
+        private static bool TryMergeRelativeById(IList<TransformGroupSettings>? list, TransformGroupSettings patch)
         {
             if (list == null || patch == null || string.IsNullOrWhiteSpace(patch.Id))
             {
@@ -519,7 +519,7 @@ namespace CarryOn.Client.Logic.TransformTemplates
         /// <param name="list"> The list of TransformGroupSettings to merge into. </param>
         /// <param name="patch"> The TransformGroupSettings containing the relative adjustments. </param>
         /// <returns> True if a merge was performed, false otherwise. </returns>
-        private static bool TryMergeRelativeFirst(IList<TransformGroupSettings> list, TransformGroupSettings patch)
+        private static bool TryMergeRelativeFirst(IList<TransformGroupSettings>? list, TransformGroupSettings patch)
         {
             if (list == null || patch == null || list.Count == 0)
             {

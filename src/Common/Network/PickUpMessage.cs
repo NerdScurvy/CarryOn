@@ -7,7 +7,7 @@ namespace CarryOn.Common.Network
     [ProtoContract(ImplicitFields = ImplicitFields.AllFields)]
     public record PickUpMessage
     {
-        public BlockPos Position { get; init; }
+        public BlockPos Position { get; init; } = null!;
         public CarrySlot Slot { get; init; }
 
         private PickUpMessage() { }

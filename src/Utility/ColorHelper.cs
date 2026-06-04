@@ -30,7 +30,7 @@ namespace CarryOn.Utility
 
         // Normalize hex string into the canonical upper-case #RRGGBB form.
         // Accepts formats: "#RRGGBB", "RRGGBB", "#RGB" and "RGB". Returns false if invalid.
-        public static bool TryNormalizeHex(string hex, out string normalized)
+        public static bool TryNormalizeHex(string hex, out string? normalized)
         {
             normalized = null;
             if (string.IsNullOrWhiteSpace(hex)) return false;

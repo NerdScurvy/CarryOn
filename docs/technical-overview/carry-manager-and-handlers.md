@@ -112,7 +112,7 @@ Death flow responsibility:
 
 `CarryManager.GetCarried` / `SetCarried` / `RemoveCarried` use watched attributes under:
 - `AttributeKey.Watched.EntityCarried`
-- slot key (`Hands`, `Back`, `Shoulder`, etc.)
+- slot key (`Hands`, `Back`, etc.)
 - child keys:
   - `Stack` for block item stack
   - `Data` for serialized block entity data

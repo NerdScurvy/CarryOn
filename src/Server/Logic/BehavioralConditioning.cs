@@ -6,7 +6,6 @@ using CarryOn.API.Common.Models;
 using CarryOn.Common.Behaviors;
 using CarryOn.Utility;
 using Newtonsoft.Json.Linq;
-using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.Util;
@@ -17,7 +16,7 @@ namespace CarryOn.Server.Logic
     public class BehavioralConditioning
     {
 
-        public CarryOnConfig Config { get; private set; }
+        public CarryOnConfig Config { get; private set; } = null!;
 
         public void Init(ICoreAPI api, CarryOnConfig config)
         {
@@ -176,7 +175,7 @@ namespace CarryOn.Server.Logic
         /// <param name="api"></param>
         private T[] RemoveOverriddenCarryableBehaviors<T>(T[] behaviours, bool removeBaseBehavior = false)
         {
-            if (behaviours == null || behaviours.Length == 0) return behaviours;
+            if (behaviours.Length == 0) return behaviours;
 
             var behaviourList = behaviours.ToList();
             var carryableList = behaviourList.OfType<BlockBehaviorCarryable>().ToList();
@@ -185,7 +184,7 @@ namespace CarryOn.Server.Logic
             {
                 var hasOverrides = carryableList.Any(c => c.OverrideExistingProperties);
 
-                BlockBehaviorCarryable keepBehavior;
+                BlockBehaviorCarryable? keepBehavior = null;
 
                 if (!hasOverrides)
                 {
@@ -203,13 +202,13 @@ namespace CarryOn.Server.Logic
                         ?? ordered.Last();
 
                     var overlays = ordered
-                        .Where(c => c.OverrideExistingProperties && c.PatchPriority >= keepBehavior.PatchPriority)
+                        .Where(c => c.OverrideExistingProperties && c.PatchPriority >= keepBehavior!.PatchPriority)
                         .ToList();
 
                     if (overlays.Count > 0)
                     {
-                        var merged = MergeCarryableProperties(keepBehavior, overlays);
-                        keepBehavior.Initialize(merged);
+                        var merged = MergeCarryableProperties(keepBehavior!, overlays);
+                        keepBehavior!.Initialize(merged);
                     }
                 }
 
@@ -233,7 +232,6 @@ namespace CarryOn.Server.Logic
         /// </summary>
         public static T[] RemoveBehaviorsOfType<T>(T[] behaviours, Type typeToRemove)
         {
-            if (behaviours == null) return null;
             var behaviourList = behaviours.ToList();
             behaviourList.RemoveAll(r => typeToRemove.IsInstanceOfType(r));
             return behaviourList.ToArray();
@@ -318,10 +316,10 @@ namespace CarryOn.Server.Logic
             var matchBehaviors = new Dictionary<string, BlockBehaviorCarryable>();
             foreach (var carryableBlock in api.World.Blocks.Where(b => b.IsCarryable() && b.Code.Domain == "game"))
             {
-                var shapePath = carryableBlock?.ShapeInventory?.Base?.Path ?? carryableBlock?.Shape?.Base?.Path;
+                var shapePath = carryableBlock.ShapeInventory?.Base?.Path ?? carryableBlock.Shape?.Base?.Path;
                 var shapeKey = shapePath != null && shapePath != "block/basic/cube" ? $"Shape:{shapePath}" : null;
 
-                string entityClassKey = null;
+                string? entityClassKey = null;
 
                 if (carryableBlock.EntityClass != null && carryableBlock.EntityClass != "Generic" && carryableBlock.EntityClass != "Transient")
                 {
@@ -333,7 +331,7 @@ namespace CarryOn.Server.Logic
                     }
                 }
 
-                string classKey = null;
+                string? classKey = null;
                 if (carryableBlock.Class is not "Block" and not "BlockGeneric")
                 {
                     classKey = $"Class:{carryableBlock.Class}";
@@ -379,7 +377,7 @@ namespace CarryOn.Server.Logic
             {
                 if (block.EntityClass == null) continue;
                 var matchKeys = GetPotentialMatchKeys(block);
-                string key = null;
+                string? key = null;
 
                 foreach (var matchKey in matchKeys)
                 {
@@ -397,11 +395,11 @@ namespace CarryOn.Server.Logic
 
                     var newBehavior = new BlockBehaviorCarryable(block);
                     block.BlockBehaviors = block.BlockBehaviors.Append(newBehavior);
-                    newBehavior.Initialize(behavior.Properties);
+                    newBehavior.Initialize(behavior.Properties!);
 
                     newBehavior = new BlockBehaviorCarryable(block);
                     block.CollectibleBehaviors = block.CollectibleBehaviors.Append(newBehavior);
-                    newBehavior.Initialize(behavior.Properties);
+                    newBehavior.Initialize(behavior.Properties!);
                 }
             }
         }

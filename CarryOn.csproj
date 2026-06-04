@@ -10,6 +10,7 @@
 		
 		<TargetFramework>net10.0</TargetFramework>
 		<LangVersion>latest</LangVersion>
+		<Nullable>enable</Nullable>
 		
 	</PropertyGroup>
 	<ItemGroup>
@@ -77,3 +78,4 @@
 		<Copy DestinationFolder="$(VINTAGE_STORY_DATA)/CarryOnDev/Mods/" SourceFiles="bin/$(TargetName).zip" />
 	</Target>
 </Project>
+

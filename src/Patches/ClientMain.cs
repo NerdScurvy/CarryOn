@@ -25,8 +25,12 @@ namespace CarryOn.Patches
             try
             {
                 // Find HudElementInteractionHelp from __instance.LoadedGuis
-                FieldInfo internalField = typeof(ClientMain).GetField("LoadedGuis", BindingFlags.NonPublic | BindingFlags.Instance);
+                FieldInfo? internalField = typeof(ClientMain).GetField("LoadedGuis", BindingFlags.NonPublic | BindingFlags.Instance);
+                if (internalField == null) return;
+
                 var loadedGuis = internalField.GetValue(__instance) as List<GuiDialog>;
+                if (loadedGuis == null) return;
+
                 var hudHelp = loadedGuis?.FirstOrDefault(gui => gui is HudElementInteractionHelp) as HudElementInteractionHelp;
 
                 carrySystem.CarryHandler.SetHudHelp(hudHelp);

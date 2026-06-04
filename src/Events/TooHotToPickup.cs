@@ -1,6 +1,8 @@
+using System;
 using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
 using CarryOn.Utility;
+using static CarryOn.API.Common.Models.CarryCode;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
 using Vintagestory.API.Datastructures;
@@ -14,48 +16,54 @@ namespace CarryOn.Events
     /// </summary>
     public class TooHotToPickup : ICarryEvent
     {
-        private CarryOnConfig config;
+        private CarryOnConfig? config;
         public void Init(ICarryManager carryManager)
         {
-            // Only enable if the config option is enabled
-            config = carryManager?.Api?.World.GetCarrySystem()?.Config;
-            if (config == null || !config.CarryOptions.TooHotToCarry) return;
+            config = carryManager.Api.World?.GetCarrySystem()?.Config;
+            if (config?.CarryOptions?.TooHotToCarry != true) return;
 
-            carryManager.CarryEvents.BeforePickUpBlock += OnBeforePickUpBlock;
+            var carryEvents = carryManager.CarryEvents;
+            if (carryEvents == null) return;
+
+            carryEvents.BeforePickUpBlock += OnBeforePickUpBlock;
         }
 
         private void OnBeforePickUpBlock(Entity entity, BlockPos pos, CarrySlot slot, CarriedBlock carried, out bool? canPickUp, out string failureCode)
         {
             canPickUp = null;
-            failureCode = null;
+            failureCode = string.Empty;
 
-            var blockEntity = entity.World.BlockAccessor.GetBlockEntity(pos);
+            var world = entity?.World;
+            if (world == null) return;
+
+            var blockEntity = world.BlockAccessor.GetBlockEntity(pos);
             if (blockEntity == null) return;
 
             // Direct block heat checks
             if (blockEntity is ITemperatureSensitive tempSensitive && tempSensitive.IsHot)
             {
                 canPickUp = false;
-                failureCode = "too-hot";
+                failureCode = FailureCode.TooHot;
                 return;
             }
 
             // Check if block is an oven or forge and too hot
             if (blockEntity is IHeatSource heatSource)
             {
-                if (heatSource is BlockEntityOven oven && oven.ovenTemperature > config.CarryOptions.TooHotToCarryTemperature
-                    || heatSource is BlockEntityForge forge && forge.IsBurning)
+                var carryOptions = config?.CarryOptions;
+                if (carryOptions != null && ((heatSource is BlockEntityOven oven && oven.ovenTemperature > carryOptions.TooHotToCarryTemperature)
+                    || (heatSource is BlockEntityForge forge && forge.IsBurning)))
                 {
                     canPickUp = false;
-                    failureCode = "too-hot";
+                    failureCode = FailureCode.TooHot;
                     return;
                 }
 
                 // Check if any inventory items are too hot
-                if (HasTooHotInventoryItems(blockEntity, entity.World))
+                if (carryOptions != null && HasTooHotInventoryItems(blockEntity, world))
                 {
                     canPickUp = false;
-                    failureCode = "too-hot";
+                    failureCode = FailureCode.TooHot;
                 }
             }
         }
@@ -76,7 +84,7 @@ namespace CarryOn.Events
                 if (stack?.Collectible == null) continue;
 
                 var temp = stack.Collectible.GetTemperature(world, stack);
-                if (temp >= config.CarryOptions.TooHotToCarryTemperature) return true;
+                if (config != null && temp >= config.CarryOptions.TooHotToCarryTemperature) return true;
             }
 
             return false;

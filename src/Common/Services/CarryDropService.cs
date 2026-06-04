@@ -15,38 +15,8 @@ using static CarryOn.API.Common.Models.CarryCode;
 
 namespace CarryOn.Common.Services
 {
-    /// <summary>
-    /// Encapsulates carry drop behavior, including world placement fallback and item dropping.
-    /// </summary>
-    internal sealed class CarryDropService
+    internal sealed class CarryDropService(ICoreAPI api, ICarryManager carryManager)
     {
-        /// <summary>
-        /// Gets the core API for world access and side checks.
-        /// </summary>
-        public ICoreAPI Api { get; }
-
-        /// <summary>
-        /// Gets the owning carry system and configuration.
-        /// </summary>
-        public CarrySystem CarrySystem { get; }
-
-        /// <summary>
-        /// Gets the carry manager facade used for cross-domain operations and event dispatch.
-        /// </summary>
-        public ICarryManager CarryManager { get; }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CarryDropService"/> class.
-        /// </summary>
-        /// <param name="api">Core API instance.</param>
-        /// <param name="carrySystem">Owning carry system.</param>
-        /// <param name="carryManager">Carry manager facade.</param>
-        public CarryDropService(ICoreAPI api, CarrySystem carrySystem, ICarryManager carryManager)
-        {
-            Api = api ?? throw new ArgumentNullException(nameof(api));
-            CarrySystem = carrySystem ?? throw new ArgumentNullException(nameof(carrySystem));
-            CarryManager = carryManager ?? throw new ArgumentNullException(nameof(carryManager));
-        }
 
         /// <summary>
         /// Drops carried blocks from the supplied carry slots.
@@ -56,14 +26,14 @@ namespace CarryOn.Common.Services
         /// <param name="range">Search radius for attempted world placement.</param>
         public void DropCarried(Entity entity, IEnumerable<CarrySlot> slots, int range = 4)
         {
-            if (entity == null) throw new ArgumentNullException(nameof(entity));
-            if (slots == null) throw new ArgumentNullException(nameof(slots));
+            ArgumentNullException.ThrowIfNull(entity);
+            ArgumentNullException.ThrowIfNull(slots);
             if (range < 0) throw new ArgumentOutOfRangeException(nameof(range));
 
             var remaining = slots
                 .Select(s => entity.GetCarried(s))
-                .Where(c => c != null)
-                .OrderBy(c => c?.Block.GetBehavior<BlockBehaviorMultiblock>() != null)
+                .OfType<CarriedBlock>()
+                .OrderBy(c => c.Block.GetBehavior<BlockBehaviorMultiblock>() != null)
                 .ToList();
             if (remaining.Count == 0) return;
 
@@ -81,7 +51,7 @@ namespace CarryOn.Common.Services
         /// <param name="carriedBlock">Carried block to drop.</param>
         /// <param name="range">Search radius for attempted world placement.</param>
         /// <param name="blockPlacer">Optional reusable block placer helper.</param>
-        public void DropCarriedBlock(Entity entity, CarriedBlock carriedBlock, int range = 4, BlockPlacer blockPlacer = null)
+        public void DropCarriedBlock(Entity entity, CarriedBlock carriedBlock, int range = 4, BlockPlacer? blockPlacer = null)
         {
             if (carriedBlock == null) return;
 
@@ -89,7 +59,7 @@ namespace CarryOn.Common.Services
 
             if (range < 0) throw new ArgumentOutOfRangeException(nameof(range));
 
-            IServerPlayer player = entity is EntityPlayer entityPlayer ? (IServerPlayer)entityPlayer.Player : null;
+            var player = (entity as EntityPlayer)?.Player as IServerPlayer;
 
             var centerBlock = entity.Pos.AsBlockPos.UpCopy();
             blockPlacer ??= new BlockPlacer(entity.Api);
@@ -101,7 +71,7 @@ namespace CarryOn.Common.Services
                 return;
             }
 
-            if (CarryManager.TryPlaceDown(entity, carriedBlock, blockSelection, dropped: true))
+            if (carryManager.TryPlaceDown(entity, carriedBlock, blockSelection, dropped: true))
             {
                 return;
             }
@@ -116,9 +86,9 @@ namespace CarryOn.Common.Services
         /// <param name="centerBlock">Center position for item spawning and audio.</param>
         /// <param name="player">Optional acting server player for contextual drops.</param>
         /// <param name="entity">Entity source for state mutation and events.</param>
-        public void DropBlockAsItem(CarriedBlock carriedBlock, BlockPos centerBlock, IServerPlayer player, Entity entity)
+        public void DropBlockAsItem(CarriedBlock carriedBlock, BlockPos centerBlock, IServerPlayer? player, Entity entity)
         {
-            var world = Api.World;
+            var world = api.World;
             var blockDestroyed = false;
             var hadContents = false;
             var dropCount = 1;
@@ -158,14 +128,14 @@ namespace CarryOn.Common.Services
 
             var breakSound = carriedBlock.Block.Sounds.GetBreakSound(player).Location ?? new AssetLocation("game:sounds/block/planks");
             world.PlaySoundAt(breakSound, (double)centerBlock.X, (double)centerBlock.Y, (double)centerBlock.Z);
-            CarryManager.RemoveCarried(entity, carriedBlock.Slot);
+            carryManager.RemoveCarried(entity, carriedBlock.Slot);
 
             if (blockDestroyed)
                 world.Logger.Audit($"[{ModId}] Player {player?.PlayerName} dropped carried block {carriedBlock.Block.Code} at {centerBlock} and it was destroyed dropping {dropCount} items.");
             else
                 world.Logger.Audit($"[{ModId}] Player {player?.PlayerName} dropped carried block {carriedBlock.Block.Code} as item at {centerBlock} spilling {dropCount} items from its contents.");
 
-            CarryManager.CarryEvents?.TriggerBlockDropped(centerBlock, entity, carriedBlock, blockDestroyed, hadContents, blockPlaced: false);
+            carryManager.CarryEvents?.TriggerBlockDropped(centerBlock, entity, carriedBlock, blockDestroyed, hadContents, blockPlaced: false);
         }
     }
 }
