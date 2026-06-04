@@ -21,12 +21,12 @@ using static CarryOn.API.Common.Models.CarryCode;
 
 [assembly: ModInfo("Carry On",
     modID: "carryon",
-    Version = "2.0.0-pre.2",
+    Version = "2.0.0-pre.3",
     Description = "Adds the capability to carry various things",
     Website = "https://github.com/NerdScurvy/CarryOn",
     Authors = new[] { "copygirl", "NerdScurvy" })]
 [assembly: ModDependency("game", "1.22.0")]
-[assembly: ModDependency("carryonlib", "1.0.0-pre.2")]
+[assembly: ModDependency("carryonlib", "1.0.0-pre.3")]
 
 namespace CarryOn
 {
