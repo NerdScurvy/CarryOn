@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using CarryOn.API.Common.Models;
 using CarryOn.Common.Behaviors;
@@ -22,7 +23,9 @@ namespace CarryOn.Common.Logic
 
             if (configured != null)
             {
-                if (TryResolveByBlockCode(configured, block, slot, out var byCode))
+                var carryType = ResolveCarryType(stack);
+
+                if (TryResolveByBlockCode(configured, block, carryType, slot, out var byCode))
                 {
                     return byCode;
                 }
@@ -61,6 +64,7 @@ namespace CarryOn.Common.Logic
         private static bool TryResolveByBlockCode(
             WalkSpeedOverridesConfig configured,
             Block? block,
+            string? carryType,
             CarrySlot slot,
             out float speed)
         {
@@ -73,22 +77,91 @@ namespace CarryOn.Common.Logic
                 return false;
             }
 
-            if (JsonHelper.TryGetValueTrimmedIgnoreCase(map, blockCode, out var exact)
-                && exact != null
-                && TryGetSpeedFromSlotConfig(exact, slot, out speed))
+            CarrySlotSpeedConfig? bestConfig = null;
+            var bestBlockScore = -1;
+            var bestTypeScore = -1;
+
+            foreach (var entry in map)
             {
-                return true;
+                if (entry.Value == null) continue;
+
+                var key = entry.Key?.Trim();
+                if (string.IsNullOrWhiteSpace(key)) continue;
+
+                var pipeIndex = key.IndexOf('|');
+                string blockPattern;
+                string? typePattern;
+                if (pipeIndex >= 0)
+                {
+                    blockPattern = key.Substring(0, pipeIndex);
+                    typePattern = key.Substring(pipeIndex + 1);
+                }
+                else
+                {
+                    blockPattern = key;
+                    typePattern = null;
+                }
+
+                if (string.IsNullOrWhiteSpace(blockPattern)) continue;
+
+                int blockScore;
+                if (blockPattern.EndsWith("*", StringComparison.Ordinal))
+                {
+                    var prefix = blockPattern.Substring(0, blockPattern.Length - 1);
+                    if (!blockCode.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                        continue;
+                    blockScore = prefix.Length;
+                }
+                else
+                {
+                    if (!string.Equals(blockCode, blockPattern, StringComparison.OrdinalIgnoreCase))
+                        continue;
+                    blockScore = int.MaxValue;
+                }
+
+                int typeScore;
+                if (typePattern != null)
+                {
+                    if (string.IsNullOrWhiteSpace(carryType))
+                        continue;
+
+                    if (typePattern.EndsWith("*", StringComparison.Ordinal))
+                    {
+                        var typePrefix = typePattern.Substring(0, typePattern.Length - 1);
+                        if (!carryType.StartsWith(typePrefix, StringComparison.OrdinalIgnoreCase))
+                            continue;
+                        typeScore = typePrefix.Length;
+                    }
+                    else if (string.IsNullOrEmpty(typePattern))
+                    {
+                        if (!string.IsNullOrEmpty(carryType))
+                            continue;
+                        typeScore = 0;
+                    }
+                    else
+                    {
+                        if (!string.Equals(carryType, typePattern, StringComparison.OrdinalIgnoreCase))
+                            continue;
+                        typeScore = int.MaxValue;
+                    }
+                }
+                else
+                {
+                    typeScore = -1;
+                }
+
+                if (blockScore > bestBlockScore
+                    || (blockScore == bestBlockScore && typeScore > bestTypeScore))
+                {
+                    bestConfig = entry.Value;
+                    bestBlockScore = blockScore;
+                    bestTypeScore = typeScore;
+                }
             }
 
-            if (JsonHelper.TryGetTrailingWildcardValue(
-                    map,
-                    blockCode,
-                    out CarrySlotSpeedConfig? wildcardConfig,
-                    static value => value is not null)
-                && wildcardConfig is not null
-                && TryGetSpeedFromSlotConfig(wildcardConfig, slot, out speed))
+            if (bestConfig != null)
             {
-                return true;
+                return TryGetSpeedFromSlotConfig(bestConfig, slot, out speed);
             }
 
             return false;

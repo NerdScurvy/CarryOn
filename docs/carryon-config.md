@@ -154,10 +154,13 @@ This option is commonly used to avoid accidental swap/back actions when interact
   "ByBlockCode": {
     "game:stationarybasket*": { "Back": -0.10 },
     "lc:lblstationarybasket*": { "Back": -0.10 },
-    "lcupdated:lblstationarybasket*": { "Back": -0.10 }
+    "lcupdated:lblstationarybasket*": { "Back": -0.10 },
+    "game:chest*|owl*": { "Back": -0.08 },
+    "game:chest*|golden*": { "Back": -0.10 },
+    "game:chest*": { "Back": -0.15 }
   },
   "ByBlockClass": {
-    "BlockMushroom": { "Hands": -0.10 }
+    "BlockCrate": { "Hands": -0.80 }
   },
   "SlotDefaults": {
     "Hands": -0.25,
@@ -168,7 +171,7 @@ This option is commonly used to avoid accidental swap/back actions when interact
 
 `WalkSpeedOverrides` notes:
 
-- `ByBlockCode`: matches full block code strings. Supports exact entries and trailing `*` prefix patterns.
+- `ByBlockCode`: matches full block code strings. Supports exact entries and trailing `*` prefix patterns. Keys may include an optional `|type` suffix to match the block's carry type (the same type resolved by `walkSpeedModifierByBlockType` in patches). For example, `"game:chest*|owl*"` matches any chest variant whose type starts with `owl`. Among matching entries, the most specific block-code prefix wins; ties are broken by type-pattern specificity. Entries without `|type` match regardless of type, but lose to type-constrained entries with equal block-code specificity.
 - `ByBlockClass`: matches block `class` names (for example `BlockMushroom`).
 - `SlotDefaults`: optional fallback values used only when a carry slot has no resolved slot value.
 

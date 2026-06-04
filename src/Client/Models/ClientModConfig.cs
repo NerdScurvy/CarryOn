@@ -13,9 +13,6 @@ namespace CarryOn.Client.Models
     {
         public int? ConfigVersion { get; set; }
 
-        // Enables mixing of carried item LightHsv with the player's light when a block or item is carried.
-        public bool CarriedLightEnabled { get; set; } = true;
-
         // Stored as the enum name (L1,L2,...). "None" indicates not assigned.
         public string HandsAnchor { get; set; } = HudCarried.HandsAnchorDefault.ToString();
         public string BackAnchor { get; set; } = HudCarried.BackAnchorDefault.ToString();
