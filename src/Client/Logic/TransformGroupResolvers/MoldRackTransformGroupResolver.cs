@@ -13,7 +13,7 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
     {
         public override string ResolverCode => "moldrack";
 
-        public override bool TryResolve(ICoreAPI api, CarriedBlock carried, string baseGroup, out CarriedGroupResolution resolution)
+        public override bool TryResolve(ICoreAPI api, CarriedBlock carried, string baseGroup, out CarriedGroupResolution? resolution)
         {
             resolution = null;
 
@@ -64,7 +64,7 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
 
         private bool TryGetShieldConstruction(ICoreAPI api, ItemStack itemStack, out string shieldConstruction)
         {
-            shieldConstruction = null;
+            shieldConstruction = string.Empty;
             if (api?.World == null || itemStack?.Class != EnumItemClass.Item) return false;
 
             var item = api.World.GetItem(itemStack.Id);
@@ -84,7 +84,7 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
             return true;
         }
 
-        public override string GetCacheSignature(ICoreAPI api, CarriedBlock carried, string baseGroup, CarriedGroupResolution resolution)
+        public override string? GetCacheSignature(ICoreAPI api, CarriedBlock carried, string baseGroup, CarriedGroupResolution? resolution)
         {
             var slots = TransformGroupResolverHelper.GetContainerSlots(carried);
             if (slots == null || slots.Count == 0)

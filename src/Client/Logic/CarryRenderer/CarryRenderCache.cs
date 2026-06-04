@@ -7,25 +7,25 @@ namespace CarryOn.Client.Logic.CarryRenderer
 {
     internal sealed class CachedTransformPlan
     {
-        public string Signature { get; init; }
-        public EffectiveTransformSetting[] EffectiveSettings { get; init; }
-        public string ResolvedPrimaryGroup { get; init; }
+        public string Signature { get; init; } = null!;
+        public EffectiveTransformSetting[] EffectiveSettings { get; init; } = null!;
+        public string ResolvedPrimaryGroup { get; init; } = null!;
         public bool RenderRootFirst { get; init; }
         public DateTime LastUsedAtUtc { get; set; }
     }
 
     internal sealed class CachedRenderInfos
     {
-        public string Signature { get; init; }
-        public CarriedRenderInfo[] RenderInfos { get; init; }
+        public string Signature { get; init; } = null!;
+        public CarriedRenderInfo[] RenderInfos { get; init; } = null!;
         public DateTime LastUsedAtUtc { get; set; }
     }
 
     internal sealed class SlotCacheState
     {
-        public string FrameKey { get; set; }
-        public string PlanSignature { get; set; }
-        public string RenderInfoKey { get; set; }
+        public string? FrameKey { get; set; }
+        public string? PlanSignature { get; set; }
+        public string? RenderInfoKey { get; set; }
     }
 
     internal sealed class CarryRenderCache
@@ -87,7 +87,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
         }
 
         private void PruneCache<TKey, TValue>(
-            Dictionary<TKey, TValue> dict, int maxEntries, TimeSpan ttl, Func<TValue, DateTime> lastUsedSelector)
+            Dictionary<TKey, TValue> dict, int maxEntries, TimeSpan ttl, Func<TValue, DateTime> lastUsedSelector) where TKey : notnull
         {
             if (dict.Count <= maxEntries) return;
             var cutoff = DateTime.UtcNow - ttl;

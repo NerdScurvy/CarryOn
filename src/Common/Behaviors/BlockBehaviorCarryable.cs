@@ -26,19 +26,19 @@ namespace CarryOn.Common.Behaviors
         /// <summary>
         /// If present, stores the list of transformTemplates to be processed during asset finalization on the client side.
         /// </summary>
-        public string[] TransformTemplates { get; private set; }
+        public string[] TransformTemplates { get; private set; } = [];
 
         public bool RenderRootFirst { get; set; } = false;
 
-        public string TransformGroupResolver { get; set; } = null;
+        public string? TransformGroupResolver { get; set; }
 
         public bool HasLocalTransformGroups { get; private set; } = false;
 
         // Resolved and flattened transform groups from transformTemplates and transformGroups.
         public Dictionary<string, TransformSettings[]> ResolvedTransformGroups { get; private set; } = [];
 
-        private static ItemStack[] handsfreeStacks;
-        private static ItemStack[] nohandsfreeStacks;
+        private static ItemStack[]? handsfreeStacks;
+        private static ItemStack[]? nohandsfreeStacks;
 
         public static BlockBehaviorCarryable Default { get; }
             = new BlockBehaviorCarryable(null);
@@ -54,14 +54,12 @@ namespace CarryOn.Common.Behaviors
         public static readonly IReadOnlyDictionary<CarrySlot, float> DefaultWalkSpeed
             = new Dictionary<CarrySlot, float> {
                 { CarrySlot.Hands    , -0.25F },
-                { CarrySlot.Back     , -0.15F },
-                { CarrySlot.Shoulder , -0.15F },
+                { CarrySlot.Back     , -0.15F }
             };
 
         public static readonly IReadOnlyDictionary<CarrySlot, string> DefaultAnimation
             = new Dictionary<CarrySlot, string> {
-                { CarrySlot.Hands    , CarryOnCode("holdheavy") },
-                { CarrySlot.Shoulder , CarryOnCode("shoulder")  }
+                { CarrySlot.Hands    , CarryOnCode("holdheavy") }
             };
 
         public float InteractDelay { get; private set; } = CarryCode.Default.PickUpSpeed;
@@ -70,7 +68,7 @@ namespace CarryOn.Common.Behaviors
 
         public ModelTransform DefaultTransform { get; private set; } = DefaultBlockTransform.Clone();
 
-        public LabelRenderSettings LabelRenderSettings { get; set; } = null;
+        public LabelRenderSettings? LabelRenderSettings { get; set; }
 
         public SlotStorage Slots { get; } = new SlotStorage();
 
@@ -93,20 +91,20 @@ namespace CarryOn.Common.Behaviors
 
         public bool TransferEnabled { get; private set; } = false;
 
-        public Type TransferHandlerType { get; set; } = null;
+        public Type? TransferHandlerType { get; set; }
 
-        public string EnabledCondition { get; set; }
+        public string EnabledCondition { get; set; } = string.Empty;
 
-        public CollectibleBehavior TransferHandlerBehavior { get; private set; } = null;
+        public CollectibleBehavior? TransferHandlerBehavior { get; private set; }
 
-        public ICarryableTransfer TransferHandler { get; private set; } = null;
+        public ICarryableTransfer? TransferHandler { get; private set; }
 
         public IDictionary<string, string> TypeGroup { get; private set; } = new Dictionary<string, string>();
 
-        public BlockBehaviorCarryable(Block block)
+        public BlockBehaviorCarryable(Block? block)
             : base(block) { }
 
-        public JsonObject Properties { get; set; }
+        public JsonObject? Properties { get; set; }
 
 
         /// <summary>
@@ -139,7 +137,7 @@ namespace CarryOn.Common.Behaviors
             // Backward-compatible alias, only applied if new key was not provided.
             if (!SwapBackKeyPassthrough && JsonHelper.TryGetBool(properties, "preventSwapBack", out var psb)) SwapBackKeyPassthrough = psb;
 
-            if (JsonHelper.TryGetString(properties, "enabledCondition", out var e)) EnabledCondition = e;
+            if (JsonHelper.TryGetString(properties, "enabledCondition", out var e)) EnabledCondition = e ?? string.Empty;
 
             if (JsonHelper.TryGetBool(properties, "renderRootFirst", out var rootFirst))
             {
@@ -151,42 +149,41 @@ namespace CarryOn.Common.Behaviors
             // Record transformTemplates for later processing (client-side asset finalization)
             if (properties.KeyExists("transformTemplates"))
             {
-                TransformTemplates = properties["transformTemplates"]
-                    .AsArray<string>()
-                    .Select(s => s.ToLowerInvariant())
-                    .ToArray();
+                var templates = properties["transformTemplates"]?.AsArray<string>();
+                if (templates != null)
+                {
+                    TransformTemplates = templates
+                        .Select(s => s?.ToLowerInvariant() ?? "")
+                        .ToArray();
+                }
             }
 
             // Check if block has local transform groups defined and set HasLocalTransformGroups accordingly so we know what to parse client side
-            if (properties.KeyExists("transformGroups"))
+            if (JsonHelper.TryGetObject(properties, "transformGroups", out var transformGroupsObj))
             {
-                var tg = properties["transformGroups"];
-                if (tg?.Exists == true && tg.Token is JObject obj && obj.Properties().Any())
+                if (transformGroupsObj?.Properties().Any() == true)
                 {
                     HasLocalTransformGroups = true;
                 }
             }
 
 
-            if (properties.KeyExists("groups"))
+            if (JsonHelper.TryGetObject(properties, "groups", out var groupJObj) && groupJObj != null)
             {
                 var groupObj = properties["groups"];
-                if (groupObj != null && groupObj.Exists && groupObj.Token is JObject groupJObj)
+                foreach (var prop in groupJObj.Properties())
                 {
-                    foreach (var prop in groupJObj.Properties())
+                    if (!JsonHelper.TryGetArray(groupObj, prop.Name, out string?[]? types))
                     {
-                        if (!JsonHelper.TryGetStringArray(groupObj, prop.Name, out var types))
+                        continue;
+                    }
+                    foreach (var type in types ?? [])
+                    {
+                        if (string.IsNullOrWhiteSpace(type) || TypeGroup.ContainsKey(type))
                         {
                             continue;
                         }
-                        foreach (var type in types)
-                        {
-                            if (string.IsNullOrWhiteSpace(type) || TypeGroup.ContainsKey(type))
-                            {
-                                continue;
-                            }
-                            TypeGroup[type] = prop.Name;
-                        }
+                        TypeGroup[type] = prop.Name;
                     }
                 }
             }
@@ -205,7 +202,7 @@ namespace CarryOn.Common.Behaviors
             Slots.Initialize(properties["slots"]);
         }
 
-        private static LabelRenderSettings GetLabelRenderSettings(JsonObject json, bool transformInChildObject)
+        private static LabelRenderSettings? GetLabelRenderSettings(JsonObject json, bool transformInChildObject)
         {
             if (json == null || !json.Exists)
             {
@@ -254,13 +251,13 @@ namespace CarryOn.Common.Behaviors
 
             if (JsonHelper.TryGetString(json, "fontName", out var fontName))
             {
-                settings.FontName = fontName;
+                settings.FontName = fontName ?? string.Empty;
                 hasAnyValue = true;
             }
 
             if (JsonHelper.TryGetString(json, "verticalAlign", out var verticalAlign))
             {
-                settings.VerticalAlign = verticalAlign;
+                settings.VerticalAlign = verticalAlign ?? string.Empty;
                 hasAnyValue = true;
             }
 
@@ -427,7 +424,7 @@ namespace CarryOn.Common.Behaviors
         /// <returns> True if the transform group exists, false otherwise. </returns>
         public bool TransformGroupExists(CarriedBlock carried, string group)
         {
-            if (carried == null || Slots == null || Slots[carried.Slot] == null || ResolvedTransformGroups?.Count == 0)
+            if (carried == null || Slots == null || Slots[carried.Slot] == null || ResolvedTransformGroups.Count == 0)
             {
                 return false;
             }
@@ -440,7 +437,7 @@ namespace CarryOn.Common.Behaviors
         /// <param name="slot"> The carry slot to check. </param>
         /// <param name="itemStack"> The item stack being carried, used to check for any type-based restrictions defined in the slot's SlotSettings. </param>
         /// <returns> True if the block can be carried in the specified slot, false otherwise. </returns>
-        public bool CanCarryInSlot(CarrySlot slot, ItemStack itemStack)
+        public bool CanCarryInSlot(CarrySlot slot, ItemStack? itemStack)
         {
             var slotStorage = Slots?[slot];
             if (slotStorage == null)
@@ -470,9 +467,9 @@ namespace CarryOn.Common.Behaviors
         /// <param name="player"> The player attempting to carry the block. </param>
         /// <param name="selection"> The block selection context for the carry action. </param>
         /// <returns> True if the block is allowed to be picked up and carried, false otherwise. </returns>
-        public bool TransferBlockCarryAllowed(IPlayer player, BlockSelection selection)
+        public bool TransferBlockCarryAllowed(IPlayer? player, BlockSelection? selection)
         {
-            if (TransferEnabled && TransferHandler != null)
+            if (TransferEnabled && TransferHandler != null && player != null && selection != null)
             {
                 return TransferHandler.IsBlockCarryAllowed(player, selection);
             }
@@ -536,7 +533,7 @@ namespace CarryOn.Common.Behaviors
             }
 
             // Check the block can be carried in hands (some types may not be allowed)
-            ItemStack itemStack = selection?.Block?.OnPickBlock(world, selection.Position);
+            ItemStack? itemStack = selection?.Block?.OnPickBlock(world, selection.Position);
             if (selection?.Block?.CanCarryInSlot(CarrySlot.Hands, itemStack) == false)
             {
                 return [];
@@ -612,10 +609,8 @@ namespace CarryOn.Common.Behaviors
         /// <param name="handling"> The handling status of the interaction. </param>
         public override void OnBlockRemoved(IWorldAccessor world, BlockPos pos, ref EnumHandling handling)
         {
-            if (world.Api.Side == EnumAppSide.Server)
-            {
-                DroppedBlockInfo.Remove(pos, world.Api);
-            }
+            world.GetCarryEvents()?.TriggerBlockRemoved(pos);
+            
             base.OnBlockRemoved(world, pos, ref handling);
         }
 
@@ -625,17 +620,23 @@ namespace CarryOn.Common.Behaviors
         public class SlotSettings
         {
 
-            public string Animation { get; set; }
+            public string? Animation { get; set; }
 
-            public string AnimationSit { get; set; }
+            public string? AnimationSit { get; set; }
 
-            public string AnimationCrouch { get; set; }
+            public string? AnimationCrouch { get; set; }
 
             public float WalkSpeedModifier { get; set; } = 0.0F;
 
-            public string EnabledCondition { get; set; }
+            public IDictionary<string, float> WalkSpeedModifierByType { get; set; }
+                = new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase);
 
-            public string[] ExcludedTypes { get; set; } = [];
+            public IDictionary<string, float> WalkSpeedModifierByGroup { get; set; }
+                = new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase);
+
+            public string? EnabledCondition { get; set; }
+
+            public string?[]? ExcludedTypes { get; set; }
         }
 
         /// <summary>
@@ -652,7 +653,7 @@ namespace CarryOn.Common.Behaviors
                 SlotSettingsDict.Remove(slot);
             }
 
-            public SlotSettings this[CarrySlot slot]
+            public SlotSettings? this[CarrySlot slot]
                 => SlotSettingsDict.TryGetValue(slot, out var settings) ? settings : null;
 
             public int Count => SlotSettingsDict.Count;
@@ -668,7 +669,7 @@ namespace CarryOn.Common.Behaviors
                 SlotSettingsDict.Clear();
                 if (properties?.Exists != true)
                 {
-                    if (!DefaultAnimation.TryGetValue(CarrySlot.Hands, out var anim)) anim = null;
+                    if (!DefaultAnimation.TryGetValue(CarrySlot.Hands, out string? anim)) anim = null;
                     SlotSettingsDict.Add(CarrySlot.Hands, new SlotSettings { Animation = anim });
                 }
                 else
@@ -680,7 +681,7 @@ namespace CarryOn.Common.Behaviors
 
                         if (!SlotSettingsDict.TryGetValue(slot, out var settings))
                         {
-                            if (!DefaultAnimation.TryGetValue(slot, out var anim)) anim = null;
+                            if (!DefaultAnimation.TryGetValue(slot, out string? anim)) anim = null;
                             SlotSettingsDict.Add(slot, settings = new SlotSettings { Animation = anim });
                         }
 
@@ -691,6 +692,9 @@ namespace CarryOn.Common.Behaviors
                         if (!DefaultWalkSpeed.TryGetValue(slot, out var speed)) speed = 0.0F;
                         settings.WalkSpeedModifier = slotProperties["walkSpeedModifier"].AsFloat(speed);
 
+                        settings.WalkSpeedModifierByType = JsonHelper.ParseFloatMap(slotProperties["walkSpeedModifierByBlockType"]);
+                        settings.WalkSpeedModifierByGroup = JsonHelper.ParseFloatMap(slotProperties["walkSpeedModifierByGroup"]);
+
                         if (JsonHelper.TryGetString(slotProperties, "enabledCondition", out var e)) settings.EnabledCondition = e;
 
                         if (JsonHelper.TryGetStringArray(slotProperties, "excludedTypes", out var x)) settings.ExcludedTypes = x;
@@ -698,6 +702,7 @@ namespace CarryOn.Common.Behaviors
                     }
                 }
             }
+
         }
     }
 }

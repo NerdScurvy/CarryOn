@@ -25,7 +25,8 @@
 						"walkSpeedModifier": -0.15
 					},
 					"Back": {
-						"enabledCondition": "carryon.CarryablesOnBack.ReedChest"
+						"enabledCondition": "carryon.CarryablesOnBack.ReedChest",
+						"walkSpeedModifier": 0.0
 					}
 				}
 			}
@@ -69,7 +70,6 @@
 			}
 		]
 	},
-
 	{
 		"file": "lcupdated:blocktypes/stationarybasket",
 		"side": "Server",
@@ -96,7 +96,8 @@
 						"walkSpeedModifier": -0.15
 					},
 					"Back": {
-						"enabledCondition": "carryon.CarryablesOnBack.ReedChest"
+						"enabledCondition": "carryon.CarryablesOnBack.ReedChest",
+						"walkSpeedModifier": 0.0
 					}
 				}
 			}
@@ -139,5 +140,5 @@
 				"modid": "lcupdated"
 			}
 		]
-	}	
+	}
 ]

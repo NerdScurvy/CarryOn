@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
 using CarryOn.Common.Behaviors;
+using CarryOn.Common.Logic;
 using CarryOn.Common.Models;
 using CarryOn.Common.Network;
 using CarryOn.Utility;
@@ -15,41 +15,12 @@ using static CarryOn.API.Common.Models.CarryCode;
 
 namespace CarryOn.Common.Services
 {
-    /// <summary>
-    /// Encapsulates carried-state storage, revision tracking, and slot-lock synchronization.
-    /// </summary>
-    internal sealed class CarryStateService
+    internal sealed class CarryStateService(CarrySystem carrySystem)
     {
-        /// <summary>
-        /// Gets the core API for world access and side checks.
-        /// </summary>
-        public ICoreAPI Api { get; }
+        private readonly WalkSpeedModifierResolver walkSpeedModifierResolver = new();
 
-        /// <summary>
-        /// Gets the owning carry system and configuration.
-        /// </summary>
-        public CarrySystem CarrySystem { get; }
-
-        /// <summary>
-        /// Gets the carry manager facade used for cross-domain operations.
-        /// </summary>
-        public ICarryManager CarryManager { get; }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CarryStateService"/> class.
-        /// </summary>
-        /// <param name="api">Core API instance.</param>
-        /// <param name="carrySystem">Owning carry system.</param>
-        /// <param name="carryManager">Carry manager facade.</param>
-        public CarryStateService(ICoreAPI api, CarrySystem carrySystem, ICarryManager carryManager)
-        {
-            Api = api ?? throw new ArgumentNullException(nameof(api));
-            CarrySystem = carrySystem ?? throw new ArgumentNullException(nameof(carrySystem));
-            CarryManager = carryManager ?? throw new ArgumentNullException(nameof(carryManager));
-        }
-
-        private bool AllowSprintWhileCarrying => CarrySystem?.Config?.CarryOptions?.AllowSprintWhileCarrying ?? false;
-        private bool IgnoreCarrySpeedPenalty => CarrySystem?.Config?.CarryOptions?.IgnoreCarrySpeedPenalty ?? false;
+        private bool AllowSprintWhileCarrying => carrySystem?.Config?.CarryOptions?.AllowSprintWhileCarrying ?? false;
+        private bool IgnoreCarrySpeedPenalty => carrySystem?.Config?.CarryOptions?.IgnoreCarrySpeedPenalty ?? false;
 
         /// <summary>
         /// Gets all carried blocks currently held by the entity across all carry slots.
@@ -71,9 +42,9 @@ namespace CarryOn.Common.Services
         /// <param name="entity">The entity to inspect.</param>
         /// <param name="slot">The slot to read.</param>
         /// <returns>The carried block, or null if the slot is empty or invalid.</returns>
-        public CarriedBlock GetCarried(Entity entity, CarrySlot slot)
+        public CarriedBlock? GetCarried(Entity entity, CarrySlot slot)
         {
-            if (entity == null) throw new ArgumentNullException(nameof(entity));
+            ArgumentNullException.ThrowIfNull(entity);
 
             var entityCarriedKey = AttributeKey.Watched.EntityCarried;
             var slotAttribute = entity.WatchedAttributes
@@ -118,7 +89,7 @@ namespace CarryOn.Common.Services
         /// <param name="slot">The destination carry slot.</param>
         /// <param name="stack">The carried block item stack.</param>
         /// <param name="blockEntityData">Serialized block entity data to associate with the carried block.</param>
-        public void SetCarried(Entity entity, CarrySlot slot, ItemStack stack, ITreeAttribute blockEntityData)
+        public void SetCarried(Entity entity, CarrySlot slot, ItemStack stack, ITreeAttribute? blockEntityData)
             => SetCarried(entity, slot, stack, blockEntityData, markDirty: true);
 
         /// <summary>
@@ -129,9 +100,9 @@ namespace CarryOn.Common.Services
         /// <param name="stack">The carried block item stack.</param>
         /// <param name="blockEntityData">Serialized block entity data to associate with the carried block.</param>
         /// <param name="markDirty">Whether to touch and mark carried attributes dirty.</param>
-        public void SetCarried(Entity entity, CarrySlot slot, ItemStack stack, ITreeAttribute blockEntityData, bool markDirty = true)
+        public void SetCarried(Entity entity, CarrySlot slot, ItemStack stack, ITreeAttribute? blockEntityData, bool markDirty = true)
         {
-            if (entity == null) throw new ArgumentNullException(nameof(entity));
+            ArgumentNullException.ThrowIfNull(entity);
 
             var entityCarriedKey = AttributeKey.Watched.EntityCarried;
             entity.WatchedAttributes.Set(stack, entityCarriedKey, slot.ToString(), "Stack");
@@ -156,7 +127,17 @@ namespace CarryOn.Common.Services
 
             if (entity is EntityAgent agent)
             {
-                var speed = IgnoreCarrySpeedPenalty ? 0.0f : slotSettings?.WalkSpeedModifier ?? 0.0F;
+                var speed = 0.0f;
+                if (!IgnoreCarrySpeedPenalty)
+                {
+                    speed = walkSpeedModifierResolver.Resolve(
+                        stack,
+                        behavior,
+                        slotSettings,
+                        slot,
+                        carrySystem?.Config?.CarryOptions?.WalkSpeedOverrides);
+                }
+
                 if (speed != 0.0F && !AllowSprintWhileCarrying)
                 {
                     agent.Stats.Set("walkspeed",
@@ -187,7 +168,7 @@ namespace CarryOn.Common.Services
         /// <param name="markDirty">Whether to touch and mark carried attributes dirty.</param>
         public void RemoveCarried(Entity entity, CarrySlot slot, bool markDirty = true)
         {
-            if (entity == null) throw new ArgumentNullException(nameof(entity));
+            ArgumentNullException.ThrowIfNull(entity);
 
             var animation = entity.GetCarried(slot)?.GetCarryableBehavior()?.Slots?[slot]?.Animation;
             if (animation != null) entity.StopAnimation(animation);
@@ -246,14 +227,17 @@ namespace CarryOn.Common.Services
         {
             var hotbar = player.InventoryManager.GetHotbarInventory();
             var slots = Enumerable.Range(0, hotbar.Count).Where(i => hotbar[i] is LockedItemSlot).ToList();
-            CarrySystem.ServerChannel.SendPacket(new LockSlotsMessage(slots), player);
+            var serverChannel = carrySystem.ServerChannel;
+            if (serverChannel == null) return;
+
+            serverChannel.SendPacket(new LockSlotsMessage(slots), player);
         }
 
         /// <summary>
         /// Resolves and sends hotbar lock-state updates for the provided player entity.
         /// </summary>
         /// <param name="player">The entity player to notify when available on server.</param>
-        public void SendLockSlotsMessage(EntityPlayer player)
+        public void SendLockSlotsMessage(EntityPlayer? player)
         {
             if ((player == null) || (player.World.PlayerByUid(player.PlayerUID) is not IServerPlayer serverPlayer)) return;
             LockHotbarSlots(serverPlayer);

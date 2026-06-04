@@ -14,9 +14,9 @@ namespace CarryOn.Common.Handlers
     /// </summary>
     public class HotKeyHandler
     {
-        private ICoreClientAPI clientApi;
+        private ICoreClientAPI? clientApi;
 
-        public ICoreClientAPI ClientApi => clientApi;
+        public ICoreClientAPI? ClientApi => clientApi;
 
         private readonly CarrySystem carrySystem;
 
@@ -24,7 +24,7 @@ namespace CarryOn.Common.Handlers
 
         public HotKeyHandler(CarrySystem carrySystem)
         {
-            if (carrySystem == null) throw new ArgumentNullException(nameof(carrySystem));
+            ArgumentNullException.ThrowIfNull(carrySystem);
             this.carrySystem = carrySystem;
         }
 
@@ -32,7 +32,9 @@ namespace CarryOn.Common.Handlers
         {
             this.clientApi = api ?? throw new ArgumentNullException(nameof(api));
 
-            this.carrySystem.ClientChannel
+            var clientChannel = this.carrySystem.ClientChannel ?? throw new InvalidOperationException("Client channel is not initialized");
+
+            clientChannel
                 .RegisterMessageType<QuickDropMessage>()
                 .RegisterMessageType<PlayerAttributeUpdateMessage>();
 
@@ -54,7 +56,9 @@ namespace CarryOn.Common.Handlers
 
         public void InitServer(ICoreServerAPI api)
         {
-            this.carrySystem.ServerChannel
+            var serverChannel = this.carrySystem.ServerChannel ?? throw new InvalidOperationException("Server channel is not initialized");
+
+            serverChannel
                 .RegisterMessageType<QuickDropMessage>()
                 .RegisterMessageType<PlayerAttributeUpdateMessage>()
                 .SetMessageHandler<QuickDropMessage>(OnQuickDropMessage)
@@ -67,7 +71,7 @@ namespace CarryOn.Common.Handlers
         /// <returns> True if the cursor is active, false otherwise. </returns>
         private bool IsCursorActive()
         {
-            return !ClientApi.Input.MouseGrabbed;
+            return clientApi?.Input != null && !clientApi.Input.MouseGrabbed;
         }
 
         /// <summary>
@@ -77,10 +81,11 @@ namespace CarryOn.Common.Handlers
         /// <returns> True if the action was successfully triggered, false otherwise. </returns>
         public bool TriggerToggleKeyPressed(KeyCombination keyCombination)
         {
-            if (IsCursorActive()) return false;
+            var api = clientApi;
+            if (api == null || IsCursorActive()) return false;
 
             this.carrySystem.CarryOnEnabled = !IsCarryOnEnabled;
-            ClientApi.ShowChatMessage(GetLang("carryon-" + (IsCarryOnEnabled ? "enabled" : "disabled")));
+            api.ShowChatMessage(GetLang("carryon-" + (IsCarryOnEnabled ? "enabled" : "disabled")));
             return true;
         }
 
@@ -91,10 +96,12 @@ namespace CarryOn.Common.Handlers
         /// <returns> True if the action was successfully triggered, false otherwise. </returns>
         public bool TriggerQuickDropKeyPressed(KeyCombination keyCombination)
         {
-            if (IsCursorActive()) return false;
+            if (clientApi == null || IsCursorActive()) return false;
+            var clientChannel = this.carrySystem.ClientChannel;
+            if (clientChannel == null) return false;
 
             // Send drop message even if client shows nothing being held
-            this.carrySystem.ClientChannel.SendPacket(new QuickDropMessage(carrySlots: [CarrySlot.Hands]));
+            clientChannel.SendPacket(new QuickDropMessage(carrySlots: [CarrySlot.Hands]));
             return true;
         }
 
@@ -106,12 +113,15 @@ namespace CarryOn.Common.Handlers
         /// <returns> True if the action was successfully triggered, false otherwise. </returns>
         public bool TriggerQuickDropAllKeyPressed(KeyCombination keyCombination)
         {
-            if (IsCursorActive()) return false;
+            var api = clientApi;
+            if (api == null || IsCursorActive()) return false;
+            var clientChannel = this.carrySystem.ClientChannel;
+            if (clientChannel == null) return false;
 
-            if (ClientApi.World?.Player == null) return false;
+            if (api.World?.Player == null) return false;
 
             // Send drop message even if client shows nothing being held
-            this.carrySystem.ClientChannel.SendPacket(new QuickDropMessage(carrySlots: [CarrySlot.Hands, CarrySlot.Back]));
+            clientChannel.SendPacket(new QuickDropMessage(carrySlots: [CarrySlot.Hands, CarrySlot.Back]));
             return true;
         }
 
@@ -122,17 +132,20 @@ namespace CarryOn.Common.Handlers
         /// <returns> True if the action was successfully triggered, false otherwise. </returns>
         private bool TriggerToggleDoubleTapDismountKeyPressed(KeyCombination keyCombination)
         {
-            if (IsCursorActive()) return false;
-            if (ClientApi?.World?.Player?.Entity == null) return false;
-            var playerEntity = ClientApi.World.Player.Entity;
+            var api = clientApi;
+            if (api == null || IsCursorActive()) return false;
+            var clientChannel = this.carrySystem.ClientChannel;
+            if (clientChannel == null) return false;
+            if (api.World?.Player?.Entity == null) return false;
+            var playerEntity = api.World.Player.Entity;
             var isEnabled = playerEntity.WatchedAttributes.GetBool(AttributeKey.Watched.EntityDoubleTapDismountEnabled, false);
 
             // Toggle the opposite state 
             playerEntity.WatchedAttributes.SetBool(AttributeKey.Watched.EntityDoubleTapDismountEnabled, !isEnabled);
 
-            this.carrySystem.ClientChannel.SendPacket(new PlayerAttributeUpdateMessage(AttributeKey.Watched.EntityDoubleTapDismountEnabled, !isEnabled, true));
+            clientChannel.SendPacket(new PlayerAttributeUpdateMessage(AttributeKey.Watched.EntityDoubleTapDismountEnabled, !isEnabled, true));
 
-            ClientApi.ShowChatMessage(GetLang("double-tap-dismount-" + (!isEnabled ? "enabled" : "disabled")));
+            api.ShowChatMessage(GetLang("double-tap-dismount-" + (!isEnabled ? "enabled" : "disabled")));
             return true;
         }
 
@@ -143,7 +156,13 @@ namespace CarryOn.Common.Handlers
         /// <param name="message"> The message containing the quick drop details. </param>
         public void OnQuickDropMessage(IServerPlayer player, QuickDropMessage message)
         {
-            carrySystem.CarryManager.DropCarried(player.Entity, message.CarrySlots, 2);
+            var entity = player?.Entity;
+            var carrySlots = message?.CarrySlots;
+            var carryManager = carrySystem.CarryManager;
+            if (entity == null || carrySlots == null) return;
+            if (carryManager == null) return;
+
+            carryManager.DropCarried(entity, carrySlots, 2);
         }
 
         /// <summary>
@@ -155,6 +174,7 @@ namespace CarryOn.Common.Handlers
         private void OnPlayerAttributeUpdateMessage(IServerPlayer player, PlayerAttributeUpdateMessage message)
         {
             var playerEntity = player.Entity;
+            if (playerEntity == null) return;
             if (message.AttributeKey == null)
             {
                 return;

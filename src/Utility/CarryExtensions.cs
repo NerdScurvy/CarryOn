@@ -28,7 +28,7 @@ namespace CarryOn.Utility
         /// Returns whether the specified block can be carried in the specified slot.
         /// Checks if <see cref="BlockBehaviorCarryable"/> is present and has slot enabled. 
         /// </summary>
-        public static bool CanCarryInSlot(this Block block, CarrySlot slot, ItemStack itemStack)
+        public static bool CanCarryInSlot(this Block block, CarrySlot slot, ItemStack? itemStack)
         {
             if (block == null) return false;
             var behavior = block.GetBehavior<BlockBehaviorCarryable>();
@@ -118,7 +118,10 @@ namespace CarryOn.Utility
         {
             if (checkMouse && !input.InWorldMouseButton.Right) return false;
 
-            return input.KeyboardKeyState[input.HotKeys.Get(HotKeyCode.Pickup).CurrentMapping.KeyCode];
+            var hotKey = input.HotKeys.Get(HotKeyCode.Pickup);
+            if (hotKey?.CurrentMapping == null) return false;
+
+            return input.KeyboardKeyState[hotKey.CurrentMapping.KeyCode];
         }
 
         /// <summary>
@@ -128,7 +131,10 @@ namespace CarryOn.Utility
         /// <returns></returns>
         public static bool IsCarrySwapBackKeyPressed(this IInputAPI input)
         {
-            return input.KeyboardKeyState[input.HotKeys.Get(HotKeyCode.SwapBackModifier).CurrentMapping.KeyCode];
+            var hotKey = input.HotKeys.Get(HotKeyCode.SwapBackModifier);
+            if (hotKey?.CurrentMapping == null) return false;
+
+            return input.KeyboardKeyState[hotKey.CurrentMapping.KeyCode];
         }
 
 
@@ -137,7 +143,7 @@ namespace CarryOn.Utility
         /// </summary>
         /// <param name="player"></param>
         /// <returns></returns>
-        public static ItemSlot GetRenderedBackpackSlot(this IPlayer player)
+        public static ItemSlot? GetRenderedBackpackSlot(this IPlayer player)
         {
             var backpackInv = player.InventoryManager.GetOwnInventory("backpack");
             var renderedItemSlot = backpackInv?
@@ -149,7 +155,7 @@ namespace CarryOn.Utility
             return renderedItemSlot;
         }
 
-        public static string GetRenderedBackpackItemCode(this IPlayer player)
+        public static string? GetRenderedBackpackItemCode(this IPlayer player)
         {
             var renderedItemSlot = player.GetRenderedBackpackSlot();
             return renderedItemSlot?.Itemstack?.Item?.Code?.ToString();

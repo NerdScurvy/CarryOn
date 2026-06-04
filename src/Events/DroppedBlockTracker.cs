@@ -4,6 +4,7 @@ using CarryOn.API.Event.Data;
 using CarryOn.Server.Models;
 using CarryOn.Utility;
 using Vintagestory.API.Common;
+using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 
 namespace CarryOn.Events
@@ -13,13 +14,13 @@ namespace CarryOn.Events
     /// </summary>
     public class DroppedBlockTracker : ICarryEvent
     {
-        private ICarryManager carryManager;
+        private ICarryManager? carryManager;
 
         private bool loggingEnabled = false;
 
         public void Init(ICarryManager carryManager)
         {
-            if (carryManager == null) throw new ArgumentNullException(nameof(carryManager));
+            ArgumentNullException.ThrowIfNull(carryManager);
             this.carryManager = carryManager;
             var api = carryManager.Api ?? throw new ArgumentNullException(nameof(carryManager.Api));
             var world = api.World ?? throw new ArgumentNullException(nameof(api.World));
@@ -79,15 +80,16 @@ namespace CarryOn.Events
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        public void OnCarriedBlockDropped(object sender, BlockDroppedEventArgs e)
+        public void OnCarriedBlockDropped(object? sender, BlockDroppedEventArgs e)
         {
-            if (e == null) throw new ArgumentNullException(nameof(e));
+            ArgumentNullException.ThrowIfNull(e);
+            if (!e.BlockPlaced || e.Position == null) return;
+            if (e.CarriedBlock == null) return;
 
             if (e.Entity is EntityPlayer entityPlayer)
             {
-                // Only track if block was placed
-                if (e.BlockPlaced)
-                    DroppedBlockInfo.Create(e.Position, entityPlayer.Player, e.CarriedBlock.BlockEntityData);
+                var blockEntityData = e.CarriedBlock.BlockEntityData ?? new TreeAttribute();
+                DroppedBlockInfo.Create(e.Position, entityPlayer.Player, blockEntityData);
             }
         }
 
@@ -96,12 +98,13 @@ namespace CarryOn.Events
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        public void OnCarryableBlockRemoved(object sender, BlockRemovedEventArgs e)
+        public void OnCarryableBlockRemoved(object? sender, BlockRemovedEventArgs e)
         {
-            if (e == null) throw new ArgumentNullException(nameof(e));
-            if (carryManager.Api.Side == EnumAppSide.Server)
+            ArgumentNullException.ThrowIfNull(e);
+            var manager = carryManager;
+            if (manager?.Api?.Side == EnumAppSide.Server && e.Position != null)
             {
-                DroppedBlockInfo.Remove(e.Position, carryManager.Api);
+                DroppedBlockInfo.Remove(e.Position, manager.Api);
             }
         }
     }

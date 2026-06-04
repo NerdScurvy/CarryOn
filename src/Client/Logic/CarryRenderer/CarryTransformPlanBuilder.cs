@@ -10,9 +10,9 @@ namespace CarryOn.Client.Logic.CarryRenderer
 {
     internal sealed class EffectiveTransformSetting
     {
-        public TransformSettings Setting { get; init; }
+        public TransformSettings Setting { get; init; } = null!;
         public bool EnableVertexWarp { get; init; }
-        public string SourceSlotKey { get; init; }
+        public string? SourceSlotKey { get; init; }
         public bool ApplyDisplaySlotYaw { get; init; }
         public bool ApplyDisplayCaseYawOffset { get; init; }
         public bool ApplyOnDisplayTransform { get; init; }
@@ -50,13 +50,13 @@ namespace CarryOn.Client.Logic.CarryRenderer
             var transformsGroup = transformsGroupBase;
 
             var primaryGroupCandidates = new List<string> { transformsGroup };
-            string matchedResolverCode = null;
-            string resolverCacheSignature = null;
-            CarriedGroupResolution matchedResolution = null;
+            string? matchedResolverCode = null;
+            string? resolverCacheSignature = null;
+            CarriedGroupResolution? matchedResolution = null;
             var requestedResolverCode = carryBehavior.TransformGroupResolver;
 
             if (!string.IsNullOrEmpty(requestedResolverCode)
-                && carrySystem?.CarryManager?.TryGetTransformGroupResolver(requestedResolverCode, out var resolver) == true)
+                && carrySystem?.CarryManager?.TryGetTransformGroupResolver(requestedResolverCode, out var resolver) == true && resolver != null)
             {
                 if (resolver.TryResolve(this.api, carried, transformsGroup, out var resolution) && resolution != null)
                 {
@@ -66,11 +66,11 @@ namespace CarryOn.Client.Logic.CarryRenderer
 
                     if (resolution.PrimaryGroupCandidates != null && resolution.PrimaryGroupCandidates.Count > 0)
                     {
-                        primaryGroupCandidates = new List<string>(resolution.PrimaryGroupCandidates);
+                        primaryGroupCandidates = [.. resolution.PrimaryGroupCandidates];
                     }
                     else if (!string.IsNullOrEmpty(resolution.PrimaryGroup))
                     {
-                        primaryGroupCandidates = new List<string> { resolution.PrimaryGroup };
+                        primaryGroupCandidates = [resolution.PrimaryGroup];
                     }
                 }
             }

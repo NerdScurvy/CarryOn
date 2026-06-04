@@ -3,15 +3,15 @@ using Vintagestory.API.MathTools;
 
 namespace CarryOn.Common.Network
 {
-    [ProtoContract]
+    [ProtoContract(ImplicitFields = ImplicitFields.AllFields)]
     public record TakeMessage
     {
-        [ProtoMember(1)]
-        public BlockPos BlockPos { get; init; }
+        public BlockPos BlockPos { get; init; } = null!;
 
-        [ProtoMember(2)]
         public int Index { get; init; }
+
         private TakeMessage() { }
+        
         public TakeMessage(BlockPos blockPos, int index)
         {
             BlockPos = blockPos;

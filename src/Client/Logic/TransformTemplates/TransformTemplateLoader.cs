@@ -31,7 +31,7 @@ namespace CarryOn.Client.Logic.TransformTemplates
         /// </summary>
         /// <param name="assetCode"> The code of the transform template asset to resolve. </param>
         /// <returns> The resolved asset location. </returns>
-        public AssetLocation ResolveAssetLocation(string assetCode)
+        public AssetLocation? ResolveAssetLocation(string assetCode)
         {
             if (string.IsNullOrEmpty(assetCode)) return null;
 
@@ -67,8 +67,8 @@ namespace CarryOn.Client.Logic.TransformTemplates
         /// <returns> True if the asset is successfully loaded and parsed; otherwise, false. </returns>
         public bool TryLoadTemplateJson(
             string assetCode,
-            out AssetLocation assetLocation,
-            out JsonObject templateJsonObj)
+            out AssetLocation? assetLocation,
+            out JsonObject? templateJsonObj)
         {
             assetLocation = ResolveAssetLocation(assetCode);
             templateJsonObj = null;

@@ -12,7 +12,7 @@ namespace CarryOn.Server.Behaviors
             = CarryOnCode("dropondamage");
 
         private static readonly CarrySlot[] DropFrom
-            = [CarrySlot.Hands, CarrySlot.Shoulder];
+            = [CarrySlot.Hands];
 
         public override string PropertyName() => Name;
 
@@ -25,7 +25,7 @@ namespace CarryOn.Server.Behaviors
         public override void OnEntityReceiveDamage(DamageSource damageSource, ref float damage)
         {
             if (damageSource.Type != EnumDamageType.Heal)
-                GetCarryManager(entity.Api).DropCarried(entity, DropFrom, 2);
+                GetCarryManager(entity.Api)?.DropCarried(entity, DropFrom, 2);
         }
     }
 }

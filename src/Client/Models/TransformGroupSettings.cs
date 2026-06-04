@@ -1,3 +1,4 @@
+#nullable disable
 using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
 

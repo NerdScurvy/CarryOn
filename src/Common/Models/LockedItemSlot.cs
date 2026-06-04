@@ -46,8 +46,8 @@ namespace CarryOn.Common.Models
         // Unfortunately, only some of ItemSlot's method make use of them.
 
         public override bool CanTakeFrom(ItemSlot sourceSlot, EnumMergePriority priority) => false;
-        public override ItemStack TakeOutWhole() => null;
-        public override ItemStack TakeOut(int quantity) => null;
+        public override ItemStack? TakeOutWhole() => null;
+        public override ItemStack? TakeOut(int quantity) => null;
         protected override void ActivateSlotLeftClick(ItemSlot sourceSlot, ref ItemStackMoveOperation op) { }
         protected override void ActivateSlotRightClick(ItemSlot sourceSlot, ref ItemStackMoveOperation op) { }
     }

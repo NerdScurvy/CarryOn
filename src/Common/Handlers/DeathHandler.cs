@@ -14,7 +14,7 @@ namespace CarryOn.Common.Handlers
 
         public DeathHandler(ICoreServerAPI api)
         {
-            this.api = api;
+            this.api = api ?? throw new ArgumentNullException(nameof(api));
             api.Event.PlayerDeath += OnPlayerDeath;
         }
 

@@ -16,7 +16,7 @@ namespace CarryOn.Common.Behaviors
 
         public float InteractDelay { get; private set; } = Default.InteractSpeed;
 
-        public string EnabledCondition { get; set; }
+        public string EnabledCondition { get; set; } = string.Empty;
 
         public IList<AllowedCarryable> AllowedCarryables { get; } = new List<AllowedCarryable>();
 
@@ -27,11 +27,12 @@ namespace CarryOn.Common.Behaviors
         {
             base.Initialize(properties);
             if (JsonHelper.TryGetFloat(properties, "interactDelay", out var d)) InteractDelay = d;
-            if (JsonHelper.TryGetString(properties, "enabledCondition", out var e)) EnabledCondition = e;
+            if (JsonHelper.TryGetString(properties, "enabledCondition", out var e)) EnabledCondition = e ?? string.Empty;
 
             // Whitelist of carryable blocks that can be used to interact with a block entity
             if (!properties.KeyExists("allowedCarryables")) return;
             var arr = properties["allowedCarryables"]?.AsArray();
+            if (arr == null) return;
 
             foreach (var allowedJson in arr)
             {
@@ -77,8 +78,8 @@ namespace CarryOn.Common.Behaviors
 
         public class AllowedCarryable
         {
-            public string Code { get; set; }
-            public string Class { get; set; }
+            public string? Code { get; set; }
+            public string? Class { get; set; }
 
             public bool IsMatch(Block block)
             {

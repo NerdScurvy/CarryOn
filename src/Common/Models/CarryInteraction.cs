@@ -21,13 +21,13 @@ namespace CarryOn.Common.Models
 
         // Selected block position for the interaction
         // This is used for interactions like placing down blocks
-        public BlockPos TargetBlockPos { get; set; }
+        public BlockPos? TargetBlockPos { get; set; }
 
         // Selected slot on target entity
-        public ItemSlot Slot { get; set; }
+        public ItemSlot? Slot { get; set; }
 
         // Entity performing the interaction (might be redundant if this interaction is client-side only)
-        public Entity TargetEntity { get; set; }
+        public Entity? TargetEntity { get; set; }
         public float? TransferDelay { get; internal set; }
 
         public void Complete()

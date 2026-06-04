@@ -11,12 +11,12 @@ namespace CarryOn.Common.Network
         public CarrySlot Slot { get; init; }
 
         // These fields are needed for reconstructing BlockSelection
-        public BlockPos Position { get; init; }
+        public BlockPos Position { get; init; } = null!;
 
-        public Vec3d HitPosition { get; init; }
+        public Vec3d HitPosition { get; init; } = null!;
         public byte Face { get; init; }
 
-        public BlockPos PlacedAt { get; init; }
+        public BlockPos PlacedAt { get; init; } = null!;
 
         private PlaceDownMessage() { }
 

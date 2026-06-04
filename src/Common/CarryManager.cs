@@ -22,7 +22,7 @@ namespace CarryOn.API.Common
 
         public CarrySystem CarrySystem { get; private set; }
 
-        public CarryEvents CarryEvents => CarrySystem?.CarryEvents;
+        public CarryEvents CarryEvents => CarrySystem.CarryEvents;
 
         private readonly List<RegisteredTransformGroupResolver> transformGroupResolvers = new();
         private readonly Dictionary<string, RegisteredTransformGroupResolver> transformGroupResolversByCode = new(StringComparer.OrdinalIgnoreCase);
@@ -37,7 +37,7 @@ namespace CarryOn.API.Common
 
         public CarryOnConfig GetConfig()
         {
-            return CarrySystem?.Config;
+            return CarrySystem.Config;
         }
 
         /// <summary>
@@ -53,13 +53,17 @@ namespace CarryOn.API.Common
                 throw new ArgumentException("Mod id cannot be null or empty.", nameof(modId));
             }
 
-            if (resolver == null) throw new ArgumentNullException(nameof(resolver));
+            ArgumentNullException.ThrowIfNull(resolver);
             if (string.IsNullOrWhiteSpace(resolver.ResolverCode))
             {
                 throw new ArgumentException("Resolver code cannot be null or empty.", nameof(resolver));
             }
 
             var canonicalCode = ToCanonicalResolverCode(modId, resolver.ResolverCode);
+            if (canonicalCode == null)
+            {
+                throw new ArgumentException("Resolver code cannot be null or empty after trimming.", nameof(resolver));
+            }
 
             if (transformGroupResolversByCode.TryGetValue(canonicalCode, out var existing))
             {
@@ -89,7 +93,7 @@ namespace CarryOn.API.Common
         /// <param name="resolverCode">The resolver code to look up.</param>
         /// <param name="resolver">The resolver instance when found.</param>
         /// <returns>True if a matching resolver was found; otherwise false.</returns>
-        public bool TryGetTransformGroupResolver(string resolverCode, out ICarriedTransformGroupResolver resolver)
+        public bool TryGetTransformGroupResolver(string resolverCode, out ICarriedTransformGroupResolver? resolver)
         {
             resolver = null;
             if (string.IsNullOrWhiteSpace(resolverCode))
@@ -98,6 +102,11 @@ namespace CarryOn.API.Common
             }
 
             var canonicalCode = ToCanonicalLookupCode(resolverCode);
+            if (canonicalCode == null)
+            {
+                return false;
+            }
+            
             if (!transformGroupResolversByCode.TryGetValue(canonicalCode, out var registration))
             {
                 return false;
@@ -113,7 +122,7 @@ namespace CarryOn.API.Common
         /// <param name="resolverCode">The resolver code to look up.</param>
         /// <param name="registration">The resolver registration when found.</param>
         /// <returns>True if a matching registration was found; otherwise false.</returns>
-        public bool TryGetTransformGroupResolverRegistration(string resolverCode, out RegisteredTransformGroupResolver registration)
+        public bool TryGetTransformGroupResolverRegistration(string resolverCode, out RegisteredTransformGroupResolver? registration)
         {
             registration = null;
             if (string.IsNullOrWhiteSpace(resolverCode))
@@ -122,7 +131,14 @@ namespace CarryOn.API.Common
             }
 
             var canonicalCode = ToCanonicalLookupCode(resolverCode);
-            return transformGroupResolversByCode.TryGetValue(canonicalCode, out registration);
+            if (canonicalCode == null)
+            {
+                return false;
+            }
+
+            var found = transformGroupResolversByCode.TryGetValue(canonicalCode, out var foundReg);
+            registration = foundReg;
+            return found;
         }
 
         /// <summary>
@@ -134,7 +150,7 @@ namespace CarryOn.API.Common
         {
             if (resolver == null) return false;
 
-            RegisteredTransformGroupResolver registration = null;
+            RegisteredTransformGroupResolver? registration = null;
             for (var i = 0; i < transformGroupResolvers.Count; i++)
             {
                 if (ReferenceEquals(transformGroupResolvers[i].Resolver, resolver))
@@ -169,7 +185,7 @@ namespace CarryOn.API.Common
             return transformGroupResolvers;
         }
 
-        private static string ToCanonicalLookupCode(string resolverCode)
+        private static string? ToCanonicalLookupCode(string resolverCode)
         {
             var trimmed = resolverCode?.Trim();
             if (string.IsNullOrWhiteSpace(trimmed))
@@ -182,12 +198,12 @@ namespace CarryOn.API.Common
                 : $"{CarryCode.ModId}:{trimmed}";
         }
 
-        private static string ToCanonicalResolverCode(string modId, string resolverCode)
+        private static string? ToCanonicalResolverCode(string modId, string resolverCode)
         {
             var normalizedModId = modId?.Trim();
             var normalizedCode = resolverCode?.Trim();
 
-            return normalizedCode.IndexOf(':') >= 0
+            return normalizedCode?.IndexOf(':') >= 0
                 ? normalizedCode
                 : $"{normalizedModId}:{normalizedCode}";
         }
@@ -210,7 +226,7 @@ namespace CarryOn.API.Common
         /// <param name="slot"> The carry slot from which to retrieve the carried block. </param>
         /// <returns> The CarriedBlock in the specified carry slot, or null if none exists. </returns>
         /// <exception cref="ArgumentNullException"></exception>
-        public CarriedBlock GetCarried(Entity entity, CarrySlot slot)
+        public CarriedBlock? GetCarried(Entity entity, CarrySlot slot)
         {
             return Services.State.GetCarried(entity, slot);
         }
@@ -241,7 +257,7 @@ namespace CarryOn.API.Common
         /// <param name="slot"> The carry slot in which to set the carried block. </param>
         /// <param name="stack"> The ItemStack to set for the carried block. </param>
         /// <param name="blockEntityData"> The block entity data to set for the carried block. </param>
-        public void SetCarried(Entity entity, CarrySlot slot, ItemStack stack, ITreeAttribute blockEntityData)
+        public void SetCarried(Entity entity, CarrySlot slot, ItemStack stack, ITreeAttribute? blockEntityData)
               => Services.State.SetCarried(entity, slot, stack, blockEntityData);
 
         /// <summary>
@@ -253,7 +269,7 @@ namespace CarryOn.API.Common
         /// <param name="blockEntityData"> The block entity data to set for the carried block. </param>
         /// <param name="markDirty"> Whether to mark the entity's carried attributes as dirty. </param>
         /// <exception cref="ArgumentNullException"></exception>
-        public void SetCarried(Entity entity, CarrySlot slot, ItemStack stack, ITreeAttribute blockEntityData, bool markDirty = true)
+        public void SetCarried(Entity entity, CarrySlot slot, ItemStack stack, ITreeAttribute? blockEntityData, bool markDirty = true)
         {
             Services.State.SetCarried(entity, slot, stack, blockEntityData, markDirty);
         }
@@ -303,7 +319,7 @@ namespace CarryOn.API.Common
         /// <returns> The CarriedBlock from the world, or null if none exists. </returns>
         public CarriedBlock GetCarriedFromWorld(BlockPos pos, CarrySlot slot, bool checkIsCarryable = false)
         {
-            return Services.Placement.GetCarriedFromWorld(pos, slot, checkIsCarryable);
+            return Services.Placement.GetCarriedFromWorld(pos, slot, checkIsCarryable)!;
         }
 
 
@@ -314,12 +330,11 @@ namespace CarryOn.API.Common
         /// <param name="entity"> The entity attempting to pick up the block. </param>
         /// <param name="pos"> The position of the block in the world. </param>
         /// <param name="slot"> The carry slot. </param>
-        /// <param name="delegates">Optional delegates to call when removing the block from the world</param>
         /// <param name="checkIsCarryable">If <c>true</c>, checks if the block is carryable in a particular slot.</param>
         /// <returns> The CarriedBlock from the world, or null if none exists. </returns>
-        public CarriedBlock GetCarriedFromWorld(Entity entity, BlockPos pos, CarrySlot slot, ref string failureCode, Delegate[] delegates = null, bool checkIsCarryable = false)
+        public CarriedBlock? GetCarriedFromWorld(Entity entity, BlockPos pos, CarrySlot slot, ref string failureCode, bool checkIsCarryable = false)
         {
-            return Services.Placement.GetCarriedFromWorld(entity, pos, slot, ref failureCode, delegates, checkIsCarryable);
+            return Services.Placement.GetCarriedFromWorld(entity, pos, slot, ref failureCode, checkIsCarryable);
         }
 
         /// <summary>
@@ -335,18 +350,7 @@ namespace CarryOn.API.Common
         }
 
 
-        /// <summary>
-        /// Restores the block at a specified position with the entity data from the carried block.
-        /// </summary>
-        /// <param name="world"> The world in which the block exists. </param>
-        /// <param name="carriedBlock"> The carried block containing the entity data. </param>
-        /// <param name="pos"> The position of the block in the world. </param>
-        /// <param name="delegates">Optional delegates to call when restoring block entity data</param>
-        /// <param name="dropped">Signal block was dropped to any delegates</param>
-        public void RestoreBlockEntityData(IWorldAccessor world, CarriedBlock carriedBlock, BlockPos pos, Delegate[] delegates = null, bool dropped = false)
-        {
-            Services.Placement.RestoreBlockEntityData(world, carriedBlock, pos, delegates, dropped);
-        }
+
 
         /// <summary>
         /// Attempts to pick up a block from the specified position.
@@ -423,7 +427,7 @@ namespace CarryOn.API.Common
         /// <param name="selection"> The block selection indicating where to place the block. </param>
         /// <param name="placedAt"> Position of where the block was placed. It may have replaced the selected block. </param>
         /// <returns> True if the block was successfully placed, false otherwise. </returns>
-        public bool TryPlaceDownAt(IPlayer player, CarrySlot carrySlot, BlockSelection selection, out BlockPos placedAt)
+        public bool TryPlaceDownAt(IPlayer player, CarrySlot carrySlot, BlockSelection selection, out BlockPos? placedAt)
         {
             return Services.Placement.TryPlaceDownAt(player, carrySlot, selection, out placedAt);
         }
@@ -437,7 +441,7 @@ namespace CarryOn.API.Common
         /// <param name="placedAt"> Position of where the block was placed. It may have replaced the selected block. </param>
         /// <param name="failureCode"> A reference to a string that will contain the failure code if the placement fails. </param>
         /// <returns> True if the block was successfully placed, false otherwise. </returns>
-        public bool TryPlaceDownAt(IPlayer player, CarrySlot carrySlot, BlockSelection selection, out BlockPos placedAt, ref string failureCode)
+        public bool TryPlaceDownAt(IPlayer player, CarrySlot carrySlot, BlockSelection selection, out BlockPos? placedAt, ref string failureCode)
         {
             return Services.Placement.TryPlaceDownAt(player, carrySlot, selection, out placedAt, ref failureCode);
         }
@@ -547,7 +551,7 @@ namespace CarryOn.API.Common
         /// <param name="range"> The radius to check for placement. </param>
         /// <param name="blockPlacer"> The block placer to use for placing the block. </param>
         /// <exception cref="ArgumentOutOfRangeException"></exception>
-        public void DropCarriedBlock(Entity entity, CarriedBlock carriedBlock, int range = 4, BlockPlacer blockPlacer = null)
+        public void DropCarriedBlock(Entity entity, CarriedBlock carriedBlock, int range = 4, BlockPlacer? blockPlacer = null)
         {
             Services.Drop.DropCarriedBlock(entity, carriedBlock, range, blockPlacer);
         }

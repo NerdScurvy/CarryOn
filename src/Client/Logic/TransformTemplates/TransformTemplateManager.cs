@@ -1,5 +1,7 @@
 using System.Collections.Generic;
+using System.Linq;
 using CarryOn.Client.Models;
+using CarryOn.Common.Behaviors;
 using Vintagestory.API.Client;
 using Vintagestory.API.Datastructures;
 
@@ -21,8 +23,8 @@ namespace CarryOn.Client.Logic.TransformTemplates
         private readonly TransformTemplateResolver resolver;
 
         // templateCode -> (groupName -> groupDefinition)
-        private Dictionary<string, Dictionary<string, TransformGroup>> templatesByCode
-            = new Dictionary<string, Dictionary<string, TransformGroup>>();
+        private Dictionary<string, Dictionary<string, TransformGroup?>> templatesByCode
+            = new Dictionary<string, Dictionary<string, TransformGroup?>>();
 
         public TransformTemplateManager(ICoreClientAPI capi)
         {
@@ -39,7 +41,7 @@ namespace CarryOn.Client.Logic.TransformTemplates
         /// <param name="assetCodes">The list of asset codes to load.</param>
         public void LoadTemplates(IList<string> assetCodes)
         {
-            templatesByCode = new Dictionary<string, Dictionary<string, TransformGroup>>();
+            this.templatesByCode = new Dictionary<string, Dictionary<string, TransformGroup?>>();
 
             if (assetCodes == null) return;
 
@@ -52,18 +54,23 @@ namespace CarryOn.Client.Logic.TransformTemplates
                     continue;
                 }
 
+                if (templateJsonObj == null || assetLocation == null)
+                {
+                    continue;
+                }
+
                 if (!loader.ValidateTemplateCodeMatchesAssetName(templateJsonObj, assetLocation))
                 {
                     continue;
                 }
 
-                if (!parser.TryParseTransformGroups(templateJsonObj, out var groups))
+                if (!parser.TryParseTransformGroups(templateJsonObj, out var groups) || groups == null)
                 {
                     capi.Logger.Warning($"CarryOn: Transform template asset is missing 'transformGroups' section in {assetLocation}");
                     continue;
                 }
 
-                templatesByCode[code.ToLowerInvariant()] = groups;
+                this.templatesByCode[code.ToLowerInvariant()] = groups;
             }
         }
 
@@ -77,9 +84,9 @@ namespace CarryOn.Client.Logic.TransformTemplates
         /// <returns> A dictionary mapping group names to their corresponding array of TransformSettings. </returns>
         public Dictionary<string, TransformSettings[]> ResolveAndFlattenTransformGroups(
             IList<string> templateCodes,
-            Dictionary<string, TransformGroup> localTransformGroups = null)
+            Dictionary<string, TransformGroup?>? localTransformGroups = null)
         {
-            return resolver.ResolveAndFlatten(templatesByCode, templateCodes, localTransformGroups);
+            return resolver.ResolveAndFlatten(this.templatesByCode, templateCodes, localTransformGroups);
         }
 
         /// <summary>
@@ -90,8 +97,34 @@ namespace CarryOn.Client.Logic.TransformTemplates
         /// <param name="settingsJson"> The JSON object containing the transform groups. </param>
         /// <param name="groups"> Outputs the parsed transform groups if successful. </param>
         /// <returns> True if the transform groups were successfully parsed; otherwise, false. </returns>
-        public bool TryParseTransformGroups(JsonObject settingsJson, out Dictionary<string, TransformGroup> groups)
+        public bool TryParseTransformGroups(JsonObject settingsJson, out Dictionary<string, TransformGroup?>? groups)
             => parser.TryParseTransformGroups(settingsJson, out groups);
+
+        public static TransformTemplateManager InitializeFromBlocks(ICoreClientAPI api)
+        {
+            var carryableWithTemplates = api.World.Blocks
+                .Where(b => b.GetBehavior<BlockBehaviorCarryable>()?.TransformTemplates != null)
+                .ToList();
+
+            var transformTemplateCodes = carryableWithTemplates
+                .SelectMany(b => b.GetBehavior<BlockBehaviorCarryable>().TransformTemplates)
+                .ToHashSet();
+
+            var manager = new TransformTemplateManager(api);
+            manager.LoadTemplates([.. transformTemplateCodes]);
+
+            var carryablesToResolve = api.World.Blocks
+                .Where(b => b.GetBehavior<BlockBehaviorCarryable>() != null &&
+                            (b.GetBehavior<BlockBehaviorCarryable>().TransformTemplates != null || b.GetBehavior<BlockBehaviorCarryable>().HasLocalTransformGroups))
+                .ToList();
+
+            foreach (var block in carryablesToResolve)
+            {
+                block.GetBehavior<BlockBehaviorCarryable>().ResolveTransformGroups(manager);
+            }
+
+            return manager;
+        }
 
     }
 }

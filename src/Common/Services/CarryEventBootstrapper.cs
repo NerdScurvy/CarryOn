@@ -5,38 +5,8 @@ using Vintagestory.API.Common;
 
 namespace CarryOn.Common.Services
 {
-    /// <summary>
-    /// Discovers and initializes carry event providers from loaded mod assemblies.
-    /// </summary>
-    internal sealed class CarryEventBootstrapper
+    internal sealed class CarryEventBootstrapper(ICarryManager carryManager)
     {
-        /// <summary>
-        /// Gets the core API for mod and logging access.
-        /// </summary>
-        public ICoreAPI Api { get; }
-
-        /// <summary>
-        /// Gets the owning carry system.
-        /// </summary>
-        public CarrySystem CarrySystem { get; }
-
-        /// <summary>
-        /// Gets the carry manager passed to discovered carry event initializers.
-        /// </summary>
-        public ICarryManager CarryManager { get; }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CarryEventBootstrapper"/> class.
-        /// </summary>
-        /// <param name="api">Core API instance.</param>
-        /// <param name="carrySystem">Owning carry system.</param>
-        /// <param name="carryManager">Carry manager facade.</param>
-        public CarryEventBootstrapper(ICoreAPI api, CarrySystem carrySystem, ICarryManager carryManager)
-        {
-            Api = api ?? throw new ArgumentNullException(nameof(api));
-            CarrySystem = carrySystem ?? throw new ArgumentNullException(nameof(carrySystem));
-            CarryManager = carryManager ?? throw new ArgumentNullException(nameof(carryManager));
-        }
 
         /// <summary>
         /// Scans non-core mod assemblies for <see cref="ICarryEvent"/> implementations and initializes them.
@@ -58,7 +28,7 @@ namespace CarryOn.Common.Services
                 {
                     try
                     {
-                        (Activator.CreateInstance(type) as ICarryEvent)?.Init(CarryManager);
+                        (Activator.CreateInstance(type) as ICarryEvent)?.Init(carryManager);
                     }
                     catch (Exception e)
                     {
