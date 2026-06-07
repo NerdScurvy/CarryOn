@@ -32,14 +32,14 @@ namespace CarryOn.Common.Behaviors
         {
             if (selBoxIndex <= 0) return -1;
 
-            var attachable = behaviorAttachable ??= entity.GetBehavior<EntityBehaviorAttachable>()!;
+            var attachable = behaviorAttachable ??= entity.GetBehavior<EntityBehaviorAttachable>();
             if (attachable == null) return -1;
 
             return attachable.GetSlotIndexFromSelectionBoxIndex(selBoxIndex - 1);
         }
         public ItemSlot? GetItemSlot(int slotIndex)
         {
-            var attachable = behaviorAttachable ??= entity.GetBehavior<EntityBehaviorAttachable>()!;
+            var attachable = behaviorAttachable ??= entity.GetBehavior<EntityBehaviorAttachable>();
             if (attachable == null || slotIndex < 0 || slotIndex >= attachable.Inventory.Count) return null;
 
             return attachable.Inventory[slotIndex];
@@ -113,8 +113,6 @@ namespace CarryOn.Common.Behaviors
                 } else
                 {
                     itemstacks = nohandsfreeStacks;
-                    // No action available
-                    //return null;
                 }
             }
 

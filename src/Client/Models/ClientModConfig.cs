@@ -1,4 +1,5 @@
 using System;
+using System.Text.Json.Serialization;
 using CarryOn.Client.Logic;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
@@ -12,6 +13,10 @@ namespace CarryOn.Client.Models
     public class CarryOnClientConfig
     {
         public int? ConfigVersion { get; set; }
+
+        // Runtime toggle for CarryOn behavior (client-side only - always enabled on game start)
+        [JsonIgnore]
+        public bool CarryOnEnabled { get; set; } = true;
 
         // Stored as the enum name (L1,L2,...). "None" indicates not assigned.
         public string HandsAnchor { get; set; } = HudCarried.HandsAnchorDefault.ToString();

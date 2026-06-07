@@ -104,7 +104,7 @@ namespace CarryOn.Utility
 
             // Active slot must be main hotbar (This excludes the backpack slots)
             var activeHotbarSlot = entityPlayer.Player.InventoryManager.ActiveHotbarSlotNumber;
-            return (activeHotbarSlot >= 0) && (activeHotbarSlot < 10);
+            return (activeHotbarSlot >= 0) && (activeHotbarSlot < CarryCode.Default.HotbarSize);
         }
 
 
@@ -161,7 +161,7 @@ namespace CarryOn.Utility
             return renderedItemSlot?.Itemstack?.Item?.Code?.ToString();
         }
 
-        public static string ResolveCarryTransformGroupBase(this EntityPlayer entityPlayer, CarrySystem carrySystem, CarrySlot carrySlot)
+        public static string ResolveCarryTransformGroupBase(this EntityPlayer entityPlayer, CarryOnConfig config, CarrySlot carrySlot)
         {
             if (carrySlot == CarrySlot.Hands)
             {
@@ -170,7 +170,7 @@ namespace CarryOn.Utility
 
             var backpackItemCode = entityPlayer?.Player?.GetRenderedBackpackItemCode();
             if (!string.IsNullOrEmpty(backpackItemCode)
-                && (carrySystem?.Config?.BackpackMapping?.TryGetValue(backpackItemCode, out var backpackType) ?? false)
+                && (config?.BackpackMapping?.TryGetValue(backpackItemCode, out var backpackType) ?? false)
                 && !string.IsNullOrEmpty(backpackType))
             {
                 return "backpack-" + backpackType;
@@ -179,14 +179,14 @@ namespace CarryOn.Utility
             return "backpack-none";
         }
 
-        public static string ResolveCarryTransformGroupBase(this EntityAgent entity, CarrySystem carrySystem, CarrySlot carrySlot)
+        public static string ResolveCarryTransformGroupBase(this EntityAgent entity, CarryOnConfig config, CarrySlot carrySlot)
         {
             if (entity is EntityPlayer entityPlayer)
             {
-                return entityPlayer.ResolveCarryTransformGroupBase(carrySystem, carrySlot);
+                return entityPlayer.ResolveCarryTransformGroupBase(config, carrySlot);
             }
 
-            return "default"; 
+            return CarryCode.DefaultTransformGroup; 
         }
 
     }

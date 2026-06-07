@@ -1,11 +1,9 @@
 using System;
 using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
-using CarryOn.Utility;
 using static CarryOn.API.Common.Models.CarryCode;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
-using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using Vintagestory.GameContent;
 
@@ -19,7 +17,7 @@ namespace CarryOn.Events
         private CarryOnConfig? config;
         public void Init(ICarryManager carryManager)
         {
-            config = carryManager.Api.World?.GetCarrySystem()?.Config;
+            config = carryManager.Config;
             if (config?.CarryOptions?.TooHotToCarry != true) return;
 
             var carryEvents = carryManager.CarryEvents;
@@ -70,17 +68,11 @@ namespace CarryOn.Events
 
         private bool HasTooHotInventoryItems(BlockEntity blockEntity, IWorldAccessor world)
         {
-            var tree = new TreeAttribute();
-            blockEntity.ToTreeAttributes(tree);
+            if (blockEntity is not IBlockEntityContainer container || container.Inventory == null) return false;
 
-            if (tree["inventory"] is not TreeAttribute inventory) return false;
-            if (inventory["slots"] is not TreeAttribute slots) return false;
-
-            foreach (var value in slots.Values)
+            foreach (var slot in container.Inventory)
             {
-                if (value is not ItemstackAttribute itemAttr) continue;
-
-                var stack = itemAttr.GetValue() as ItemStack;
+                var stack = slot?.Itemstack;
                 if (stack?.Collectible == null) continue;
 
                 var temp = stack.Collectible.GetTemperature(world, stack);

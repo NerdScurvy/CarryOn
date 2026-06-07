@@ -1,3 +1,4 @@
+using System;
 using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
 using HarmonyLib;
@@ -9,7 +10,7 @@ using Vintagestory.API.MathTools;
 using Vintagestory.API.Server;
 using Vintagestory.GameContent;
 
-namespace CarryOn.Events
+namespace CarryOn.Client.Logic.Events
 {
 
     /// <summary>
@@ -39,13 +40,21 @@ namespace CarryOn.Events
 
             if (blockEntity is BlockEntityBarrel blockEntityBarrel)
             {
-                // Try to close dialog - this will only work for the client removing the block
-                // TODO: Review code after vanilla bug is addressed
+                // Close the barrel's inventory dialog when the block is removed.
+                // Uses reflection to access the private "invDialog" field because there is no public API for this.
+                // TODO: Remove reflection after vanilla bug is addressed
                 //       https://github.com/anegostudios/VintageStory-Issues/issues/6875
-                var result = AccessTools.Field(typeof(BlockEntityBarrel), "invDialog").GetValue(blockEntityBarrel);
-                if (result != null && result is GuiDialogBarrel invDialog)
+                try
                 {
-                    invDialog?.TryClose();
+                    var result = AccessTools.Field(typeof(BlockEntityBarrel), "invDialog")?.GetValue(blockEntityBarrel);
+                    if (result is GuiDialogBarrel invDialog)
+                    {
+                        invDialog.TryClose();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    carryManager?.Api?.Logger.Debug($"CarryOn: Could not close barrel dialog during carry: {ex.Message}");
                 }
             }
         }

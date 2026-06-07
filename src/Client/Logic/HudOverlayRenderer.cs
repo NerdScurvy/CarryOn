@@ -80,7 +80,7 @@ namespace CarryOn.Client.Logic
             this.circleAlpha = Math.Max(0.0F, Math.Min(1.0F, this.circleAlpha
                 + (deltaTime / (this.CircleVisible ? CircleAlphaIn : -CircleAlphaOut))));
 
-            // TODO: Do some smoothing between frames?
+            // Circle progress is set externally; alpha fade provides the transition smoothing
             if ((this.CircleProgress <= 0.0F) || (this.circleAlpha <= 0.0F)) return;
             UpdateCircleMesh(this.CircleProgress);
 
@@ -108,8 +108,9 @@ namespace CarryOn.Client.Logic
                 y = this.api.Input.MouseY;
             }
 
-            // These IRenderAPI methods are deprecated but not sure how to do it otherwise.
-#pragma warning disable CS0618
+            // GlPushMatrix/GlTranslate/GlScale/GlPopMatrix are deprecated in favor of direct Matrix calls,
+            // but are still required here to isolate the model-view transform for the overlay shader uniform.
+#pragma warning disable CS0618 // Suppress deprecation of legacy GL matrix methods
             rend.GlPushMatrix();
             rend.GlTranslate(x, y, 0);
             rend.GlScale(OuterRadius, OuterRadius, 0);

@@ -10,6 +10,14 @@ namespace CarryOn.Client.Logic.CarryRenderer
 {
     internal sealed class CarriedLabelRenderer : IDisposable
     {
+        private const int IconLabelColor = unchecked((int)0xFFFFFFFF);
+        private const float IconLabelSize = 0.45f;
+        private const float MaxLabelWidth = 1.80f;
+        private const float MaxLabelHeight = 0.45f;
+        private const float FontHeightOffset = 0.12f;
+        private const float VisualClampWidth = 1.20f;
+        private const float MarginFactor = 0.95f;
+
         private readonly ICoreClientAPI api;
         private readonly CarriedLabelManager labelManager;
         private MeshRef? labelQuad;
@@ -90,28 +98,18 @@ namespace CarryOn.Client.Logic.CarryRenderer
             {
                 if (ti == 0)
                 {
-                    var transform = labelTransform!;
+                    var transform = labelTransform;
 
                     var modelMat = Mat4f.CloneIt(initialMatrix);
-                    Mat4f.Translate(modelMat, modelMat, transform.Translation.X, transform.Translation.Y, transform.Translation.Z);
-                    Mat4f.Translate(modelMat, modelMat, transform.Origin.X, transform.Origin.Y, transform.Origin.Z);
-                    Mat4f.RotateX(modelMat, modelMat, transform.Rotation.X * GameMath.DEG2RAD);
-                    Mat4f.RotateZ(modelMat, modelMat, transform.Rotation.Z * GameMath.DEG2RAD);
-                    Mat4f.RotateY(modelMat, modelMat, transform.Rotation.Y * GameMath.DEG2RAD);
-                    Mat4f.Scale(modelMat, modelMat, transform.ScaleXYZ.X, transform.ScaleXYZ.Y, transform.ScaleXYZ.Z);
-                    Mat4f.Translate(modelMat, modelMat, -transform.Origin.X, -transform.Origin.Y, -transform.Origin.Z);
+                    CarryRenderHelpers.ApplyTransformInPlace(transform, modelMat);
 
                     if (labelStack?.Collectible != null)
                     {
-                        const int iconColor = unchecked((int)0xFFFFFFFF);
-                        var iconLabel = this.labelManager.GetItemIconLabel(labelStack, iconColor, labelRenderSettings);
+                        var iconLabel = this.labelManager.GetItemIconLabel(labelStack, IconLabelColor, labelRenderSettings);
                         if (iconLabel.ready && iconLabel.mesh != null)
                         {
-                            const float iconWidth = 0.45f;
-                            const float iconHeight = 0.45f;
-
                             Mat4f.Translate(modelMat, modelMat, -0.5f, -0.5f, 0f);
-                            Mat4f.Scale(modelMat, modelMat, iconWidth, iconHeight, 1f);
+                            Mat4f.Scale(modelMat, modelMat, IconLabelSize, IconLabelSize, 1f);
 
                             prog.Tex2D = iconLabel.textureId;
                             prog.AlphaTest = 0.0f;
@@ -143,8 +141,6 @@ namespace CarryOn.Client.Logic.CarryRenderer
 
                     if (string.IsNullOrWhiteSpace(text)) continue;
 
-                    const float maxWidth = 1.80f; // doubled capacity
-                    const float maxHeight = 0.45f; // 1.5x vertical capacity
                     // Decide wrap width in pixels relative to max world width mapped to 1024 texture width
                     // Use narrower wrap width similar to sign text area
                     var wrapWidthPx = labelRenderSettings?.MaxWidth ?? 200;
@@ -152,26 +148,24 @@ namespace CarryOn.Client.Logic.CarryRenderer
                     if (label == null) continue; // silent fail
                     var (tex, w, h) = label.Value;
                     float aspect = (h == 0) ? 1f : (float)w / h;
-                    float targetHeight = Math.Min(maxHeight, 0.12f + (fontSize / 64f));
+                    float targetHeight = Math.Min(MaxLabelHeight, FontHeightOffset + (fontSize / 64f));
                     float targetWidth = targetHeight * aspect;
-                    if (targetWidth > maxWidth)
+                    if (targetWidth > MaxLabelWidth)
                     {
-                        float scaleDown = maxWidth / targetWidth;
-                        targetWidth = maxWidth;
+                        float scaleDown = MaxLabelWidth / targetWidth;
+                        targetWidth = MaxLabelWidth;
                         targetHeight *= scaleDown;
                     }
                     // Additional clamp to keep from visually exceeding chest face too much
-                    const float visualClamp = 1.20f;
-                    if (targetWidth > visualClamp)
+                    if (targetWidth > VisualClampWidth)
                     {
-                        float scaleDown = visualClamp / targetWidth;
-                        targetWidth = visualClamp;
+                        float scaleDown = VisualClampWidth / targetWidth;
+                        targetWidth = VisualClampWidth;
                         targetHeight *= scaleDown;
                     }
                     // Add internal margins (shrink a bit more after fit)
-                    const float marginFactor = 0.95f; // allow more usable space with larger quad
-                    targetWidth *= marginFactor;
-                    targetHeight *= marginFactor;
+                    targetWidth *= MarginFactor;
+                    targetHeight *= MarginFactor;
                     Mat4f.Translate(modelMat, modelMat, -0.5f, -0.5f, 0f);
                     Mat4f.Scale(modelMat, modelMat, targetWidth, targetHeight, 1f);
 

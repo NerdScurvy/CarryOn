@@ -1,15 +1,14 @@
-#nullable disable
 using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
 
 namespace CarryOn.Client.Models
 {
     public record TransformGroupSettings(
-        string Id = null,
+        string? Id = null,
         EnumAssetType AssetType = EnumAssetType.None,
-        string AssetName = null,
-        string DisableIfItemStackPath = null,
-        string BlockEntityDataItemStackPath = null,
+        string? AssetName = null,
+        string? DisableIfItemStackPath = null,
+        string? BlockEntityDataItemStackPath = null,
         float? TranslationX = null,
         float? TranslationY = null,
         float? TranslationZ = null,
@@ -26,10 +25,10 @@ namespace CarryOn.Client.Models
         float? AlphaTestOpaque = null,
         float? AlphaTestBlend = null,
         bool? NormalShaded = null,
-        string RenderPass = null,
-        Vec4f TintColor = null,
-        string ClimateTintMap = null,
-        string SeasonalTintMap = null,
+        string? RenderPass = null,
+        Vec4f? TintColor = null,
+        string? ClimateTintMap = null,
+        string? SeasonalTintMap = null,
         float? GlowIntensity = null,
         bool Enabled = true
     )
@@ -42,7 +41,7 @@ namespace CarryOn.Client.Models
         };
 
         // MergeOverlay and MergeRelative return new records
-        public TransformGroupSettings MergeOverlay(TransformGroupSettings overlay)
+        public TransformGroupSettings MergeOverlay(TransformGroupSettings? overlay)
         {
             if (overlay == null) return this;
 
@@ -82,7 +81,7 @@ namespace CarryOn.Client.Models
             );
         }
 
-        public TransformGroupSettings MergeRelative(TransformGroupSettings relative)
+        public TransformGroupSettings MergeRelative(TransformGroupSettings? relative)
         {
             if (relative == null) return this;
 
@@ -130,7 +129,7 @@ namespace CarryOn.Client.Models
         /// </summary>
         /// <param name="defaultTransform">An optional ModelTransform instance providing default values for any missing transform properties.</param>
         /// <returns>A TransformSettings instance with all properties populated.</returns>
-        public TransformSettings ToTransformSettings(ModelTransform defaultTransform = null)
+        public TransformSettings ToTransformSettings(ModelTransform? defaultTransform = null)
         {
             // Compute the transform if any transform property is set
             bool hasTransform =
@@ -139,7 +138,7 @@ namespace CarryOn.Client.Models
                 ScaleX.HasValue || ScaleY.HasValue || ScaleZ.HasValue ||
                 OriginX.HasValue || OriginY.HasValue || OriginZ.HasValue;
 
-            ModelTransform transform = null;
+            ModelTransform? transform = null;
             if (hasTransform)
             {
                 transform = new ModelTransform
@@ -164,7 +163,7 @@ namespace CarryOn.Client.Models
             }
 
             // Convert GlowIntensity to RGB vector if present
-            Vec4f rgbGlow = GlowIntensity.HasValue
+            Vec4f? rgbGlow = GlowIntensity.HasValue
                 ? new Vec4f(GlowIntensity.Value, GlowIntensity.Value, GlowIntensity.Value, GlowIntensity.Value)
                 : null;
 

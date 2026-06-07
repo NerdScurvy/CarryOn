@@ -1,26 +1,26 @@
 using System;
 using CarryOn.Common.Behaviors;
 using Vintagestory.API.Common;
-using static CarryOn.CarrySystem;
 using static CarryOn.API.Common.Models.CarryCode;
 using CarryOn.Utility;
 using CarryOn.Common.Network;
 using Vintagestory.API.Datastructures;
 using CarryOn.API.Common.Models;
 using System.Linq;
+using Vintagestory.API.MathTools;
 using CarryOn.API.Common.Interfaces;
-
+ 
 namespace CarryOn.Common.Logic
 {
     public class TransferLogic
     {
         private readonly ICoreAPI api;
-        private readonly CarrySystem carrySystem;
+        private readonly ICarryManager carryManager;
 
-        public TransferLogic(ICoreAPI api, CarrySystem carrySystem)
+        public TransferLogic(ICoreAPI api, ICarryManager carryManager)
         {
             this.api = api ?? throw new ArgumentNullException(nameof(api));
-            this.carrySystem = carrySystem ?? throw new ArgumentNullException(nameof(carrySystem));
+            this.carryManager = carryManager ?? throw new ArgumentNullException(nameof(carryManager));
         }
 
         /// <summary>
@@ -92,7 +92,7 @@ namespace CarryOn.Common.Logic
             catch (Exception e)
             {
                 failureCode = FailureCode.Internal;
-                onScreenErrorMessage = GetLang("unknown-error");
+                onScreenErrorMessage = LocalizationHelper.GetLang("unknown-error");
                 this.api.Logger.Error($"CanTakeCarryable method failed: {e}", e);
             }
 
@@ -120,15 +120,17 @@ namespace CarryOn.Common.Logic
             var carriedHands = player?.Entity?.GetCarried(CarrySlot.Hands);
             if (carriedHands == null) return false;
 
+            if (carriedHands.BlockEntityData == null) return false;
+
             try
             {
-                return transferHandler.CanPutCarryable(player!, blockEntity, index, carriedHands.ItemStack, carriedHands.BlockEntityData!,
+                return transferHandler.CanPutCarryable(player!, blockEntity, index, carriedHands.ItemStack, carriedHands.BlockEntityData,
                     out transferDelay, out failureCode, out onScreenErrorMessage);
             }
             catch (Exception e)
             {
                 failureCode = FailureCode.Internal;
-                onScreenErrorMessage = GetLang("unknown-error");
+                onScreenErrorMessage = LocalizationHelper.GetLang("unknown-error");
                 this.api.Logger.Error($"CanPutCarryable method failed: {e}");
             }
 
@@ -136,22 +138,60 @@ namespace CarryOn.Common.Logic
         }
 
         /// <summary>
-        /// Try to put a carryable item into the targeted block's slot
+        /// Resolves the block entity, carryable behavior, and transfer handler for a transfer message.
         /// </summary>
-        /// <param name="player"></param>
-        /// <param name="message"></param>
-        /// <param name="failureCode"></param>
-        /// <param name="onScreenErrorMessage"></param>
-        /// <returns></returns>
-        public bool TryPutCarryable(IPlayer player, PutMessage message, out string failureCode, out string onScreenErrorMessage)
+        private bool TryResolveTransferTarget(
+            BlockPos blockPos,
+            string methodName,
+            out BlockEntity blockEntity,
+            out BlockBehaviorCarryable? carryableBehavior,
+            out ICarryableTransfer? transferHandler,
+            out string failureCode,
+            out string onScreenErrorMessage)
         {
-            player = player ?? throw new ArgumentNullException(nameof(player));
-            message = message ?? throw new ArgumentNullException(nameof(message));
-            
-            const string methodName = "TryPutCarryable";
-
             failureCode = default!;
             onScreenErrorMessage = default!;
+            blockEntity = default!;
+            carryableBehavior = default;
+            transferHandler = default;
+
+            blockEntity = api.World.BlockAccessor.GetBlockEntity(blockPos);
+            if (blockEntity == null)
+            {
+                api.Logger.Error($"{methodName}: No block entity found at position");
+                return false;
+            }
+
+            carryableBehavior = blockEntity.Block?.GetBehavior<BlockBehaviorCarryable>();
+            if (carryableBehavior == null)
+            {
+                api.Logger.Error($"{methodName}: No Carryable behavior found");
+                failureCode = FailureCode.Internal;
+                return false;
+            }
+
+            if (!carryableBehavior.TransferEnabled) return false;
+
+            transferHandler = carryableBehavior.TransferHandler;
+            if (transferHandler == null) return false;
+
+            return true;
+        }
+
+        /// <summary>
+        /// Validates common preconditions for a transfer operation (player not null, message not null, API initialized, BlockPos present).
+        /// </summary>
+        private bool ValidateTransferPreconditions<T>(
+            IPlayer player,
+            T message,
+            string methodName,
+            out BlockPos blockPos,
+            out string failureCode,
+            out string onScreenErrorMessage) where T : class
+        {
+            failureCode = default!;
+            onScreenErrorMessage = default!;
+            blockPos = default!;
 
             if (this.api == null)
             {
@@ -165,6 +205,38 @@ namespace CarryOn.Common.Logic
                 return false;
             }
 
+            blockPos = message switch
+            {
+                PutMessage put => put.BlockPos!,
+                TakeMessage take => take.BlockPos!,
+                _ => null!
+            };
+
+            if (blockPos == null)
+            {
+                api.Logger.Error($"{methodName}: No BlockPos in message");
+                failureCode = FailureCode.Internal;
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Try to put a carryable item into the targeted block's slot
+        /// </summary>
+        public bool TryPutCarryable(IPlayer player, PutMessage message, out string failureCode, out string onScreenErrorMessage)
+        {
+            player = player ?? throw new ArgumentNullException(nameof(player));
+
+            const string methodName = "TryPutCarryable";
+
+            failureCode = default!;
+            onScreenErrorMessage = default!;
+
+            if (!ValidateTransferPreconditions(player, message, methodName, out var blockPos, out failureCode, out onScreenErrorMessage))
+                return false;
+
             var carriedHands = player.Entity.GetCarried(CarrySlot.Hands);
             if (carriedHands == null)
             {
@@ -172,50 +244,26 @@ namespace CarryOn.Common.Logic
                 return false;
             }
 
-            if (message.BlockPos == null)
-            {
-                api.Logger.Error($"{methodName}: No BlockPos in message");
-                failureCode = FailureCode.Internal;
+            if (!TryResolveTransferTarget(blockPos, methodName, out var blockEntity, out _, out var transferHandler, out failureCode, out onScreenErrorMessage))
                 return false;
-            }
 
-            var blockEntity = api.World.BlockAccessor.GetBlockEntity(message.BlockPos);
-            if (blockEntity == null)
-            {
-                api.Logger.Error($"{methodName}: No block entity found at position");
-                return false;
-            }
-
-            var carryableBehavior = blockEntity.Block?.GetBehavior<BlockBehaviorCarryable>();
-            if (carryableBehavior == null)
-            {
-                api.Logger.Error($"{methodName}: No Carryable behavior found");
-                failureCode = FailureCode.Internal;
-                return false;
-            }
-
-            if (!carryableBehavior.TransferEnabled) return false;
-
-            var transferHandler = carryableBehavior.TransferHandler;
-            if (transferHandler == null) return false;
+            if (carriedHands.BlockEntityData == null) return false;
 
             try
             {
-                var success = transferHandler.TryPutCarryable(player, blockEntity, message.Index, carriedHands.ItemStack, carriedHands.BlockEntityData!,
+                var success = transferHandler!.TryPutCarryable(player, blockEntity, message.Index, carriedHands.ItemStack, carriedHands.BlockEntityData,
                     out failureCode, out onScreenErrorMessage);
 
                 if (success)
                 {
-                    // If the transfer was successful, we can remove the carried block from the player's hands.
                     var entity = player.Entity;
-                    var carryManager = this.carrySystem.CarryManager;
+                    var carryManager = this.carryManager;
                     if (entity != null && carryManager != null)
                     {
                         carryManager.RemoveCarried(entity, CarrySlot.Hands);
                     }
                     return true;
                 }
-
             }
             catch (Exception e)
             {
@@ -228,32 +276,17 @@ namespace CarryOn.Common.Logic
         /// <summary>
         /// Tries to take a carryable block from the specified block entity slot.
         /// </summary>
-        /// <param name="player"></param>
-        /// <param name="message"></param>
-        /// <param name="failureCode"></param>
-        /// <param name="onScreenErrorMessage"></param>
-        /// <returns></returns>
         public bool TryTakeCarryable(IPlayer player, TakeMessage message, out string failureCode, out string onScreenErrorMessage)
         {
             player = player ?? throw new ArgumentNullException(nameof(player));
-            message = message ?? throw new ArgumentNullException(nameof(message));
 
             const string methodName = "TryTakeCarryable";
 
             failureCode = default!;
             onScreenErrorMessage = default!;
 
-            if (this.api == null)
-            {
-                throw new InvalidOperationException("Api is not initialized.");
-            }
-
-            if (message == null)
-            {
-                api.Logger.Error($"{methodName}: Received null message");
-                failureCode = FailureCode.Internal;
+            if (!ValidateTransferPreconditions(player, message, methodName, out var blockPos, out failureCode, out onScreenErrorMessage))
                 return false;
-            }
 
             var carriedHands = player.Entity.GetCarried(CarrySlot.Hands);
             if (carriedHands != null)
@@ -262,52 +295,26 @@ namespace CarryOn.Common.Logic
                 return false;
             }
 
-            if (message.BlockPos == null)
-            {
-                api.Logger.Error($"{methodName}: No BlockPos in message");
-                failureCode = FailureCode.Internal;
+            if (!TryResolveTransferTarget(blockPos, methodName, out var blockEntity, out _, out var transferHandler, out failureCode, out onScreenErrorMessage))
                 return false;
-            }
-
-            var blockEntity = api.World.BlockAccessor.GetBlockEntity(message.BlockPos);
-            if (blockEntity == null)
-            {
-                api.Logger.Error($"{methodName}: No block entity found at position");
-                return false;
-            }
-
-            var carryableBehavior = blockEntity.Block?.GetBehavior<BlockBehaviorCarryable>();
-            if (carryableBehavior == null)
-            {
-                api.Logger.Error($"{methodName}: No Carryable behavior found");
-                failureCode = FailureCode.Internal;
-                return false;
-            }
-
-            if (!carryableBehavior.TransferEnabled) return false;
-
-            var transferHandler = carryableBehavior.TransferHandler;
-            if (transferHandler == null) return false;
 
             ItemStack itemStack;
             ITreeAttribute blockEntityData;
             try
             {
-                var success = transferHandler.TryTakeCarryable(player, blockEntity, message.Index, out itemStack, out blockEntityData,
+                var success = transferHandler!.TryTakeCarryable(player, blockEntity, message.Index, out itemStack, out blockEntityData,
                     out failureCode, out onScreenErrorMessage);
 
                 if (success)
                 {
-                    // If the transfer was successful, we can put the block in the player's hands.
                     var entity = player.Entity;
-                    var carryManager = this.carrySystem.CarryManager;
+                    var carryManager = this.carryManager;
                     if (entity != null && carryManager != null)
                     {
                         carryManager.SetCarried(entity, new CarriedBlock(CarrySlot.Hands, itemStack, blockEntityData));
                     }
                     return true;
                 }
-
             }
             catch (Exception e)
             {

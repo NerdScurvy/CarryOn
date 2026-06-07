@@ -1,223 +1,27 @@
 using System;
+using System.Collections.Generic;
 using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
 using CarryOn.Common.Behaviors;
+using CarryOn.Common.Logic;
+using CarryOn.Common.Network;
 using CarryOn.Utility;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
+using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
-using Vintagestory.GameContent;
 using static CarryOn.API.Common.Models.CarryCode;
 
 namespace CarryOn.Common.Services
 {
     internal sealed class CarryPlacementService(ICoreAPI api, ICarryManager carryManager)
     {
-
-        /// <summary>
-        /// Checks whether an entity has permission to pick up the block at the given position.
-        /// </summary>
-        /// <param name="entity">The acting entity.</param>
-        /// <param name="pos">Target block position.</param>
-        /// <returns>True when pickup is allowed; otherwise false.</returns>
-        public bool HasPermissionToCarry(Entity entity, BlockPos pos)
-        {
-            var isReinforced = entity.Api.ModLoader.GetModSystem<ModSystemBlockReinforcement>()?.IsReinforced(pos) ?? false;
-            if (entity is EntityPlayer playerEntity)
-            {
-                var result = entity.World.GetCarryEvents()?.TriggerCheckPermissionToCarry(playerEntity, pos, isReinforced);
-                if (result.HasValue) return result.Value;
-
-                var isCreative = playerEntity.Player.WorldData.CurrentGameMode == EnumGameMode.Creative;
-
-                if (!isCreative && isReinforced) return false;
-
-                return entity.World.Claims.TryAccess(playerEntity.Player, pos, EnumBlockAccessFlags.BuildOrBreak);
-            }
-            else
-            {
-                return !isReinforced;
-            }
-        }
-
-        private bool CanPickUp(Entity entity, BlockPos pos, CarrySlot slot, CarriedBlock carried, ref string failureCode)
-        {
-            return carryManager.CarryEvents?.TriggerBeforePickUpBlock(entity, pos, slot, carried, ref failureCode) ?? true;
-        }
-
-        /// <summary>
-        /// Removes a block from the world and returns it as a carried block.
-        /// </summary>
-        /// <param name="pos">Source block position.</param>
-        /// <param name="slot">Destination carry slot metadata.</param>
-        /// <param name="checkIsCarryable">Whether to enforce carryability checks for the slot.</param>
-        /// <returns>The carried block, or null when conversion fails.</returns>
-        public CarriedBlock? GetCarriedFromWorld(BlockPos pos, CarrySlot slot, bool checkIsCarryable = false)
-        {
-            string failureCode = FailureCode.Ignore;
-            return GetCarriedFromWorld(null, pos, slot, ref failureCode, checkIsCarryable);
-        }
-
-        /// <summary>
-        /// Removes a block from the world and returns it as a carried block with optional delegate hooks.
-        /// </summary>
-        /// <param name="entity">Acting entity when pickup preflight hooks should run.</param>
-        /// <param name="pos">Source block position.</param>
-        /// <param name="slot">Destination carry slot metadata.</param>
-        /// <param name="failureCode">Failure code output when pickup preflight rejects.</param>
-        /// <param name="delegates">Optional callbacks invoked before world block removal.</param>
-        /// <param name="checkIsCarryable">Whether to enforce carryability checks for the slot.</param>
-        /// <returns>The carried block, or null when conversion fails.</returns>
-        public CarriedBlock? GetCarriedFromWorld(Entity? entity, BlockPos pos, CarrySlot slot, ref string failureCode, bool checkIsCarryable = false)
-        {
-            var world = api.World;
-            var carried = BlockUtils.CreateCarriedFromBlockPos(world, pos, slot);
-            if (carried == null) return null;
-
-            if (checkIsCarryable && !carryManager.IsCarryable(carried.Block, slot)) return null;
-
-            if (entity != null && !CanPickUp(entity, pos, slot, carried, ref failureCode)) return null;
-
-            carryManager.CarryEvents?.TriggerBeforeRemoveBlockFromWorld(carried, pos);
-
-            world.BlockAccessor.SetBlock(0, pos);
-            world.Api.ModLoader.GetModSystem<ModSystemBlockReinforcement>()?.ClearReinforcement(pos);
-            world.BlockAccessor.TriggerNeighbourBlockUpdate(pos);
-            return carried;
-        }
-
-        /// <summary>
-        /// Restores serialized block entity data after a carried block is placed.
-        /// </summary>
-        /// <param name="world">World accessor for placement context.</param>
-        /// <param name="carriedBlock">Carried block containing serialized block entity data.</param>
-        /// <param name="pos">Target placement position.</param>
-        /// <param name="dropped">Whether placement originated from drop flow.</param>
-        public void RestoreBlockEntityData(IWorldAccessor world, CarriedBlock carriedBlock, BlockPos pos, bool dropped = false)
-        {
-            if ((world.Side != EnumAppSide.Server) || (carriedBlock?.BlockEntityData == null)) return;
-
-            var blockEntityData = carriedBlock.BlockEntityData;
-            blockEntityData.SetInt("posx", pos.X);
-            blockEntityData.SetInt("posy", pos.Y);
-            blockEntityData.SetInt("posz", pos.Z);
-
-            var blockEntity = world.BlockAccessor.GetBlockEntity(pos);
-
-            carryManager.CarryEvents?.TriggerBeforeRestoreBlockEntityData(blockEntity, blockEntityData, dropped);
-
-            blockEntity?.FromTreeAttributes(blockEntityData, world);
-            blockEntity?.MarkDirty(true);
-        }
-
-        /// <summary>
-        /// Attempts to pick up a world block into a carry slot.
-        /// </summary>
-        /// <param name="entity">The acting entity.</param>
-        /// <param name="pos">Target block position.</param>
-        /// <param name="slot">Destination carry slot.</param>
-        /// <param name="failureCode">Failure code output when pickup fails.</param>
-        /// <param name="checkIsCarryable">Whether to enforce carryability checks.</param>
-        /// <param name="playSound">Whether to play pickup audio on success.</param>
-        /// <returns>True when pickup succeeds; otherwise false.</returns>
-        public bool TryPickUp(
-            Entity entity,
-            BlockPos pos,
-            CarrySlot slot,
-            ref string failureCode,
-            bool checkIsCarryable = true,
-            bool playSound = true)
-        {
-            ArgumentNullException.ThrowIfNull(entity);
-            ArgumentNullException.ThrowIfNull(pos);
-
-            failureCode ??= FailureCode.Ignore;
-
-            if (entity.GetCarried(slot) != null)
-            {
-                failureCode = FailureCode.AlreadyCarrying;
-                return false;
-            }
-
-            if (entity.Api.Side == EnumAppSide.Server && !HasPermissionToCarry(entity, pos))
-            {
-                failureCode = FailureCode.NoPermission;
-                return false;
-            }
-
-            var block = entity.World.BlockAccessor.GetBlock(pos);
-            if (checkIsCarryable && !carryManager.IsCarryable(block, slot))
-            {
-                failureCode = FailureCode.NotCarryable;
-                return false;
-            }
-
-            var carryBehavior = block.GetBehavior<BlockBehaviorCarryable>();
-            if (entity.Api.Side == EnumAppSide.Client && carryBehavior != null && !carryBehavior.OptimisticPickup)
-            {
-                return true;
-            }
-
-            var optimisticPickup = carryBehavior?.OptimisticPickup ?? true;
-            var carried = GetCarriedFromWorld(entity, pos, slot, ref failureCode, checkIsCarryable);
-            if (carried == null) return false;
-
-            carryManager.SetCarried(entity, carried);
-
-            if (playSound)
-            {
-                PlaySound(carried.Block, pos, entity as EntityPlayer, dualCall: optimisticPickup);
-            }
-
-            if (entity.Api.Side == EnumAppSide.Server)
-            {
-                var entityName = entity.GetName() ?? "Unknown Entity";
-                entity.World.Logger.Audit($"[{ModId}] {entityName} picked up block {carried.Block.Code.GetName()} at {pos}");
-            }
-
-            return true;
-        }
-
-        /// <summary>
-        /// Attempts to pick up a block without exposing a failure-code output.
-        /// </summary>
-        /// <param name="entity">The acting entity.</param>
-        /// <param name="pos">Target block position.</param>
-        /// <param name="slot">Destination carry slot.</param>
-        /// <param name="checkIsCarryable">Whether to enforce carryability checks.</param>
-        /// <param name="playSound">Whether to play pickup audio on success.</param>
-        /// <returns>True when pickup succeeds; otherwise false.</returns>
-        public bool TryPickUp(Entity entity, BlockPos pos, CarrySlot slot, bool checkIsCarryable = true, bool playSound = true)
-        {
-            string failureCode = FailureCode.Ignore;
-            return TryPickUp(entity, pos, slot, ref failureCode, checkIsCarryable, playSound);
-        }
-
-        /// <summary>
-        /// Attempts to place a carried block without exposing a failure-code output.
-        /// </summary>
-        /// <param name="entity">The acting entity.</param>
-        /// <param name="carriedBlock">The carried block to place.</param>
-        /// <param name="selection">Placement selection.</param>
-        /// <param name="dropped">Whether to place via drop flow.</param>
-        /// <param name="playSound">Whether to play placement audio on success.</param>
-        /// <returns>True when placement succeeds; otherwise false.</returns>
         public bool TryPlaceDown(Entity entity, CarriedBlock carriedBlock, BlockSelection selection, bool dropped = false, bool playSound = true)
         {
             string failureCode = FailureCode.Ignore;
             return TryPlaceDown(entity, carriedBlock, selection, ref failureCode, dropped, playSound);
         }
 
-        /// <summary>
-        /// Attempts to place a carried block into the world.
-        /// </summary>
-        /// <param name="entity">The acting entity.</param>
-        /// <param name="carriedBlock">The carried block to place.</param>
-        /// <param name="selection">Placement selection.</param>
-        /// <param name="failureCode">Failure code output when placement fails.</param>
-        /// <param name="dropped">Whether to place via drop flow.</param>
-        /// <param name="playSound">Whether to play placement audio on success.</param>
-        /// <returns>True when placement succeeds; otherwise false.</returns>
         public bool TryPlaceDown(Entity entity, CarriedBlock carriedBlock, BlockSelection selection, ref string failureCode, bool dropped = false, bool playSound = true)
         {
             ArgumentNullException.ThrowIfNull(entity);
@@ -236,14 +40,141 @@ namespace CarryOn.Common.Services
             if (carriedBlock?.Block == null || carriedBlock.ItemStack == null) return false;
             if (!world.BlockAccessor.IsValidPos(selection.Position)) return false;
 
+            if (carriedBlock.HasAttachedBlocks)
+            {
+                var estimatedSteps = CarryRotationHelper.EstimatePreflightRotation(carriedBlock, entity, selection, dropped);
+                if (!PreflightAttachedBlocks(carriedBlock, world, selection.Position, estimatedSteps, ref failureCode))
+                    return false;
+            }
+
             var placed = (entity is EntityPlayer playerEntity && !dropped)
                 ? TryPlaceDownAsPlayer(world, playerEntity, carriedBlock, selection, ref failureCode)
                 : TryPlaceDownDirect(world, carriedBlock, selection);
 
             if (!placed) return false;
 
+            if (carriedBlock.HasAttachedBlocks)
+            {
+                var rotationSteps = CarryRotationHelper.GetActualRotationSteps(carriedBlock, world, selection.Position);
+                PlaceAttachedChildren(world, carriedBlock, selection.Position, rotationSteps);
+            }
+
             FinalizePlacedBlock(world, entity, carriedBlock, selection.Position, dropped, playSound);
             return true;
+        }
+
+        private bool PreflightAttachedBlocks(CarriedBlock carriedBlock, IWorldAccessor world, BlockPos parentPos, int rotationSteps, ref string failureCode)
+        {
+            if (carriedBlock.HasAttachedBlocks && CarryRotationHelper.HasNonCardinalRotation(carriedBlock))
+            {
+                failureCode = FailureCode.NonCardinalRotationWithAttachments;
+                return false;
+            }
+
+            if (carriedBlock.AttachedBlocks == null) return true;
+
+            var clusterPositions = new HashSet<BlockPos> { parentPos.Copy() };
+
+            for (int i = 0; i < carriedBlock.AttachedBlocks.Count; i++)
+            {
+                var rotatedOffset = CarryRotationHelper.RotateOffset(carriedBlock.AttachedBlocks[i].RelativeOffset, rotationSteps);
+                var cPos = parentPos.Copy();
+                cPos.Add(rotatedOffset);
+                clusterPositions.Add(cPos);
+            }
+
+            foreach (var child in carriedBlock.AttachedBlocks)
+            {
+                if (child.OriginalLocalFace == null) continue;
+                var rotatedOffset = CarryRotationHelper.RotateOffset(child.RelativeOffset, rotationSteps);
+                var rotatedFace = CarryRotationHelper.RotateFacing(child.OriginalLocalFace, rotationSteps);
+                var childPos = parentPos.Copy();
+                childPos.Add(rotatedOffset);
+                var supportPos = childPos.Copy();
+                supportPos.Offset(rotatedFace);
+                clusterPositions.Add(supportPos);
+            }
+
+            foreach (var child in carriedBlock.AttachedBlocks)
+            {
+                var rotatedOffset = CarryRotationHelper.RotateOffset(child.RelativeOffset, rotationSteps);
+                var rotatedFace = child.OriginalLocalFace != null
+                    ? CarryRotationHelper.RotateFacing(child.OriginalLocalFace, rotationSteps)
+                    : null;
+
+                var childPos = parentPos.Copy();
+                childPos.Add(rotatedOffset);
+
+                if (!world.BlockAccessor.IsValidPos(childPos))
+                {
+                    failureCode = FailureCode.AttachedBlockNoClearance;
+                    return false;
+                }
+
+                var existingBlock = world.BlockAccessor.GetBlock(childPos);
+                if (!existingBlock.IsReplacableBy(child.Block))
+                {
+                    failureCode = FailureCode.AttachedBlockNoClearance;
+                    return false;
+                }
+
+                if (rotatedFace != null)
+                {
+                    var supportPos = childPos.Copy();
+                    supportPos.Offset(rotatedFace);
+
+                    if (!clusterPositions.Contains(supportPos))
+                    {
+                        var supportBlock = world.BlockAccessor.GetBlock(supportPos);
+                        if (supportBlock.Id == 0 || supportBlock.IsReplacableBy(child.Block))
+                        {
+                            failureCode = FailureCode.UnsupportedAttachment;
+                            return false;
+                        }
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        private void PlaceAttachedChildren(IWorldAccessor world, CarriedBlock carriedBlock, BlockPos parentPos, int rotationSteps)
+        {
+            if (carriedBlock.AttachedBlocks == null) return;
+
+            foreach (var child in carriedBlock.AttachedBlocks)
+            {
+                var rotatedOffset = CarryRotationHelper.RotateOffset(child.RelativeOffset, rotationSteps);
+                var rotatedFace = child.OriginalLocalFace != null
+                    ? CarryRotationHelper.RotateFacing(child.OriginalLocalFace, rotationSteps)
+                    : null;
+
+                var childPos = parentPos.Copy();
+                childPos.Add(rotatedOffset);
+
+                var childBlock = child.Block;
+                if (rotatedFace != null && child.OriginalBlockCode != null)
+                {
+                    var wallSign = CarryRotationHelper.GetWallSignForFacing(world, child.OriginalBlockCode, rotatedFace);
+                    if (wallSign != null)
+                        childBlock = wallSign;
+                }
+
+                world.BlockAccessor.SetBlock(childBlock.Id, childPos, child.ItemStack);
+
+                if (child.BlockEntityData != null && world.Side == EnumAppSide.Server)
+                {
+                    child.BlockEntityData.SetInt("posx", childPos.X);
+                    child.BlockEntityData.SetInt("posy", childPos.Y);
+                    child.BlockEntityData.SetInt("posz", childPos.Z);
+
+                    var blockEntity = world.BlockAccessor.GetBlockEntity(childPos);
+                    blockEntity?.FromTreeAttributes(child.BlockEntityData, world);
+                    blockEntity?.MarkDirty(true);
+                }
+
+                world.BlockAccessor.MarkBlockDirty(childPos);
+            }
         }
 
         private bool TryPlaceDownAsPlayer(IWorldAccessor world, EntityPlayer playerEntity, CarriedBlock carriedBlock, BlockSelection selection, ref string failureCode)
@@ -308,7 +239,18 @@ namespace CarryOn.Common.Services
 
             if (meshFacing != null)
             {
-                carriedBlock.BlockEntityData?.SetFloat("meshAngle", -GetMeshAngle(meshFacing));
+                var meshAngle = -CarryRotationHelper.GetMeshAngle(meshFacing);
+                carriedBlock.BlockEntityData?.SetFloat("meshAngle", meshAngle);
+
+                var worldBE = world.BlockAccessor.GetBlockEntity(selection.Position);
+                if (worldBE != null)
+                {
+                    var tempAttr = new TreeAttribute();
+                    worldBE.ToTreeAttributes(tempAttr);
+                    tempAttr.SetFloat("meshAngle", meshAngle);
+                    worldBE.FromTreeAttributes(tempAttr, world);
+                    worldBE.MarkDirty(true);
+                }
             }
 
             return true;
@@ -323,14 +265,11 @@ namespace CarryOn.Common.Services
 
             carryManager.RemoveCarried(entity, carriedBlock.Slot);
             if (playSound)
-            {
-                PlaySound(carriedBlock.Block, position, dropped ? null : entity as EntityPlayer);
-            }
+                SoundHelper.PlaySound(api, carriedBlock.Block, position, dropped ? null : entity as EntityPlayer);
 
             if (dropped)
-            {
                 carryManager.CarryEvents?.TriggerBlockDropped(position, entity, carriedBlock);
-            }
+
             if (world.Side == EnumAppSide.Server)
             {
                 var entityName = entity?.GetName() ?? "Unknown Entity";
@@ -338,38 +277,41 @@ namespace CarryOn.Common.Services
             }
         }
 
-        /// <summary>
-        /// Attempts to place a carried block in front of the selected block position.
-        /// </summary>
-        /// <param name="player">Acting player.</param>
-        /// <param name="carrySlot">Source carry slot.</param>
-        /// <param name="selection">Original selected block.</param>
-        /// <param name="placedAt">Resolved placement position on success.</param>
-        /// <returns>True when placement succeeds; otherwise false.</returns>
+        public void RestoreBlockEntityData(IWorldAccessor world, CarriedBlock carriedBlock, BlockPos pos, bool dropped = false)
+        {
+            if ((world.Side != EnumAppSide.Server) || (carriedBlock?.BlockEntityData == null)) return;
+
+            var blockEntityData = carriedBlock.BlockEntityData;
+            blockEntityData.SetInt("posx", pos.X);
+            blockEntityData.SetInt("posy", pos.Y);
+            blockEntityData.SetInt("posz", pos.Z);
+
+            var blockEntity = world.BlockAccessor.GetBlockEntity(pos);
+
+            carryManager.CarryEvents?.TriggerBeforeRestoreBlockEntityData(blockEntity, blockEntityData, dropped);
+
+            blockEntity?.FromTreeAttributes(blockEntityData, world);
+            blockEntity?.MarkDirty(true);
+        }
+
         public bool TryPlaceDownAt(IPlayer player, CarrySlot carrySlot, BlockSelection selection, out BlockPos? placedAt)
         {
             string failureCode = FailureCode.Ignore;
             return TryPlaceDownAt(player, carrySlot, selection, out placedAt, ref failureCode);
         }
 
-        /// <summary>
-        /// Attempts to place a carried block in front of the selected block position.
-        /// </summary>
-        /// <param name="player">Acting player.</param>
-        /// <param name="carrySlot">Source carry slot.</param>
-        /// <param name="selection">Original selected block.</param>
-        /// <param name="placedAt">Resolved placement position on success.</param>
-        /// <param name="failureCode">Failure code output when placement fails.</param>
-        /// <returns>True when placement succeeds; otherwise false.</returns>
         public bool TryPlaceDownAt(IPlayer player, CarrySlot carrySlot, BlockSelection selection, out BlockPos? placedAt, ref string failureCode)
         {
             placedAt = null;
+            var entity = player.Entity;
+            if (entity == null) return false;
+
             var blockSelection = selection.Clone();
-            var selectedBlock = player.Entity?.World?.BlockAccessor?.GetBlock(blockSelection.Position);
+            var selectedBlock = entity.World?.BlockAccessor?.GetBlock(blockSelection.Position);
 
             if (selectedBlock == null) return false;
 
-            var carried = player.Entity!.GetCarried(carrySlot);
+            var carried = entity.GetCarried(carrySlot);
             if (carried == null)
             {
                 failureCode = FailureCode.NotCarrying;
@@ -388,42 +330,8 @@ namespace CarryOn.Common.Services
             }
 
             placedAt = blockSelection.Position;
-            return TryPlaceDown(player.Entity!, carried, blockSelection, ref failureCode);
+            return TryPlaceDown(entity, carried, blockSelection, ref failureCode);
         }
 
-        private static readonly float AngleNorth = 0f;
-        private static readonly float AngleEast = (float)(Math.PI / 2);
-        private static readonly float AngleSouth = (float)Math.PI;
-        private static readonly float AngleWest = (float)(3 * Math.PI / 2);
-
-        private float GetMeshAngle(BlockFacing facing)
-        {
-            switch (facing.Code)
-            {
-                case "north": return AngleNorth;
-                case "east": return AngleEast;
-                case "south": return AngleSouth;
-                case "west": return AngleWest;
-                default: return AngleNorth;
-            }
-        }
-
-        internal void PlaySound(Block block, BlockPos pos, EntityPlayer? entityPlayer = null, bool dualCall = true)
-        {
-            const float SOUND_RANGE = 16.0F;
-            const float SOUND_VOLUME = 1.0F;
-
-            var sound = block.Sounds?.Place.Location ?? new AssetLocation("sounds/player/build");
-
-            if (sound == null) return;
-
-            var world = api.World;
-            var player = dualCall && (entityPlayer != null) && (world.Side == EnumAppSide.Server)
-                ? entityPlayer?.Player : null;
-
-            world.PlaySoundAt(sound,
-                pos.X + 0.5, pos.Y + 0.25, pos.Z + 0.5, player,
-                range: SOUND_RANGE, volume: SOUND_VOLUME);
-        }
     }
 }

@@ -98,9 +98,6 @@ namespace CarryOn.Client.Logic
             // Initialize parsed color cache
             UpdateParsedColors();
             this.api.Event.RegisterRenderer(this.renderer, EnumRenderStage.Ortho);
-            
-            // Debug: Log that we registered the HUD
-            this.api.Logger.Debug("[HudCarried] HUD renderer registered successfully");
         }
 
         // Update cached parsed colors from the configured hex strings and alphas.
@@ -218,7 +215,7 @@ namespace CarryOn.Client.Logic
                                 DrawRectFilled(rapi, centerX, centerY, width, height, HudCarried.AnchorBackgroundVec);
                             }
                         }
-                        catch { }
+                        catch (Exception ex) { api?.Logger?.Debug("CarryOn: Error drawing anchor background: {0}", ex.Message); }
 
                         if (AnchorBorderEnabled)
                         {
@@ -243,7 +240,7 @@ namespace CarryOn.Client.Logic
                                 DrawRectFilled(rapi, posB.x, centerY, this.cachedBackgroundSize, height, HudCarried.AnchorBackgroundVec);
                             }
                         }
-                        catch { }
+                        catch (Exception ex) { api?.Logger?.Debug("CarryOn: Error drawing anchor background: {0}", ex.Message); }
 
                         if (AnchorBorderEnabled)
                         {
@@ -263,7 +260,7 @@ namespace CarryOn.Client.Logic
                                 DrawRectFilled(rapi, posH.x, centerY, this.cachedBackgroundSize, height, HudCarried.AnchorBackgroundVec);
                             }
                         }
-                        catch { }
+                        catch (Exception ex) { api?.Logger?.Debug("CarryOn: Error drawing anchor background: {0}", ex.Message); }
 
                         if (AnchorBorderEnabled)
                         {
@@ -286,10 +283,6 @@ namespace CarryOn.Client.Logic
                 {
                     RenderCarriedBlock(rapi, carriedBack, HudCarried.BackAnchor, HudCarried.BackHighlightSecondsRemaining);
                 }
-
-
-
-                // ... bounding rectangles were moved earlier to render behind highlights/items
 
             }
 
@@ -546,8 +539,6 @@ namespace CarryOn.Client.Logic
                     this.api.Logger.Debug("[HudCarried] Exception in DrawIconHighlight: " + ex);
                 }
             }
-
-            // ParseHexColor removed; use ColorHelper.TryParseHex instead
 
             // Helper to render a carried block (draw highlight then the item)
             private void RenderCarriedBlock(IRenderAPI rapi, CarriedBlock carriedBlock, Anchor anchor, float highlightSecondsRemaining)

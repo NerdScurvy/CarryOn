@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using CarryOn.API.Common.Models;
 using CarryOn.Utility;
 using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
@@ -17,7 +18,7 @@ namespace CarryOn.Server.Logic
         private static readonly ThreadLocal<Random> ThreadLocalRandom = new ThreadLocal<Random>(() => new Random());
         public static Random Rand => ThreadLocalRandom.Value ?? throw new InvalidOperationException("ThreadLocal Random not initialized");
 
-        public IBlockAccessor BlockAccessor => Api.World!.BlockAccessor!;
+        public IBlockAccessor BlockAccessor => Api.World?.BlockAccessor ?? throw new InvalidOperationException("BlockAccessor not available before world init");
 
         public BlockPlacer(ICoreAPI api)
         {
@@ -57,7 +58,6 @@ namespace CarryOn.Server.Logic
 
         /// <summary>
         /// Get a valid placement position for a block with gravity consideration.
-        /// TODO: Consider caching visited positions for performance.
         /// </summary>
         private BlockSelection? GetValidPlacementWithGravity(Block droppedBlock, BlockPos startPos)
         {
@@ -112,6 +112,59 @@ namespace CarryOn.Server.Logic
         }
 
         /// <summary>
+        /// Finds a valid placement position for a cluster (parent + attached children).
+        /// Checks that all child positions in the accessible area are also replaceable.
+        /// </summary>
+        public BlockSelection? FindClusterPlacement(Block parentBlock, IReadOnlyList<AttachedCarriedBlock>? children, BlockPos centrePos, int searchRadius)
+        {
+            var accessible = GetAccessibleArea(centrePos, searchRadius);
+
+            var candidates = accessible.ToList();
+            candidates.Sort((a, b) =>
+            {
+                int dy = (a.Y - centrePos.Y).CompareTo(b.Y - centrePos.Y);
+                if (dy != 0) return dy;
+                return centrePos.DistanceTo(a).CompareTo(centrePos.DistanceTo(b));
+            });
+
+            foreach (var candidate in candidates)
+            {
+                var placement = GetValidPlacementWithGravity(parentBlock, candidate);
+                if (placement == null) continue;
+
+                // Use the gravity-adjusted position (placement.Position may be lower than candidate)
+                var parentPos = placement.Position;
+
+                // Check that all child positions are valid
+                if (children != null)
+                {
+                    bool allChildrenValid = true;
+                    foreach (var child in children)
+                    {
+                        var childPos = parentPos.Copy();
+                        childPos.Add(child.RelativeOffset);
+                        if (!accessible.Contains(childPos))
+                        {
+                            allChildrenValid = false;
+                            break;
+                        }
+                        var childBlock = BlockAccessor.GetBlock(childPos);
+                        if (!childBlock.IsReplacableBy(child.Block))
+                        {
+                            allChildrenValid = false;
+                            break;
+                        }
+                    }
+                    if (!allChildrenValid) continue;
+                }
+
+                return placement;
+            }
+
+            return null;
+        }
+
+        /// <summary>
         /// Check if a block is passable (air, liquid, rain permeable or an open door/trapdoor).
         /// </summary>
         /// <param name="block"></param>
@@ -128,22 +181,18 @@ namespace CarryOn.Server.Logic
             }
             var testBlock = multiblockOrigin.Block ?? block;
 
+            var blockEntity = BlockAccessor.GetBlockEntity(multiblockOrigin.Position);
+
             if (testBlock.HasBehavior<BlockBehaviorDoor>())
             {
-                var blockEntity = BlockAccessor.GetBlockEntity(multiblockOrigin.Position);
                 if (blockEntity == null) return false;
-                var doorBehavior = blockEntity?.GetBehavior<BEBehaviorDoor>();
-
-                return doorBehavior?.Opened == true;
+                return blockEntity?.GetBehavior<BEBehaviorDoor>()?.Opened == true;
             }
 
-           if (testBlock.HasBehavior<BlockBehaviorTrapDoor>())
+            if (testBlock.HasBehavior<BlockBehaviorTrapDoor>())
             {
-                var blockEntity = BlockAccessor.GetBlockEntity(multiblockOrigin.Position);
                 if (blockEntity == null) return false;
-                var doorBehavior = blockEntity?.GetBehavior<BEBehaviorTrapDoor>();
-
-                return doorBehavior?.Opened == true;
+                return blockEntity?.GetBehavior<BEBehaviorTrapDoor>()?.Opened == true;
             }                
 
             // Check if the block is gas, liquid, or rain permeable with the assumption that rain permeable blocks are non-solid and the player can access beyond them;

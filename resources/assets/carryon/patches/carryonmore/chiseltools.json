@@ -209,6 +209,9 @@
 				"transformTemplates": [
 					"plants-small"
 				],
+				"transformGroupResolver": "plant-container",
+				"renderRootFirst": true,
+				"preventAttaching": true,
 				"transformGroups": {
 					"hands": [
 						{
@@ -307,8 +310,6 @@
 						]
 					}
 				},
-				"renderRootFirst": true,
-				"transformGroupResolver": "plant-container",
 				"slots": {
 					"Hands": {
 						"animation": "carryon:holdlight"
@@ -316,8 +317,7 @@
 					"Back": {
 						"enabledCondition": "carryon.CarryablesOnBack.Flowerpot"
 					}
-				},
-				"preventAttaching": true
+				}
 			}
 		},
 		"dependsOn": [
@@ -416,6 +416,9 @@
 				"transformTemplates": [
 					"plants-large"
 				],
+				"transformGroupResolver": "plant-container",
+				"renderRootFirst": true,
+				"preventAttaching": true,
 				"transformGroups": {
 					"hands": [
 						{
@@ -586,7 +589,6 @@
 						"extends": "backpack-none-planted-sapling"
 					}
 				},
-				"preventAttaching": true,
 				"slots": {
 					"Hands": {},
 					"Back": {

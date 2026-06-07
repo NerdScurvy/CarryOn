@@ -2,13 +2,12 @@ using System;
 using System.Linq;
 using CarryOn.API.Common.Models;
 using CarryOn.Common.Behaviors;
-using CarryOn.Common.Enums;
+using CarryOn.Common.Models;
 using CarryOn.Common.Logic;
 using CarryOn.Utility;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.GameContent;
-using static CarryOn.CarrySystem;
 using static CarryOn.API.Common.Models.CarryCode;
 
 namespace CarryOn.Client.Logic.Interaction
@@ -16,7 +15,7 @@ namespace CarryOn.Client.Logic.Interaction
     internal sealed class CarryInteractionValidator
     {
         private readonly ICoreClientAPI api;
-        private readonly CarrySystem carrySystem = null!;
+        private readonly CarryOnConfig config;
         private readonly TransferLogic transferLogic;
         private readonly ICarryInteractionController controller;
 
@@ -29,27 +28,25 @@ namespace CarryOn.Client.Logic.Interaction
         private readonly string[] preventSwapFromBackOnClasses;
         private readonly string[] preventSwapFromBackOnCodes;
 
-        public bool RemoveInteractDelayWhileCarrying => removeInteractDelayWhileCarrying ??= this.carrySystem.Config?.CarryOptions?.RemoveInteractDelayWhileCarrying ?? false;
-        public bool AllowSprintWhileCarrying => allowSprintWhileCarrying ??= this.carrySystem.Config?.CarryOptions?.AllowSprintWhileCarrying ?? false;
-        public bool BackSlotEnabled => backSlotEnabled ??= this.carrySystem.Config?.CarryOptions?.BackSlotEnabled ?? false;
-        public float InteractSpeedMultiplier => interactSpeedMultiplier ??= this.carrySystem.Config.CarryOptions?.InteractSpeedMultiplier ?? 1.0f;
+        public bool RemoveInteractDelayWhileCarrying => removeInteractDelayWhileCarrying ??= this.config?.CarryOptions?.RemoveInteractDelayWhileCarrying ?? false;
+        public bool AllowSprintWhileCarrying => allowSprintWhileCarrying ??= this.config?.CarryOptions?.AllowSprintWhileCarrying ?? false;
+        public bool BackSlotEnabled => backSlotEnabled ??= this.config?.CarryOptions?.BackSlotEnabled ?? false;
+        public float InteractSpeedMultiplier => interactSpeedMultiplier ??= this.config?.CarryOptions?.InteractSpeedMultiplier ?? 1.0f;
 
         public CarryInteractionValidator(
             ICoreClientAPI api,
-            CarrySystem carrySystem,
+            CarryOnConfig config,
             TransferLogic transferLogic,
             ICarryInteractionController controller)
         {
             this.api = api ?? throw new ArgumentNullException(nameof(api));
-            this.carrySystem = carrySystem ?? throw new ArgumentNullException(nameof(carrySystem));
+            this.config = config ?? throw new ArgumentNullException(nameof(config));
             this.transferLogic = transferLogic ?? throw new ArgumentNullException(nameof(transferLogic));
             this.controller = controller ?? throw new ArgumentNullException(nameof(controller));
 
             const string behaviorPrefix = "behavior::";
             const string classPrefix = "class::";
             const string codePrefix = "code::";
-
-            var config = this.carrySystem?.Config;
 
             if (config != null)
             {
@@ -193,7 +190,7 @@ namespace CarryOn.Client.Logic.Interaction
 
         private bool BeginSwapBackInteraction(ref EnumHandling handled)
         {
-            var backSlotEnabled = this.carrySystem?.Config?.CarryOptions?.BackSlotEnabled ?? false;
+            var backSlotEnabled = this.config?.CarryOptions?.BackSlotEnabled ?? false;
 
             if (!backSlotEnabled) return false;
 

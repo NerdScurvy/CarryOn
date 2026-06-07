@@ -5,7 +5,6 @@ using System.Linq;
 using System.Text;
 using CarryOn.API.Common.Models;
 using CarryOn.Client.Models;
-using Newtonsoft.Json;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
@@ -355,7 +354,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
 
             var variantType = carried?.BlockEntityData?.GetString("type", "none") ?? "none";
             sb.Append(variantType).Append('|');
-            sb.Append(transformsGroupBase ?? "default").Append('|');
+            sb.Append(transformsGroupBase ?? CarryCode.DefaultTransformGroup).Append('|');
             sb.Append((int?)carried?.Slot ?? 0).Append('|');
             sb.Append(carried?.ItemStack?.Collectible?.Code?.ToString() ?? "nostack").Append('|');
 
@@ -380,6 +379,11 @@ namespace CarryOn.Client.Logic.CarryRenderer
         internal static void ApplyTransformInPlace(ModelTransform transform, float[] matrix, Vec3f offset)
         {
             Mat4f.Translate(matrix, matrix, offset.X, offset.Y, offset.Z);
+            ApplyTransformInPlace(transform, matrix);
+        }
+
+        internal static void ApplyTransformInPlace(ModelTransform transform, float[] matrix)
+        {
             Mat4f.Translate(matrix, matrix, transform.Translation.X, transform.Translation.Y, transform.Translation.Z);
             Mat4f.Translate(matrix, matrix, transform.Origin.X, transform.Origin.Y, transform.Origin.Z);
             Mat4f.RotateX(matrix, matrix, transform.Rotation.X * GameMath.DEG2RAD);
@@ -447,7 +451,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
                 : (mask & RenderPhaseMask.Opaque) != 0;
         }
 
-        internal static Vec4f? SampleColorMapTint(string climateTintMap, string seasonalTintMap, BlockPos pos, ICoreClientAPI api)
+        internal static Vec4f? SampleColorMapTint(string? climateTintMap, string? seasonalTintMap, BlockPos pos, ICoreClientAPI api)
         {
             if (api?.World == null) return null;
             if (string.IsNullOrEmpty(climateTintMap) && string.IsNullOrEmpty(seasonalTintMap)) return null;
