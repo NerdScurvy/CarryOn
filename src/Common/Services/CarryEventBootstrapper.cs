@@ -32,7 +32,7 @@ namespace CarryOn.Common.Services
                     }
                     catch (Exception e)
                     {
-                        api.Logger.Error(e.Message);
+                        api.Logger.Error($"CarryOn: Failed to initialize carry event '{type.Name}': {e}");
                     }
                 }
             }

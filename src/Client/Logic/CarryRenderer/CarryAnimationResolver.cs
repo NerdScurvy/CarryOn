@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using CarryOn.Common.Behaviors;
+using CarryOn.Common.Models;
 using Vintagestory.API.Common;
 using static CarryOn.API.Common.Models.CarryCode;
 
@@ -34,7 +35,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
             return (player?.Controls?.FloorSitting ?? false) || player?.MountedOn != null;
         }
 
-        internal static string ResolveHandsAnimation(BlockBehaviorCarryable.SlotSettings? slotSettings, bool isSneaking, bool isSitting)
+        internal static string ResolveHandsAnimation(SlotSettings? slotSettings, bool isSneaking, bool isSitting)
         {
             if (slotSettings == null) return string.Empty;
 
@@ -69,7 +70,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
             return baseAnimation;
         }
 
-        internal static HashSet<string> GetHandAnimationCodes(BlockBehaviorCarryable.SlotSettings? slotSettings)
+        internal static HashSet<string> GetHandAnimationCodes(SlotSettings? slotSettings)
         {
             var codes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             if (slotSettings == null) return codes;

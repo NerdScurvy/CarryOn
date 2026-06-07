@@ -15,11 +15,18 @@ namespace CarryOn.Client.Logic.CarryRenderer
         private readonly ICoreClientAPI api;
         private readonly Dictionary<string, LabelEntry> textCache = new();
         private readonly List<string> textLru = new();
-        private const int MaxTextCache = 64; // Reasonable upper bound for unique carried labels in vicinity
+        private const int MaxTextCache = 64;
+        private const int MaxIconCache = 64;
+        private const float MinFontSize = 14f;
+        private const float MaxFontSize = 40f;
+        private const int MinWrapWidth = 64;
+        private const int MaxWrapWidth = 2048;
+        private const int MinAreaHeight = 32;
+        private const int MaxAreaHeight = 2048;
+        private const int MaxTextLength = 240;
 
         private readonly Dictionary<string, IconEntry> iconCache = new();
         private readonly List<string> iconLru = new();
-        private const int MaxIconCache = 64;
 
         protected int TextWidth = 200;
         protected int TextHeight = 100;
@@ -63,18 +70,18 @@ namespace CarryOn.Client.Logic.CarryRenderer
         {
             if (string.IsNullOrWhiteSpace(rawText)) return null;
 
-            fontSize = GameMath.Clamp(fontSize, 14f, 40f);
+            fontSize = GameMath.Clamp(fontSize, MinFontSize, MaxFontSize);
             // If caller provided a wrapWidth override, clamp; else use TextWidth
-            if (wrapWidth <= 0) wrapWidth = TextWidth; else wrapWidth = GameMath.Clamp(wrapWidth, 64, 2048);
+            if (wrapWidth <= 0) wrapWidth = TextWidth; else wrapWidth = GameMath.Clamp(wrapWidth, MinWrapWidth, MaxWrapWidth);
             var areaHeight = settings?.MaxHeight ?? TextHeight;
-            areaHeight = GameMath.Clamp(areaHeight, 32, 2048);
+            areaHeight = GameMath.Clamp(areaHeight, MinAreaHeight, MaxAreaHeight);
             var fontName = settings?.FontName;
             var boldFont = settings?.BoldFont ?? false;
             var verticalAlign = settings?.VerticalAlign;
 
             // Sanitize & clamp length to avoid very large textures
             var text = rawText.TrimEnd();
-            if (text.Length > 240) text = text.Substring(0, 240); // expanded capacity
+            if (text.Length > MaxTextLength) text = text.Substring(0, MaxTextLength);
 
             var key = MakeKey(text, color, fontSize, wrapWidth, areaHeight, fontName, boldFont, verticalAlign);
             if (textCache.TryGetValue(key, out var existing))

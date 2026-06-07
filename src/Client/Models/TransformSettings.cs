@@ -1,4 +1,3 @@
-#nullable disable
 using CarryOn.API.Common.Models;
 using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
@@ -6,21 +5,21 @@ using Vintagestory.API.MathTools;
 namespace CarryOn.Client.Models
 {
     public record TransformSettings(
-        string AssetName = null,
-        string Id = null,
+        string? AssetName = null,
+        string? Id = null,
         EnumAssetType AssetType = EnumAssetType.None,
-        string DisableIfItemStackPath = null,
-        string BlockEntityDataItemStackPath = null,
-        ModelTransform Transform = null,
+        string? DisableIfItemStackPath = null,
+        string? BlockEntityDataItemStackPath = null,
+        ModelTransform? Transform = null,
         bool? CullFaces = null,
         float? AlphaTestOpaque = null,
         float? AlphaTestBlend = null,
         bool? NormalShaded = null,
-        string RenderPass = null,
-        Vec4f TintColor = null,
-        string ClimateTintMap = null,
-        string SeasonalTintMap = null,
-        Vec4f RgbGlowIntensity = null,
+        string? RenderPass = null,
+        Vec4f? TintColor = null,
+        string? ClimateTintMap = null,
+        string? SeasonalTintMap = null,
+        Vec4f? RgbGlowIntensity = null,
         bool? Enabled = true
         )
     {
@@ -33,7 +32,7 @@ namespace CarryOn.Client.Models
 
 
         public TransformSettings DeepCloneWithDefaults(
-            string defaultAssetName,
+            string? defaultAssetName,
             CarriedGroupAssetType defaultAssetType)
         {
             // Determine the new AssetType and AssetName up front
