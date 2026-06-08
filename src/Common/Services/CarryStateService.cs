@@ -126,7 +126,7 @@ namespace CarryOn.Common.Services
             return attached.Count > 0 ? attached : null;
         }
 
-        private static void SerializeAttachedBlocks(ITreeAttribute slotAttribute, List<AttachedCarriedBlock>? attachedBlocks)
+        private static void SerializeAttachedBlocks(ITreeAttribute slotAttribute, IReadOnlyList<AttachedCarriedBlock>? attachedBlocks)
         {
             slotAttribute.RemoveAttribute(AttrChildren);
 
@@ -171,58 +171,23 @@ namespace CarryOn.Common.Services
         }
 
         /// <summary>
-        /// Sets a carried block using default dirty-mark behavior.
-        /// </summary>
-        /// <param name="entity">The target entity.</param>
-        /// <param name="carriedBlock">The carried block to assign.</param>
-        public void SetCarried(Entity entity, CarriedBlock carriedBlock) => SetCarried(entity, carriedBlock, markDirty: true);
-
-        /// <summary>
         /// Sets a carried block for the entity.
         /// </summary>
         /// <param name="entity">The target entity.</param>
         /// <param name="carriedBlock">The carried block to assign.</param>
+        /// <param name="overrideSlot">When provided, overrides the slot stored in <paramref name="carriedBlock"/>.</param>
         /// <param name="markDirty">Whether to touch and mark carried attributes dirty.</param>
-        public void SetCarried(Entity entity, CarriedBlock carriedBlock, bool markDirty = true)
-        {
-            SetCarried(entity, carriedBlock.Slot, carriedBlock.ItemStack, carriedBlock.BlockEntityData, carriedBlock.AttachedBlocks as List<AttachedCarriedBlock>, carriedBlock.OriginalBlockCode, carriedBlock.OriginalMeshAngle, markDirty);
-        }
-
-        /// <summary>
-        /// Sets a carried block from raw item stack and block entity data using default dirty-mark behavior.
-        /// </summary>
-        /// <param name="entity">The target entity.</param>
-        /// <param name="slot">The destination carry slot.</param>
-        /// <param name="stack">The carried block item stack.</param>
-        /// <param name="blockEntityData">Serialized block entity data to associate with the carried block.</param>
-        public void SetCarried(Entity entity, CarrySlot slot, ItemStack stack, ITreeAttribute? blockEntityData)
-            => SetCarried(entity, slot, stack, blockEntityData, null, null, markDirty: true);
-
-        /// <summary>
-        /// Sets a carried block from raw item stack and block entity data.
-        /// </summary>
-        /// <param name="entity">The target entity.</param>
-        /// <param name="slot">The destination carry slot.</param>
-        /// <param name="stack">The carried block item stack.</param>
-        /// <param name="blockEntityData">Serialized block entity data to associate with the carried block.</param>
-        /// <param name="markDirty">Whether to touch and mark carried attributes dirty.</param>
-        public void SetCarried(Entity entity, CarrySlot slot, ItemStack stack, ITreeAttribute? blockEntityData, bool markDirty = true)
-            => SetCarried(entity, slot, stack, blockEntityData, null, null, null, markDirty);
-
-        /// <summary>
-        /// Sets a carried block from raw item stack and block entity data with optional attached blocks.
-        /// </summary>
-        /// <param name="entity">The target entity.</param>
-        /// <param name="slot">The destination carry slot.</param>
-        /// <param name="stack">The carried block item stack.</param>
-        /// <param name="blockEntityData">Serialized block entity data to associate with the carried block.</param>
-        /// <param name="attachedBlocks">Optional list of attached child blocks.</param>
-        /// <param name="originalBlockCode">The original world block code at pickup (preserves facing variant).</param>
-        /// <param name="originalMeshAngle">The original meshAngle from the block entity at pickup (preserves rotation).</param>
-        /// <param name="markDirty">Whether to touch and mark carried attributes dirty.</param>
-        public void SetCarried(Entity entity, CarrySlot slot, ItemStack stack, ITreeAttribute? blockEntityData, List<AttachedCarriedBlock>? attachedBlocks, AssetLocation? originalBlockCode = null, float? originalMeshAngle = null, bool markDirty = true)
+        public void SetCarried(Entity entity, CarriedBlock carriedBlock, CarrySlot? overrideSlot = null, bool markDirty = true)
         {
             ArgumentNullException.ThrowIfNull(entity);
+            ArgumentNullException.ThrowIfNull(carriedBlock);
+
+            var slot = overrideSlot ?? carriedBlock.Slot;
+            var stack = carriedBlock.ItemStack;
+            var blockEntityData = carriedBlock.BlockEntityData;
+            var attachedBlocks = carriedBlock.AttachedBlocks;
+            var originalBlockCode = carriedBlock.OriginalBlockCode;
+            var originalMeshAngle = carriedBlock.OriginalMeshAngle;
 
             var entityCarriedKey = AttributeKey.Watched.EntityCarried;
             entity.WatchedAttributes.Set(stack, entityCarriedKey, slot.ToString(), AttrStack);

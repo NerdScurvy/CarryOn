@@ -72,15 +72,9 @@ namespace CarryOn.Common.Services
         }
 
         /// <inheritdoc/>
-        public void SetCarried(Entity entity, CarriedBlock carriedBlock, bool markDirty = true)
+        public void SetCarried(Entity entity, CarriedBlock carriedBlock, CarrySlot? overrideSlot = null, bool markDirty = true)
         {
-            Services.State.SetCarried(entity, carriedBlock, markDirty);
-        }
-
-        /// <inheritdoc/>
-        public void SetCarried(Entity entity, CarrySlot slot, ItemStack stack, ITreeAttribute? blockEntityData, bool markDirty = true)
-        {
-            Services.State.SetCarried(entity, slot, stack, blockEntityData, markDirty);
+            Services.State.SetCarried(entity, carriedBlock, overrideSlot, markDirty);
         }
 
         /// <inheritdoc/>

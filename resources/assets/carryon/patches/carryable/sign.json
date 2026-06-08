@@ -11,17 +11,22 @@
 					"enabledCondition": "carryon.Carryables.Sign",
 					"labelRenderSettings": {
 						"transform": {
-							"translation": [ 0.539, 0.893, 0.6 ],
-							"scale": [ 0.946, 1.03, 1.0 ]
+							"translation": [ 0.508, 0.863, 0.063 ],
+							"scale": [ 0.916, 1.01, 1.0 ]
+						},
+						"attachedTransform": {
+							"translation": [ 0, -0.01, 0 ]
 						},
 						"maxWidth": 200,
 						"maxHeight": 96
 					},
+					"defaultRenderFacing": "north",
+					"defaultRenderVariant": "wall",
 					"transformGroups": {
 						"hands": [
 							{
 								"id": "root",
-								"translation": [ 0.04, -0.05, 0.0 ],
+								"translation": [ -0.16, 0.12, 0.0 ],
 								"rotation": [ 0.0, -90.0, -40.0 ]
 							}
 						]

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CarryOn.API.Common.Models;
 using CarryOn.Client.Models;
+using CarryOn.Common.Logic;
 using CarryOn.Utility;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
@@ -55,17 +56,19 @@ namespace CarryOn.Client.Logic.CarryRenderer
         private readonly CarryFirstPersonRenderer firstPersonRenderer;
         private readonly CarriedLabelRenderer labelRenderer;
         private readonly Stack<float[]> matrixPool = new();
+        private readonly bool renderAttachedBlocks;
         private object? lastCameraMatrixRef;
         private float[] cachedViewMat = new float[16];
         private static readonly Vec3f ZeroOffset = new(0, 0, 0);
 
-        public CarryRenderDispatcher(ICoreClientAPI api, CarryOnConfig config, CarryRenderCacheManager cacheManager, CarryFirstPersonRenderer firstPersonRenderer, CarriedLabelRenderer labelRenderer)
+        public CarryRenderDispatcher(ICoreClientAPI api, CarryOnConfig config, CarryRenderCacheManager cacheManager, CarryFirstPersonRenderer firstPersonRenderer, CarriedLabelRenderer labelRenderer, bool renderAttachedBlocks = true)
         {
             this.api = api;
             this.config = config;
             this.cacheManager = cacheManager;
             this.firstPersonRenderer = firstPersonRenderer;
             this.labelRenderer = labelRenderer;
+            this.renderAttachedBlocks = renderAttachedBlocks;
         }
 
         public void ClearMatrixPool()
@@ -313,6 +316,11 @@ namespace CarryOn.Client.Logic.CarryRenderer
             if (renderOpaquePhase && initialMatrix != null)
             {
                 labelRenderer.TryRender(carried, initialMatrix, viewMat, prog, entity.Pos.AsBlockPos);
+
+                if (renderAttachedBlocks && carried.HasAttachedBlocks)
+                {
+                    RenderAttachedBlockLabels(carried, initialMatrix, viewMat, prog, entity);
+                }
             }
 
             foreach (var d in draws)
@@ -383,6 +391,76 @@ namespace CarryOn.Client.Logic.CarryRenderer
             {
                 rapi.GLDepthMask(true);
                 rapi.GlToggleBlend(false, 0);
+            }
+        }
+
+        private void RenderAttachedBlockLabels(CarriedBlock carried, float[] initialMatrix, float[] viewMat, IStandardShaderProgram prog, EntityAgent entity)
+        {
+            if (carried.AttachedBlocks == null) return;
+
+            var world = this.api.World;
+            if (world == null) return;
+
+            var defaultFacing = carried.GetCarryableBehavior()?.DefaultRenderFacing;
+            int offsetSteps = CarryRotationHelper.GetOriginalToModelDefaultSteps(carried, defaultFacing);
+
+            foreach (var attached in carried.AttachedBlocks)
+            {
+                if (attached == null) continue;
+
+                var offset = CarryRotationHelper.RotateOffset(attached.RelativeOffset, offsetSteps);
+
+                var rotatedFace = attached.OriginalLocalFace != null
+                    ? CarryRotationHelper.RotateFacing(attached.OriginalLocalFace, offsetSteps)
+                    : null;
+
+                var childMatrix = RentMatrix();
+                Array.Copy(initialMatrix, childMatrix, 16);
+
+                var offsetTransform = new ModelTransform();
+                offsetTransform.EnsureDefaultValues();
+                offsetTransform.Translation.Set(offset.X, offset.Y, offset.Z);
+                if (rotatedFace != null)
+                {
+                    var facingDegrees = -CarryRotationHelper.FacingToYRotationDegrees(rotatedFace);
+                    offsetTransform.Origin.Set(0.5f, 0.5f, 0.5f);
+                    offsetTransform.Rotation.Y = facingDegrees;
+                }
+                CarryRenderHelpers.ApplyTransformInPlace(offsetTransform, childMatrix);
+
+                CarriedBlock labelCarriedBlock = attached.CarriedBlock;
+                var originalCode = attached.OriginalBlockCode;
+                if (originalCode != null)
+                {
+                    Block? variantBlock = rotatedFace != null
+                        ? CarryRotationHelper.GetRotatedVariantBlock(world, originalCode, rotatedFace)
+                        : null;
+                    variantBlock ??= world.GetBlock(originalCode);
+
+                    if (variantBlock != null)
+                    {
+                        var variantStack = new ItemStack(variantBlock);
+                        variantStack.ResolveBlockOrItem(world);
+                        labelCarriedBlock = new CarriedBlock(
+                            CarrySlot.Attached,
+                            variantStack,
+                            attached.BlockEntityData,
+                            null,
+                            variantBlock.Code,
+                            attached.OriginalMeshAngle
+                        );
+                    }
+                }
+
+                var behavior = labelCarriedBlock.GetCarryableBehavior();
+                var attachedTransform = behavior?.LabelRenderSettings?.AttachedTransform;
+                if (attachedTransform != null)
+                {
+                    CarryRenderHelpers.ApplyTransformInPlace(attachedTransform, childMatrix);
+                }
+
+                labelRenderer.TryRender(labelCarriedBlock, childMatrix, viewMat, prog, entity.Pos.AsBlockPos);
+                matrixPool.Push(childMatrix);
             }
         }
     }

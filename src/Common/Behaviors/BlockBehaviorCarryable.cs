@@ -25,6 +25,10 @@ namespace CarryOn.Common.Behaviors
 
         public bool RenderRootFirst { get; set; } = false;
 
+        public string? DefaultRenderFacing { get; set; }
+
+        public string? DefaultRenderVariant { get; set; }
+
         public string? TransformGroupResolver { get; set; }
 
         public bool HasLocalTransformGroups { get; private set; } = false;
@@ -107,6 +111,8 @@ namespace CarryOn.Common.Behaviors
             if (!SwapBackKeyPassthrough && JsonHelper.TryGetBool(properties, "preventSwapBack", out var psb)) SwapBackKeyPassthrough = psb;
             if (JsonHelper.TryGetString(properties, "enabledCondition", out var e)) EnabledCondition = e ?? string.Empty;
             if (JsonHelper.TryGetBool(properties, "renderRootFirst", out var rootFirst)) RenderRootFirst = rootFirst;
+            if (JsonHelper.TryGetString(properties, "defaultRenderFacing", out var drf)) DefaultRenderFacing = drf;
+            if (JsonHelper.TryGetString(properties, "defaultRenderVariant", out var drv)) DefaultRenderVariant = drv;
             if (JsonHelper.TryGetString(properties, "transformGroupResolver", out var g)) TransformGroupResolver = g;
 
             if (properties.KeyExists("transformTemplates"))

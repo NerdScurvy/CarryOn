@@ -3,11 +3,7 @@ using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
 using HarmonyLib;
 using Vintagestory.API.Common;
-using Vintagestory.API.Datastructures;
-using Vintagestory.API.Client;
-using Vintagestory.API.Config;
 using Vintagestory.API.MathTools;
-using Vintagestory.API.Server;
 using Vintagestory.GameContent;
 
 namespace CarryOn.Client.Logic.Events

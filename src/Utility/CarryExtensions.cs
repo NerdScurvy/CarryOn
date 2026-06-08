@@ -63,11 +63,18 @@ namespace CarryOn.Utility
 
         /// <summary>
         /// Gets the carryable behavior of the block or default.
+        /// Uses the <see cref="CarriedBlock.CachedCarryableBehavior"/> to avoid
+        /// repeated linear scans of the block's behavior list on the render hot path.
         /// </summary>
-        /// <param name="block"></param>
-        /// <returns></returns>
         public static BlockBehaviorCarryable GetCarryableBehavior(this CarriedBlock carriedBlock)
-            => carriedBlock.Block.GetBehaviorOrDefault(BlockBehaviorCarryable.Default);
+        {
+            if (carriedBlock.CachedCarryableBehavior is BlockBehaviorCarryable cached)
+                return cached;
+
+            var behavior = carriedBlock.Block.GetBehaviorOrDefault(BlockBehaviorCarryable.Default);
+            carriedBlock.CachedCarryableBehavior = behavior;
+            return behavior;
+        }
 
 
         /// <summary>

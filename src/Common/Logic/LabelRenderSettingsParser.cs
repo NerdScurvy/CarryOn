@@ -72,6 +72,13 @@ namespace CarryOn.Common.Logic
                 hasAnyValue = true;
             }
 
+            var attachedTransformJson = transformInChildObject ? json["attachedTransform"] : json;
+            if (JsonHelper.HasAnyTransformValue(attachedTransformJson))
+            {
+                settings.AttachedTransform = JsonHelper.GetTransform(attachedTransformJson, null);
+                hasAnyValue = true;
+            }
+
             if (json.KeyExists("additionalTransforms"))
             {
                 var arr = json["additionalTransforms"]?.AsArray();
