@@ -98,7 +98,8 @@ namespace CarryOn.Client.Logic.CarryRenderer
                     carriedBlock,
                     containerSlots,
                     plan.EffectiveSettings,
-                    this.api.World);
+                    this.api.World,
+                    carriedBlock.GetCarryableBehavior()?.DefaultRenderVariant);
 
                 sidecar.LastSeenCarriedRevision = carriedRevision;
                 sidecar.LastTransformsGroup = transformsGroup;

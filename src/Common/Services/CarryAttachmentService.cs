@@ -104,6 +104,12 @@ namespace CarryOn.Common.Services
                 return false;
             }
 
+            if (carriedBlock.HasAttachedBlocks)
+            {
+                failureCode = FailureCode.BlockHasAttachedBlocks;
+                return false;
+            }
+
             var carryableBehavior = sourceItemSlot.Itemstack.Block.GetBehavior<BlockBehaviorCarryable>();
             if (carryableBehavior?.PreventAttaching ?? false)
             {

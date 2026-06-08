@@ -35,6 +35,9 @@ namespace CarryOn.Client.Models
         public string IconHighlightColor { get; set; } = HudCarried.IconHighlightColorDefault;
         public float IconHighlightAlpha { get; set; } = HudCarried.IconHighlightAlphaDefault;
 
+        // Cluster carry render preferences (client-side only)
+        public bool RenderAttachedBlocks { get; set; } = true;
+
         public CarryOnClientConfig() { }
 
         public CarryOnClientConfig(int version)

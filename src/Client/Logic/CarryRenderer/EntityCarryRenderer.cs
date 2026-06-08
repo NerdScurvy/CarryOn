@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
+using CarryOn.Client.Models;
 using Vintagestory.API.Client;
 
 namespace CarryOn.Client.Logic.CarryRenderer
@@ -16,22 +17,27 @@ namespace CarryOn.Client.Logic.CarryRenderer
         private readonly CarryFirstPersonRenderer firstPersonRenderer = new();
         private readonly CarryRenderCacheManager cacheManager;
         private readonly CarryRenderDispatcher dispatcher;
+        private readonly ClientModConfig clientModConfig;
+        private readonly CarryRenderInfoBuilder infoBuilder;
 
-        public EntityCarryRenderer(ICoreClientAPI api, ICarryManager carryManager, CarryOnConfig config)
+        public EntityCarryRenderer(ICoreClientAPI api, ICarryManager carryManager, CarryOnConfig config, ClientModConfig clientModConfig)
         {
             ArgumentNullException.ThrowIfNull(api);
 
             this.carryManager = carryManager;
             this.config = config;
             this.api = api;
+            this.clientModConfig = clientModConfig;
+
+            bool renderAttached = this.clientModConfig.Config?.RenderAttachedBlocks ?? true;
 
             var cache = new CarryRenderCache();
             var planBuilder = new CarryTransformPlanBuilder(api, carryManager, cache);
-            var infoBuilder = new CarryRenderInfoBuilder(api);
+            infoBuilder = new CarryRenderInfoBuilder(api, renderAttached);
             var labelRenderer = new CarriedLabelRenderer(api);
 
             cacheManager = new CarryRenderCacheManager(api, carryManager, config, planBuilder, infoBuilder, cache);
-            dispatcher = new CarryRenderDispatcher(api, config, cacheManager, firstPersonRenderer, labelRenderer);
+            dispatcher = new CarryRenderDispatcher(api, config, cacheManager, firstPersonRenderer, labelRenderer, renderAttached);
 
             this.api.Event.RegisterRenderer(this, EnumRenderStage.Opaque);
             this.api.Event.RegisterRenderer(this, EnumRenderStage.AfterOIT);
@@ -47,6 +53,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
             this.api.Event.UnregisterRenderer(this, EnumRenderStage.ShadowNear);
             cacheManager.InvalidateAll();
             dispatcher.ClearMatrixPool();
+            infoBuilder.Dispose();
         }
 
         public void InvalidateRenderCaches() => cacheManager.InvalidateAll();

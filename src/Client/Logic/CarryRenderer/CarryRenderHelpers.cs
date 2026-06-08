@@ -186,7 +186,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
                 renderVariantSignature ?? "novariant");
         }
 
-        internal static string BuildRenderInfoVariantSignature(CarriedBlock carried, TreeAttribute? containerSlots, IReadOnlyList<EffectiveTransformSetting> effectiveSettings, IWorldAccessor world)
+        internal static string BuildRenderInfoVariantSignature(CarriedBlock carried, TreeAttribute? containerSlots, IReadOnlyList<EffectiveTransformSetting> effectiveSettings, IWorldAccessor world, string? defaultRenderVariant = null)
         {
             var sb = new StringBuilder(160);
             var be = carried?.BlockEntityData;
@@ -228,6 +228,33 @@ namespace CarryOn.Client.Logic.CarryRenderer
                 {
                     AppendBeStackPathSignature(sb, be, world, effectiveSettings[i]?.Setting?.DisableIfItemStackPath, "disable");
                     AppendBeStackPathSignature(sb, be, world, effectiveSettings[i]?.Setting?.BlockEntityDataItemStackPath, "render");
+                }
+            }
+
+            if (carried?.OriginalBlockCode != null)
+            {
+                sb.Append("|origCode=").Append(carried.OriginalBlockCode.ToString());
+            }
+
+            if (carried?.OriginalMeshAngle.HasValue == true)
+            {
+                sb.Append("|origMeshAngle=").Append(carried.OriginalMeshAngle.Value.ToString("R", CultureInfo.InvariantCulture));
+            }
+
+            if (!string.IsNullOrEmpty(defaultRenderVariant))
+            {
+                sb.Append("|renderVariant=").Append(defaultRenderVariant);
+            }
+
+            if (carried?.HasAttachedBlocks == true && carried.AttachedBlocks != null)
+            {
+                sb.Append("|attached=").Append(carried.AttachedBlocks.Count);
+                foreach (var attached in carried.AttachedBlocks)
+                {
+                    if (attached == null) continue;
+                    sb.Append('|').Append(attached.ItemStack?.Collectible?.Code?.ToString() ?? "null");
+                    sb.Append(',').Append(attached.RelativeOffset.X).Append(',').Append(attached.RelativeOffset.Y).Append(',').Append(attached.RelativeOffset.Z);
+                    sb.Append(',').Append(attached.OriginalLocalFace?.Code ?? "null");
                 }
             }
 

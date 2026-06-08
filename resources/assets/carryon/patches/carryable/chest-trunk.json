@@ -11,6 +11,7 @@
 				"transformTemplates": [
 					"carry-trunk"
 				],
+				"defaultRenderFacing": "east",
 				"slots": {
 					"Hands": {
 						"animation": "carryon:holdheavy",

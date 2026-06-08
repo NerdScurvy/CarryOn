@@ -6,6 +6,7 @@ namespace CarryOn.Client.Models
     public record LabelRenderSettings
     {
         public ModelTransform? Transform { get; set; }
+        public ModelTransform? AttachedTransform { get; set; }
         public List<ModelTransform?>? AdditionalTransforms { get; set; }
         public int? MaxWidth { get; set; }
         public int? MaxHeight { get; set; }

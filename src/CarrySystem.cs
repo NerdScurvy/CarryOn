@@ -146,7 +146,7 @@ namespace CarryOn
 
             ClientChannel = api.Network.RegisterChannel(ModId);
 
-            EntityCarryRenderer = new EntityCarryRenderer(api, this.CarryManager, this.Config!);
+           
             HudOverlayRenderer = new HudOverlayRenderer(api);
             HudCarried = new HudCarried(api);
 
@@ -163,6 +163,8 @@ namespace CarryOn
             }
 
             HudCarried.UpdateParsedColors();
+
+            EntityCarryRenderer = new EntityCarryRenderer(api, this.CarryManager, this.Config, this.ClientModConfig!);
 
             CarryHandler.InitClient(api, this.ClientChannel!,
                 () => { if (this.HudOverlayRenderer != null) this.HudOverlayRenderer.CircleVisible = false; },
