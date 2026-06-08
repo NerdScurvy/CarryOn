@@ -50,7 +50,6 @@
 	"blockhelp-put": "Put in carried",
 	"blockhelp-take": "Take out and carry",
 	"unknown-error": "An unknown error occurred with CarryOn",
-	"non-cardinal-rotation-with-attachments": "Cannot place carried block here while it has attached wall signs and non-cardinal rotation",
 	"attached-block-no-clearance": "Not enough clearance to place carried block with attached wall signs",
 	"unsupported-attachment": "Cannot place carried block here, attached wall sign has no support"
 }

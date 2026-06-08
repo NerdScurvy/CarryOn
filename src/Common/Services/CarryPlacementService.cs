@@ -65,12 +65,6 @@ namespace CarryOn.Common.Services
 
         private bool PreflightAttachedBlocks(CarriedBlock carriedBlock, IWorldAccessor world, BlockPos parentPos, int rotationSteps, ref string failureCode)
         {
-            if (carriedBlock.HasAttachedBlocks && CarryRotationHelper.HasNonCardinalRotation(carriedBlock))
-            {
-                failureCode = FailureCode.NonCardinalRotationWithAttachments;
-                return false;
-            }
-
             if (carriedBlock.AttachedBlocks == null) return true;
 
             var clusterPositions = new HashSet<BlockPos> { parentPos.Copy() };

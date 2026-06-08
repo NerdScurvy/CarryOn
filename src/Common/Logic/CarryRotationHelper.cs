@@ -17,14 +17,6 @@ namespace CarryOn.Common.Logic
         private static readonly float AngleSouth = (float)Math.PI;
         private static readonly float AngleWest = (float)(3 * Math.PI / 2);
 
-        private static readonly float[] CardinalAngles =
-        [
-            0f,
-            HalfPi,
-            (float)Math.PI,
-            (float)(3 * Math.PI / 2)
-        ];
-
         private static readonly BlockFacing[] NorthWestSouthEast = [BlockFacing.NORTH, BlockFacing.WEST, BlockFacing.SOUTH, BlockFacing.EAST];
         private static readonly BlockFacing[] NorthEastSouthWest = [BlockFacing.NORTH, BlockFacing.EAST, BlockFacing.SOUTH, BlockFacing.WEST];
 
@@ -94,20 +86,6 @@ namespace CarryOn.Common.Logic
             if (idx < 0) return facing;
             steps = NormalizeSteps(steps);
             return NorthWestSouthEast[(idx + steps) % 4];
-        }
-
-        public static bool HasNonCardinalRotation(CarriedBlock carriedBlock)
-        {
-            if (carriedBlock.BlockEntityData == null) return false;
-            if (!carriedBlock.BlockEntityData.HasAttribute("meshAngle"))
-                return false;
-            var angle = NormalizeAngle(carriedBlock.BlockEntityData.GetFloat("meshAngle"));
-            foreach (var cardinal in CardinalAngles)
-            {
-                if (Math.Abs(angle - cardinal) < CardinalEpsilon)
-                    return false;
-            }
-            return true;
         }
 
         public static Block? GetWallSignForFacing(IWorldAccessor world, AssetLocation originalCode, BlockFacing newFacing)
