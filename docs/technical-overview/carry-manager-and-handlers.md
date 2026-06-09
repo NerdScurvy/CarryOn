@@ -5,23 +5,26 @@ This document explains the carry management and interaction pipeline centered on
 It reflects the current implementation:
 - `CarryManager` is a facade over dedicated domain services and remains the public authority exposed through `ICarryManager`.
 - `CarryHandler` is the orchestration layer that wires input, network messages, server validation, and interaction state progression.
-- `InteractionLogic` drives client-side carry action state (`PickUp`, `PlaceDown`, `SwapBack`, `Attach`, `Detach`, `Put`, `Take`, `Interact`).
+- `CarryInteractionController`, `CarryInteractionStateMachine`, and `CarryInteractionValidator` drive client-side carry action state (`PickUp`, `PlaceDown`, `SwapBack`, `Attach`, `Detach`, `Put`, `Take`, `Interact`).
 - `TransferLogic` handles carryable transfer into and out of block entities via pluggable transfer handlers.
 - `DeathHandler` enforces carried-item drop behavior on player death based on vanilla keep-contents rules.
 
 ## 0. Scope
 
 This pipeline covers:
-- `src/Common/CarryManager.cs`
+- `src/Common/Services/CarryManager.cs`
 - `src/Common/Services/CarryManagerServices.cs`
 - `src/Common/Services/CarryStateService.cs`
 - `src/Common/Services/CarryPlacementService.cs`
+- `src/Common/Services/CarryPickupService.cs`
 - `src/Common/Services/CarryAttachmentService.cs`
 - `src/Common/Services/CarryDropService.cs`
 - `src/Common/Services/CarryEventBootstrapper.cs`
 - `src/Common/Handlers/CarryHandler.cs`
 - `src/Common/Handlers/DeathHandler.cs`
-- `src/Common/Logic/InteractionLogic.cs`
+- `src/Client/Logic/Interaction/CarryInteractionController.cs`
+- `src/Client/Logic/Interaction/CarryInteractionStateMachine.cs`
+- `src/Client/Logic/Interaction/CarryInteractionValidator.cs`
 - `src/Common/Logic/TransferLogic.cs`
 - `src/Common/Models/CarryInteraction.cs`
 - `src/CarrySystem.cs`
@@ -47,7 +50,8 @@ Core responsibilities:
 
 `CarryManager` method routing:
 - State: `GetAllCarried`, `GetCarried`, `SetCarried`, `RemoveCarried`, `SwapCarried`, `LockHotbarSlots`, `TouchCarriedAttributes`, `GetCarriedRevision` -> `CarryStateService`
-- Placement: `HasPermissionToCarry`, `GetCarriedFromWorld`, `RestoreBlockEntityData`, `TryPickUp`, `TryPlaceDown`, `TryPlaceDownAt` -> `CarryPlacementService`
+- Pickup: `HasPermissionToCarry`, `GetCarriedFromWorld`, `TryPickUp` -> `CarryPickupService`
+- Placement: `RestoreBlockEntityData`, `TryPlaceDown`, `TryPlaceDownAt` -> `CarryPlacementService`
 - Attachment: `TryAttach`, `TryDetach` -> `CarryAttachmentService`
 - Drop: `DropCarried`, `DropCarriedBlock`, `DropBlockAsItem` -> `CarryDropService`
 - Event bootstrap: `InitEvents` -> `CarryEventBootstrapper`
@@ -57,19 +61,30 @@ Core responsibilities:
 Orchestration responsibilities:
 - Initializes client and server carry pipelines from `CarrySystem`.
 - Registers carry network message types and per-message handlers.
-- Wires client input events and game tick loop into `InteractionLogic`.
+- Wires client input events and game tick loop into `CarryInteractionController`.
 - Wires server message handlers into `CarryManager` and `TransferLogic` with authority checks.
 - Prevents active hotbar slot switching while carrying in hands.
 - Reapplies carry state effects on entity/player spawn so animations/stats/locks are restored.
 
-### 1C. `InteractionLogic`
+### 1C. Client Interaction Components
 
-Client interaction state machine responsibilities:
+The client interaction system was split into three components during refactoring:
+
+**`CarryInteractionController`** — Top-level orchestrator:
+- Creates and manages `CarryInteractionStateMachine` and `CarryInteractionValidator`.
+- Provides external hooks for `TryBeginInteraction` and `TryContinueInteraction`.
+- Exposes the `ICarryInteractionController` interface consumed by `CarryHandler`.
+
+**`CarryInteractionStateMachine`** — Client interaction state machine:
 - Tracks active interaction context in `CarryInteraction`.
-- Detects and begins valid interaction intents based on right-click + carry key context.
 - Progresses timed interactions each tick and dispatches corresponding client packets.
 - Performs client-side prechecks and local transfer calls (`Put`/`Take`) before server packet send.
 - Cancels/completes interaction state and updates carry HUD progress/refresh behavior.
+
+**`CarryInteractionValidator`** — Interaction validation:
+- Detects and begins valid interaction intents based on right-click + carry key context.
+- Applies permission checks (e.g. `HasPermissionToCarry` for place-down).
+- Enforces entity attach/detach validation rules.
 
 ### 1D. `TransferLogic`
 
@@ -128,7 +143,7 @@ Important implementation behavior:
 
 ## 4. Pickup and Place-Down Pipeline
 
-`TryPickUp` flow (`CarryPlacementService` via `CarryManager`):
+`TryPickUp` flow (`CarryPickupService` via `CarryManager`):
 1. Server: permission check (`HasPermissionToCarry`) against claims/reinforcement and external delegates.
 2. Reject if target carry slot already occupied.
 3. Validate carryability and optimistic pickup behavior (`BlockBehaviorCarryable.OptimisticPickup`).
@@ -163,7 +178,7 @@ Important implementation behavior:
 
 ## 6. Permission, Rules, and Event Hooks
 
-Permission checks (`CarryPlacementService.HasPermissionToCarry`):
+Permission checks (`CarryPickupService.HasPermissionToCarry`):
 - Invokes `CheckPermissionToCarry` delegates first (can explicitly allow/deny).
 - Applies reinforcement + claim checks for player entities.
 - Non-player entities are restricted only by reinforcement state.
@@ -190,8 +205,8 @@ Carry event delegate integration points:
 - player spawn and player-ready hooks
 
 Runtime behavior:
-- `OnEntityAction` starts/cancels interactions through `InteractionLogic`.
-- `OnGameTick` advances interaction timer/progress and refreshes interaction help when carry capability state changes.
+- `OnEntityAction` starts/cancels interactions through `CarryInteractionController`.
+- `OnGameTick` advances interaction timer/progress via `CarryInteractionStateMachine` and refreshes interaction help when carry capability state changes.
 - `OnBeforeActiveSlotChanged` prevents hotbar active slot changes while hands slot is carrying.
 - On player-ready (client) and server init paths, transfer behaviors are discovered and configured through `TransferLogic.InitTransferBehaviors`.
 
@@ -242,14 +257,14 @@ Validation examples in server handlers:
 - target entity and slot index
 - optional transfer delay override
 
-`InteractionLogic.TryBeginInteraction` picks action in priority order, including:
+`CarryInteractionValidator.TryBeginInteraction` (called via `CarryInteractionController`) picks action in priority order, including:
 - entity attach/detach
 - swap-back
 - block interact behavior
 - transfer put/take
 - block pickup/place-down
 
-`InteractionLogic.TryContinueInteraction`:
+`CarryInteractionStateMachine.TryContinueInteraction`:
 - validates that preconditions still hold while button is held
 - computes required hold duration from behavior settings + config multipliers
 - drives HUD progress
@@ -299,12 +314,12 @@ graph TD
   C -- Server --> E[InitServer: message handlers, spawn hooks, transfer init]
 
   D --> F[Player input right click and carry key]
-  F --> G[InteractionLogic begins action]
-  G --> H[Hold-to-complete timing and HUD progress]
+  F --> G[CarryInteractionController begins action via Validator]
+  G --> H[CarryInteractionStateMachine: hold-to-complete timing and HUD progress]
   H --> I{Action type}
 
   I -- PickUp/PlaceDown --> J[Local try via CarryManager facade]
-  J --> J2[CarryPlacementService performs operation]
+  J --> J2[CarryPickupService performs pickup / CarryPlacementService performs placement]
   J2 --> K[Send PickUp/PlaceDown message]
   K --> L[Server validates and re-runs authoritative operation]
 
@@ -327,16 +342,19 @@ graph TD
 
 ## 14. References
 
-- `src/Common/CarryManager.cs`
+- `src/Common/Services/CarryManager.cs`
 - `src/Common/Services/CarryManagerServices.cs`
 - `src/Common/Services/CarryStateService.cs`
 - `src/Common/Services/CarryPlacementService.cs`
+- `src/Common/Services/CarryPickupService.cs`
 - `src/Common/Services/CarryAttachmentService.cs`
 - `src/Common/Services/CarryDropService.cs`
 - `src/Common/Services/CarryEventBootstrapper.cs`
 - `src/Common/Handlers/CarryHandler.cs`
 - `src/Common/Handlers/DeathHandler.cs`
-- `src/Common/Logic/InteractionLogic.cs`
+- `src/Client/Logic/Interaction/CarryInteractionController.cs`
+- `src/Client/Logic/Interaction/CarryInteractionStateMachine.cs`
+- `src/Client/Logic/Interaction/CarryInteractionValidator.cs`
 - `src/Common/Logic/TransferLogic.cs`
 - `src/Common/Models/CarryInteraction.cs`
 - `src/CarrySystem.cs`

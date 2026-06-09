@@ -132,8 +132,61 @@ Top-level properties read by `BlockBehaviorCarryable`:
 | `transformTemplates` | string[] | Transform template IDs loaded from asset files during finalization. Canonical form is `modid:code`; bare values default to `carryon:<code>`. |
 | `transformGroups` | object | Inline transform group definitions. |
 | `groups` | object | Type-to-group map for variant-based transform resolution. |
-| `labelRenderSettings` | object | Settings for rendering inventory-icon labels on the carried block. |
+| `labelRenderSettings` | object | Settings for rendering inventory-icon labels on the carried block. See [Label Render Settings](#label-render-settings) below. |
+| `defaultRenderFacing` | string | Overrides the facing direction used when resolving the carried block's render shape. Used for blocks like signs where the wall/ground variant normalizes during pickup. Example: `"north"`. |
+| `defaultRenderVariant` | string | Overrides the variant segment used when resolving the carried block's render shape. Used alongside `defaultRenderFacing` to render the correct visual variant (e.g. `"wall"` for signs). When omitted, no render-block resolution is attempted. |
 | `slots` | object | Per-slot carry configuration keyed by slot name. |
+
+### Label Render Settings
+
+The `labelRenderSettings` object controls how inventory-icon labels appear on the carried block, including text and item icon labels on containers, signs, and plaques. All sub-properties are optional.
+
+| Property | Type | Description |
+|---|---|---|
+| `transform` | object | Model transform for the label quad. Position, rotation, scale, and origin relative to the carried block. |
+| `attachedTransform` | object | Additional model transform applied when the block is rendered as an attached child in a carried cluster (e.g. a wall sign attached to a carried chest). Used to adjust the label position for the cluster context. |
+| `additionalTransforms` | array | Array of extra model transforms for rendering multiple copies of the label. |
+| `maxWidth` | int | Maximum width of the text label in pixels. Default `200`. |
+| `maxHeight` | int | Maximum height of the text label in pixels. |
+| `iconPixelSize` | int | Pixel size for rendering inventory item icons. Used when `iconFromInventory` is `true`. |
+| `iconScale` | float | Scale factor for the inventory icon. |
+| `iconFromInventory` | bool | If `true`, the label uses the first non-empty inventory slot's icon instead of sign text. |
+| `fontName` | string | Font name override (e.g. `"vessel"`). |
+| `verticalAlign` | string | Vertical alignment for text (`"top"`, `"middle"`, or `"bottom"`). |
+| `boldFont` | bool | If `true`, renders the label text in bold. |
+
+### Render Block Resolution for Multi-Variant Blocks
+
+Blocks with multiple visual variants (e.g. `sign-wall-north`, `sign-ground-north`) may lose variant information when picked up because `OnPickBlock` can normalize the block code. The `defaultRenderFacing` and `defaultRenderVariant` properties restore the correct render shape:
+
+- **`defaultRenderVariant`** specifies the variant segment (e.g. `"wall"` for signs).
+- **`defaultRenderFacing`** specifies the facing direction (e.g. `"north"`).
+
+When both are set, CarryOn reconstructs the original block code from `OriginalBlockCode` by replacing the variant and facing segments, then resolves the appropriate block for rendering. If `defaultRenderFacing` is omitted, `"north"` is used as the default. If `defaultRenderVariant` is omitted, no resolution is attempted.
+
+**Example from `sign.json`** — a wall sign uses `defaultRenderFacing` and `defaultRenderVariant` to ensure the carried render shows the wall variant facing north, plus `labelRenderSettings` for the sign text label. The `attachedTransform` adjusts the label position when the sign is rendered as an attached block using the cluster carry feature (e.g. when carried alongside a chest via `CaptureAttachedWallSigns`):
+
+```json
+{
+  "name": "Carryable",
+  "properties": {
+    "enabledCondition": "carryon.Carryables.Sign",
+    "labelRenderSettings": {
+      "transform": {
+        "translation": [ 0.508, 0.863, 0.063 ],
+        "scale": [ 0.916, 1.01, 1.0 ]
+      },
+      "attachedTransform": {
+        "translation": [ 0, -0.01, 0 ]
+      },
+      "maxWidth": 200,
+      "maxHeight": 96
+    },
+    "defaultRenderFacing": "north",
+    "defaultRenderVariant": "wall"
+  }
+}
+```
 
 ### Transform Templates and Inline Groups
 
