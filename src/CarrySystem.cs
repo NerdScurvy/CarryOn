@@ -168,7 +168,8 @@ namespace CarryOn
 
             CarryHandler.InitClient(api, this.ClientChannel!,
                 () => { if (this.HudOverlayRenderer != null) this.HudOverlayRenderer.CircleVisible = false; },
-                p => { if (this.HudOverlayRenderer != null) this.HudOverlayRenderer.CircleProgress = p; });
+                p => { if (this.HudOverlayRenderer != null) this.HudOverlayRenderer.CircleProgress = p; },
+                this.ClientModConfig!);
             CarryManager?.InitEvents(api);
             HotKeyHandler.InitClient(api, this.ClientChannel!, this.ClientModConfig!);
 
@@ -183,7 +184,7 @@ namespace CarryOn
                 PackAdjustmentHandler.InitClient();
             }
             // Register client chat commands through Commands helper
-            var commands = new ClientCommands(api, this.ClientModConfig!);
+            var commands = new ClientCommands(api, this.ClientModConfig!, this.EntityCarryRenderer);
             commands.Register();
         }
 

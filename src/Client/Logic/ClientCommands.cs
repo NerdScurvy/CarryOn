@@ -1,4 +1,5 @@
 using System;
+using CarryOn.Client.Logic.CarryRenderer;
 using CarryOn.Client.Models;
 using CarryOn.Utility;
 using Vintagestory.API.Client;
@@ -13,12 +14,14 @@ namespace CarryOn.Client.Logic
     {
         private readonly ClientModConfig clientModConfig;
         private readonly ICoreClientAPI api;
+        private readonly EntityCarryRenderer? entityCarryRenderer;
 
-        public ClientCommands(ICoreClientAPI api, ClientModConfig clientModConfig)
+        public ClientCommands(ICoreClientAPI api, ClientModConfig clientModConfig, EntityCarryRenderer? entityCarryRenderer = null)
         {
             ArgumentNullException.ThrowIfNull(api);
             this.api = api;
             this.clientModConfig = clientModConfig;
+            this.entityCarryRenderer = entityCarryRenderer;
         }
         /// <summary>
         /// Register client-side chat commands for the CarryOn mod.
@@ -135,6 +138,18 @@ namespace CarryOn.Client.Logic
                             .WithArgs(api.ChatCommands.Parsers.Word("anchor"), api.ChatCommands.Parsers.Word("slot"))
                             .HandleWith(this.CmdCarryOnGuiSet)
                         .EndSubCommand()
+                    .EndSubCommand()
+                    // .carryon attachedRender (cluster carry render toggle)
+                    .BeginSubCommand("attachedRender")
+                        .WithDescription("Toggle or set rendering of attached wall signs on carried blocks. Usage: .carryon attachedRender [true|false]")
+                        .WithArgs(api.ChatCommands.Parsers.OptionalWord("enabled"))
+                        .HandleWith(CmdCarryOnAttachedRender)
+                    .EndSubCommand()
+                    // .carryon attachedPickup (cluster carry pickup toggle)
+                    .BeginSubCommand("attachedPickup")
+                        .WithDescription("Toggle or set whether attached wall signs are captured when picking up a block. Usage: .carryon attachedPickup [true|false]")
+                        .WithArgs(api.ChatCommands.Parsers.OptionalWord("enabled"))
+                        .HandleWith(CmdCarryOnAttachedPickup)
                     .EndSubCommand();
             }
             catch (System.Exception ex)
@@ -636,5 +651,54 @@ namespace CarryOn.Client.Logic
         protected TextCommandResult CmdCarryOnGuiHighlightAlpha(TextCommandCallingArgs args) => HandleGuiAlpha(GuiCategory.Highlight, args);
         protected TextCommandResult CmdCarryOnGuiHighlightShow(TextCommandCallingArgs args) => HandleGuiShow(GuiCategory.Highlight, args);
         protected TextCommandResult CmdCarryOnGuiHighlightReset(TextCommandCallingArgs args) => HandleGuiReset(GuiCategory.Highlight, args);
+
+        // === Cluster carry command handlers ===
+
+        protected TextCommandResult CmdCarryOnAttachedRender(TextCommandCallingArgs args)
+        {
+            var cfg = this.clientModConfig.Config;
+            if (cfg == null)
+                return TextCommandResult.Error("Client config not available.");
+
+            if (args[0] is string arg)
+            {
+                if (arg == "true") cfg.RenderAttachedBlocks = true;
+                else if (arg == "false") cfg.RenderAttachedBlocks = false;
+                else return TextCommandResult.Error("Usage: .carryon attachedRender [true|false]");
+            }
+            else
+            {
+                cfg.RenderAttachedBlocks = !cfg.RenderAttachedBlocks;
+            }
+
+            this.clientModConfig.Save(this.api);
+            entityCarryRenderer?.SetRenderAttachedBlocks(cfg.RenderAttachedBlocks);
+
+            string state = cfg.RenderAttachedBlocks ? "enabled" : "disabled";
+            return TextCommandResult.Success($"Rendering of attached wall signs: {state}");
+        }
+
+        protected TextCommandResult CmdCarryOnAttachedPickup(TextCommandCallingArgs args)
+        {
+            var cfg = this.clientModConfig.Config;
+            if (cfg == null)
+                return TextCommandResult.Error("Client config not available.");
+
+            if (args[0] is string arg)
+            {
+                if (arg == "true") cfg.CaptureAttachedWallSigns = true;
+                else if (arg == "false") cfg.CaptureAttachedWallSigns = false;
+                else return TextCommandResult.Error("Usage: .carryon attachedPickup [true|false]");
+            }
+            else
+            {
+                cfg.CaptureAttachedWallSigns = !cfg.CaptureAttachedWallSigns;
+            }
+
+            this.clientModConfig.Save(this.api);
+
+            string state = cfg.CaptureAttachedWallSigns ? "enabled" : "disabled";
+            return TextCommandResult.Success($"Capture of attached wall signs on pickup: {state}");
+        }
     }
 }

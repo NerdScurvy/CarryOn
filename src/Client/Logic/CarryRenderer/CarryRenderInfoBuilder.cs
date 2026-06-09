@@ -15,7 +15,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
     internal sealed class CarryRenderInfoBuilder
     {
         private readonly ICoreClientAPI api;
-        private readonly bool renderAttachedBlocks;
+        private bool renderAttachedBlocks;
         private readonly Dictionary<AssetLocation, MultiTextureMeshRef> attachedBlockMeshCache = new();
 
         internal CarryRenderInfoBuilder(ICoreClientAPI api, bool renderAttachedBlocks = true)
@@ -24,7 +24,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
             this.renderAttachedBlocks = renderAttachedBlocks;
         }
 
-        internal bool RenderAttachedBlocks => renderAttachedBlocks;
+        internal bool RenderAttachedBlocks { get => renderAttachedBlocks; set => renderAttachedBlocks = value; }
 
         public void Dispose()
         {

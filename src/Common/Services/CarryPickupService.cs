@@ -47,7 +47,7 @@ namespace CarryOn.Common.Services
             return GetCarriedFromWorld(null, pos, slot, ref failureCode, checkIsCarryable);
         }
 
-        public CarriedBlock? GetCarriedFromWorld(Entity? entity, BlockPos pos, CarrySlot slot, ref string failureCode, bool checkIsCarryable = false)
+        public CarriedBlock? GetCarriedFromWorld(Entity? entity, BlockPos pos, CarrySlot slot, ref string failureCode, bool checkIsCarryable = false, bool? captureAttachedSigns = null)
         {
             var world = api.World;
             var carried = BlockUtils.CreateCarriedFromBlockPos(world, pos, slot);
@@ -57,7 +57,9 @@ namespace CarryOn.Common.Services
 
             if (entity != null && !CanPickUp(entity, pos, slot, carried, ref failureCode)) return null;
 
-            if (carryManager.Config?.CarryOptions?.CarryAttachedWallSigns == true)
+            bool canCapture = carryManager.Config?.CarryOptions?.CarryAttachedWallSigns == true;
+            bool shouldCapture = canCapture && (captureAttachedSigns ?? true);
+            if (shouldCapture)
             {
                 var attachedBlocks = CaptureAttachedSigns(world, pos, carried.Block);
                 if (attachedBlocks != null)
@@ -89,7 +91,8 @@ namespace CarryOn.Common.Services
             CarrySlot slot,
             ref string failureCode,
             bool checkIsCarryable = true,
-            bool playSound = true)
+            bool playSound = true,
+            bool? captureAttachedSigns = null)
         {
             ArgumentNullException.ThrowIfNull(entity);
             ArgumentNullException.ThrowIfNull(pos);
@@ -120,7 +123,7 @@ namespace CarryOn.Common.Services
                 return true;
 
             var optimisticPickup = carryBehavior?.OptimisticPickup ?? true;
-            var carried = GetCarriedFromWorld(entity, pos, slot, ref failureCode, checkIsCarryable);
+            var carried = GetCarriedFromWorld(entity, pos, slot, ref failureCode, checkIsCarryable, captureAttachedSigns);
             if (carried == null) return false;
 
             carryManager.SetCarried(entity, carried);
@@ -137,10 +140,10 @@ namespace CarryOn.Common.Services
             return true;
         }
 
-        public bool TryPickUp(Entity entity, BlockPos pos, CarrySlot slot, bool checkIsCarryable = true, bool playSound = true)
+        public bool TryPickUp(Entity entity, BlockPos pos, CarrySlot slot, bool checkIsCarryable = true, bool playSound = true, bool? captureAttachedSigns = null)
         {
             string failureCode = FailureCode.Ignore;
-            return TryPickUp(entity, pos, slot, ref failureCode, checkIsCarryable, playSound);
+            return TryPickUp(entity, pos, slot, ref failureCode, checkIsCarryable, playSound, captureAttachedSigns);
         }
 
         private List<AttachedCarriedBlock>? CaptureAttachedSigns(IWorldAccessor world, BlockPos pos, Block parentBlock)

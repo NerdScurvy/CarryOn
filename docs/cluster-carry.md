@@ -57,6 +57,8 @@ A block with attached signs **cannot** be attached to an entity (e.g. as a mount
 
 ## Client-Side Toggle
 
+### Rendering
+
 Rendering of attached signs on the carried block is controlled by `RenderAttachedBlocks` in `CarryOnClientConfig.json`:
 
 ```json
@@ -66,6 +68,29 @@ Rendering of attached signs on the carried block is controlled by `RenderAttache
 ```
 
 Default is `true`. When disabled, the signs are still carried and will be placed correctly — they just are not visible on the carried model. This can help performance on lower-end systems.
+
+### Pickup Preference
+
+Whether attached signs are captured when you pick up a block is controlled by `CaptureAttachedWallSigns` in `CarryOnClientConfig.json`:
+
+```json
+{
+  "CaptureAttachedWallSigns": false
+}
+```
+
+Default is `true`. When disabled, signs attached to the block are left in place during pickup — only the parent block is carried. This also requires the server-side `CarryAttachedWallSigns` option to be enabled; if the server has it disabled, this client preference has no effect and signs are never captured.
+
+### Chat Commands
+
+Two chat commands provide quick access to these settings at runtime:
+
+| Command | Effect |
+| --- | --- |
+| `.carryon attachedRender [true\|false]` | Toggle or set rendering of attached signs on the carried block model. |
+| `.carryon attachedPickup [true\|false]` | Toggle or set whether attached signs are captured on pickup. |
+
+Without an argument, each command toggles the current value. Pass `true` or `false` to set explicitly. Changes are saved immediately to `CarryOnClientConfig.json` and take effect right away (no reconnect needed).
 
 ## Configuration Reference
 
@@ -82,6 +107,7 @@ See [carryon-config.md](carryon-config.md) for full config documentation.
 | Key | Type | Default | Description |
 | --- | --- | --- | --- |
 | `RenderAttachedBlocks` | `bool` | `true` | Draws attached wall signs on the carried block model. |
+| `CaptureAttachedWallSigns` | `bool` | `true` | Captures wall signs when picking up a block (requires server `CarryAttachedWallSigns`). |
 
 ## Limitations
 

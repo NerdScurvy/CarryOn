@@ -58,6 +58,12 @@ namespace CarryOn.Client.Logic.CarryRenderer
 
         public void InvalidateRenderCaches() => cacheManager.InvalidateAll();
 
+        public void SetRenderAttachedBlocks(bool enabled)
+        {
+            infoBuilder.RenderAttachedBlocks = enabled;
+            dispatcher.RenderAttachedBlocks = enabled;
+        }
+
         public double RenderOrder => 1.0;
         public int RenderRange => 99;
 

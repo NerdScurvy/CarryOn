@@ -114,9 +114,10 @@ namespace CarryOn.Common.Services
             CarrySlot slot,
             ref string failureCode,
             bool checkIsCarryable = true,
-            bool playSound = true)
+            bool playSound = true,
+            bool? captureAttachedSigns = null)
         {
-            return Services.Pickup.TryPickUp(entity, pos, slot, ref failureCode, checkIsCarryable, playSound);
+            return Services.Pickup.TryPickUp(entity, pos, slot, ref failureCode, checkIsCarryable, playSound, captureAttachedSigns);
         }
 
         /// <inheritdoc/>

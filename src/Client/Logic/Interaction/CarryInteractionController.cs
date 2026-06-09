@@ -1,6 +1,7 @@
 using System;
 using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
+using CarryOn.Client.Models;
 using CarryOn.Common.Logic;
 using CarryOn.Common.Models;
 using Vintagestory.API.Client;
@@ -25,7 +26,7 @@ namespace CarryOn.Client.Logic.Interaction
         public bool BackSlotEnabled => validator.BackSlotEnabled;
         public float InteractSpeedMultiplier => validator.InteractSpeedMultiplier;
 
-        public CarryInteractionController(ICoreClientAPI api, ICarryManager carryManager, IClientNetworkChannel clientChannel, CarryOnConfig config, Action hideOverlay, Action<float> setOverlayProgress)
+        public CarryInteractionController(ICoreClientAPI api, ICarryManager carryManager, IClientNetworkChannel clientChannel, CarryOnConfig config, Action hideOverlay, Action<float> setOverlayProgress, ClientModConfig? clientModConfig = null)
         {
             ArgumentNullException.ThrowIfNull(api);
             ArgumentNullException.ThrowIfNull(carryManager);
@@ -36,7 +37,7 @@ namespace CarryOn.Client.Logic.Interaction
 
             var transferLogic = new TransferLogic(api, carryManager);
             validator = new CarryInteractionValidator(api, config, transferLogic, this);
-            stateMachine = new CarryInteractionStateMachine(api, carryManager, clientChannel, hideOverlay, setOverlayProgress, validator, transferLogic);
+            stateMachine = new CarryInteractionStateMachine(api, carryManager, clientChannel, hideOverlay, setOverlayProgress, validator, transferLogic, clientModConfig);
         }
 
         public void TryBeginInteraction(bool isInteracting, ref EnumHandling handled)

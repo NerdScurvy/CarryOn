@@ -37,6 +37,7 @@ namespace CarryOn.Client.Models
 
         // Cluster carry render preferences (client-side only)
         public bool RenderAttachedBlocks { get; set; } = true;
+        public bool CaptureAttachedWallSigns { get; set; } = true;
 
         public CarryOnClientConfig() { }
 

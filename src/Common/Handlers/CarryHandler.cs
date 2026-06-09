@@ -17,6 +17,7 @@ using static CarryOn.API.Common.Models.CarryCode;
 using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
 using CarryOn.Client.Logic.Interaction;
+using CarryOn.Client.Models;
 
 namespace CarryOn.Common.Handlers
 {
@@ -108,7 +109,7 @@ namespace CarryOn.Common.Handlers
         /// <param name="setOverlayProgress"> Action to set the overlay progress. </param>
         /// <exception cref="ArgumentNullException"> Thrown if the provided API instance is null. </exception>
         /// <exception cref="InvalidOperationException"> Thrown if the method is called on the server side or if Input is not initialized. </exception>
-        public void InitClient(ICoreAPI api, IClientNetworkChannel clientChannel, Action hideOverlay, Action<float> setOverlayProgress)
+        public void InitClient(ICoreAPI api, IClientNetworkChannel clientChannel, Action hideOverlay, Action<float> setOverlayProgress, ClientModConfig? clientModConfig = null)
         {
             this.api = api ?? throw new ArgumentNullException(nameof(api));
 
@@ -126,7 +127,7 @@ namespace CarryOn.Common.Handlers
             ArgumentNullException.ThrowIfNull(hideOverlay);
             ArgumentNullException.ThrowIfNull(setOverlayProgress);
 
-            this.interactionLogic = new CarryInteractionController(ClientApi, this.CarryManager, clientChannel, this.config, hideOverlay, setOverlayProgress);
+            this.interactionLogic = new CarryInteractionController(ClientApi, this.CarryManager, clientChannel, this.config, hideOverlay, setOverlayProgress, clientModConfig);
 
             RegisterCarryMessageTypes(clientChannel)
                 .SetMessageHandler<LockSlotsMessage>(OnLockSlotsMessage);
@@ -296,7 +297,8 @@ namespace CarryOn.Common.Handlers
                 message.Slot,
                 ref failureCode,
                 checkIsCarryable: true,
-                playSound: true))
+                playSound: true,
+                captureAttachedSigns: message.CaptureAttachedWallSigns))
             {
                 return;
             }

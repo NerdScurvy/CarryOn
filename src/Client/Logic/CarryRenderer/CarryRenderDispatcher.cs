@@ -56,7 +56,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
         private readonly CarryFirstPersonRenderer firstPersonRenderer;
         private readonly CarriedLabelRenderer labelRenderer;
         private readonly Stack<float[]> matrixPool = new();
-        private readonly bool renderAttachedBlocks;
+        internal bool RenderAttachedBlocks { get; set; }
         private object? lastCameraMatrixRef;
         private float[] cachedViewMat = new float[16];
         private static readonly Vec3f ZeroOffset = new(0, 0, 0);
@@ -68,7 +68,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
             this.cacheManager = cacheManager;
             this.firstPersonRenderer = firstPersonRenderer;
             this.labelRenderer = labelRenderer;
-            this.renderAttachedBlocks = renderAttachedBlocks;
+            this.RenderAttachedBlocks = renderAttachedBlocks;
         }
 
         public void ClearMatrixPool()
@@ -317,7 +317,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
             {
                 labelRenderer.TryRender(carried, initialMatrix, viewMat, prog, entity.Pos.AsBlockPos);
 
-                if (renderAttachedBlocks && carried.HasAttachedBlocks)
+                if (RenderAttachedBlocks && carried.HasAttachedBlocks)
                 {
                     RenderAttachedBlockLabels(carried, initialMatrix, viewMat, prog, entity);
                 }

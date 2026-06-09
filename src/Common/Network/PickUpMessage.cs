@@ -9,12 +9,14 @@ namespace CarryOn.Common.Network
     {
         public BlockPos Position { get; init; } = null!;
         public CarrySlot Slot { get; init; }
+        public bool CaptureAttachedWallSigns { get; init; } = true;
 
         private PickUpMessage() { }
 
         public PickUpMessage(BlockPos position, CarrySlot slot)
         {
-            Position = position; 
-            Slot = slot; }
+            Position = position;
+            Slot = slot;
+        }
     }
 }

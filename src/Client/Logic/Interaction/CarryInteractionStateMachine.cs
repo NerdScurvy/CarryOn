@@ -2,6 +2,7 @@ using System;
 using System.Reflection;
 using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
+using CarryOn.Client.Models;
 using CarryOn.Common.Behaviors;
 using CarryOn.Common.Models;
 using CarryOn.Common.Logic;
@@ -23,6 +24,7 @@ namespace CarryOn.Client.Logic.Interaction
         private readonly Action<float> setOverlayProgress;
         private readonly CarryInteractionValidator validator;
         private readonly TransferLogic transferLogic;
+        private readonly ClientModConfig? clientModConfig;
 
         public CarryInteraction Interaction { get; private set; } = new CarryInteraction();
 
@@ -37,7 +39,8 @@ namespace CarryOn.Client.Logic.Interaction
             Action hideOverlay,
             Action<float> setOverlayProgress,
             CarryInteractionValidator validator,
-            TransferLogic transferLogic)
+            TransferLogic transferLogic,
+            ClientModConfig? clientModConfig = null)
         {
             this.api = api ?? throw new ArgumentNullException(nameof(api));
             this.carryManager = carryManager ?? throw new ArgumentNullException(nameof(carryManager));
@@ -46,6 +49,7 @@ namespace CarryOn.Client.Logic.Interaction
             this.setOverlayProgress = setOverlayProgress ?? throw new ArgumentNullException(nameof(setOverlayProgress));
             this.validator = validator ?? throw new ArgumentNullException(nameof(validator));
             this.transferLogic = transferLogic ?? throw new ArgumentNullException(nameof(transferLogic));
+            this.clientModConfig = clientModConfig;
 
             composeBlockWorldInteractionHelpMethod = AccessTools.Method(typeof(Vintagestory.Client.NoObf.HudElementInteractionHelp), "ComposeBlockWorldInteractionHelp");
             if (composeBlockWorldInteractionHelpMethod == null)
@@ -209,7 +213,11 @@ namespace CarryOn.Client.Logic.Interaction
 
             if (hasPickedUp)
             {
-                clientChannel.SendPacket(new PickUpMessage(selection.Position, Interaction.CarrySlot.Value));
+                bool captureAttached = clientModConfig?.Config?.CaptureAttachedWallSigns ?? true;
+                clientChannel.SendPacket(new PickUpMessage(selection.Position, Interaction.CarrySlot.Value)
+                {
+                    CaptureAttachedWallSigns = captureAttached
+                });
             }
             else
             {
