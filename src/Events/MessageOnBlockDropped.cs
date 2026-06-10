@@ -1,5 +1,6 @@
 using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Event.Data;
+using CarryOn.Common.Logic;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
 using Vintagestory.API.Server;
@@ -31,7 +32,7 @@ namespace CarryOn.Events
 
             var name = e.CarriedBlock?.ItemStack?.GetName()?.ToLower();
             var slot = e.CarriedBlock != null
-                ? CarrySystem.GetLang($"slot-{e.CarriedBlock.Slot.ToString().ToLower()}")
+                ? LocalizationHelper.GetLang($"slot-{e.CarriedBlock.Slot.ToString().ToLower()}")
                 : "unknown";
 
             player?.SendMessage(GlobalConstants.GeneralChatGroup, Lang.Get(messageKey, name, slot), EnumChatType.Notification);

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using CarryOn.API.Common.Models;
 using CarryOn.Common.Behaviors;
+using CarryOn.Common.Models;
 using CarryOn.Utility;
 using Vintagestory.API.Common;
 
@@ -15,7 +16,7 @@ namespace CarryOn.Common.Logic
         public float Resolve(
             ItemStack? stack,
             BlockBehaviorCarryable? behavior,
-            BlockBehaviorCarryable.SlotSettings? slotSettings,
+            SlotSettings? slotSettings,
             CarrySlot slot,
             WalkSpeedOverridesConfig? configured)
         {
@@ -223,7 +224,7 @@ namespace CarryOn.Common.Logic
 
         private static bool TryResolveBySlotTypeOverride(
             ItemStack? stack,
-            BlockBehaviorCarryable.SlotSettings? slotSettings,
+            SlotSettings? slotSettings,
             out float speed)
         {
             speed = 0.0f;
@@ -246,7 +247,7 @@ namespace CarryOn.Common.Logic
         private static bool TryResolveBySlotGroupOverride(
             BlockBehaviorCarryable? behavior,
             ItemStack? stack,
-            BlockBehaviorCarryable.SlotSettings? slotSettings,
+            SlotSettings? slotSettings,
             out float speed)
         {
             speed = 0.0f;

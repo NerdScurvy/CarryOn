@@ -75,28 +75,10 @@ namespace CarryOn.Server.Logic
         /// <param name="api"></param>
         private void RemoveExcludedCarryableBehaviors(ICoreAPI api)
         {
-
-            if (Config == null)
-            {
-                api.Logger.Error("CarryOn: Config is null in RemoveExcludedCarryableBehaviours");
-                return;
-            }
-
-            if (Config.DebuggingOptions == null)
-            {
-                api.Logger.Error("CarryOn: DebuggingOptions is null in RemoveExcludedCarryableBehaviours");
-                return;
-            }
-            
-            if (Config.CarryablesFilters == null)
-            {
-                api.Logger.Error("CarryOn: CarryablesFilters is null in RemoveExcludedCarryableBehaviours");
-                return;
-            }
-
-            var loggingEnabled = Config.DebuggingOptions.LoggingEnabled;
+            if (!EnsureConfigReady(api)) return;
+            var loggingEnabled = Config.DebuggingOptions?.LoggingEnabled ?? false;
             var filters = Config.CarryablesFilters;
-
+            if (filters == null) return;
 
             var removeArray = filters.RemoveCarryableBehaviour;
             if (removeArray == null || removeArray.Length == 0)
@@ -195,20 +177,22 @@ namespace CarryOn.Server.Logic
                 {
                     var ordered = carryableList.OrderBy(c => c.PatchPriority).ToList();
 
-                    keepBehavior = ordered
+                    var primaryBehavior = ordered
                         .Where(c => !c.OverrideExistingProperties)
                         .OrderByDescending(c => c.PatchPriority)
                         .FirstOrDefault()
                         ?? ordered.Last();
 
+                    keepBehavior = primaryBehavior;
+
                     var overlays = ordered
-                        .Where(c => c.OverrideExistingProperties && c.PatchPriority >= keepBehavior!.PatchPriority)
+                        .Where(c => c.OverrideExistingProperties && c.PatchPriority >= primaryBehavior.PatchPriority)
                         .ToList();
 
                     if (overlays.Count > 0)
                     {
-                        var merged = MergeCarryableProperties(keepBehavior!, overlays);
-                        keepBehavior!.Initialize(merged);
+                        var merged = MergeCarryableProperties(primaryBehavior, overlays);
+                        primaryBehavior.Initialize(merged);
                     }
                 }
 
@@ -243,28 +227,10 @@ namespace CarryOn.Server.Logic
         /// <param name="api"></param>
         private void AutoMapSimilarCarryableInteract(ICoreAPI api)
         {
-            if (Config == null)
-            {
-                api.Logger.Error("CarryOn: Config is null in AutoMapSimilarCarryableInteract");
-                return;
-            }
-
-            if (Config.DebuggingOptions == null)
-            {
-                api.Logger.Error("CarryOn: DebuggingOptions is null in AutoMapSimilarCarryableInteract");
-                return;
-            }
-
-            var loggingEnabled = Config.DebuggingOptions.LoggingEnabled;
+            if (!EnsureConfigReady(api) || Config.CarryablesFilters?.AutoMapSimilar != true) return;
+            var loggingEnabled = Config.DebuggingOptions?.LoggingEnabled ?? false;
             var filters = Config.CarryablesFilters;
-
-            if (filters == null)
-            {
-                api.Logger.Error("CarryOn: CarryablesFilters is null in AutoMapSimilarCarryableInteract");
-                return;
-            }
-
-            if (filters?.AutoMapSimilar != true) return;
+            if (filters == null) return;
 
             var matchKeys = new List<string>();
             foreach (var interactBlock in api.World.Blocks.Where(b => b.IsCarryableInteract()))
@@ -293,83 +259,42 @@ namespace CarryOn.Server.Logic
         /// <param name="api"></param>
         private void AutoMapSimilarCarryables(ICoreAPI api)
         {
-            if (Config == null)
-            {
-                api.Logger.Error("CarryOn: Config is null in AutoMapSimilarCarryables");
-                return;
-            }
-            if (Config.DebuggingOptions == null)
-            {
-                api.Logger.Error("CarryOn: DebuggingOptions is null in AutoMapSimilarCarryables");
-                return;
-            }
-            var loggingEnabled = Config.DebuggingOptions.LoggingEnabled;
+            if (!EnsureConfigReady(api) || Config.CarryablesFilters?.AutoMapSimilar != true) return;
+            var loggingEnabled = Config.DebuggingOptions?.LoggingEnabled ?? false;
             var filters = Config.CarryablesFilters;
-            if (filters == null)
-            {
-                api.Logger.Error("CarryOn: CarryablesFilters is null in AutoMapSimilarCarryables");
-                return;
-            }
-
-            if (filters?.AutoMapSimilar != true) return;
+            if (filters == null) return;
 
             var matchBehaviors = new Dictionary<string, BlockBehaviorCarryable>();
             foreach (var carryableBlock in api.World.Blocks.Where(b => b.IsCarryable() && b.Code.Domain == "game"))
             {
                 var shapePath = carryableBlock.ShapeInventory?.Base?.Path ?? carryableBlock.Shape?.Base?.Path;
-                var shapeKey = shapePath != null && shapePath != "block/basic/cube" ? $"Shape:{shapePath}" : null;
+                var shapeKey = shapePath != null && shapePath != DefaultShapePath ? $"{ShapeKeyPrefix}{shapePath}" : null;
 
                 string? entityClassKey = null;
 
                 if (carryableBlock.EntityClass != null && carryableBlock.EntityClass != "Generic" && carryableBlock.EntityClass != "Transient")
                 {
-                    entityClassKey = $"EntityClass:{carryableBlock.EntityClass}";
-                    if (!matchBehaviors.ContainsKey(entityClassKey))
-                    {
-                        matchBehaviors[entityClassKey] = carryableBlock.GetBehavior<BlockBehaviorCarryable>();
-                        if (loggingEnabled) api.Logger.Debug($"CarryOn matchBehavior: {entityClassKey} carryableBlock: {carryableBlock.Code}");
-                    }
+                    entityClassKey = $"{EntityClassKeyPrefix}{carryableBlock.EntityClass}";
+                    TryAddMatchBehavior(matchBehaviors, entityClassKey, carryableBlock, loggingEnabled, api);
                 }
 
                 string? classKey = null;
                 if (carryableBlock.Class is not "Block" and not "BlockGeneric")
                 {
-                    classKey = $"Class:{carryableBlock.Class}";
-                    if (!matchBehaviors.ContainsKey(classKey))
-                    {
-                        matchBehaviors[classKey] = carryableBlock.GetBehavior<BlockBehaviorCarryable>();
-                        if (loggingEnabled) api.Logger.Debug($"CarryOn matchBehavior: {classKey} carryableBlock: {carryableBlock.Code}");
-                    }
+                    classKey = $"{ClassKeyPrefix}{carryableBlock.Class}";
+                    TryAddMatchBehavior(matchBehaviors, classKey, carryableBlock, loggingEnabled, api);
                 }
 
                 if (shapeKey != null)
                 {
                     if (entityClassKey != null)
-                    {
-                        var key = $"{entityClassKey}|{shapeKey}";
-                        if (!matchBehaviors.ContainsKey(key))
-                        {
-                            matchBehaviors[key] = carryableBlock.GetBehavior<BlockBehaviorCarryable>();
-                            if (loggingEnabled) api.Logger.Debug($"CarryOn matchBehavior: {key} carryableBlock: {carryableBlock.Code}");
-                        }
-                    }
+                        TryAddMatchBehavior(matchBehaviors, $"{entityClassKey}|{shapeKey}", carryableBlock, loggingEnabled, api);
 
                     if (classKey != null)
-                    {
-                        var key = $"{classKey}|{shapeKey}";
-                        if (!matchBehaviors.ContainsKey(key))
-                        {
-                            matchBehaviors[key] = carryableBlock.GetBehavior<BlockBehaviorCarryable>();
-                            if (loggingEnabled) api.Logger.Debug($"CarryOn matchBehavior: {key} carryableBlock: {carryableBlock.Code}");
-                        }
-                    }
+                        TryAddMatchBehavior(matchBehaviors, $"{classKey}|{shapeKey}", carryableBlock, loggingEnabled, api);
 
-                    if (filters.AllowedShapeOnlyMatches.Contains(shapePath) && !matchBehaviors.ContainsKey(shapeKey))
-                    {
-                        matchBehaviors[shapeKey] = carryableBlock.GetBehavior<BlockBehaviorCarryable>();
-
-                        if (loggingEnabled) api.Logger.Debug($"CarryOn matchBehavior: {shapeKey} carryableBlock: {carryableBlock.Code}");
-                    }
+                    if (filters.AllowedShapeOnlyMatches.Contains(shapePath))
+                        TryAddMatchBehavior(matchBehaviors, shapeKey, carryableBlock, loggingEnabled, api);
                 }
             }
 
@@ -389,28 +314,41 @@ namespace CarryOn.Server.Logic
                     }
                 }
 
-                if (key != null)
+                if (key != null && matchBehaviors.TryGetValue(key, out var behavior))
                 {
-                    var behavior = matchBehaviors[key];
+                    var properties = behavior.Properties;
+                    if (properties == null) continue;
 
                     var newBehavior = new BlockBehaviorCarryable(block);
                     block.BlockBehaviors = block.BlockBehaviors.Append(newBehavior);
-                    newBehavior.Initialize(behavior.Properties!);
+                    newBehavior.Initialize(properties);
 
                     newBehavior = new BlockBehaviorCarryable(block);
                     block.CollectibleBehaviors = block.CollectibleBehaviors.Append(newBehavior);
-                    newBehavior.Initialize(behavior.Properties!);
+                    newBehavior.Initialize(properties);
                 }
             }
+        }
+
+        private const string ClassKeyPrefix = "Class:";
+        private const string EntityClassKeyPrefix = "EntityClass:";
+        private const string ShapeKeyPrefix = "Shape:";
+        private const string DefaultShapePath = "block/basic/cube";
+
+        private static void TryAddMatchBehavior(Dictionary<string, BlockBehaviorCarryable> matchBehaviors, string key, Block carryableBlock, bool loggingEnabled, ICoreAPI api)
+        {
+            if (matchBehaviors.ContainsKey(key)) return;
+            matchBehaviors[key] = carryableBlock.GetBehavior<BlockBehaviorCarryable>();
+            if (loggingEnabled) api.Logger.Debug($"CarryOn matchBehavior: {key} carryableBlock: {carryableBlock.Code}");
         }
 
         // Move outside the loop if the keys don't change per block
         private string[] GetPotentialMatchKeys(Block block)
         {
-            var classKey = $"Class:{block.Class}";
-            var entityClassKey = $"EntityClass:{block.EntityClass}";
+            var classKey = $"{ClassKeyPrefix}{block.Class}";
+            var entityClassKey = $"{EntityClassKeyPrefix}{block.EntityClass}";
             var shapePath = block?.ShapeInventory?.Base?.Path ?? block?.Shape?.Base?.Path;
-            var shapeKey = shapePath != null ? $"Shape:{shapePath}" : null;
+            var shapeKey = shapePath != null ? $"{ShapeKeyPrefix}{shapePath}" : null;
 
             if (shapeKey == null)
                 return [classKey];
@@ -422,6 +360,14 @@ namespace CarryOn.Server.Logic
                 shapeKey,
                 classKey
             ];
+        }
+
+        private bool EnsureConfigReady(ICoreAPI api)
+        {
+            if (Config == null) { api.Logger.Error("CarryOn: Config is null"); return false; }
+            if (Config.DebuggingOptions == null) { api.Logger.Error("CarryOn: DebuggingOptions is null"); return false; }
+            if (Config.CarryablesFilters == null) { api.Logger.Error("CarryOn: CarryablesFilters is null"); return false; }
+            return true;
         }
 
         private bool ShouldKeepBehavior(BlockBehaviorCarryable behavior, int maxPriority, bool removeBaseBehavior)

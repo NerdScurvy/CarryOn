@@ -141,6 +141,7 @@ namespace CarryOn.Client.Logic.TransformTemplates
             Vec4f? tintColor = null;
             string? climateTintMap = null, seasonalTintMap = null;
             float? glowIntensity = null;
+            bool? attachedRoot = null;
             bool enabled = true;
 
             if (JsonHelper.TryGetString(settingsJson, "id", out var idVal)) id = idVal;
@@ -219,6 +220,7 @@ namespace CarryOn.Client.Logic.TransformTemplates
             if (JsonHelper.TryGetString(settingsJson, "seasonalTintMap", out var seasonal)) seasonalTintMap = seasonal;
             if (JsonHelper.TryGetFloat(settingsJson, "glowIntensity", out var glow)) glowIntensity = glow;
             if (JsonHelper.TryGetBool(settingsJson, "enabled", out var en)) enabled = en;
+            if (JsonHelper.TryGetBool(settingsJson, "attachedRoot", out var ar)) attachedRoot = ar;
 
             return new TransformGroupSettings(
                 Id: id,
@@ -247,6 +249,7 @@ namespace CarryOn.Client.Logic.TransformTemplates
                 ClimateTintMap: climateTintMap,
                 SeasonalTintMap: seasonalTintMap,
                 GlowIntensity: glowIntensity,
+                AttachedRoot: attachedRoot,
                 Enabled: enabled
             );
         }

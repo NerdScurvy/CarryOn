@@ -63,11 +63,18 @@ namespace CarryOn.Utility
 
         /// <summary>
         /// Gets the carryable behavior of the block or default.
+        /// Uses the <see cref="CarriedBlock.CachedCarryableBehavior"/> to avoid
+        /// repeated linear scans of the block's behavior list on the render hot path.
         /// </summary>
-        /// <param name="block"></param>
-        /// <returns></returns>
         public static BlockBehaviorCarryable GetCarryableBehavior(this CarriedBlock carriedBlock)
-            => carriedBlock.Block.GetBehaviorOrDefault(BlockBehaviorCarryable.Default);
+        {
+            if (carriedBlock.CachedCarryableBehavior is BlockBehaviorCarryable cached)
+                return cached;
+
+            var behavior = carriedBlock.Block.GetBehaviorOrDefault(BlockBehaviorCarryable.Default);
+            carriedBlock.CachedCarryableBehavior = behavior;
+            return behavior;
+        }
 
 
         /// <summary>
@@ -104,7 +111,7 @@ namespace CarryOn.Utility
 
             // Active slot must be main hotbar (This excludes the backpack slots)
             var activeHotbarSlot = entityPlayer.Player.InventoryManager.ActiveHotbarSlotNumber;
-            return (activeHotbarSlot >= 0) && (activeHotbarSlot < 10);
+            return (activeHotbarSlot >= 0) && (activeHotbarSlot < CarryCode.Default.HotbarSize);
         }
 
 
@@ -135,58 +142,6 @@ namespace CarryOn.Utility
             if (hotKey?.CurrentMapping == null) return false;
 
             return input.KeyboardKeyState[hotKey.CurrentMapping.KeyCode];
-        }
-
-
-        /// <summary>
-        /// Gets the currently rendered backpack slot for the player.
-        /// </summary>
-        /// <param name="player"></param>
-        /// <returns></returns>
-        public static ItemSlot? GetRenderedBackpackSlot(this IPlayer player)
-        {
-            var backpackInv = player.InventoryManager.GetOwnInventory("backpack");
-            var renderedItemSlot = backpackInv?
-                 .Take(4)?
-                 .Where(slot => slot?.Itemstack != null &&
-                             slot?.Itemstack?.ItemAttributes?["attachableToEntity"]?["categoryCode"]?.AsString() == "backpack")?
-                 .LastOrDefault();
-
-            return renderedItemSlot;
-        }
-
-        public static string? GetRenderedBackpackItemCode(this IPlayer player)
-        {
-            var renderedItemSlot = player.GetRenderedBackpackSlot();
-            return renderedItemSlot?.Itemstack?.Item?.Code?.ToString();
-        }
-
-        public static string ResolveCarryTransformGroupBase(this EntityPlayer entityPlayer, CarrySystem carrySystem, CarrySlot carrySlot)
-        {
-            if (carrySlot == CarrySlot.Hands)
-            {
-                return "hands";
-            }
-
-            var backpackItemCode = entityPlayer?.Player?.GetRenderedBackpackItemCode();
-            if (!string.IsNullOrEmpty(backpackItemCode)
-                && (carrySystem?.Config?.BackpackMapping?.TryGetValue(backpackItemCode, out var backpackType) ?? false)
-                && !string.IsNullOrEmpty(backpackType))
-            {
-                return "backpack-" + backpackType;
-            }
-
-            return "backpack-none";
-        }
-
-        public static string ResolveCarryTransformGroupBase(this EntityAgent entity, CarrySystem carrySystem, CarrySlot carrySlot)
-        {
-            if (entity is EntityPlayer entityPlayer)
-            {
-                return entityPlayer.ResolveCarryTransformGroupBase(carrySystem, carrySlot);
-            }
-
-            return "default"; 
         }
 
     }

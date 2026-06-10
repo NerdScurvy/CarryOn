@@ -2,16 +2,15 @@ using System;
 using System.Reflection;
 using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
+using CarryOn.Client.Models;
 using CarryOn.Common.Behaviors;
-using CarryOn.Common.Enums;
-using CarryOn.Common.Logic;
 using CarryOn.Common.Models;
+using CarryOn.Common.Logic;
 using CarryOn.Common.Network;
 using CarryOn.Utility;
 using HarmonyLib;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
-using static CarryOn.CarrySystem;
 using static CarryOn.API.Common.Models.CarryCode;
 
 namespace CarryOn.Client.Logic.Interaction
@@ -19,9 +18,13 @@ namespace CarryOn.Client.Logic.Interaction
     internal sealed class CarryInteractionStateMachine : ICarryInteractionController
     {
         private readonly ICoreClientAPI api;
-        private readonly CarrySystem carrySystem;
+        private readonly ICarryManager carryManager;
+        private readonly IClientNetworkChannel clientChannel;
+        private readonly Action hideOverlay;
+        private readonly Action<float> setOverlayProgress;
         private readonly CarryInteractionValidator validator;
         private readonly TransferLogic transferLogic;
+        private readonly ClientModConfig? clientModConfig;
 
         public CarryInteraction Interaction { get; private set; } = new CarryInteraction();
 
@@ -31,14 +34,22 @@ namespace CarryOn.Client.Logic.Interaction
 
         public CarryInteractionStateMachine(
             ICoreClientAPI api,
-            CarrySystem carrySystem,
+            ICarryManager carryManager,
+            IClientNetworkChannel clientChannel,
+            Action hideOverlay,
+            Action<float> setOverlayProgress,
             CarryInteractionValidator validator,
-            TransferLogic transferLogic)
+            TransferLogic transferLogic,
+            ClientModConfig? clientModConfig = null)
         {
             this.api = api ?? throw new ArgumentNullException(nameof(api));
-            this.carrySystem = carrySystem ?? throw new ArgumentNullException(nameof(carrySystem));
+            this.carryManager = carryManager ?? throw new ArgumentNullException(nameof(carryManager));
+            this.clientChannel = clientChannel ?? throw new ArgumentNullException(nameof(clientChannel));
+            this.hideOverlay = hideOverlay ?? throw new ArgumentNullException(nameof(hideOverlay));
+            this.setOverlayProgress = setOverlayProgress ?? throw new ArgumentNullException(nameof(setOverlayProgress));
             this.validator = validator ?? throw new ArgumentNullException(nameof(validator));
             this.transferLogic = transferLogic ?? throw new ArgumentNullException(nameof(transferLogic));
+            this.clientModConfig = clientModConfig;
 
             composeBlockWorldInteractionHelpMethod = AccessTools.Method(typeof(Vintagestory.Client.NoObf.HudElementInteractionHelp), "ComposeBlockWorldInteractionHelp");
             if (composeBlockWorldInteractionHelpMethod == null)
@@ -157,38 +168,12 @@ namespace CarryOn.Client.Logic.Interaction
                 default: return;
             }
 
-            float requiredTime;
-
-            if (Interaction.TransferDelay.HasValue)
-            {
-                requiredTime = Interaction.TransferDelay.Value;
-            }
-            else if (Interaction.CarryAction is CarryAction.Put or CarryAction.Take)
-            {
-                requiredTime = carryBehavior?.TransferDelay ?? Default.TransferSpeed;
-            }
-            else if (Interaction.CarryAction == CarryAction.Interact)
-            {
-                if (validator.RemoveInteractDelayWhileCarrying) requiredTime = 0;
-                else requiredTime = interactBehavior?.InteractDelay ?? Default.InteractSpeed;
-            }
-            else
-            {
-
-                requiredTime = carryBehavior?.InteractDelay ?? Default.PickUpSpeed;
-                switch (Interaction.CarryAction)
-                {
-                    case CarryAction.PlaceDown: requiredTime *= Default.PlaceSpeed; break;
-                    case CarryAction.SwapBack: requiredTime *= Default.SwapSpeed; break;
-                }
-            }
-
-            requiredTime /= validator.InteractSpeedMultiplier > 0 ? validator.InteractSpeedMultiplier : 1.0f;
+            var requiredTime = CalculateRequiredTime(carryBehavior, interactBehavior);
 
             Interaction.TimeHeld += deltaTime;
             var progress = Interaction.TimeHeld / requiredTime;
 
-            carrySystem.SetOverlayProgress(progress);
+            setOverlayProgress(progress);
 
             HudCarried.TriggerHandsHighlight();
 
@@ -198,58 +183,7 @@ namespace CarryOn.Client.Logic.Interaction
             }
             if (progress <= 1.0F) return;
 
-            var clientChannel = this.carrySystem.ClientChannel;
-            if (clientChannel == null)
-            {
-                this.api.Logger.Warning("ClientChannel is null during interaction processing.");
-                CancelInteraction(resetTimeHeld: true);
-                return;
-            }
-
-            var carryManager = this.carrySystem.CarryManager;
-            if (carryManager == null)
-            {
-                this.api.Logger.Warning("CarryManager is null during interaction processing.");
-                CancelInteraction(resetTimeHeld: true);
-                return;
-            }
-
-            switch (Interaction.CarryAction)
-            {
-                case CarryAction.Interact:
-                    ContinueInteractAction(player, selection, clientChannel);
-                    break;
-
-                case CarryAction.PickUp:
-                    ContinuePickUpAction(player, selection, carryManager, clientChannel);
-                    break;
-
-                case CarryAction.PlaceDown:
-                    ContinuePlaceDownAction(player, selection, carriedTarget, carryManager, clientChannel);
-                    break;
-
-                case CarryAction.SwapBack:
-                    ContinueSwapBackAction(player, clientChannel);
-                    break;
-
-                case CarryAction.Attach:
-                    ContinueAttachAction(attachableCarryBehavior, clientChannel);
-                    break;
-
-                case CarryAction.Detach:
-                    ContinueDetachAction(attachableCarryBehavior, clientChannel);
-                    break;
-
-                case CarryAction.Put:
-                    ContinuePutAction(player, clientChannel);
-                    break;
-
-                case CarryAction.Take:
-                    ContinueTakeAction(player, clientChannel);
-                    break;
-            }
-            RefreshPlacedBlockInteractionHelp();
-            CompleteInteraction();
+            ExecuteAction(player, selection, carriedTarget, attachableCarryBehavior);
         }
 
         private void ContinueInteractAction(IPlayer player, BlockSelection? selection, IClientNetworkChannel clientChannel)
@@ -279,7 +213,11 @@ namespace CarryOn.Client.Logic.Interaction
 
             if (hasPickedUp)
             {
-                clientChannel.SendPacket(new PickUpMessage(selection.Position, Interaction.CarrySlot.Value));
+                bool captureAttached = clientModConfig?.Config?.CaptureAttachedWallSigns ?? true;
+                clientChannel.SendPacket(new PickUpMessage(selection.Position, Interaction.CarrySlot.Value)
+                {
+                    CaptureAttachedWallSigns = captureAttached
+                });
             }
             else
             {
@@ -383,16 +321,91 @@ namespace CarryOn.Client.Logic.Interaction
             clientChannel.SendPacket(takeMessage);
         }
 
+        private float CalculateRequiredTime(BlockBehaviorCarryable? carryBehavior, BlockBehaviorCarryableInteract? interactBehavior)
+        {
+            float requiredTime;
+
+            if (Interaction.TransferDelay.HasValue)
+            {
+                requiredTime = Interaction.TransferDelay.Value;
+            }
+            else if (Interaction.CarryAction is CarryAction.Put or CarryAction.Take)
+            {
+                requiredTime = carryBehavior?.TransferDelay ?? Default.TransferSpeed;
+            }
+            else if (Interaction.CarryAction == CarryAction.Interact)
+            {
+                if (validator.RemoveInteractDelayWhileCarrying) requiredTime = 0;
+                else requiredTime = interactBehavior?.InteractDelay ?? Default.InteractSpeed;
+            }
+            else
+            {
+
+                requiredTime = carryBehavior?.InteractDelay ?? Default.PickUpSpeed;
+                switch (Interaction.CarryAction)
+                {
+                    case CarryAction.PlaceDown: requiredTime *= Default.PlaceSpeed; break;
+                    case CarryAction.SwapBack: requiredTime *= Default.SwapSpeed; break;
+                }
+            }
+
+            requiredTime /= validator.InteractSpeedMultiplier > 0 ? validator.InteractSpeedMultiplier : 1.0f;
+            return requiredTime;
+        }
+
+        private void ExecuteAction(IPlayer player, BlockSelection? selection, CarriedBlock? carriedTarget, EntityBehaviorAttachableCarryable? attachableCarryBehavior)
+        {
+            var clientChannel = this.clientChannel;
+            var carryManager = this.carryManager;
+
+            switch (Interaction.CarryAction)
+            {
+                case CarryAction.Interact:
+                    ContinueInteractAction(player, selection, clientChannel);
+                    break;
+
+                case CarryAction.PickUp:
+                    ContinuePickUpAction(player, selection, carryManager, clientChannel);
+                    break;
+
+                case CarryAction.PlaceDown:
+                    ContinuePlaceDownAction(player, selection, carriedTarget, carryManager, clientChannel);
+                    break;
+
+                case CarryAction.SwapBack:
+                    ContinueSwapBackAction(player, clientChannel);
+                    break;
+
+                case CarryAction.Attach:
+                    ContinueAttachAction(attachableCarryBehavior, clientChannel);
+                    break;
+
+                case CarryAction.Detach:
+                    ContinueDetachAction(attachableCarryBehavior, clientChannel);
+                    break;
+
+                case CarryAction.Put:
+                    ContinuePutAction(player, clientChannel);
+                    break;
+
+                case CarryAction.Take:
+                    ContinueTakeAction(player, clientChannel);
+                    break;
+            }
+            RefreshPlacedBlockInteractionHelp();
+            CompleteInteraction();
+        }
+
         public void CancelInteraction(bool resetTimeHeld = false)
         {
             Interaction.Clear(resetTimeHeld);
-            carrySystem.HideOverlay();
+            hideOverlay();
         }
 
         public void CompleteInteraction()
         {
             Interaction.Complete();
-            carrySystem.HideOverlay();
+            hideOverlay();
         }
 
         public void RefreshPlacedBlockInteractionHelp()

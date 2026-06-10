@@ -1,8 +1,8 @@
 using System;
 using CarryOn.API.Common.Interfaces;
+using CarryOn.API.Common.Models;
 using CarryOn.API.Event.Data;
 using CarryOn.Server.Models;
-using CarryOn.Utility;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
@@ -22,14 +22,11 @@ namespace CarryOn.Events
         {
             ArgumentNullException.ThrowIfNull(carryManager);
             this.carryManager = carryManager;
-            var api = carryManager.Api ?? throw new ArgumentNullException(nameof(carryManager.Api));
-            var world = api.World ?? throw new ArgumentNullException(nameof(api.World));
-            var carrySystem = world.GetCarrySystem();
-            this.loggingEnabled = carrySystem?.Config?.DebuggingOptions?.LoggingEnabled ?? false;
+            this.loggingEnabled = carryManager.Config?.DebuggingOptions?.LoggingEnabled ?? false;
 
             var events = carryManager.CarryEvents ?? throw new InvalidOperationException("CarryEvents not initialized");
 
-            if (api.Side == EnumAppSide.Client)
+            if (carryManager.Api.Side == EnumAppSide.Client)
             {
                 events.CheckPermissionToCarry += OnCheckPermissionToCarryClient;
                 return;

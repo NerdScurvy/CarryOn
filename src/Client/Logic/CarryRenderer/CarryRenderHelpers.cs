@@ -5,7 +5,6 @@ using System.Linq;
 using System.Text;
 using CarryOn.API.Common.Models;
 using CarryOn.Client.Models;
-using Newtonsoft.Json;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
@@ -100,7 +99,9 @@ namespace CarryOn.Client.Logic.CarryRenderer
                     RgbGlowIntensity = s.RgbGlowIntensity?.Clone(),
                     RenderPass = s.RenderPass,
                     SecondaryTransform = s.SecondaryTransform?.Clone(),
-                    SkipTransform = false
+                    SkipTransform = false,
+                    IsAttachedRoot = s.IsAttachedRoot,
+                    IsAttachedBlock = s.IsAttachedBlock
                 };
             }
 
@@ -187,7 +188,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
                 renderVariantSignature ?? "novariant");
         }
 
-        internal static string BuildRenderInfoVariantSignature(CarriedBlock carried, TreeAttribute? containerSlots, IReadOnlyList<EffectiveTransformSetting> effectiveSettings, IWorldAccessor world)
+        internal static string BuildRenderInfoVariantSignature(CarriedBlock carried, TreeAttribute? containerSlots, IReadOnlyList<EffectiveTransformSetting> effectiveSettings, IWorldAccessor world, string? defaultRenderVariant = null)
         {
             var sb = new StringBuilder(160);
             var be = carried?.BlockEntityData;
@@ -229,6 +230,33 @@ namespace CarryOn.Client.Logic.CarryRenderer
                 {
                     AppendBeStackPathSignature(sb, be, world, effectiveSettings[i]?.Setting?.DisableIfItemStackPath, "disable");
                     AppendBeStackPathSignature(sb, be, world, effectiveSettings[i]?.Setting?.BlockEntityDataItemStackPath, "render");
+                }
+            }
+
+            if (carried?.OriginalBlockCode != null)
+            {
+                sb.Append("|origCode=").Append(carried.OriginalBlockCode.ToString());
+            }
+
+            if (carried?.OriginalMeshAngle.HasValue == true)
+            {
+                sb.Append("|origMeshAngle=").Append(carried.OriginalMeshAngle.Value.ToString("R", CultureInfo.InvariantCulture));
+            }
+
+            if (!string.IsNullOrEmpty(defaultRenderVariant))
+            {
+                sb.Append("|renderVariant=").Append(defaultRenderVariant);
+            }
+
+            if (carried?.HasAttachedBlocks == true && carried.AttachedBlocks != null)
+            {
+                sb.Append("|attached=").Append(carried.AttachedBlocks.Count);
+                foreach (var attached in carried.AttachedBlocks)
+                {
+                    if (attached == null) continue;
+                    sb.Append('|').Append(attached.ItemStack?.Collectible?.Code?.ToString() ?? "null");
+                    sb.Append(',').Append(attached.RelativeOffset.X).Append(',').Append(attached.RelativeOffset.Y).Append(',').Append(attached.RelativeOffset.Z);
+                    sb.Append(',').Append(attached.OriginalLocalFace?.Code ?? "null");
                 }
             }
 
@@ -355,7 +383,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
 
             var variantType = carried?.BlockEntityData?.GetString("type", "none") ?? "none";
             sb.Append(variantType).Append('|');
-            sb.Append(transformsGroupBase ?? "default").Append('|');
+            sb.Append(transformsGroupBase ?? CarryCode.DefaultTransformGroup).Append('|');
             sb.Append((int?)carried?.Slot ?? 0).Append('|');
             sb.Append(carried?.ItemStack?.Collectible?.Code?.ToString() ?? "nostack").Append('|');
 
@@ -380,6 +408,11 @@ namespace CarryOn.Client.Logic.CarryRenderer
         internal static void ApplyTransformInPlace(ModelTransform transform, float[] matrix, Vec3f offset)
         {
             Mat4f.Translate(matrix, matrix, offset.X, offset.Y, offset.Z);
+            ApplyTransformInPlace(transform, matrix);
+        }
+
+        internal static void ApplyTransformInPlace(ModelTransform transform, float[] matrix)
+        {
             Mat4f.Translate(matrix, matrix, transform.Translation.X, transform.Translation.Y, transform.Translation.Z);
             Mat4f.Translate(matrix, matrix, transform.Origin.X, transform.Origin.Y, transform.Origin.Z);
             Mat4f.RotateX(matrix, matrix, transform.Rotation.X * GameMath.DEG2RAD);
@@ -447,7 +480,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
                 : (mask & RenderPhaseMask.Opaque) != 0;
         }
 
-        internal static Vec4f? SampleColorMapTint(string climateTintMap, string seasonalTintMap, BlockPos pos, ICoreClientAPI api)
+        internal static Vec4f? SampleColorMapTint(string? climateTintMap, string? seasonalTintMap, BlockPos pos, ICoreClientAPI api)
         {
             if (api?.World == null) return null;
             if (string.IsNullOrEmpty(climateTintMap) && string.IsNullOrEmpty(seasonalTintMap)) return null;

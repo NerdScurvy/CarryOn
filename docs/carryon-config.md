@@ -126,6 +126,7 @@ General carrying and interaction behavior.
 | `WalkSpeedOverrides` | `object` | See below | Optional override rules for per-slot walk speed penalties. |
 | `TooHotToCarry` | `bool` | `true` | Blocks pickup of hot blocks/items when true. |
 | `TooHotToCarryTemperature` | `int` | `50` | Temperature threshold used by hot-item checks. |
+| `CarryAttachedWallSigns` | `bool` | `false` | When enabled, wall signs attached to a carryable block are captured and carried together with it. See [cluster-carry.md](cluster-carry.md). |
 
 `PreventSwapFromBackOnTarget` default entries:
 
@@ -255,7 +256,7 @@ Unknown legacy JSON data is read for upgrade purposes but not persisted back as 
 ## Important Notes
 
 - `CarryOnConfig.json` is server/world config. It affects world behavior for the mod.
-- `CarryOnClientConfig.json` is separate and stores client UI preferences (anchor positions/colors, etc.).
+- `CarryOnClientConfig.json` is separate and stores client UI preferences and rendering toggles (anchor positions/colors, `RenderAttachedBlocks` / `CaptureAttachedWallSigns` for cluster carry, etc.).
 - Most config changes require world restart (or at least reloading world/server) to apply consistently.
 - If config loading fails, CarryOn uses defaults in memory and logs an error.
 

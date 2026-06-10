@@ -51,6 +51,7 @@
 						},
 						{
 							"id": "visual",
+							"attachedRoot": true,
 							"translation": [ 0.03, -0.06, -0.4 ],
 							"scale": 0.79
 						}
@@ -62,6 +63,7 @@
 						},
 						{
 							"id": "visual",
+							"attachedRoot": true,
 							"translation": [ 0.03, -0.064, -0.4 ],
 							"scale": 0.79
 						}
@@ -73,6 +75,7 @@
 						},
 						{
 							"id": "visual",
+							"attachedRoot": true,
 							"translation": [ 0.03, -0.06, -0.4 ],
 							"scale": 0.79
 						}
@@ -84,6 +87,7 @@
 						},
 						{
 							"id": "visual",
+							"attachedRoot": true,
 							"translation": [ 0.03, 0.1, -0.4 ],
 							"scale": 0.79
 						}
@@ -127,6 +131,7 @@
 						},
 						{
 							"id": "visual",
+							"attachedRoot": true,
 							"translation": [ 0.03, -0.06, 0.0 ],
 							"scale": 0.79
 						}
@@ -138,6 +143,7 @@
 						},
 						{
 							"id": "visual",
+							"attachedRoot": true,
 							"translation": [ 0.03, -0.064, 0.0 ],
 							"scale": 0.79
 						}
@@ -149,6 +155,7 @@
 						},
 						{
 							"id": "visual",
+							"attachedRoot": true,
 							"translation": [ 0.03, -0.06, 0.0 ],
 							"scale": 0.79
 						}
@@ -160,6 +167,7 @@
 						},
 						{
 							"id": "visual",
+							"attachedRoot": true,
 							"translation": [ 0.03, -0.06, 0.0 ],
 							"scale": 0.79
 						}

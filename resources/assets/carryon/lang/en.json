@@ -24,6 +24,7 @@
 	"slot-empty": "Target slot is empty",
 	"slot-not-carryable": "Cannot carry block",
 	"slot-data-missing": "Cannot attach block, data missing",
+	"block-has-attached-blocks": "Cannot place carried block here while it has attached signs",
 	"slot-incompatible-block": "Cannot place carried block in slot",
 	"slot-inventory-open": "Currently in use by another player",
 	"cannot-swap-back": "Cannot put carried item on back",
@@ -48,5 +49,7 @@
 	"take-block-not-carryable": "Cannot take block in hands",
 	"blockhelp-put": "Put in carried",
 	"blockhelp-take": "Take out and carry",
-	"unknown-error": "An unknown error occurred with CarryOn"
+	"unknown-error": "An unknown error occurred with CarryOn",
+	"attached-block-no-clearance": "Not enough clearance to place carried block with attached wall signs",
+	"unsupported-attachment": "Cannot place carried block here, attached wall sign has no support"
 }

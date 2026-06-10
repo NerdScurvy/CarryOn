@@ -71,9 +71,12 @@ namespace CarryOn.Common.Behaviors
             return false;
         }
 
+        /// <summary>
+        /// No conditional processing needed for interact-only behavior.
+        /// Implemented to satisfy <see cref="IConditionalBlockBehavior"/>.
+        /// </summary>
         public void ProcessConditions(ICoreAPI api, Block block)
         {
-
         }
 
         public class AllowedCarryable

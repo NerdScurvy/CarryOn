@@ -9,7 +9,7 @@ namespace CarryOn.Server.Logic
 {
     public class ModConfig
     {
-        public CarryOnConfig? ServerConfig { get; private set; }
+        public CarryOnConfig? Config { get; private set; }
         public IWorldAccessor? World { get; private set; }
 
         public void Load(ICoreAPI api)
@@ -41,14 +41,14 @@ namespace CarryOn.Server.Logic
                     // Save the upgraded or default config back to the file
                     coreApi.StoreModConfig(loadedConfig, ConfigFile);
 
-                    ServerConfig = loadedConfig;
+                    Config = loadedConfig;
 
                 }
                 catch (Exception ex)
                 {
                     // Log the exception and create a default config but not save it
                     logger?.Error("CarryOn: Exception loading config: " + ex);
-                    ServerConfig = new CarryOnConfig(currentVersion);
+                    Config = new CarryOnConfig(currentVersion);
                 }
 
                 var worldConfig = coreApi.World?.Config;
@@ -59,9 +59,9 @@ namespace CarryOn.Server.Logic
                     return;
                 }
 
-                if (ServerConfig == null)
+                if (Config == null)
                 {
-                    logger?.Error("CarryOn: ServerConfig did not load correctly. CarryOn features may not work correctly.");
+                    logger?.Error("CarryOn: Config did not load correctly. CarryOn features may not work correctly.");
                     return;
                 }
 
@@ -71,7 +71,7 @@ namespace CarryOn.Server.Logic
                     var keysToRemove = new List<string>();
                     foreach (var key in tree.Keys)
                     {
-                        if (key.StartsWith("carryon:", StringComparison.OrdinalIgnoreCase))
+                        if (key.StartsWith(CarryCode.WorldConfigPrefix, StringComparison.OrdinalIgnoreCase))
                         {
                             keysToRemove.Add(key);
                         }
@@ -82,7 +82,7 @@ namespace CarryOn.Server.Logic
                     }
 
                     // Save the value to the world config so it is available for both server and client
-                    tree.GetOrAddTreeAttribute(ModId).MergeTree(ServerConfig.ToTreeAttribute());
+                    tree.GetOrAddTreeAttribute(ModId).MergeTree(Config.ToTreeAttribute());
                 }
                 else
                 {

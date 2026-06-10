@@ -1,4 +1,7 @@
 using System;
+using CarryOn.API.Common.Interfaces;
+using CarryOn.API.Common.Models;
+using CarryOn.Client.Models;
 using CarryOn.Common.Logic;
 using CarryOn.Common.Models;
 using Vintagestory.API.Client;
@@ -23,14 +26,18 @@ namespace CarryOn.Client.Logic.Interaction
         public bool BackSlotEnabled => validator.BackSlotEnabled;
         public float InteractSpeedMultiplier => validator.InteractSpeedMultiplier;
 
-        public CarryInteractionController(ICoreClientAPI api, CarrySystem carrySystem)
+        public CarryInteractionController(ICoreClientAPI api, ICarryManager carryManager, IClientNetworkChannel clientChannel, CarryOnConfig config, Action hideOverlay, Action<float> setOverlayProgress, ClientModConfig? clientModConfig = null)
         {
             ArgumentNullException.ThrowIfNull(api);
-            ArgumentNullException.ThrowIfNull(carrySystem);
+            ArgumentNullException.ThrowIfNull(carryManager);
+            ArgumentNullException.ThrowIfNull(clientChannel);
+            ArgumentNullException.ThrowIfNull(config);
+            ArgumentNullException.ThrowIfNull(hideOverlay);
+            ArgumentNullException.ThrowIfNull(setOverlayProgress);
 
-            var transferLogic = new TransferLogic(api, carrySystem);
-            validator = new CarryInteractionValidator(api, carrySystem, transferLogic, this);
-            stateMachine = new CarryInteractionStateMachine(api, carrySystem, validator, transferLogic);
+            var transferLogic = new TransferLogic(api, carryManager);
+            validator = new CarryInteractionValidator(api, config, transferLogic, this);
+            stateMachine = new CarryInteractionStateMachine(api, carryManager, clientChannel, hideOverlay, setOverlayProgress, validator, transferLogic, clientModConfig);
         }
 
         public void TryBeginInteraction(bool isInteracting, ref EnumHandling handled)

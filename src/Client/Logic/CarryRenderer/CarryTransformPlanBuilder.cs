@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
 using CarryOn.Utility;
 using CarryOn.Client.Models;
@@ -21,13 +22,13 @@ namespace CarryOn.Client.Logic.CarryRenderer
     internal sealed class CarryTransformPlanBuilder
     {
         private readonly ICoreClientAPI api;
-        private readonly CarrySystem carrySystem;
+        private readonly ICarryManager carryManager;
         private readonly CarryRenderCache cache;
 
-        internal CarryTransformPlanBuilder(ICoreClientAPI api, CarrySystem carrySystem, CarryRenderCache cache)
+        internal CarryTransformPlanBuilder(ICoreClientAPI api, ICarryManager carryManager, CarryRenderCache cache)
         {
             this.api = api;
-            this.carrySystem = carrySystem;
+            this.carryManager = carryManager;
             this.cache = cache;
         }
 
@@ -56,7 +57,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
             var requestedResolverCode = carryBehavior.TransformGroupResolver;
 
             if (!string.IsNullOrEmpty(requestedResolverCode)
-                && carrySystem?.CarryManager?.TryGetTransformGroupResolver(requestedResolverCode, out var resolver) == true && resolver != null)
+                && carryManager?.TryGetTransformGroupResolver(requestedResolverCode, out var resolver) == true && resolver != null)
             {
                 if (resolver.TryResolve(this.api, carried, transformsGroup, out var resolution) && resolution != null)
                 {
@@ -127,7 +128,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
             if (additionalSettingsList.Count > 0) allSettings.AddRange(additionalSettingsList);
 
             if (allSettings.Count == 0
-                && carryBehavior.ResolvedTransformGroups.TryGetValue("default", out var defaultSettings)
+                && carryBehavior.ResolvedTransformGroups.TryGetValue(CarryCode.DefaultTransformGroup, out var defaultSettings)
                 && defaultSettings != null)
             {
                 foreach (var setting in defaultSettings)

@@ -3,11 +3,15 @@
 This document explains the client-side carried-block rendering pipeline implemented under CarryOn.Client.Logic.CarryRenderer.
 
 It reflects the current implementation:
-- `EntityCarryRenderer` orchestrates stage registration, per-frame traversal, animation sync, and final draw submission.
+- `EntityCarryRenderer` orchestrates stage registration, per-frame traversal, and final draw submission.
+- `CarryAnimationSync` syncs carry animations for traversed players each frame.
 - `CarryAnimationResolver` resolves effective hand-carry animation codes (base/sit/crouch) and known animation sets.
 - `CarryTransformPlanBuilder` resolves transform-group plans (primary plus additional groups) and caches them.
+- `CarryRenderDispatcher` provides slot-specific render settings (attachment points, offsets) for each carry slot.
+- `CarryRenderCacheManager` manages cached render plans and per-slot signature sidecar invalidation.
 - `CarryRenderInfoBuilder` materializes concrete render infos from plan settings and optional container-slot sources.
-- `CarryRenderCache` holds transform plans, persistent render infos, frame-local render infos, and per-slot invalidation state.
+- `CarryRenderCache` holds transform plans, persistent render infos, and frame-local render infos.
+- `CarryFirstPersonRenderer` computes the local first-person hands matrix with movement wobble and yaw smoothing.
 - `CarryRenderHelpers` provides signatures, transform math, render phase decisions, tint sampling, and utility clones.
 - `CarriedLabelRenderer` and `CarriedLabelManager` render carried labels (text or icon) when configured.
 
@@ -16,9 +20,13 @@ It reflects the current implementation:
 The pipeline in this document covers all classes in:
 - `src/Client/Logic/CarryRenderer/EntityCarryRenderer.cs`
 - `src/Client/Logic/CarryRenderer/CarryAnimationResolver.cs`
+- `src/Client/Logic/CarryRenderer/CarryAnimationSync.cs`
 - `src/Client/Logic/CarryRenderer/CarryTransformPlanBuilder.cs`
+- `src/Client/Logic/CarryRenderer/CarryRenderDispatcher.cs`
 - `src/Client/Logic/CarryRenderer/CarryRenderInfoBuilder.cs`
 - `src/Client/Logic/CarryRenderer/CarryRenderCache.cs`
+- `src/Client/Logic/CarryRenderer/CarryRenderCacheManager.cs`
+- `src/Client/Logic/CarryRenderer/CarryFirstPersonRenderer.cs`
 - `src/Client/Logic/CarryRenderer/CarryRenderHelpers.cs`
 - `src/Client/Logic/CarryRenderer/CarriedLabelRenderer.cs`
 - `src/Client/Logic/CarryRenderer/CarriedLabelManager.cs`
@@ -32,13 +40,13 @@ The pipeline in this document covers all classes in:
 Core orchestrator responsibilities:
 - Registers renderer for `Opaque`, `AfterOIT`, `ShadowFar`, `ShadowNear` stages.
 - Iterates players each frame, culls non-rendered remote entities per stage, and renders carried blocks.
-- Computes entity/slot matrices, resolves first-person hands matrix behavior, and emits draw calls.
-- Uses per-entity/slot signature sidecars to avoid unnecessary transform-plan and variant-signature recomputation.
+- Computes entity/slot matrices, delegates first-person hands matrix to `CarryFirstPersonRenderer`, and emits draw calls.
+- Delegates per-entity/slot cache management to `CarryRenderCacheManager` (signature sidecars, plan/variant caching).
 - Splits non-shadow rendering across stages:
   - `Opaque` stage renders opaque carried content.
   - `AfterOIT` stage renders translucent carried content.
   - Local first-person hands opaque can be deferred to `AfterOIT` so hands still composite over water correctly.
-- Syncs carry hold animations for players during traversal (resolved via `CarryAnimationResolver`) and scrubs stale tracked state for entities no longer seen.
+- Delegates carry animation sync to `CarryAnimationSync`, which resolves animations via `CarryAnimationResolver` and scrubs stale tracked state for entities no longer seen.
 - Delegates label rendering after any carried entry's opaque phase is rendered.
 
 ### 1B. `CarryAnimationResolver`
@@ -76,9 +84,36 @@ Caching responsibilities:
 - `RenderInfos`: persistent render info blobs keyed by plan plus variant signature.
 - `FrameRenderInfos`: per-frame clone cache for draw safety/mutability.
 - `SlotStates`: slot-level mapping used to invalidate stale frame/render/plan caches when signatures change.
-- `SignatureSidecars` (owned by `EntityCarryRenderer`): per `(entityId, slot)` signature memoization (carried revision, transform group, stack code, BE data ref, cached plan, variant signature).
 
-### 1F. `CarryRenderHelpers`
+### 1F. `CarryRenderCacheManager`
+
+Cache management responsibilities:
+- `SignatureSidecars`: per `(entityId, slot)` signature memoization (carried revision, transform group, stack code, BE data ref, cached plan, variant signature).
+- Manages the cache lifecycle (read/write/invalidation) on behalf of the traversal pipeline.
+- Coordinates with `CarryRenderCache` for storage and `EntityCarryRenderer` for traversal-driven cache decisions.
+
+### 1G. `CarryRenderDispatcher`
+
+Render dispatch responsibilities:
+- Provides per-slot `SlotRenderSettings` mapping attachment points and offsets for each carry slot.
+- Handles backpack-size-aware render settings (`backpack-none`, `backpack-small`, `backpack-large`).
+- Encapsulates dispatch logic for rendering carried items per slot context.
+
+### 1H. `CarryAnimationSync`
+
+Animation sync responsibilities:
+- Tracks active and known hand-carry animations per entity ID.
+- Syncs carry animations for traversed players each frame.
+- Removes stale animation tracking for entities no longer visible.
+
+### 1I. `CarryFirstPersonRenderer`
+
+First-person hands matrix responsibilities:
+- Computes the local first-person hands matrix from view basis.
+- Applies movement wobble and yaw/pitch smoothing for natural carry feel.
+- Resets smoothing state when hands haven't rendered for several ticks.
+
+### 1J. `CarryRenderHelpers`
 
 Shared utility responsibilities:
 - Key/signature builders for cache identity.
@@ -88,7 +123,7 @@ Shared utility responsibilities:
 - Array cloning for `CarriedRenderInfo` safety.
 - Variant signatures include block-entity placement/rotation, container slot contents, and hashed block-entity itemstack path content used by render/disable path settings.
 
-### 1G. `CarriedLabelRenderer` and `CarriedLabelManager`
+### 1K. `CarriedLabelRenderer` and `CarriedLabelManager`
 
 Label subsystem responsibilities:
 - Renders either text label (`text`) or icon label (`labelStack` or inventory-derived source) from block entity data.
@@ -120,8 +155,8 @@ Label subsystem responsibilities:
   - prunes render info cache (TTL/cap)
 - On other accepted stages, skips cache maintenance and just renders for that stage.
 - Iterates all players and applies stage visibility culling for remote entities.
-- Syncs carry animations for traversed players by using `CarryAnimationResolver` for sitting-state and effective hands animation selection.
-- Removes stale per-entity animation tracking and signature sidecars for entities no longer seen.
+- Delegates carry animation sync to `CarryAnimationSync`, which uses `CarryAnimationResolver` for sitting-state and effective hands animation selection.
+- Removes stale per-entity animation tracking via `CarryAnimationSync` and stale signature sidecars via `CarryRenderCacheManager` for entities no longer seen.
 - Emits optional debug counter logs (sidecar reuse/hits/builds) on the opaque stage when debugging logging is enabled.
 - Calls per-entity carried render traversal.
 
@@ -237,7 +272,7 @@ Plant tint behavior:
 
 ## 8. First-Person Hands Matrix
 
-`GetFirstPersonHandsMatrix` provides local first-person carry placement:
+`CarryFirstPersonRenderer.GetFirstPersonHandsMatrix` provides local first-person carry placement:
 - Inverts camera matrix to start from view basis.
 - Applies reset when hands have not rendered for several ticks.
 - Applies movement wobble and yaw/pitch smoothing.
@@ -320,9 +355,13 @@ graph TD
 
 - `src/Client/Logic/CarryRenderer/EntityCarryRenderer.cs`
 - `src/Client/Logic/CarryRenderer/CarryAnimationResolver.cs`
+- `src/Client/Logic/CarryRenderer/CarryAnimationSync.cs`
 - `src/Client/Logic/CarryRenderer/CarryTransformPlanBuilder.cs`
+- `src/Client/Logic/CarryRenderer/CarryRenderDispatcher.cs`
 - `src/Client/Logic/CarryRenderer/CarryRenderInfoBuilder.cs`
 - `src/Client/Logic/CarryRenderer/CarryRenderCache.cs`
+- `src/Client/Logic/CarryRenderer/CarryRenderCacheManager.cs`
+- `src/Client/Logic/CarryRenderer/CarryFirstPersonRenderer.cs`
 - `src/Client/Logic/CarryRenderer/CarryRenderHelpers.cs`
 - `src/Client/Logic/CarryRenderer/CarriedLabelRenderer.cs`
 - `src/Client/Logic/CarryRenderer/CarriedLabelManager.cs`

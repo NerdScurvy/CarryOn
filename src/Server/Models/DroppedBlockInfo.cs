@@ -20,6 +20,8 @@ namespace CarryOn.Server.Models
 
         public List<string>? Inventory { get; set; }
 
+        private static readonly object FileLock = new();
+
         private static string GetFileLocation(BlockPos pos, ICoreAPI api)
         {
             var localPath = Path.Combine("ModData", api.World.SavegameIdentifier, ModId);
@@ -31,16 +33,19 @@ namespace CarryOn.Server.Models
             ICoreAPI api = player.Entity.Api;
             var fileLocation = GetFileLocation(pos, api);
 
-            if (File.Exists(fileLocation))
+            lock (FileLock)
             {
-                try
+                if (File.Exists(fileLocation))
                 {
-                    var content = File.ReadAllText(fileLocation);
-                    return JsonUtil.FromString<DroppedBlockInfo>(content);
-                }
-                catch (Exception e)
-                {
-                    api.World.Logger.Error($"Failed loading file '{fileLocation}' with error '{e}'!");
+                    try
+                    {
+                        var content = File.ReadAllText(fileLocation);
+                        return JsonUtil.FromString<DroppedBlockInfo>(content);
+                    }
+                    catch (Exception e)
+                    {
+                        api.World.Logger.Error($"Failed loading file '{fileLocation}' with error '{e}'!");
+                    }
                 }
             }
             return null;
@@ -76,15 +81,18 @@ namespace CarryOn.Server.Models
                 Teleport = $"/tp ={pos.X} ={pos.Y} ={pos.Z}"
             };
 
-            try
+            lock (FileLock)
             {
-                var content = JsonUtil.ToString(droppedBlockInfo);
-                File.WriteAllText(fileLocation, content);
-                api.World.Logger.Debug($"Created file '{fileLocation}'");
-            }
-            catch (Exception e)
-            {
-                api.World.Logger.Error($"Failed saving file '{fileLocation}' with error '{e}'!");
+                try
+                {
+                    var content = JsonUtil.ToString(droppedBlockInfo);
+                    File.WriteAllText(fileLocation, content);
+                    api.World.Logger.Debug($"Created file '{fileLocation}'");
+                }
+                catch (Exception e)
+                {
+                    api.World.Logger.Error($"Failed saving file '{fileLocation}' with error '{e}'!");
+                }
             }
         }
 
@@ -96,16 +104,19 @@ namespace CarryOn.Server.Models
         public static void Remove(BlockPos pos, ICoreAPI api)
         {
             var fileLocation = GetFileLocation(pos, api);
-            if (File.Exists(fileLocation))
+            lock (FileLock)
             {
-                try
+                if (File.Exists(fileLocation))
                 {
-                    File.Delete(fileLocation);
-                    api.World.Logger.Debug($"Removed file '{fileLocation}'");
-                }
-                catch (Exception e)
-                {
-                    api.World.Logger.Error($"Failed to delete file '{fileLocation}' with error '{e}'!");
+                    try
+                    {
+                        File.Delete(fileLocation);
+                        api.World.Logger.Debug($"Removed file '{fileLocation}'");
+                    }
+                    catch (Exception e)
+                    {
+                        api.World.Logger.Error($"Failed to delete file '{fileLocation}' with error '{e}'!");
+                    }
                 }
             }
         }

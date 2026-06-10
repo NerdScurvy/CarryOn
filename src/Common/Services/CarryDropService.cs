@@ -46,6 +46,7 @@ namespace CarryOn.Common.Services
 
         /// <summary>
         /// Drops one carried block either by placing into world or converting to item drops.
+        /// If the carried block has attached children, uses cluster-aware placement.
         /// </summary>
         /// <param name="entity">Entity dropping the carried block.</param>
         /// <param name="carriedBlock">Carried block to drop.</param>
@@ -53,9 +54,9 @@ namespace CarryOn.Common.Services
         /// <param name="blockPlacer">Optional reusable block placer helper.</param>
         public void DropCarriedBlock(Entity entity, CarriedBlock carriedBlock, int range = 4, BlockPlacer? blockPlacer = null)
         {
-            if (carriedBlock == null) return;
-
             ArgumentNullException.ThrowIfNull(entity);
+
+            if (carriedBlock == null) return;
 
             if (range < 0) throw new ArgumentOutOfRangeException(nameof(range));
 
@@ -63,6 +64,12 @@ namespace CarryOn.Common.Services
 
             var centerBlock = entity.Pos.AsBlockPos.UpCopy();
             blockPlacer ??= new BlockPlacer(entity.Api);
+
+            if (carriedBlock.HasAttachedBlocks)
+            {
+                DropClusterBlock(entity, carriedBlock, range, blockPlacer, centerBlock, player);
+                return;
+            }
 
             var blockSelection = blockPlacer.FindBlockPlacement(carriedBlock.Block, centerBlock, range);
             if (blockSelection == null)
@@ -77,6 +84,34 @@ namespace CarryOn.Common.Services
             }
 
             DropBlockAsItem(carriedBlock, centerBlock, player, entity);
+        }
+
+        private void DropClusterBlock(Entity entity, CarriedBlock carriedBlock, int range, BlockPlacer blockPlacer, BlockPos centerBlock, IServerPlayer? player)
+        {
+            var blockSelection = blockPlacer.FindClusterPlacement(
+                carriedBlock.Block,
+                carriedBlock.AttachedBlocks as IReadOnlyList<AttachedCarriedBlock>,
+                centerBlock,
+                range);
+
+            if (blockSelection != null && carryManager.TryPlaceDown(entity, carriedBlock, blockSelection, dropped: true))
+            {
+                return;
+            }
+
+            // Cluster placement failed — drop parent plus all children as items
+            var world = api.World;
+            var dropVec3d = new Vec3d(centerBlock.X + 0.5, centerBlock.Y + 0.5, centerBlock.Z + 0.5);
+
+            DropBlockAsItem(carriedBlock, centerBlock, player, entity);
+
+            if (carriedBlock.AttachedBlocks != null)
+            {
+                foreach (var child in carriedBlock.AttachedBlocks)
+                {
+                    world.SpawnItemEntity(child.ItemStack, dropVec3d);
+                }
+            }
         }
 
         /// <summary>
@@ -126,7 +161,7 @@ namespace CarryOn.Common.Services
                 }
             }
 
-            var breakSound = carriedBlock.Block.Sounds.GetBreakSound(player).Location ?? new AssetLocation("game:sounds/block/planks");
+            var breakSound = carriedBlock.Block.Sounds.GetBreakSound(player).Location ?? new AssetLocation(CarryCode.SoundPath.DefaultBreak);
             world.PlaySoundAt(breakSound, (double)centerBlock.X, (double)centerBlock.Y, (double)centerBlock.Z);
             carryManager.RemoveCarried(entity, carriedBlock.Slot);
 

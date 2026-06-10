@@ -1,10 +1,12 @@
 using System;
+using CarryOn.Client.Models;
 using CarryOn.Common.Network;
 using Vintagestory.API.Client;
-using static CarryOn.CarrySystem;
 using Vintagestory.API.Server;
 using static CarryOn.API.Common.Models.CarryCode;
+using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
+using CarryOn.Common.Logic;
 
 
 namespace CarryOn.Common.Handlers
@@ -15,37 +17,35 @@ namespace CarryOn.Common.Handlers
     public class HotKeyHandler
     {
         private ICoreClientAPI? clientApi;
+        private IClientNetworkChannel? clientChannel;
+        private ClientModConfig? clientModConfig;
 
         public ICoreClientAPI? ClientApi => clientApi;
 
-        private readonly CarrySystem carrySystem;
+        private readonly ICarryManager carryManager;
 
-        public bool IsCarryOnEnabled => this.carrySystem.CarryOnEnabled;
-
-        public HotKeyHandler(CarrySystem carrySystem)
+        public HotKeyHandler(ICarryManager carryManager)
         {
-            ArgumentNullException.ThrowIfNull(carrySystem);
-            this.carrySystem = carrySystem;
+            ArgumentNullException.ThrowIfNull(carryManager);
+            this.carryManager = carryManager;
         }
 
-        public void InitClient(ICoreClientAPI api)
+        public void InitClient(ICoreClientAPI api, IClientNetworkChannel clientChannel, ClientModConfig clientModConfig)
         {
             this.clientApi = api ?? throw new ArgumentNullException(nameof(api));
-
-            var clientChannel = this.carrySystem.ClientChannel ?? throw new InvalidOperationException("Client channel is not initialized");
+            this.clientChannel = clientChannel ?? throw new ArgumentNullException(nameof(clientChannel));
+            this.clientModConfig = clientModConfig ?? throw new ArgumentNullException(nameof(clientModConfig));
 
             clientChannel
                 .RegisterMessageType<QuickDropMessage>()
                 .RegisterMessageType<PlayerAttributeUpdateMessage>();
 
-
-
             var input = api.Input;
 
-            input.RegisterHotKey(HotKeyCode.Toggle, GetLang("toggle-hotkey"), Default.FunctionKeybind, altPressed: true);
-            input.RegisterHotKey(HotKeyCode.QuickDrop, GetLang("quickdrop-hotkey"), Default.FunctionKeybind);
-            input.RegisterHotKey(HotKeyCode.QuickDropAll, GetLang("quickdropall-hotkey"), Default.FunctionKeybind, altPressed: true, ctrlPressed: true);
-            input.RegisterHotKey(HotKeyCode.ToggleDoubleTapDismount, GetLang("toggle-double-tap-dismount-hotkey"), Default.FunctionKeybind, ctrlPressed: true);
+            input.RegisterHotKey(HotKeyCode.Toggle, LocalizationHelper.GetLang("toggle-hotkey"), Default.FunctionKeybind, altPressed: true);
+            input.RegisterHotKey(HotKeyCode.QuickDrop, LocalizationHelper.GetLang("quickdrop-hotkey"), Default.FunctionKeybind);
+            input.RegisterHotKey(HotKeyCode.QuickDropAll, LocalizationHelper.GetLang("quickdropall-hotkey"), Default.FunctionKeybind, altPressed: true, ctrlPressed: true);
+            input.RegisterHotKey(HotKeyCode.ToggleDoubleTapDismount, LocalizationHelper.GetLang("toggle-double-tap-dismount-hotkey"), Default.FunctionKeybind, ctrlPressed: true);
 
             input.SetHotKeyHandler(HotKeyCode.Toggle, TriggerToggleKeyPressed);
             input.SetHotKeyHandler(HotKeyCode.QuickDrop, TriggerQuickDropKeyPressed);
@@ -54,9 +54,9 @@ namespace CarryOn.Common.Handlers
 
         }
 
-        public void InitServer(ICoreServerAPI api)
+        public void InitServer(ICoreServerAPI api, IServerNetworkChannel serverChannel)
         {
-            var serverChannel = this.carrySystem.ServerChannel ?? throw new InvalidOperationException("Server channel is not initialized");
+            ArgumentNullException.ThrowIfNull(serverChannel);
 
             serverChannel
                 .RegisterMessageType<QuickDropMessage>()
@@ -83,9 +83,10 @@ namespace CarryOn.Common.Handlers
         {
             var api = clientApi;
             if (api == null || IsCursorActive()) return false;
+            var config = this.clientModConfig?.Config;
 
-            this.carrySystem.CarryOnEnabled = !IsCarryOnEnabled;
-            api.ShowChatMessage(GetLang("carryon-" + (IsCarryOnEnabled ? "enabled" : "disabled")));
+            config?.CarryOnEnabled = !config.CarryOnEnabled;
+            api.ShowChatMessage(LocalizationHelper.GetLang("carryon-" + (config?.CarryOnEnabled == true ? "enabled" : "disabled")));
             return true;
         }
 
@@ -97,7 +98,7 @@ namespace CarryOn.Common.Handlers
         public bool TriggerQuickDropKeyPressed(KeyCombination keyCombination)
         {
             if (clientApi == null || IsCursorActive()) return false;
-            var clientChannel = this.carrySystem.ClientChannel;
+            var clientChannel = this.clientChannel;
             if (clientChannel == null) return false;
 
             // Send drop message even if client shows nothing being held
@@ -115,7 +116,7 @@ namespace CarryOn.Common.Handlers
         {
             var api = clientApi;
             if (api == null || IsCursorActive()) return false;
-            var clientChannel = this.carrySystem.ClientChannel;
+            var clientChannel = this.clientChannel;
             if (clientChannel == null) return false;
 
             if (api.World?.Player == null) return false;
@@ -134,7 +135,7 @@ namespace CarryOn.Common.Handlers
         {
             var api = clientApi;
             if (api == null || IsCursorActive()) return false;
-            var clientChannel = this.carrySystem.ClientChannel;
+            var clientChannel = this.clientChannel;
             if (clientChannel == null) return false;
             if (api.World?.Player?.Entity == null) return false;
             var playerEntity = api.World.Player.Entity;
@@ -145,7 +146,7 @@ namespace CarryOn.Common.Handlers
 
             clientChannel.SendPacket(new PlayerAttributeUpdateMessage(AttributeKey.Watched.EntityDoubleTapDismountEnabled, !isEnabled, true));
 
-            api.ShowChatMessage(GetLang("double-tap-dismount-" + (!isEnabled ? "enabled" : "disabled")));
+            api.ShowChatMessage(LocalizationHelper.GetLang("double-tap-dismount-" + (!isEnabled ? "enabled" : "disabled")));
             return true;
         }
 
@@ -158,11 +159,9 @@ namespace CarryOn.Common.Handlers
         {
             var entity = player?.Entity;
             var carrySlots = message?.CarrySlots;
-            var carryManager = carrySystem.CarryManager;
             if (entity == null || carrySlots == null) return;
-            if (carryManager == null) return;
 
-            carryManager.DropCarried(entity, carrySlots, 2);
+            this.carryManager.DropCarried(entity, carrySlots, 2);
         }
 
         /// <summary>

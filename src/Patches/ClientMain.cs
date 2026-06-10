@@ -37,7 +37,7 @@ namespace CarryOn.Patches
             }
             catch (System.Exception ex)
             {
-                __instance.Api.World.Logger.Error("CarryOn: Failed to initialize CarryHandler HudHelp: " + ex.Message);
+                __instance.Api.World.Logger.Error("CarryOn: Failed to initialize CarryHandler HudHelp: " + ex);
             }
 
         }

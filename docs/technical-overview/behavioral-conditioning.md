@@ -12,7 +12,6 @@ It reflects the current implementation:
 ## 0. Scope
 
 - `src/Server/Logic/BehavioralConditioning.cs`
-- `src/Common/Logic/InteractionLogic.cs`
 - `../CarryOnLib/src/API/Common/Interfaces/IConditionalBlockBehavior.cs`
 - `../CarryOnLib/src/API/Common/Models/CarryOnConfig.cs` (`CarryablesFiltersConfig`)
 - `src/Common/Behaviors/BlockBehaviorCarryable.cs` (`PatchPriority`, `OverrideExistingProperties`, `ForcePickupOnSwapBack`)
@@ -105,7 +104,7 @@ Behavior property note (`forcePickupOnSwapBack`):
 
 - `forcePickupOnSwapBack` is parsed by `BlockBehaviorCarryable.Initialize`.
 - `BehavioralConditioning` does not interpret it directly, but overlay mode can set or override it.
-- `InteractionLogic` reads `BlockBehaviorCarryable.ForcePickupOnSwapBack` to force pickup behavior when swap-back modifier is used.
+- The client interaction components read `BlockBehaviorCarryable.ForcePickupOnSwapBack` to force pickup behavior when swap-back modifier is used.
 
 Example:
 ```json
@@ -202,7 +201,7 @@ Behavior patch flags (per `Carryable` behavior, not config):
 |----------|------|---------|--------|
 | `patchPriority` | `int` | `0` | Priority used for winner/overlay ordering in Pass 2 |
 | `overrideExistingProperties` | `bool` | `false` | Marks this carryable patch as a property overlay patch |
-| `forcePickupOnSwapBack` | `bool` | `false` | Causes swap-back modifier interaction to force pickup in `InteractionLogic` |
+| `forcePickupOnSwapBack` | `bool` | `false` | Causes swap-back modifier interaction to force pickup in the client interaction components |
 
 ---
 
@@ -229,7 +228,8 @@ Produces the ordered candidate key list for a block. Returns only `["Class:<c>"]
 ## 9. References
 
 - `src/Server/Logic/BehavioralConditioning.cs`
-- `src/Common/Logic/InteractionLogic.cs`
+
+
 - `src/Common/Behaviors/BlockBehaviorCarryable.cs`
 - `src/Common/Behaviors/BlockBehaviorCarryableInteract.cs`
 - `src/CarrySystem.cs`

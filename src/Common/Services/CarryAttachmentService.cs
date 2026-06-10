@@ -13,7 +13,7 @@ using static CarryOn.API.Common.Models.CarryCode;
 
 namespace CarryOn.Common.Services
 {
-    internal sealed class CarryAttachmentService(ICoreAPI api, CarrySystem carrySystem, ICarryManager carryManager)
+    internal sealed class CarryAttachmentService(ICoreAPI api, CarryOnConfig config, ICarryManager carryManager)
     {
         private const string MountedBagInventoryPrefix = "mountedbaginv";
 
@@ -42,35 +42,16 @@ namespace CarryOn.Common.Services
         /// <returns>True when attach succeeds; otherwise false.</returns>
         public bool TryAttach(IServerPlayer player, long targetEntityId, int slotIndex, ref string failureCode, bool playSound = true)
         {
-            ArgumentNullException.ThrowIfNull(player);
-
-            failureCode ??= FailureCode.Ignore;
-
             if (slotIndex < 0)
             {
                 failureCode = FailureCode.SlotNotFound;
                 return false;
             }
 
-            var validation = ValidateAttachDetachTarget(player, targetEntityId);
-            if (!validation.IsValid)
-            {
-                if (validation.FailureCode != null)
-                {
-                    failureCode = validation.FailureCode;
-                }
-                return false;
-            }
+            var context = ResolveAttachDetachContext(player, targetEntityId, ref failureCode);
+            if (context == null) return false;
 
-            var world = api.World;
-            var targetEntity = validation.TargetEntity;
-            var attachableBehavior = validation.AttachableBehavior;
-
-            if (targetEntity == null || attachableBehavior == null)
-            {
-                return false;
-            }
-
+            var (world, targetEntity, attachableBehavior) = context;
             var carriedBlock = player.Entity.GetCarried(CarrySlot.Hands);
             if (carriedBlock == null)
             {
@@ -120,6 +101,12 @@ namespace CarryOn.Common.Services
             if (!targetSlot.CanTakeFrom(sourceItemSlot))
             {
                 failureCode = FailureCode.SlotIncompatibleBlock;
+                return false;
+            }
+
+            if (carriedBlock.HasAttachedBlocks)
+            {
+                failureCode = FailureCode.BlockHasAttachedBlocks;
                 return false;
             }
 
@@ -184,29 +171,10 @@ namespace CarryOn.Common.Services
         /// <returns>True when detach succeeds; otherwise false.</returns>
         public bool TryDetach(IServerPlayer player, long targetEntityId, int slotIndex, ref string failureCode, bool playSound = true)
         {
-            ArgumentNullException.ThrowIfNull(player);
+            var context = ResolveAttachDetachContext(player, targetEntityId, ref failureCode);
+            if (context == null) return false;
 
-            failureCode ??= FailureCode.Ignore;
-
-            var validation = ValidateAttachDetachTarget(player, targetEntityId);
-            if (!validation.IsValid)
-            {
-                if (validation.FailureCode != null)
-                {
-                    failureCode = validation.FailureCode;
-                }
-                return false;
-            }
-
-            var world = api.World;
-            var targetEntity = validation.TargetEntity;
-            var attachableBehavior = validation.AttachableBehavior;
-
-            if (targetEntity == null || attachableBehavior == null)
-            {
-                return false;
-            }
-
+            var (world, targetEntity, attachableBehavior) = context;
             var sourceSlot = attachableBehavior.GetSlotFromSelectionBoxIndex(slotIndex);
             if (sourceSlot == null || sourceSlot.Empty)
             {
@@ -301,6 +269,35 @@ namespace CarryOn.Common.Services
             return true;
         }
 
+        private sealed record AttachDetachContext(IWorldAccessor World, Entity TargetEntity, EntityBehaviorAttachable AttachableBehavior);
+
+        private AttachDetachContext? ResolveAttachDetachContext(IServerPlayer player, long targetEntityId, ref string failureCode)
+        {
+            ArgumentNullException.ThrowIfNull(player);
+
+            failureCode ??= FailureCode.Ignore;
+
+            var validation = ValidateAttachDetachTarget(player, targetEntityId);
+            if (!validation.IsValid)
+            {
+                if (validation.FailureCode != null)
+                {
+                    failureCode = validation.FailureCode;
+                }
+                return null;
+            }
+
+            var targetEntity = validation.TargetEntity;
+            var attachableBehavior = validation.AttachableBehavior;
+
+            if (targetEntity == null || attachableBehavior == null)
+            {
+                return null;
+            }
+
+            return new AttachDetachContext(api.World, targetEntity, attachableBehavior);
+        }
+
         private sealed class AttachTargetValidationResult
         {
             public bool IsValid { get; }
@@ -360,6 +357,6 @@ namespace CarryOn.Common.Services
         }
 
         private int GetMaxInteractionDistance()
-            => carrySystem?.Config?.CarryOptions?.MaxInteractionDistance ?? Default.MaxInteractionDistance;
+            => config?.CarryOptions?.MaxInteractionDistance ?? Default.MaxInteractionDistance;
     }
 }

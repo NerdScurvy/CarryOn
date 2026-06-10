@@ -200,95 +200,66 @@ namespace CarryOn.Client.Logic.TransformTemplates
         }
 
         /// <summary>
-        /// Applies overrides from groups with "@" prefix to the groups they target (e.g. "@groupA" overrides apply to "groupA"). 
-        /// The "@" groups themselves are not included in the final resolved output.
+        /// Processes prefixed transform groups (with "@" or "~" prefix) against the resolved dictionary.
+        /// Handles the common pattern of: find prefixed keys, validate source, strip prefix, validate target, apply operation, remove prefix entry.
         /// </summary>
-        /// <param name="resolved"> A dictionary mapping transform group names to their resolved TransformGroupSettings lists. </param>
-        private void ApplyAtPrefixedOverrides(IDictionary<string, List<TransformGroupSettings>> resolved)
+        private void ProcessPrefixedGroups(
+            IDictionary<string, List<TransformGroupSettings>> groups,
+            char prefix,
+            string logLabel,
+            Action<string, List<TransformGroupSettings>, List<TransformGroupSettings>, string> apply)
         {
-            if (resolved == null || resolved.Count == 0)
-            {
-                return;
-            }
+            if (groups == null || groups.Count == 0) return;
 
-            var overlayGroupNames = resolved.Keys
-                .Where(name => !string.IsNullOrWhiteSpace(name) && name.StartsWith("@", StringComparison.OrdinalIgnoreCase))
+            var prefixedNames = groups.Keys
+                .Where(name => !string.IsNullOrWhiteSpace(name) && name.StartsWith(prefix.ToString(), StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
-            foreach (var overlayGroupName in overlayGroupNames)
+            foreach (var prefixedName in prefixedNames)
             {
-                if (!resolved.TryGetValue(overlayGroupName, out var overlaySettings) || overlaySettings == null)
+                if (!groups.TryGetValue(prefixedName, out var source) || source == null)
                 {
-                    resolved.Remove(overlayGroupName);
+                    groups.Remove(prefixedName);
                     continue;
                 }
 
-                var targetGroupName = overlayGroupName[1..];
-                if (string.IsNullOrWhiteSpace(targetGroupName))
+                var targetName = prefixedName[1..];
+                if (string.IsNullOrWhiteSpace(targetName))
                 {
-                    capi.Logger.Warning($"CarryOn: transform group override '{overlayGroupName}' has no target group name.");
-                    resolved.Remove(overlayGroupName);
+                    capi.Logger.Warning($"CarryOn: transform group {logLabel} '{prefixedName}' has no target group name.");
+                    groups.Remove(prefixedName);
                     continue;
                 }
 
-                if (!resolved.TryGetValue(targetGroupName, out var targetSettings) || targetSettings == null)
+                if (!groups.TryGetValue(targetName, out var target) || target == null)
                 {
-                    capi.Logger.Warning($"CarryOn: transform group override '{overlayGroupName}' has no matching target group '{targetGroupName}'.");
-                    resolved.Remove(overlayGroupName);
+                    capi.Logger.Warning($"CarryOn: transform group {logLabel} '{prefixedName}' has no matching target group '{targetName}'.");
+                    groups.Remove(prefixedName);
                     continue;
                 }
 
-                ApplyUpsertById(targetSettings, overlaySettings);
-                resolved.Remove(overlayGroupName);
+                apply(prefixedName, source, target, targetName);
+                groups.Remove(prefixedName);
             }
+        }
+
+        /// <summary>
+        /// Applies overrides from groups with "@" prefix to the groups they target (e.g. "@groupA" overrides apply to "groupA"). 
+        /// </summary>
+        private void ApplyAtPrefixedOverrides(IDictionary<string, List<TransformGroupSettings>> resolved)
+        {
+            ProcessPrefixedGroups(resolved, '@', "override",
+                (_, source, target, _) => ApplyUpsertById(target, source));
         }
 
         /// <summary> 
         /// Applies relative adjustments from groups with "~" prefix to the groups they target (e.g. "~groupA" adjustments apply to "groupA"). 
-        /// The "~" groups themselves are not included in the final resolved output. 
-        /// Relative adjustments are merged based on matching "id" properties of the TransformGroupSettings; 
-        /// if an entry in the "~" group has an "id" that matches an entry in the target group, it will be merged as a relative adjustment. 
-        /// If an entry in the "~" group does not have an "id" and the target group has exactly one entry, it will be merged as a relative adjustment to that entry. 
-        /// Otherwise, a warning is logged and the entry is skipped. 
         /// </summary>
-        /// <param name="resolved"> A dictionary mapping transform group names to their resolved TransformGroupSettings lists. </param>
         private void ApplyTildePrefixedAdjustments(IDictionary<string, List<TransformGroupSettings>> resolved)
         {
-            if (resolved == null || resolved.Count == 0)
-            {
-                return;
-            }
-
-            var relativeGroupNames = resolved.Keys
-                .Where(name => !string.IsNullOrWhiteSpace(name) && name.StartsWith("~", StringComparison.OrdinalIgnoreCase))
-                .ToList();
-
-            foreach (var relativeGroupName in relativeGroupNames)
-            {
-                if (!resolved.TryGetValue(relativeGroupName, out var relativeSettings) || relativeSettings == null)
-                {
-                    resolved.Remove(relativeGroupName);
-                    continue;
-                }
-
-                var targetGroupName = relativeGroupName[1..];
-                if (string.IsNullOrWhiteSpace(targetGroupName))
-                {
-                    capi.Logger.Warning($"CarryOn: transform group relative adjustment '{relativeGroupName}' has no target group name.");
-                    resolved.Remove(relativeGroupName);
-                    continue;
-                }
-
-                if (!resolved.TryGetValue(targetGroupName, out var targetSettings) || targetSettings == null)
-                {
-                    capi.Logger.Warning($"CarryOn: transform group relative adjustment '{relativeGroupName}' has no matching target group '{targetGroupName}'.");
-                    resolved.Remove(relativeGroupName);
-                    continue;
-                }
-
-                ApplyRelativeAdjustments(targetSettings, relativeSettings, relativeGroupName, targetGroupName);
-                resolved.Remove(relativeGroupName);
-            }
+            ProcessPrefixedGroups(resolved, '~', "relative adjustment",
+                (prefixedName, source, target, targetGroupName) =>
+                    ApplyRelativeAdjustments(target, source, prefixedName, targetGroupName));
         }
 
         /// <summary>
