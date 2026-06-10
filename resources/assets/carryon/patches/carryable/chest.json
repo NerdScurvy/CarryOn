@@ -24,7 +24,6 @@
 					"carry-chest",
 					"carry-chest-compact"
 				],
-				"defaultRenderFacing": "east",
 				"transformGroups": {
 					"backpack-none-normal": {
 						"extends": "backpack-none"

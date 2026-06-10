@@ -162,7 +162,7 @@ Blocks with multiple visual variants (e.g. `sign-wall-north`, `sign-ground-north
 - **`defaultRenderVariant`** specifies the variant segment (e.g. `"wall"` for signs).
 - **`defaultRenderFacing`** specifies the facing direction (e.g. `"north"`).
 
-When both are set, CarryOn reconstructs the original block code from `OriginalBlockCode` by replacing the variant and facing segments, then resolves the appropriate block for rendering. If `defaultRenderFacing` is omitted, `"north"` is used as the default. If `defaultRenderVariant` is omitted, no resolution is attempted.
+When both are set, CarryOn reconstructs the original block code from `OriginalBlockCode` by replacing the variant and facing segments, then resolves the appropriate block for rendering. If `defaultRenderFacing` is omitted, `"east"` is used as the default. If `defaultRenderVariant` is omitted, no resolution is attempted.
 
 **Example from `sign.json`** — a wall sign uses `defaultRenderFacing` and `defaultRenderVariant` to ensure the carried render shows the wall variant facing north, plus `labelRenderSettings` for the sign text label. The `attachedTransform` adjusts the label position when the sign is rendered as an attached block using the cluster carry feature (e.g. when carried alongside a chest via `CaptureAttachedWallSigns`):
 

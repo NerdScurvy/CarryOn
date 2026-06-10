@@ -230,7 +230,7 @@ namespace CarryOn.Common.Logic
         /// south = 0, east = π/2, north = π, west = 3π/2) for meshAngle-based blocks, and
         /// OriginalBlockCode facing for variant-based blocks.
         /// </summary>
-        public static int GetOriginalToModelDefaultSteps(CarriedBlock carriedBlock, string? modelDefaultFacing = "south")
+        public static int GetOriginalToModelDefaultSteps(CarriedBlock carriedBlock, string? modelDefaultFacing = "east")
         {
             var defaultIdx = ModelDefaultFacingToSteps(modelDefaultFacing);
 
@@ -277,7 +277,7 @@ namespace CarryOn.Common.Logic
                 "west" => 1,
                 "south" => 2,
                 "east" => 3,
-                _ => 2
+                _ => 3
             };
         }
 
@@ -323,7 +323,7 @@ namespace CarryOn.Common.Logic
 
             if (parts.Length < 2) return null;
 
-            var facing = string.IsNullOrEmpty(defaultRenderFacing) ? "north" : defaultRenderFacing;
+            var facing = string.IsNullOrEmpty(defaultRenderFacing) ? "east" : defaultRenderFacing;
 
             string newPath;
             if (parts.Length == 2)
