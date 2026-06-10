@@ -10,6 +10,32 @@ Carry On exposes a client-side `.carryon` chat command tree for gameplay toggles
 
 ## Top-Level Commands
 
+### `.carryon attachedRender [true|false]`
+
+Toggles or sets rendering of attached wall signs on carried blocks (cluster carry visual).
+
+If called without an argument, the current state is toggled.
+
+Examples:
+```text
+.carryon attachedRender true
+.carryon attachedRender false
+.carryon attachedRender
+```
+
+### `.carryon attachedPickup [true|false]`
+
+Toggles or sets whether attached wall signs are captured when picking up a block (cluster carry pickup).
+
+If called without an argument, the current state is toggled.
+
+Examples:
+```text
+.carryon attachedPickup true
+.carryon attachedPickup false
+.carryon attachedPickup
+```
+
 ## GUI Debug Commands
 
 The `.carryon gui` branch manages the on-screen carry HUD anchors and visual styling.
