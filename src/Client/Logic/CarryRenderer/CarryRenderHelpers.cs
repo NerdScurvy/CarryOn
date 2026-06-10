@@ -99,7 +99,9 @@ namespace CarryOn.Client.Logic.CarryRenderer
                     RgbGlowIntensity = s.RgbGlowIntensity?.Clone(),
                     RenderPass = s.RenderPass,
                     SecondaryTransform = s.SecondaryTransform?.Clone(),
-                    SkipTransform = false
+                    SkipTransform = false,
+                    IsAttachedRoot = s.IsAttachedRoot,
+                    IsAttachedBlock = s.IsAttachedBlock
                 };
             }
 

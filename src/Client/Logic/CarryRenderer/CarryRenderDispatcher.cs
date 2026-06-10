@@ -174,22 +174,38 @@ namespace CarryOn.Client.Logic.CarryRenderer
                 carriedRenderInfo = carriedRenderInfo.Skip(1).Append(initial).ToArray();
             }
 
+            // Find attached root entry: its transform is the base for attached blocks/labels
+            float[]? attachedRootMatrix = null;
+            foreach (var info in carriedRenderInfo)
+            {
+                if (info.IsAttachedRoot && info.RenderEnabled)
+                {
+                    attachedRootMatrix = RentMatrix();
+                    Array.Copy(initialMatrix, attachedRootMatrix, 16);
+                    CarryRenderHelpers.ApplyTransformInPlace(info.RenderInfo.Transform, attachedRootMatrix, ZeroOffset);
+                    break;
+                }
+            }
+
             var zeroOffset = ZeroOffset;
 
             if (isShadowPass)
             {
-                RenderCarriedShadowPass(carriedRenderInfo, initialMatrix, zeroOffset, renderer);
+                RenderCarriedShadowPass(carriedRenderInfo, initialMatrix, attachedRootMatrix, zeroOffset, renderer);
             }
             else
             {
-                RenderCarriedMainPass(entity, carried, carriedRenderInfo, initialMatrix, zeroOffset,
+                RenderCarriedMainPass(entity, carried, carriedRenderInfo, initialMatrix, attachedRootMatrix, zeroOffset,
                                       stage, deferHandsOpaqueUntilAfterOit, viewMat, renderer);
             }
+
+            if (attachedRootMatrix != null)
+                matrixPool.Push(attachedRootMatrix);
 
             matrixPool.Push(initialMatrix);
         }
 
-        private void RenderCarriedShadowPass(CarriedRenderInfo[] carriedRenderInfo, float[] initialMatrix, Vec3f zeroOffset, EntityShapeRenderer renderer)
+        private void RenderCarriedShadowPass(CarriedRenderInfo[] carriedRenderInfo, float[] initialMatrix, float[]? attachedRootMatrix, Vec3f zeroOffset, EntityShapeRenderer renderer)
         {
             var rapi = this.api.Render;
             var prog = rapi.CurrentActiveShader;
@@ -208,7 +224,10 @@ namespace CarryOn.Client.Logic.CarryRenderer
                 {
                     matrix = RentMatrix();
                     rentedMatrix = true;
-                    Array.Copy(initialMatrix, matrix, 16);
+                    if (info.IsAttachedBlock && attachedRootMatrix != null)
+                        Array.Copy(attachedRootMatrix, matrix, 16);
+                    else
+                        Array.Copy(initialMatrix, matrix, 16);
                     CarryRenderHelpers.ApplyTransformInPlace(info.RenderInfo.Transform, matrix, zeroOffset);
                     if (info.SecondaryTransform != null)
                     {
@@ -249,7 +268,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
         }
 
         private void RenderCarriedMainPass(EntityAgent entity, CarriedBlock carried, CarriedRenderInfo[] carriedRenderInfo,
-                                           float[] initialMatrix, Vec3f zeroOffset,
+                                           float[] initialMatrix, float[]? attachedRootMatrix, Vec3f zeroOffset,
                                            EnumRenderStage stage, bool deferHandsOpaqueUntilAfterOit,
                                            float[] viewMat, EntityShapeRenderer renderer)
         {
@@ -270,7 +289,10 @@ namespace CarryOn.Client.Logic.CarryRenderer
                 if (!info.RenderEnabled) continue;
 
                 var drawMatrix = RentMatrix();
-                Array.Copy(initialMatrix, drawMatrix, 16);
+                if (info.IsAttachedBlock && attachedRootMatrix != null)
+                    Array.Copy(attachedRootMatrix, drawMatrix, 16);
+                else
+                    Array.Copy(initialMatrix, drawMatrix, 16);
                 if (!info.SkipTransform)
                 {
                     CarryRenderHelpers.ApplyTransformInPlace(info.RenderInfo.Transform, drawMatrix, zeroOffset);
@@ -315,11 +337,12 @@ namespace CarryOn.Client.Logic.CarryRenderer
 
             if (renderOpaquePhase && initialMatrix != null)
             {
-                labelRenderer.TryRender(carried, initialMatrix, viewMat, prog, entity.Pos.AsBlockPos);
+                var labelBaseMatrix = attachedRootMatrix ?? initialMatrix;
+                labelRenderer.TryRender(carried, labelBaseMatrix, viewMat, prog, entity.Pos.AsBlockPos);
 
                 if (RenderAttachedBlocks && carried.HasAttachedBlocks)
                 {
-                    RenderAttachedBlockLabels(carried, initialMatrix, viewMat, prog, entity);
+                    RenderAttachedBlockLabels(carried, attachedRootMatrix ?? initialMatrix, viewMat, prog, entity);
                 }
             }
 

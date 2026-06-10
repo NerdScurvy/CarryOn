@@ -17,5 +17,7 @@ namespace CarryOn.Client.Models
         public string? RenderPass { get; set; }
         public ModelTransform? SecondaryTransform { get; set; }
         public bool SkipTransform { get; set; } = false;
+        public bool IsAttachedRoot { get; set; } = false;
+        public bool IsAttachedBlock { get; set; } = false;
     }
 }

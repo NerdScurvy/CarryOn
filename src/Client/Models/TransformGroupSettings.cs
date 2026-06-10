@@ -30,6 +30,7 @@ namespace CarryOn.Client.Models
         string? ClimateTintMap = null,
         string? SeasonalTintMap = null,
         float? GlowIntensity = null,
+        bool? AttachedRoot = null,
         bool Enabled = true
     )
     {
@@ -77,6 +78,7 @@ namespace CarryOn.Client.Models
                 ClimateTintMap: !string.IsNullOrEmpty(overlay.ClimateTintMap) ? overlay.ClimateTintMap : this.ClimateTintMap,
                 SeasonalTintMap: !string.IsNullOrEmpty(overlay.SeasonalTintMap) ? overlay.SeasonalTintMap : this.SeasonalTintMap,
                 GlowIntensity: overlay.GlowIntensity ?? this.GlowIntensity,
+                AttachedRoot: overlay.AttachedRoot ?? this.AttachedRoot,
                 Enabled: overlay.Enabled // always use overlay's value (non-nullable)
             );
         }
@@ -119,6 +121,7 @@ namespace CarryOn.Client.Models
                 ClimateTintMap: this.ClimateTintMap,
                 SeasonalTintMap: this.SeasonalTintMap,
                 GlowIntensity: AddOrKeep(this.GlowIntensity, relative.GlowIntensity),
+                AttachedRoot: this.AttachedRoot,
                 Enabled: this.Enabled
             );
         }
@@ -183,6 +186,7 @@ namespace CarryOn.Client.Models
                 ClimateTintMap: ClimateTintMap,
                 SeasonalTintMap: SeasonalTintMap,
                 Enabled: Enabled,
+                IsAttachedRoot: AttachedRoot ?? false,
                 RgbGlowIntensity: rgbGlow ?? new Vec4f(0, 0, 0, 0),
                 Transform: transform
             );

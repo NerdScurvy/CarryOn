@@ -316,6 +316,7 @@ Vector form and component form are both supported.
 | `normalShaded` | bool | Normal shading toggle. |
 | `renderPass` | string | Render pass hint (`opaque`, `translucent`, `both`). |
 | `enabled` | bool | Enables/disables this transform entry. |
+| `attachedRoot` | bool | Marks this entry as the visual root for attached block positioning. When set, the entry's transform is used as the base matrix for attached block meshes and labels (instead of `root`). Required when `root` is disabled and a `visual` entry provides the effective position. |
 
 ### Tint and glow
 

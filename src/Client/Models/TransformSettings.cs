@@ -20,7 +20,8 @@ namespace CarryOn.Client.Models
         string? ClimateTintMap = null,
         string? SeasonalTintMap = null,
         Vec4f? RgbGlowIntensity = null,
-        bool? Enabled = true
+        bool? Enabled = true,
+        bool IsAttachedRoot = false
         )
     {
         public TransformSettings DeepClone() => this with

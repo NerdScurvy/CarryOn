@@ -223,7 +223,8 @@ namespace CarryOn.Client.Logic.CarryRenderer
                     NormalShaded = setting.NormalShaded,
                     RenderPass = setting.RenderPass,
                     SecondaryTransform = secondaryTransform,
-                    RenderEnabled = (setting.Enabled ?? true) && !disableIfItemStack
+                    RenderEnabled = (setting.Enabled ?? true) && !disableIfItemStack,
+                    IsAttachedRoot = setting.IsAttachedRoot
                 });
             }
 
@@ -303,7 +304,8 @@ namespace CarryOn.Client.Logic.CarryRenderer
                 {
                     RenderInfo = childRenderInfo,
                     SkipTransform = false,
-                    RenderEnabled = true
+                    RenderEnabled = true,
+                    IsAttachedBlock = true
                 });
             }
         }
