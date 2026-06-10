@@ -150,21 +150,35 @@ namespace CarryOn.Utility
         /// </summary>
         /// <param name="player"></param>
         /// <returns></returns>
-        public static ItemSlot? GetRenderedBackpackSlot(this IPlayer player)
+        public static ItemSlot? GetRenderedBackpackSlot(this IPlayer player, BackpackSelectionMode mode = BackpackSelectionMode.LastFound)
         {
             var backpackInv = player.InventoryManager.GetOwnInventory("backpack");
-            var renderedItemSlot = backpackInv?
-                 .Take(4)?
-                 .Where(slot => slot?.Itemstack != null &&
-                             slot?.Itemstack?.ItemAttributes?["attachableToEntity"]?["categoryCode"]?.AsString() == "backpack")?
-                 .LastOrDefault();
+            if (backpackInv == null) return null;
 
-            return renderedItemSlot;
+            if (mode == BackpackSelectionMode.FirstOnly)
+            {
+                var slot = backpackInv[0];
+                return slot?.Itemstack != null &&
+                       slot.Itemstack.ItemAttributes?["attachableToEntity"]?["categoryCode"]?.AsString() == "backpack"
+                    ? slot : null;
+            }
+
+            var matchingSlots = backpackInv
+                 .Take(4)
+                 .Where(slot => slot?.Itemstack != null &&
+                             slot?.Itemstack?.ItemAttributes?["attachableToEntity"]?["categoryCode"]?.AsString() == "backpack")
+                 .ToList();
+
+            return mode switch
+            {
+                BackpackSelectionMode.FirstFound => matchingSlots.FirstOrDefault(),
+                _ => matchingSlots.LastOrDefault()
+            };
         }
 
-        public static string? GetRenderedBackpackItemCode(this IPlayer player)
+        public static string? GetRenderedBackpackItemCode(this IPlayer player, BackpackSelectionMode mode = BackpackSelectionMode.LastFound)
         {
-            var renderedItemSlot = player.GetRenderedBackpackSlot();
+            var renderedItemSlot = player.GetRenderedBackpackSlot(mode);
             return renderedItemSlot?.Itemstack?.Item?.Code?.ToString();
         }
 
@@ -175,7 +189,8 @@ namespace CarryOn.Utility
                 return "hands";
             }
 
-            var backpackItemCode = entityPlayer?.Player?.GetRenderedBackpackItemCode();
+            var selectionMode = config?.CarryOptions?.BackpackSelectionModeEnum ?? BackpackSelectionMode.LastFound;
+            var backpackItemCode = entityPlayer?.Player?.GetRenderedBackpackItemCode(selectionMode);
             if (!string.IsNullOrEmpty(backpackItemCode)
                 && (config?.BackpackMapping?.TryGetValue(backpackItemCode, out var backpackType) ?? false)
                 && !string.IsNullOrEmpty(backpackType))
