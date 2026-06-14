@@ -200,6 +200,7 @@ namespace CarryOn
             EntityBehaviorDropCarriedOnDamage.CarryManager = CarryManager;
             EntityBehaviorDropCarriedOnDamage.Enabled = dropConfig.Enabled;
             EntityBehaviorDropCarriedOnDamage.DamageThreshold = dropConfig.DamageThreshold;
+            EntityBehaviorDropCarriedOnDamage.DropRange = dropConfig.DropRange;
             api.Register<EntityBehaviorDropCarriedOnDamage>();
 
             ServerApi = api;

@@ -14,6 +14,7 @@ namespace CarryOn.Server.Behaviors
         public static ICarryManager? CarryManager { get; set; }
         public static bool Enabled { get; set; } = true;
         public static float DamageThreshold { get; set; } = 0f;
+        public static int DropRange { get; set; } = 2;
 
         private static readonly CarrySlot[] DropFrom
             = [CarrySlot.Hands];
@@ -31,7 +32,7 @@ namespace CarryOn.Server.Behaviors
             if (!Enabled) return;
             if (damageSource.Type == EnumDamageType.Heal) return;
             if (damage <= DamageThreshold) return;
-            CarryManager?.DropCarried(entity, DropFrom, 2);
+            CarryManager?.DropCarried(entity, DropFrom, DropRange);
         }
     }
 }
