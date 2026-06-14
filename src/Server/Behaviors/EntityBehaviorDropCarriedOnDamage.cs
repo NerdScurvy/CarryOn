@@ -13,7 +13,7 @@ namespace CarryOn.Server.Behaviors
 
         public static ICarryManager? CarryManager { get; set; }
         public static bool Enabled { get; set; } = true;
-        public static float DamageThreshold { get; set; } = 0f;
+        public static float DamageThreshold { get; set; } = 1.0f;
         public static int DropRange { get; set; } = 2;
 
         private static readonly CarrySlot[] DropFrom
