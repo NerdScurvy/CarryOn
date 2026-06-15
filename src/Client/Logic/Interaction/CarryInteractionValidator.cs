@@ -29,7 +29,7 @@ namespace CarryOn.Client.Logic.Interaction
         private readonly string[] preventSwapFromBackOnCodes;
 
         public bool RemoveInteractDelayWhileCarrying => removeInteractDelayWhileCarrying ??= this.config?.CarryOptions?.RemoveInteractDelayWhileCarrying ?? false;
-        public bool AllowSprintWhileCarrying => allowSprintWhileCarrying ??= this.config?.CarryOptions?.AllowSprintWhileCarrying ?? false;
+        public bool AllowSprintWhileCarrying => allowSprintWhileCarrying ??= this.config?.CarryWalkSpeed?.InHandsAllowSprint ?? false;
         public bool BackSlotEnabled => backSlotEnabled ??= this.config?.CarryOptions?.BackSlotEnabled ?? false;
         public float InteractSpeedMultiplier => interactSpeedMultiplier ??= this.config?.CarryOptions?.InteractSpeedMultiplier ?? 1.0f;
 

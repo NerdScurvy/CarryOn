@@ -7,7 +7,7 @@ namespace CarryOn.Common.Logic
 {
     internal sealed class WalkSpeedModifierResolver
     {
-        public bool IsEnabled(CarrySlot slot, WalkSpeedModifierConfig config)
+        public bool IsEnabled(CarrySlot slot, CarryWalkSpeedConfig config)
         {
             return slot switch
             {
