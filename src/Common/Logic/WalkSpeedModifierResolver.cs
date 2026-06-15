@@ -7,6 +7,16 @@ namespace CarryOn.Common.Logic
 {
     internal sealed class WalkSpeedModifierResolver
     {
+        public bool IsEnabled(CarrySlot slot, WalkSpeedModifierConfig config)
+        {
+            return slot switch
+            {
+                CarrySlot.Hands => config.HandsEnabled,
+                CarrySlot.Back => config.BackEnabled,
+                _ => false
+            };
+        }
+
         public float Resolve(
             ItemStack? stack,
             BlockBehaviorCarryable? behavior,

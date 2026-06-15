@@ -32,7 +32,6 @@ namespace CarryOn.Common.Services
         private readonly HungerRateModifierResolver hungerRateModifierResolver = new();
 
         private bool AllowSprintWhileCarrying => config?.CarryOptions?.AllowSprintWhileCarrying ?? false;
-        private bool IgnoreCarrySpeedPenalty => config?.CarryOptions?.IgnoreCarrySpeedPenalty ?? false;
 
         /// <summary>
         /// Gets all carried blocks currently held by the entity across all carry slots.
@@ -231,14 +230,15 @@ namespace CarryOn.Common.Services
             if (entity is EntityAgent agent)
             {
                 var speed = 0.0f;
-                if (!IgnoreCarrySpeedPenalty)
+                var walkSpeedConfig = config?.WalkSpeedModifier;
+                if (walkSpeedConfig != null && walkSpeedModifierResolver.IsEnabled(slot, walkSpeedConfig))
                 {
                     speed = walkSpeedModifierResolver.Resolve(
                         stack,
                         behavior,
                         slotSettings,
                         slot,
-                        config?.CarryOptions?.WalkSpeedOverrides);
+                        walkSpeedConfig.ModifierOverrides);
                 }
 
                 if (speed != 0.0F && !AllowSprintWhileCarrying)
