@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
 using Vintagestory.API.Common;
@@ -12,27 +13,28 @@ namespace CarryOn.Server.Behaviors
             = CarryOnCode("dropondamage");
 
         public static ICarryManager? CarryManager { get; set; }
-        public static bool Enabled { get; set; } = true;
-        public static float DamageThreshold { get; set; } = 1.0f;
-        public static int DropRange { get; set; } = 2;
-
-        private static readonly CarrySlot[] DropFrom
-            = [CarrySlot.Hands];
+        public static DropCarriedOnDamageConfig? Config { get; set; }
 
         public override string PropertyName() => Name;
 
         public EntityBehaviorDropCarriedOnDamage(Entity entity)
             : base(entity)
-        { 
-      
+        {
         }
 
         public override void OnEntityReceiveDamage(DamageSource damageSource, ref float damage)
         {
-            if (!Enabled) return;
+            if (Config == null) return;
             if (damageSource.Type == EnumDamageType.Heal) return;
-            if (damage <= DamageThreshold) return;
-            CarryManager?.DropCarried(entity, DropFrom, DropRange);
+
+            var slotsToDrop = new List<CarrySlot>(2);
+            if (Config.HandsEnabled && damage > Config.HandsDamageThreshold)
+                slotsToDrop.Add(CarrySlot.Hands);
+            if (Config.BackEnabled && damage > Config.BackDamageThreshold)
+                slotsToDrop.Add(CarrySlot.Back);
+
+            if (slotsToDrop.Count == 0) return;
+            CarryManager?.DropCarried(entity, slotsToDrop, Config.DropRange);
         }
     }
 }
