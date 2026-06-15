@@ -247,7 +247,7 @@ namespace CarryOn.Common.Services
                         CarryOnCode(slot.ToString()), speed, false);
                 }
 
-                ApplyHungerRate(agent, entity, slot);
+                ApplyHungerRate(agent, slot, slotSettings);
 
                 if (entity.Api.Side == EnumAppSide.Server)
                 {
@@ -348,19 +348,19 @@ namespace CarryOn.Common.Services
             LockHotbarSlots(serverPlayer);
         }
 
-        private void ApplyHungerRate(EntityAgent agent, Entity entity, CarrySlot slot)
+        private void ApplyHungerRate(EntityAgent agent, CarrySlot slot, SlotSettings? slotSettings = null)
         {
             var hungerRateConfig = config?.CarryHungerRate;
             if (hungerRateConfig == null) return;
 
             if (!hungerDrainRateResolver.IsEnabled(slot, hungerRateConfig)) return;
 
-            var rate = hungerDrainRateResolver.Resolve(slot, hungerRateConfig);
-            if (rate <= 1.0f) return;
+            var modifier = hungerDrainRateResolver.Resolve(slot, hungerRateConfig, slotSettings);
+            if (modifier <= 0f) return;
 
             if (hungerRateConfig.MinSaturationThreshold > 0f)
             {
-                var hunger = entity.GetBehavior("hunger");
+                var hunger = agent.GetBehavior("hunger");
                 if (hunger != null)
                 {
                     var saturationProp = hunger.GetType().GetProperty("Saturation");
@@ -368,14 +368,14 @@ namespace CarryOn.Common.Services
                     {
                         var saturation = (float)saturationProp.GetValue(hunger)!;
                         if (saturation < hungerRateConfig.MinSaturationThreshold)
-                            rate = 1.0f;
+                            modifier = 0f;
                     }
                 }
             }
 
-            if (rate > 1.0f)
+            if (modifier > 0f)
             {
-                agent.Stats.Set("hungerrate", CarryOnCode(slot.ToString()), rate, true);
+                agent.Stats.Set("hungerrate", CarryOnCode(slot.ToString()), modifier, true);
             }
         }
 

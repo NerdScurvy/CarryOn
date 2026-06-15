@@ -53,6 +53,9 @@ namespace CarryOn.Common.Models
                     settings.WalkSpeedModifierByType = JsonHelper.ParseFloatMap(slotProperties["walkSpeedModifierByBlockType"]);
                     settings.WalkSpeedModifierByGroup = JsonHelper.ParseFloatMap(slotProperties["walkSpeedModifierByGroup"]);
 
+                    if (JsonHelper.TryGetFloat(slotProperties, "hungerModifier", out var hungerModifier))
+                        settings.HungerModifier = hungerModifier;
+
                     if (JsonHelper.TryGetString(slotProperties, "enabledCondition", out var e)) settings.EnabledCondition = e;
                     if (JsonHelper.TryGetStringArray(slotProperties, "excludedTypes", out var x)) settings.ExcludedTypes = x;
                 }

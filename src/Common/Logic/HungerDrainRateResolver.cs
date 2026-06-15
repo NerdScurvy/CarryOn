@@ -1,20 +1,26 @@
 using System;
 using CarryOn.API.Common.Models;
+using CarryOn.Common.Models;
 
 namespace CarryOn.Common.Logic
 {
     internal sealed class HungerDrainRateResolver
     {
-        public float Resolve(CarrySlot slot, CarryHungerRateConfig config)
+        public float Resolve(CarrySlot slot, CarryHungerRateConfig config, SlotSettings? slotSettings = null)
         {
-            var rate = slot switch
+            // Per-block override from JSON takes priority — stored as modifier directly
+            if (slotSettings?.HungerModifier.HasValue == true)
+                return Math.Clamp(slotSettings.HungerModifier.Value, 0.0f, 9.0f);
+
+            // Fall back to config defaults — stored as modifier directly
+            var modifier = slot switch
             {
-                CarrySlot.Hands => config.DefaultHandsRate,
-                CarrySlot.Back => config.DefaultBackRate,
-                _ => 1.0f
+                CarrySlot.Hands => config.DefaultHandsModifier,
+                CarrySlot.Back => config.DefaultBackModifier,
+                _ => 0.0f
             };
 
-            return Math.Clamp(rate, 1.0f, 10.0f);
+            return Math.Clamp(modifier, 0.0f, 9.0f);
         }
 
         public bool IsEnabled(CarrySlot slot, CarryHungerRateConfig config)
