@@ -18,7 +18,7 @@ namespace CarryOn.Common.Logic
             BlockBehaviorCarryable? behavior,
             SlotSettings? slotSettings,
             CarrySlot slot,
-            WalkSpeedOverridesConfig? configured)
+            ModifierOverridesConfig? configured)
         {
             var block = stack?.Block;
 
@@ -62,8 +62,8 @@ namespace CarryOn.Common.Logic
                 : 0.0f;
         }
 
-        private static bool TryResolveByBlockCode(
-            WalkSpeedOverridesConfig configured,
+        internal static bool TryResolveByBlockCode(
+            ModifierOverridesConfig configured,
             Block? block,
             string? carryType,
             CarrySlot slot,
@@ -78,7 +78,7 @@ namespace CarryOn.Common.Logic
                 return false;
             }
 
-            CarrySlotSpeedConfig? bestConfig = null;
+            SlotModifierConfig? bestConfig = null;
             var bestBlockScore = -1;
             var bestTypeScore = -1;
 
@@ -168,8 +168,8 @@ namespace CarryOn.Common.Logic
             return false;
         }
 
-        private static bool TryResolveByBlockClass(
-            WalkSpeedOverridesConfig? configured,
+        internal static bool TryResolveByBlockClass(
+            ModifierOverridesConfig? configured,
             Block? block,
             CarrySlot slot,
             out float speed)
@@ -191,7 +191,7 @@ namespace CarryOn.Common.Logic
             return TryGetSpeedFromSlotConfig(slotConfig, slot, out speed);
         }
 
-        private static bool TryGetSpeedFromSlotConfig(CarrySlotSpeedConfig? slotConfig, CarrySlot slot, out float speed)
+        internal static bool TryGetSpeedFromSlotConfig(SlotModifierConfig? slotConfig, CarrySlot slot, out float speed)
         {
             speed = 0.0f;
 

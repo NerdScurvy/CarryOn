@@ -17,19 +17,35 @@ namespace CarryOn.Common.Logic
             ItemStack? stack = null,
             BlockBehaviorCarryable? behavior = null)
         {
-            // 1) Per-type override from JSON (e.g. "hungerModifierByBlockType": { "aged": 0.3 })
+            var overrides = config.ModifierOverrides;
+            var block = stack?.Block;
+            var carryType = ResolveCarryType(stack);
+
+            // 1) Config by-block-code overrides (walk speed override pattern)
+            if (overrides != null && WalkSpeedModifierResolver.TryResolveByBlockCode(overrides, block, carryType, slot, out var byCode))
+                return Math.Clamp(byCode, 0.0f, 9.0f);
+
+            // 2) Config by-block-class overrides
+            if (overrides != null && WalkSpeedModifierResolver.TryResolveByBlockClass(overrides, block, slot, out var byClass))
+                return Math.Clamp(byClass, 0.0f, 9.0f);
+
+            // 3) Per-type override from JSON (e.g. "hungerModifierByBlockType": { "aged": 0.3 })
             if (TryResolveByType(stack, slotSettings, out var byType))
                 return Math.Clamp(byType, 0.0f, 9.0f);
 
-            // 2) Per-group override from JSON (e.g. "hungerModifierByGroup": { "compact": 0.1 })
+            // 4) Per-group override from JSON (e.g. "hungerModifierByGroup": { "compact": 0.1 })
             if (TryResolveByGroup(behavior, stack, slotSettings, out var byGroup))
                 return Math.Clamp(byGroup, 0.0f, 9.0f);
 
-            // 3) Plain per-block override from JSON (e.g. "hungerModifier": 0.1)
+            // 5) Plain per-block override from JSON (e.g. "hungerModifier": 0.1)
             if (slotSettings?.HungerModifier.HasValue == true)
                 return Math.Clamp(slotSettings.HungerModifier.Value, 0.0f, 9.0f);
 
-            // 4) Fall back to config defaults
+            // 6) Config slot defaults
+            if (overrides != null && WalkSpeedModifierResolver.TryGetSpeedFromSlotConfig(overrides.SlotDefaults, slot, out var slotDefault))
+                return Math.Clamp(slotDefault, 0.0f, 9.0f);
+
+            // 7) Fall back to config flat defaults
             var modifier = slot switch
             {
                 CarrySlot.Hands => config.DefaultHandsModifier,
