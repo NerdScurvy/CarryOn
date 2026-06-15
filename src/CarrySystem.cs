@@ -196,7 +196,7 @@ namespace CarryOn
                 return;
             }
 
-            var dropConfig = Config.CarryOptions.DropOnDamage;
+            var dropConfig = Config.DropCarriedOnDamage;
             EntityBehaviorDropCarriedOnDamage.CarryManager = CarryManager;
             EntityBehaviorDropCarriedOnDamage.Enabled = dropConfig.Enabled;
             EntityBehaviorDropCarriedOnDamage.DamageThreshold = dropConfig.DamageThreshold;
