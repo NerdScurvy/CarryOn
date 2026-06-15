@@ -72,6 +72,20 @@ namespace CarryOn.Common.Handlers
         private TransferLogic? TransferLogic { get; set; } = null;
 
 
+        private bool CanSprintWhileCarrying(EntityPlayer player)
+        {
+            var cfg = this.config?.CarryWalkSpeed;
+            if (cfg == null) return true;
+
+            var handsCarried = this.CarryManager.GetCarried(player, CarrySlot.Hands);
+            var backCarried = this.CarryManager.GetCarried(player, CarrySlot.Back);
+
+            if (handsCarried != null && !cfg.HandsAllowSprint) return false;
+            if (backCarried != null && !cfg.BackAllowSprint) return false;
+
+            return true;
+        }
+
         /// <summary>
         /// Sets the HUD element for interaction help, so that it can be updated when carrying interactable blocks.
         /// </summary>
@@ -624,9 +638,12 @@ namespace CarryOn.Common.Handlers
                     isInteracting = false;
                     break;
                 case EnumEntityAction.Sprint:
-                    if (this.interactionLogic.AllowSprintWhileCarrying) return;
-                    isInteracting = false;
-                    break;
+                {
+                    var player = this.ClientApi?.World.Player?.Entity;
+                    if (player != null && CanSprintWhileCarrying(player)) return;
+                    handled = EnumHandling.PreventDefault;
+                    return;
+                }
                 default: return;
             }
 

@@ -23,7 +23,6 @@ namespace CarryOn.Server.Logic
             }
             else
             {
-                const int currentVersion = 3;
                 var logger = coreApi.Logger;
 
                 try
@@ -35,7 +34,7 @@ namespace CarryOn.Server.Logic
                     }
                     else
                     {
-                        loadedConfig = new CarryOnConfig(currentVersion);
+                        loadedConfig = new CarryOnConfig(CurrentConfigVersion);
                     }
 
                     // Save the upgraded or default config back to the file
@@ -48,7 +47,7 @@ namespace CarryOn.Server.Logic
                 {
                     // Log the exception and create a default config but not save it
                     logger?.Error("CarryOn: Exception loading config: " + ex);
-                    Config = new CarryOnConfig(currentVersion);
+                    Config = new CarryOnConfig(CurrentConfigVersion);
                 }
 
                 var worldConfig = coreApi.World?.Config;

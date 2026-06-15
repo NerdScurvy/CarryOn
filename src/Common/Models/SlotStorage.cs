@@ -47,11 +47,17 @@ namespace CarryOn.Common.Models
                     settings.AnimationSit = slotProperties["animationSit"].AsString(settings.AnimationSit);
                     settings.AnimationCrouch = slotProperties["animationCrouch"].AsString(settings.AnimationCrouch);
 
-                    if (!BlockBehaviorCarryable.DefaultWalkSpeed.TryGetValue(slot, out var speed)) speed = 0.0F;
+                    if (!CarryCode.Default.WalkSpeedModifier.TryGetValue(slot, out var speed)) speed = 0.0F;
                     settings.WalkSpeedModifier = slotProperties["walkSpeedModifier"].AsFloat(speed);
 
                     settings.WalkSpeedModifierByType = JsonHelper.ParseFloatMap(slotProperties["walkSpeedModifierByBlockType"]);
                     settings.WalkSpeedModifierByGroup = JsonHelper.ParseFloatMap(slotProperties["walkSpeedModifierByGroup"]);
+
+                    settings.HungerModifierByType = JsonHelper.ParseFloatMap(slotProperties["hungerModifierByBlockType"]);
+                    settings.HungerModifierByGroup = JsonHelper.ParseFloatMap(slotProperties["hungerModifierByGroup"]);
+
+                    if (JsonHelper.TryGetFloat(slotProperties, "hungerModifier", out var hungerModifier))
+                        settings.HungerModifier = hungerModifier;
 
                     if (JsonHelper.TryGetString(slotProperties, "enabledCondition", out var e)) settings.EnabledCondition = e;
                     if (JsonHelper.TryGetStringArray(slotProperties, "excludedTypes", out var x)) settings.ExcludedTypes = x;

@@ -12,9 +12,12 @@
 					"carry-barrel"
 				],
 				"slots": {
-					"Hands": {},
+					"Hands": {
+						"hungerModifier": 0.3
+					},
 					"Back": {
-						"enabledCondition": "carryon.CarryablesOnBack.Barrel"
+						"enabledCondition": "carryon.CarryablesOnBack.Barrel",
+						"hungerModifier": 0.4
 					}
 				}
 			}

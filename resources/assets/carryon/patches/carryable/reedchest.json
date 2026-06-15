@@ -15,11 +15,13 @@
 				"slots": {
 					"Hands": {
 						"animation": "carryon:holdlight",
-						"walkSpeedModifier": -0.15
+						"walkSpeedModifier": -0.15,
+						"hungerModifier": 0.05
 					},
 					"Back": {
 						"enabledCondition": "carryon.CarryablesOnBack.ReedChest",
 						"walkSpeedModifier": 0.0,
+						"hungerModifier": 0.1,
 						"excludedTypes": [
 							"aged",
 							"aged2"

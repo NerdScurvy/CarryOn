@@ -29,9 +29,7 @@ namespace CarryOn.Common.Services
         private const string AttrOriginalMeshAngle = "OriginalMeshAngle";
 
         private readonly WalkSpeedModifierResolver walkSpeedModifierResolver = new();
-
-        private bool AllowSprintWhileCarrying => config?.CarryOptions?.AllowSprintWhileCarrying ?? false;
-        private bool IgnoreCarrySpeedPenalty => config?.CarryOptions?.IgnoreCarrySpeedPenalty ?? false;
+        private readonly HungerRateModifierResolver hungerRateModifierResolver = new();
 
         /// <summary>
         /// Gets all carried blocks currently held by the entity across all carry slots.
@@ -229,22 +227,8 @@ namespace CarryOn.Common.Services
 
             if (entity is EntityAgent agent)
             {
-                var speed = 0.0f;
-                if (!IgnoreCarrySpeedPenalty)
-                {
-                    speed = walkSpeedModifierResolver.Resolve(
-                        stack,
-                        behavior,
-                        slotSettings,
-                        slot,
-                        config?.CarryOptions?.WalkSpeedOverrides);
-                }
-
-                if (speed != 0.0F && !AllowSprintWhileCarrying)
-                {
-                    agent.Stats.Set("walkspeed",
-                        CarryOnCode(slot.ToString()), speed, false);
-                }
+                ApplyWalkSpeed(agent, slot, slotSettings, stack, behavior);
+                ApplyHungerRate(agent, slot, slotSettings, stack, behavior);
 
                 if (entity.Api.Side == EnumAppSide.Server)
                 {
@@ -278,6 +262,7 @@ namespace CarryOn.Common.Services
             if (entity is EntityAgent agent)
             {
                 agent.Stats.Remove("walkspeed", CarryOnCode(slot.ToString()));
+                agent.Stats.Remove("hungerrate", CarryOnCode(slot.ToString()));
 
                 if (slot == CarrySlot.Hands) LockedItemSlot.Restore(agent.RightHandItemSlot);
                 if (slot != CarrySlot.Back) LockedItemSlot.Restore(agent.LeftHandItemSlot);
@@ -342,6 +327,58 @@ namespace CarryOn.Common.Services
         {
             if ((player == null) || (player.World.PlayerByUid(player.PlayerUID) is not IServerPlayer serverPlayer)) return;
             LockHotbarSlots(serverPlayer);
+        }
+
+        private void ApplyWalkSpeed(EntityAgent agent, CarrySlot slot, SlotSettings? slotSettings = null, ItemStack? stack = null, BlockBehaviorCarryable? behavior = null)
+        {
+            var walkSpeedConfig = config?.CarryWalkSpeed;
+            if (walkSpeedConfig == null) return;
+
+            if (!walkSpeedModifierResolver.IsEnabled(slot, walkSpeedConfig)) return;
+
+            var speed = walkSpeedModifierResolver.Resolve(
+                stack,
+                behavior,
+                slotSettings,
+                slot,
+                walkSpeedConfig.ModifierOverrides);
+
+            if (speed != 0.0F)
+            {
+                agent.Stats.Set("walkspeed",
+                    CarryOnCode(slot.ToString()), speed, false);
+            }
+        }
+
+        private void ApplyHungerRate(EntityAgent agent, CarrySlot slot, SlotSettings? slotSettings = null, ItemStack? stack = null, BlockBehaviorCarryable? behavior = null)
+        {
+            var hungerRateConfig = config?.CarryHungerRate;
+            if (hungerRateConfig == null) return;
+
+            if (!hungerRateModifierResolver.IsEnabled(slot, hungerRateConfig)) return;
+
+            var modifier = hungerRateModifierResolver.Resolve(stack, behavior, slotSettings, slot, hungerRateConfig);
+            if (modifier <= 0f) return;
+
+            if (hungerRateConfig.MinSaturationThreshold > 0f)
+            {
+                var hunger = agent.GetBehavior("hunger");
+                if (hunger != null)
+                {
+                    var saturationProp = hunger.GetType().GetProperty("Saturation");
+                    if (saturationProp != null)
+                    {
+                        var saturation = (float)saturationProp.GetValue(hunger)!;
+                        if (saturation < hungerRateConfig.MinSaturationThreshold)
+                            modifier = 0f;
+                    }
+                }
+            }
+
+            if (modifier > 0f)
+            {
+                agent.Stats.Set("hungerrate", CarryOnCode(slot.ToString()), modifier, true);
+            }
         }
 
         /// <summary>
