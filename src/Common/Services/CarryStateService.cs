@@ -35,8 +35,8 @@ namespace CarryOn.Common.Services
         {
             return slot switch
             {
-                CarrySlot.Hands => config.InHandsAllowSprint,
-                CarrySlot.Back => config.OnBackAllowSprint,
+                CarrySlot.Hands => config.HandsAllowSprint,
+                CarrySlot.Back => config.BackAllowSprint,
                 _ => false
             };
         }

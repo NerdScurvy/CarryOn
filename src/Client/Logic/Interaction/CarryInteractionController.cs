@@ -22,7 +22,6 @@ namespace CarryOn.Client.Logic.Interaction
         }
 
         public bool RemoveInteractDelayWhileCarrying => validator.RemoveInteractDelayWhileCarrying;
-        public bool AllowSprintWhileCarrying => validator.AllowSprintWhileCarrying;
         public bool BackSlotEnabled => validator.BackSlotEnabled;
         public float InteractSpeedMultiplier => validator.InteractSpeedMultiplier;
 
