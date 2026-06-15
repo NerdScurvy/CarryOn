@@ -29,7 +29,7 @@ namespace CarryOn.Common.Services
         private const string AttrOriginalMeshAngle = "OriginalMeshAngle";
 
         private readonly WalkSpeedModifierResolver walkSpeedModifierResolver = new();
-        private readonly HungerDrainRateResolver hungerDrainRateResolver = new();
+        private readonly HungerRateModifierResolver hungerRateModifierResolver = new();
 
         private bool AllowSprintWhileCarrying => config?.CarryOptions?.AllowSprintWhileCarrying ?? false;
         private bool IgnoreCarrySpeedPenalty => config?.CarryOptions?.IgnoreCarrySpeedPenalty ?? false;
@@ -353,9 +353,9 @@ namespace CarryOn.Common.Services
             var hungerRateConfig = config?.CarryHungerRate;
             if (hungerRateConfig == null) return;
 
-            if (!hungerDrainRateResolver.IsEnabled(slot, hungerRateConfig)) return;
+            if (!hungerRateModifierResolver.IsEnabled(slot, hungerRateConfig)) return;
 
-            var modifier = hungerDrainRateResolver.Resolve(slot, hungerRateConfig, slotSettings, stack, behavior);
+            var modifier = hungerRateModifierResolver.Resolve(stack, behavior, slotSettings, slot, hungerRateConfig);
             if (modifier <= 0f) return;
 
             if (hungerRateConfig.MinSaturationThreshold > 0f)

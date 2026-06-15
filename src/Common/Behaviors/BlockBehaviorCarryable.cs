@@ -46,12 +46,6 @@ namespace CarryOn.Common.Behaviors
             ScaleXYZ = new Vec3f(0.5F, 0.5F, 0.5F)
         };
 
-        public static readonly IReadOnlyDictionary<CarrySlot, float> DefaultWalkSpeed
-            = new Dictionary<CarrySlot, float> {
-                { CarrySlot.Hands    , -0.25F },
-                { CarrySlot.Back     , -0.15F }
-            };
-
         public static readonly IReadOnlyDictionary<CarrySlot, string> DefaultAnimation
             = new Dictionary<CarrySlot, string> {
                 { CarrySlot.Hands    , CarryOnCode("holdheavy") }
