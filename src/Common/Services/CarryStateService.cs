@@ -247,7 +247,7 @@ namespace CarryOn.Common.Services
                         CarryOnCode(slot.ToString()), speed, false);
                 }
 
-                ApplyHungerRate(agent, slot, slotSettings);
+                ApplyHungerRate(agent, slot, slotSettings, stack, behavior);
 
                 if (entity.Api.Side == EnumAppSide.Server)
                 {
@@ -348,14 +348,14 @@ namespace CarryOn.Common.Services
             LockHotbarSlots(serverPlayer);
         }
 
-        private void ApplyHungerRate(EntityAgent agent, CarrySlot slot, SlotSettings? slotSettings = null)
+        private void ApplyHungerRate(EntityAgent agent, CarrySlot slot, SlotSettings? slotSettings = null, ItemStack? stack = null, BlockBehaviorCarryable? behavior = null)
         {
             var hungerRateConfig = config?.CarryHungerRate;
             if (hungerRateConfig == null) return;
 
             if (!hungerDrainRateResolver.IsEnabled(slot, hungerRateConfig)) return;
 
-            var modifier = hungerDrainRateResolver.Resolve(slot, hungerRateConfig, slotSettings);
+            var modifier = hungerDrainRateResolver.Resolve(slot, hungerRateConfig, slotSettings, stack, behavior);
             if (modifier <= 0f) return;
 
             if (hungerRateConfig.MinSaturationThreshold > 0f)
