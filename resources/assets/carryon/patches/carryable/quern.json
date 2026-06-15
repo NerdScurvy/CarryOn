@@ -11,7 +11,8 @@
 				"interactDelay": 1.0,
 				"slots": {
 					"Hands": {
-						"walkSpeedModifier": -0.4
+						"walkSpeedModifier": -0.4,
+						"hungerModifier": 0.3
 					}
 				}
 			}

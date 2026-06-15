@@ -14,16 +14,18 @@
 				"slots": {
 					"Hands": {
 						"animation": "carryon:holdheavy",
-						"walkSpeedModifier": -0.5
+						"walkSpeedModifier": -0.5,
+						"hungerModifier": 0.3
 					},
 					"Back": {
-						"walkSpeedModifier": -0.3,
 						"enabledCondition": "carryon.CarryablesOnBack.ChestTrunk",
 						"excludedTypes": [
 							"collapsed1",
 							"collapsed2",
 							"collapsed3"
-						]
+						],
+						"walkSpeedModifier": -0.3,
+						"hungerModifier": 0.4
 					}
 				}
 			}

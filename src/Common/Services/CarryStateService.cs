@@ -31,16 +31,6 @@ namespace CarryOn.Common.Services
         private readonly WalkSpeedModifierResolver walkSpeedModifierResolver = new();
         private readonly HungerRateModifierResolver hungerRateModifierResolver = new();
 
-        private static bool CanSprintForSlot(CarrySlot slot, CarryWalkSpeedConfig config)
-        {
-            return slot switch
-            {
-                CarrySlot.Hands => config.HandsAllowSprint,
-                CarrySlot.Back => config.BackAllowSprint,
-                _ => false
-            };
-        }
-
         /// <summary>
         /// Gets all carried blocks currently held by the entity across all carry slots.
         /// </summary>
@@ -237,24 +227,7 @@ namespace CarryOn.Common.Services
 
             if (entity is EntityAgent agent)
             {
-                var speed = 0.0f;
-                var walkSpeedConfig = config?.CarryWalkSpeed;
-                if (walkSpeedConfig != null && walkSpeedModifierResolver.IsEnabled(slot, walkSpeedConfig))
-                {
-                    speed = walkSpeedModifierResolver.Resolve(
-                        stack,
-                        behavior,
-                        slotSettings,
-                        slot,
-                        walkSpeedConfig.ModifierOverrides);
-                }
-
-                if (speed != 0.0F && !CanSprintForSlot(slot, walkSpeedConfig!))
-                {
-                    agent.Stats.Set("walkspeed",
-                        CarryOnCode(slot.ToString()), speed, false);
-                }
-
+                ApplyWalkSpeed(agent, slot, slotSettings, stack, behavior);
                 ApplyHungerRate(agent, slot, slotSettings, stack, behavior);
 
                 if (entity.Api.Side == EnumAppSide.Server)
@@ -354,6 +327,27 @@ namespace CarryOn.Common.Services
         {
             if ((player == null) || (player.World.PlayerByUid(player.PlayerUID) is not IServerPlayer serverPlayer)) return;
             LockHotbarSlots(serverPlayer);
+        }
+
+        private void ApplyWalkSpeed(EntityAgent agent, CarrySlot slot, SlotSettings? slotSettings = null, ItemStack? stack = null, BlockBehaviorCarryable? behavior = null)
+        {
+            var walkSpeedConfig = config?.CarryWalkSpeed;
+            if (walkSpeedConfig == null) return;
+
+            if (!walkSpeedModifierResolver.IsEnabled(slot, walkSpeedConfig)) return;
+
+            var speed = walkSpeedModifierResolver.Resolve(
+                stack,
+                behavior,
+                slotSettings,
+                slot,
+                walkSpeedConfig.ModifierOverrides);
+
+            if (speed != 0.0F)
+            {
+                agent.Stats.Set("walkspeed",
+                    CarryOnCode(slot.ToString()), speed, false);
+            }
         }
 
         private void ApplyHungerRate(EntityAgent agent, CarrySlot slot, SlotSettings? slotSettings = null, ItemStack? stack = null, BlockBehaviorCarryable? behavior = null)
