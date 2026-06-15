@@ -29,6 +29,7 @@ namespace CarryOn.Common.Services
         private const string AttrOriginalMeshAngle = "OriginalMeshAngle";
 
         private readonly WalkSpeedModifierResolver walkSpeedModifierResolver = new();
+        private readonly HungerDrainRateResolver hungerDrainRateResolver = new();
 
         private bool AllowSprintWhileCarrying => config?.CarryOptions?.AllowSprintWhileCarrying ?? false;
         private bool IgnoreCarrySpeedPenalty => config?.CarryOptions?.IgnoreCarrySpeedPenalty ?? false;
@@ -246,6 +247,8 @@ namespace CarryOn.Common.Services
                         CarryOnCode(slot.ToString()), speed, false);
                 }
 
+                ApplyHungerRate(agent, entity, slot);
+
                 if (entity.Api.Side == EnumAppSide.Server)
                 {
                     if (slot == CarrySlot.Hands) LockedItemSlot.Lock(agent.RightHandItemSlot);
@@ -278,6 +281,7 @@ namespace CarryOn.Common.Services
             if (entity is EntityAgent agent)
             {
                 agent.Stats.Remove("walkspeed", CarryOnCode(slot.ToString()));
+                agent.Stats.Remove("hungerrate", CarryOnCode(slot.ToString()));
 
                 if (slot == CarrySlot.Hands) LockedItemSlot.Restore(agent.RightHandItemSlot);
                 if (slot != CarrySlot.Back) LockedItemSlot.Restore(agent.LeftHandItemSlot);
@@ -342,6 +346,37 @@ namespace CarryOn.Common.Services
         {
             if ((player == null) || (player.World.PlayerByUid(player.PlayerUID) is not IServerPlayer serverPlayer)) return;
             LockHotbarSlots(serverPlayer);
+        }
+
+        private void ApplyHungerRate(EntityAgent agent, Entity entity, CarrySlot slot)
+        {
+            var hungerRateConfig = config?.CarryHungerRate;
+            if (hungerRateConfig == null) return;
+
+            if (!hungerDrainRateResolver.IsEnabled(slot, hungerRateConfig)) return;
+
+            var rate = hungerDrainRateResolver.Resolve(slot, hungerRateConfig);
+            if (rate <= 1.0f) return;
+
+            if (hungerRateConfig.MinSaturationThreshold > 0f)
+            {
+                var hunger = entity.GetBehavior("hunger");
+                if (hunger != null)
+                {
+                    var saturationProp = hunger.GetType().GetProperty("Saturation");
+                    if (saturationProp != null)
+                    {
+                        var saturation = (float)saturationProp.GetValue(hunger)!;
+                        if (saturation < hungerRateConfig.MinSaturationThreshold)
+                            rate = 1.0f;
+                    }
+                }
+            }
+
+            if (rate > 1.0f)
+            {
+                agent.Stats.Set("hungerrate", CarryOnCode(slot.ToString()), rate, true);
+            }
         }
 
         /// <summary>
