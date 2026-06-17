@@ -12,6 +12,7 @@ using Vintagestory.API.Common.Entities;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Server;
+using Vintagestory.GameContent;
 using static CarryOn.API.Common.Models.CarryCode;
 
 namespace CarryOn.Common.Services
@@ -362,17 +363,9 @@ namespace CarryOn.Common.Services
 
             if (hungerRateConfig.MinSaturationThreshold > 0f)
             {
-                var hunger = agent.GetBehavior("hunger");
-                if (hunger != null)
-                {
-                    var saturationProp = hunger.GetType().GetProperty("Saturation");
-                    if (saturationProp != null)
-                    {
-                        var saturation = (float)saturationProp.GetValue(hunger)!;
-                        if (saturation < hungerRateConfig.MinSaturationThreshold)
-                            modifier = 0f;
-                    }
-                }
+                var hunger = agent.GetBehavior<EntityBehaviorHunger>();
+                if (hunger != null && hunger.Saturation < hungerRateConfig.MinSaturationThreshold)
+                    modifier = 0f;
             }
 
             if (modifier > 0f)

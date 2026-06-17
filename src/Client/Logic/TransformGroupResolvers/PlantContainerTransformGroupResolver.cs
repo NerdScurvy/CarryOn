@@ -75,10 +75,7 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
 
             var plantItemStack = containerSlots.GetItemstack("0");
             if (plantItemStack == null)
-            {
-                result = resolveResult;
-                return true;
-            }
+                return false;
 
             if (plantItemStack.Class == EnumItemClass.Block)
             {

@@ -181,8 +181,9 @@ namespace CarryOn
             CarryManager?.RegisterAttachmentTransformGroupResolver(ModId, new ContainerSlotTransformGroupResolverBase());
             CarryManager?.RegisterAttachmentTransformGroupResolver(ModId, new DisplayCaseTransformGroupResolver());
             CarryManager?.RegisterAttachmentTransformGroupResolver(ModId, new MoldRackTransformGroupResolver());
-            CarryManager?.RegisterRootTransformGroupResolver(ModId, new PlantContainerTransformGroupResolver());
-            CarryManager?.RegisterAttachmentTransformGroupResolver(ModId, new PlantContainerTransformGroupResolver());
+            var plantContainerResolver = new PlantContainerTransformGroupResolver();
+            CarryManager?.RegisterRootTransformGroupResolver(ModId, plantContainerResolver);
+            CarryManager?.RegisterAttachmentTransformGroupResolver(ModId, plantContainerResolver);
 
             if (Config.DebuggingOptions.EnablePackAdjustmentTool)
             {
