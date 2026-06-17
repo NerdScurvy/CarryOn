@@ -35,7 +35,7 @@ namespace CarryOn.Client.Logic.Interaction
             ArgumentNullException.ThrowIfNull(setOverlayProgress);
 
             var transferLogic = new TransferLogic(api, carryManager);
-            validator = new CarryInteractionValidator(api, config, transferLogic, this);
+            validator = new CarryInteractionValidator(api, carryManager, config, transferLogic, this);
             stateMachine = new CarryInteractionStateMachine(api, carryManager, clientChannel, hideOverlay, setOverlayProgress, validator, transferLogic, clientModConfig);
         }
 

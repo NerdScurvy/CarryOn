@@ -42,7 +42,7 @@
 						},
 						"hungerModifierByBlockType": {
 							"owl*": 0.04
-						}						
+						}
 					},
 					"Back": {
 						"enabledCondition": "carryon.CarryablesOnBack.Chest",
@@ -64,7 +64,7 @@
 						},
 						"hungerModifierByBlockType": {
 							"owl*": 0.05
-						}									
+						}
 					}
 				}
 			}

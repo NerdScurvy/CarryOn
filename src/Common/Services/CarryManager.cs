@@ -40,24 +40,28 @@ namespace CarryOn.Common.Services
         public CarryOnConfig? Config => CarrySystem?.Config;
 
         /// <inheritdoc/>
-        public void RegisterTransformGroupResolver(string modId, ICarriedTransformGroupResolver resolver)
-            => ResolverRegistry.Register(modId, resolver);
+        public void RegisterRootTransformGroupResolver(string modId, IRootTransformGroupResolver resolver)
+            => ResolverRegistry.RegisterRoot(modId, resolver);
 
         /// <inheritdoc/>
-        public bool TryGetTransformGroupResolver(string resolverCode, out ICarriedTransformGroupResolver? resolver)
-            => ResolverRegistry.TryGetResolver(resolverCode, out resolver);
+        public bool TryGetRootTransformGroupResolver(string resolverCode, out IRootTransformGroupResolver? resolver)
+            => ResolverRegistry.TryGetRootResolver(resolverCode, out resolver);
 
         /// <inheritdoc/>
-        public bool TryGetTransformGroupResolverRegistration(string resolverCode, out RegisteredTransformGroupResolver? registration)
-            => ResolverRegistry.TryGetRegistration(resolverCode, out registration);
+        public void RegisterAttachmentTransformGroupResolver(string modId, IAttachmentTransformGroupResolver resolver)
+            => ResolverRegistry.RegisterAttachment(modId, resolver);
 
         /// <inheritdoc/>
-        public bool UnregisterTransformGroupResolver(ICarriedTransformGroupResolver resolver)
-            => ResolverRegistry.Unregister(resolver);
+        public bool TryGetAttachmentTransformGroupResolver(string resolverCode, out IAttachmentTransformGroupResolver? resolver)
+            => ResolverRegistry.TryGetAttachmentResolver(resolverCode, out resolver);
 
         /// <inheritdoc/>
-        public IReadOnlyList<RegisteredTransformGroupResolver> GetTransformGroupResolvers()
-            => ResolverRegistry.GetAll();
+        public bool UnregisterRootTransformGroupResolver(IRootTransformGroupResolver resolver)
+            => ResolverRegistry.UnregisterRoot(resolver);
+
+        /// <inheritdoc/>
+        public bool UnregisterAttachmentTransformGroupResolver(IAttachmentTransformGroupResolver resolver)
+            => ResolverRegistry.UnregisterAttachment(resolver);
 
         /// <inheritdoc/>
         public IEnumerable<CarriedBlock> GetAllCarried(Entity entity)

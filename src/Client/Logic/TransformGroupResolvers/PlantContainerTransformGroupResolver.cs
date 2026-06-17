@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
@@ -12,7 +13,7 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
     /// Transform group resolver for plant containers. 
     /// It handles blocks that are plant containers or flower pots and generates candidate transform groups based on the type of plant contained within.
     /// </summary>
-    public class PlantContainerTransformGroupResolver : ICarriedTransformGroupResolver
+    public class PlantContainerTransformGroupResolver : IRootTransformGroupResolver, IAttachmentTransformGroupResolver
     {
         public string ResolverCode => "plant-container";
 
@@ -24,32 +25,58 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
         private static readonly Regex CactusFamilyRegex = new("^(?<family>[^-]*cactus)(?:-(?<variant>.+))?$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
         private static readonly Regex TallPlantTypeRegex = new("^(?<plant>tallgrass)(?:-.*)?$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
-        public bool TryResolve(ICoreAPI api, CarriedBlock carried, string baseGroup, out CarriedGroupResolution? resolution)
+        bool IRootTransformGroupResolver.TryResolve(ICoreAPI api, CarriedBlock carried, string baseGroup, out IList<string>? candidates)
         {
-            resolution = null;
+            candidates = null;
 
             if (api?.World == null || carried?.Block == null || string.IsNullOrEmpty(baseGroup))
-            {
                 return false;
-            }
 
-            var containerSlots = TransformGroupResolverHelper.GetContainerSlots(carried);
-
+            var containerSlots = BlockUtils.GetContainerSlots(carried);
             if (containerSlots == null || containerSlots.Count == 0)
-            {
                 return false;
-            }
 
             var plantedGroup = "planted";
-
             var primaryGroup = $"{baseGroup}-{plantedGroup}";
-            var result = new CarriedGroupResolution();
-            result.PrimaryGroupCandidates.Add(primaryGroup);
+
+            var list = new List<string> { primaryGroup };
+
+            var plantItemStack = containerSlots.GetItemstack("0");
+            if (plantItemStack != null && plantItemStack.Class == EnumItemClass.Block)
+            {
+                var plantBlock = api.World.GetBlock(plantItemStack.Id);
+                if (plantBlock != null)
+                    PopulatePrimaryCandidates(list, api, carried, plantBlock, primaryGroup, plantedGroup);
+            }
+            else if (plantItemStack != null && plantItemStack.Class == EnumItemClass.Item)
+            {
+                var plantItem = api.World.GetItem(plantItemStack.Id);
+                if (plantItem is not null && plantItem.GetType().Name == "ItemCattailRoot")
+                    PopulateCattailPrimaryCandidates(list, plantItem, primaryGroup, plantedGroup);
+            }
+
+            candidates = list;
+            return true;
+        }
+
+        bool IAttachmentTransformGroupResolver.TryResolve(ICoreAPI api, CarriedBlock carried, string baseGroup, out AttachmentResolveResult? result)
+        {
+            result = null;
+
+            if (api?.World == null || carried?.Block == null || string.IsNullOrEmpty(baseGroup))
+                return false;
+
+            var containerSlots = BlockUtils.GetContainerSlots(carried);
+            if (containerSlots == null || containerSlots.Count == 0)
+                return false;
+
+            var plantedGroup = "planted";
+            var resolveResult = new AttachmentResolveResult();
 
             var plantItemStack = containerSlots.GetItemstack("0");
             if (plantItemStack == null)
             {
-                resolution = result;
+                result = resolveResult;
                 return true;
             }
 
@@ -57,92 +84,128 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
             {
                 var plantBlock = api.World.GetBlock(plantItemStack.Id);
                 if (plantBlock != null)
-                {
-                    DispatchBlockPlantType(result, api, carried, plantBlock, primaryGroup, plantedGroup);
-                }
+                    PopulateAttachmentCandidates(resolveResult, api, carried, plantBlock, plantedGroup);
             }
             else if (plantItemStack.Class == EnumItemClass.Item)
             {
                 var plantItem = api.World.GetItem(plantItemStack.Id);
                 if (plantItem is not null && plantItem.GetType().Name == "ItemCattailRoot")
-                {
-                    ResolveCattailRoot(result, plantItem, primaryGroup, plantedGroup);
-                }
+                    PopulateCattailAttachmentCandidates(resolveResult, plantItem, plantedGroup);
             }
 
-            if (result.AdditionalGroupCandidates.Count > 0)
-            {
-                result.EnableVertexWarpForAdditionalTransforms = true;
-            }
+            if (resolveResult.Candidates.Count > 0)
+                resolveResult.EnableVertexWarp = true;
 
-            resolution = result;
+            result = resolveResult;
             return true;
         }
 
-        private void DispatchBlockPlantType(CarriedGroupResolution result, ICoreAPI api, CarriedBlock carried, Block plantBlock, string primaryGroup, string plantedGroup)
+        private void PopulatePrimaryCandidates(IList<string> candidates, ICoreAPI api, CarriedBlock carried, Block plantBlock, string primaryGroup, string plantedGroup)
         {
             if (plantBlock.Class == "BlockSapling")
             {
-                ResolveSapling(result, plantBlock, primaryGroup, plantedGroup);
+                var saplingType = ExtractSaplingType(plantBlock.Code?.Path);
+                candidates.Add(primaryGroup + "-sapling");
+                if (!string.IsNullOrEmpty(saplingType))
+                    candidates.Add(primaryGroup + "-sapling-" + saplingType);
             }
             else if (plantBlock.Class == "BlockPlant" && IsCrotonCode(plantBlock.Code?.Path))
             {
-                ResolveCroton(result, plantBlock, primaryGroup, plantedGroup);
+                var crotonType = ExtractCrotonType(plantBlock.Code?.Path);
+                candidates.Add(primaryGroup + "-croton");
+                if (!string.IsNullOrEmpty(crotonType))
+                    candidates.Add(primaryGroup + "-croton-" + crotonType);
             }
             else if (IsCactusCode(plantBlock.Code?.Path))
             {
-                ResolveCactus(result, api, carried, plantBlock, primaryGroup, plantedGroup);
+                var cactusFamily = ExtractCactusFamily(plantBlock.Code?.Path);
+                candidates.Add(primaryGroup + "-cactus");
+                if (!string.IsNullOrEmpty(cactusFamily))
+                    candidates.Add(primaryGroup + "-cactus-" + cactusFamily);
             }
             else if (plantBlock.Class == "BlockPlant" && IsTallFernCode(plantBlock.Code?.Path))
             {
-                ResolveTallFern(result, carried, primaryGroup, plantedGroup);
+                candidates.Add(primaryGroup + "-fern");
+                candidates.Add(primaryGroup + "-fern-tallfern");
             }
             else if (plantBlock.Class is "BlockLupine" or "BlockPlant")
             {
-                ResolveFlowerOrLupine(result, plantBlock, primaryGroup, plantedGroup);
+                var flowerType = ExtractFlowerType(plantBlock.Code?.Path);
+                if (!string.IsNullOrEmpty(flowerType))
+                {
+                    candidates.Add(primaryGroup + "-flower");
+                    if (plantBlock.Class == "BlockLupine")
+                    {
+                        candidates.Add(primaryGroup + "-lupine");
+                        candidates.Add(primaryGroup + "-lupine-" + flowerType);
+                    }
+                    else
+                    {
+                        candidates.Add(primaryGroup + "-flower-" + flowerType);
+                    }
+                }
             }
             else if (plantBlock.Class == "BlockMushroom")
             {
-                ResolveMushroom(result, plantBlock, carried, primaryGroup, plantedGroup);
+                var mushroomType = ExtractMushroomType(plantBlock.Code?.Path);
+                candidates.Add(primaryGroup + "-mushroom");
+                if (!string.IsNullOrEmpty(mushroomType))
+                    candidates.Add(primaryGroup + "-mushroom-" + mushroomType);
             }
             else if (plantBlock.Class == "BlockFern")
             {
-                ResolveFern(result, plantBlock, carried, primaryGroup, plantedGroup);
+                var fernType = ExtractFernType(plantBlock.Code?.Path);
+                candidates.Add(primaryGroup + "-fern");
+                if (!string.IsNullOrEmpty(fernType))
+                    candidates.Add(primaryGroup + "-fern-" + fernType);
             }
         }
 
-        private void ResolveSapling(CarriedGroupResolution result, Block plantBlock, string primaryGroup, string plantedGroup)
+        private void PopulateCattailPrimaryCandidates(IList<string> candidates, Item plantItem, string primaryGroup, string plantedGroup)
         {
-            PrependPrimaryCandidate(result, primaryGroup + "-sapling");
+            var plantCodePath = plantItem.Code?.Path ?? string.Empty;
+            var baseType = plantCodePath.EndsWith("root", StringComparison.Ordinal)
+                ? plantCodePath.Substring(0, plantCodePath.Length - 4)
+                : plantCodePath;
 
+            candidates.Add(primaryGroup + "-reed-" + baseType);
+            candidates.Add(primaryGroup + "-reed");
+        }
+
+        private void PopulateAttachmentCandidates(AttachmentResolveResult result, ICoreAPI api, CarriedBlock carried, Block plantBlock, string plantedGroup)
+        {
+            if (plantBlock.Class == "BlockSapling")
+                AddSaplingCandidates(result, plantBlock, plantedGroup);
+            else if (plantBlock.Class == "BlockPlant" && IsCrotonCode(plantBlock.Code?.Path))
+                AddCrotonCandidates(result, plantBlock, plantedGroup);
+            else if (IsCactusCode(plantBlock.Code?.Path))
+                AddCactusCandidates(result, api, carried, plantBlock, plantedGroup);
+            else if (plantBlock.Class == "BlockPlant" && IsTallFernCode(plantBlock.Code?.Path))
+                AddTallFernCandidates(result, carried, plantedGroup);
+            else if (plantBlock.Class is "BlockLupine" or "BlockPlant")
+                AddFlowerOrLupineCandidates(result, plantBlock, plantedGroup);
+            else if (plantBlock.Class == "BlockMushroom")
+                AddMushroomCandidates(result, plantBlock, carried, plantedGroup);
+            else if (plantBlock.Class == "BlockFern")
+                AddFernCandidates(result, plantBlock, carried, plantedGroup);
+        }
+
+        private void AddSaplingCandidates(AttachmentResolveResult result, Block plantBlock, string plantedGroup)
+        {
             var saplingType = ExtractSaplingType(plantBlock.Code?.Path);
-
-            if (!string.IsNullOrEmpty(saplingType))
-            {
-                PrependPrimaryCandidate(result, primaryGroup + "-sapling-" + saplingType);
-            }
-
             var saplingGroup = plantedGroup + "-sapling";
             if (!string.IsNullOrEmpty(saplingType))
             {
-                result.AdditionalGroupCandidates.Add(new CarriedGroupCandidateSet
+                result.Candidates.Add(new CarriedGroupCandidateSet
                 {
                     Groups = { saplingGroup + "-" + saplingType }
                 });
             }
         }
 
-        private void ResolveCroton(CarriedGroupResolution result, Block plantBlock, string primaryGroup, string plantedGroup)
+        private void AddCrotonCandidates(AttachmentResolveResult result, Block plantBlock, string plantedGroup)
         {
-            PrependPrimaryCandidate(result, primaryGroup + "-croton");
-
             var crotonType = ExtractCrotonType(plantBlock.Code?.Path);
-
-            if (!string.IsNullOrEmpty(crotonType))
-            {
-                PrependPrimaryCandidate(result, primaryGroup + "-croton-" + crotonType);
-            }
-
             var crotonGroup = plantedGroup + "-croton";
 
             var groupCandidates = new CarriedGroupCandidateSet
@@ -154,25 +217,15 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
             };
 
             if (!string.IsNullOrEmpty(crotonType))
-            {
                 groupCandidates.Groups.Add(crotonGroup + "-" + crotonType);
-            }
 
             groupCandidates.Groups.Add(crotonGroup);
-            result.AdditionalGroupCandidates.Add(groupCandidates);
+            result.Candidates.Add(groupCandidates);
         }
 
-        private void ResolveCactus(CarriedGroupResolution result, ICoreAPI api, CarriedBlock carried, Block plantBlock, string primaryGroup, string plantedGroup)
+        private void AddCactusCandidates(AttachmentResolveResult result, ICoreAPI api, CarriedBlock carried, Block plantBlock, string plantedGroup)
         {
-            PrependPrimaryCandidate(result, primaryGroup + "-cactus");
-
             var cactusFamily = ExtractCactusFamily(plantBlock.Code?.Path);
-
-            if (!string.IsNullOrEmpty(cactusFamily))
-            {
-                PrependPrimaryCandidate(result, primaryGroup + "-cactus-" + cactusFamily);
-            }
-
             var cactusGroup = plantedGroup + "-cactus";
 
             var groupCandidates = new CarriedGroupCandidateSet
@@ -184,21 +237,15 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
             };
 
             if (!string.IsNullOrEmpty(cactusFamily))
-            {
                 groupCandidates.Groups.Add(cactusGroup + "-" + cactusFamily);
-            }
 
             groupCandidates.Groups.Add(cactusGroup);
-            result.AdditionalGroupCandidates.Add(groupCandidates);
+            result.Candidates.Add(groupCandidates);
         }
 
-        private void ResolveTallFern(CarriedGroupResolution result, CarriedBlock carried, string primaryGroup, string plantedGroup)
+        private void AddTallFernCandidates(AttachmentResolveResult result, CarriedBlock carried, string plantedGroup)
         {
             const string tallFernType = "tallfern";
-
-            PrependPrimaryCandidate(result, primaryGroup + "-fern");
-            PrependPrimaryCandidate(result, primaryGroup + "-fern-" + tallFernType);
-
             var fernGroup = plantedGroup + "-fern";
             var useLargeFernVariant = IsLargePlantContainer(carried.Block);
 
@@ -210,28 +257,13 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
 
             groupCandidates.Groups.Add(fernGroup + "-" + tallFernType);
             groupCandidates.Groups.Add(fernGroup);
-            result.AdditionalGroupCandidates.Add(groupCandidates);
+            result.Candidates.Add(groupCandidates);
         }
 
-        private void ResolveFlowerOrLupine(CarriedGroupResolution result, Block plantBlock, string primaryGroup, string plantedGroup)
+        private void AddFlowerOrLupineCandidates(AttachmentResolveResult result, Block plantBlock, string plantedGroup)
         {
             var flowerType = ExtractFlowerType(plantBlock.Code?.Path);
             var flowerGroup = plantedGroup + "-flower";
-
-            if (!string.IsNullOrEmpty(flowerType))
-            {
-                PrependPrimaryCandidate(result, primaryGroup + "-flower");
-
-                if (plantBlock.Class == "BlockLupine")
-                {
-                    PrependPrimaryCandidate(result, primaryGroup + "-lupine");
-                    PrependPrimaryCandidate(result, primaryGroup + "-lupine-" + flowerType);
-                }
-                else
-                {
-                    PrependPrimaryCandidate(result, primaryGroup + "-flower-" + flowerType);
-                }
-            }
 
             var groupCandidates = new CarriedGroupCandidateSet
             {
@@ -246,22 +278,15 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
             }
 
             groupCandidates.Groups.Add(flowerGroup);
-            result.AdditionalGroupCandidates.Add(groupCandidates);
+            result.Candidates.Add(groupCandidates);
         }
 
-        private void ResolveMushroom(CarriedGroupResolution result, Block plantBlock, CarriedBlock carried, string primaryGroup, string plantedGroup)
+        private void AddMushroomCandidates(AttachmentResolveResult result, Block plantBlock, CarriedBlock carried, string plantedGroup)
         {
-            PrependPrimaryCandidate(result, primaryGroup + "-mushroom");
-
             var mushroomType = ExtractMushroomType(plantBlock.Code?.Path);
             var mushroomGroup = plantedGroup + "-mushroom";
             var mushroomCode = plantBlock.Code?.Path;
             var useLargeMushroomVariant = IsLargePlantContainer(carried.Block);
-
-            if (!string.IsNullOrEmpty(mushroomType))
-            {
-                PrependPrimaryCandidate(result, primaryGroup + "-mushroom-" + mushroomType);
-            }
 
             var groupCandidates = new CarriedGroupCandidateSet
             {
@@ -272,26 +297,17 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
             };
 
             if (!string.IsNullOrEmpty(mushroomType))
-            {
                 groupCandidates.Groups.Add(mushroomGroup + "-" + mushroomType);
-            }
 
             groupCandidates.Groups.Add(mushroomGroup);
-            result.AdditionalGroupCandidates.Add(groupCandidates);
+            result.Candidates.Add(groupCandidates);
         }
 
-        private void ResolveFern(CarriedGroupResolution result, Block plantBlock, CarriedBlock carried, string primaryGroup, string plantedGroup)
+        private void AddFernCandidates(AttachmentResolveResult result, Block plantBlock, CarriedBlock carried, string plantedGroup)
         {
-            PrependPrimaryCandidate(result, primaryGroup + "-fern");
-
             var fernType = ExtractFernType(plantBlock.Code?.Path);
             var fernGroup = plantedGroup + "-fern";
             var useLargeFernVariant = IsLargePlantContainer(carried.Block);
-
-            if (!string.IsNullOrEmpty(fernType))
-            {
-                PrependPrimaryCandidate(result, primaryGroup + "-fern-" + fernType);
-            }
 
             var groupCandidates = new CarriedGroupCandidateSet
             {
@@ -302,15 +318,13 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
             };
 
             if (!string.IsNullOrEmpty(fernType))
-            {
                 groupCandidates.Groups.Add(fernGroup + "-" + fernType);
-            }
 
             groupCandidates.Groups.Add(fernGroup);
-            result.AdditionalGroupCandidates.Add(groupCandidates);
+            result.Candidates.Add(groupCandidates);
         }
 
-        private void ResolveCattailRoot(CarriedGroupResolution result, Item plantItem, string primaryGroup, string plantedGroup)
+        private void PopulateCattailAttachmentCandidates(AttachmentResolveResult result, Item plantItem, string plantedGroup)
         {
             var plantCodePath = plantItem.Code?.Path ?? string.Empty;
             var baseType = plantCodePath.EndsWith("root", StringComparison.Ordinal)
@@ -320,12 +334,9 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
             var reedGroup = plantedGroup + "-reed";
             var typeGroup = reedGroup + "-" + baseType;
 
-            PrependPrimaryCandidate(result, primaryGroup + "-reed-" + baseType);
-            PrependPrimaryCandidate(result, primaryGroup + "-reed");
-
             var candidates = new CarriedGroupCandidateSet();
             candidates.Groups.Add(typeGroup);
-            result.AdditionalGroupCandidates.Add(candidates);
+            result.Candidates.Add(candidates);
         }
 
         private string? ExtractSaplingType(string? codePath)
@@ -395,58 +406,33 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
                 && codePath.StartsWith("tallfern", StringComparison.Ordinal);
         }
 
-        private void PrependPrimaryCandidate(CarriedGroupResolution result, string group)
-        {
-            if (result == null || string.IsNullOrEmpty(group))
-            {
-                return;
-            }
-
-            if (result.PrimaryGroupCandidates.Contains(group))
-            {
-                return;
-            }
-
-            result.PrimaryGroupCandidates.Insert(0, group);
-        }
-
         private bool IsLargePlantContainer(Block? containerBlock)
         {
             if (containerBlock == null)
-            {
                 return false;
-            }
 
             var size = containerBlock.Attributes?["plantContainerSize"]?.AsString(null);
             if (!string.IsNullOrEmpty(size))
-            {
                 return size.Equals("large", StringComparison.OrdinalIgnoreCase);
-            }
 
             var codePath = containerBlock.Code?.Path;
             if (string.IsNullOrEmpty(codePath))
-            {
                 return false;
-            }
 
             if (codePath.IndexOf("flowerpot", StringComparison.OrdinalIgnoreCase) >= 0)
-            {
                 return false;
-            }
 
             return codePath.IndexOf("planter", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
-        public string? GetCacheSignature(ICoreAPI api, CarriedBlock carried, string baseGroup, CarriedGroupResolution? resolution)
+        public string? GetCacheSignature(ICoreAPI api, CarriedBlock carried, string baseGroup)
         {
-            var slots = TransformGroupResolverHelper.GetContainerSlots(carried);
+            var slots = BlockUtils.GetContainerSlots(carried);
             var plantStack = slots?.GetItemstack("0");
             var isLarge = IsLargePlantContainer(carried?.Block) ? "1" : "0";
 
             if (plantStack == null)
-            {
                 return "slot0=empty|large=" + isLarge;
-            }
 
             return string.Concat(
                 "slot0:",

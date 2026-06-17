@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
@@ -12,6 +13,13 @@ namespace CarryOn.Common.Behaviors
     ///           said block to be picked up by players and carried around. </summary>
     public class BlockBehaviorCarryableInteract : BlockBehavior, IConditionalBlockBehavior
     {
+        private static ICarryManager? carryManager;
+
+        public static void Init(ICarryManager manager)
+        {
+            carryManager = manager ?? throw new ArgumentNullException(nameof(manager));
+        }
+
         public static string Name { get; } = "CarryableInteract";
 
         public float InteractDelay { get; private set; } = Default.InteractSpeed;
@@ -59,7 +67,7 @@ namespace CarryOn.Common.Behaviors
             if (AllowedCarryables.Count == 0) return true;
             if (player?.Entity == null) return false;
 
-            var carried = player.Entity.GetCarried(CarrySlot.Hands);
+            var carried = carryManager?.GetCarried(player.Entity, CarrySlot.Hands);
             var block = carried?.Block;
             if (block == null) return false;
 

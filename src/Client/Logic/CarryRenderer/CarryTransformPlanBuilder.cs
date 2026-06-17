@@ -19,18 +19,8 @@ namespace CarryOn.Client.Logic.CarryRenderer
         public bool ApplyOnDisplayTransform { get; init; }
     }
 
-    internal sealed class CarryTransformPlanBuilder
+    internal sealed class CarryTransformPlanBuilder(ICoreClientAPI api, ICarryManager carryManager, CarryRenderCache cache)
     {
-        private readonly ICoreClientAPI api;
-        private readonly ICarryManager carryManager;
-        private readonly CarryRenderCache cache;
-
-        internal CarryTransformPlanBuilder(ICoreClientAPI api, ICarryManager carryManager, CarryRenderCache cache)
-        {
-            this.api = api;
-            this.carryManager = carryManager;
-            this.cache = cache;
-        }
 
         internal CachedTransformPlan GetOrBuild(CarriedBlock carried, string transformsGroupBase)
         {
@@ -52,35 +42,58 @@ namespace CarryOn.Client.Logic.CarryRenderer
 
             var primaryGroupCandidates = new List<string> { transformsGroup };
             string? matchedResolverCode = null;
-            string? resolverCacheSignature = null;
-            CarriedGroupResolution? matchedResolution = null;
-            var requestedResolverCode = carryBehavior.TransformGroupResolver;
+            var rootCacheSig = new System.Text.StringBuilder(128);
+            var attachmentCandidates = new List<CarriedGroupCandidateSet>();
+            bool enableVertexWarp = false;
 
-            if (!string.IsNullOrEmpty(requestedResolverCode)
-                && carryManager?.TryGetTransformGroupResolver(requestedResolverCode, out var resolver) == true && resolver != null)
+            // Determine resolver codes
+            var rootGroupResolverCode = carryBehavior.RootGroupResolver ?? carryBehavior.TransformGroupResolver;
+            var attachmentResolverCode = carryBehavior.AttachmentGroupResolver ?? carryBehavior.TransformGroupResolver;
+
+            // Run primary resolver
+            if (!string.IsNullOrEmpty(rootGroupResolverCode)
+                && carryManager?.TryGetRootTransformGroupResolver(rootGroupResolverCode, out var primaryResolver) == true
+                && primaryResolver != null)
             {
-                if (resolver.TryResolve(this.api, carried, transformsGroup, out var resolution) && resolution != null)
+                if (primaryResolver.TryResolve(api, carried, transformsGroup, out var candidates)
+                    && candidates != null && candidates.Count > 0)
                 {
-                    matchedResolverCode = resolver.ResolverCode;
-                    resolverCacheSignature = resolver.GetCacheSignature(this.api, carried, transformsGroup, resolution);
-                    matchedResolution = resolution;
-
-                    if (resolution.PrimaryGroupCandidates != null && resolution.PrimaryGroupCandidates.Count > 0)
-                    {
-                        primaryGroupCandidates = [.. resolution.PrimaryGroupCandidates];
-                    }
-                    else if (!string.IsNullOrEmpty(resolution.PrimaryGroup))
-                    {
-                        primaryGroupCandidates = [resolution.PrimaryGroup];
-                    }
+                    matchedResolverCode = primaryResolver.ResolverCode;
+                    primaryGroupCandidates = [.. candidates];
                 }
+
+                var sig = primaryResolver.GetCacheSignature(api, carried, transformsGroup);
+                if (!string.IsNullOrEmpty(sig))
+                    rootCacheSig.Append("root=").Append(sig);
             }
+
+            // Run attachment resolver
+            if (!string.IsNullOrEmpty(attachmentResolverCode)
+                && carryManager?.TryGetAttachmentTransformGroupResolver(attachmentResolverCode, out var attachmentResolver) == true
+                && attachmentResolver != null)
+            {
+                if (attachmentResolver.TryResolve(api, carried, transformsGroup, out var result)
+                    && result != null && result.Candidates.Count > 0)
+                {
+                    matchedResolverCode = matchedResolverCode != null
+                        ? matchedResolverCode + "+" + attachmentResolver.ResolverCode
+                        : attachmentResolver.ResolverCode;
+                    attachmentCandidates = [.. result.Candidates];
+                    enableVertexWarp = result.EnableVertexWarp;
+                }
+
+                var sig = attachmentResolver.GetCacheSignature(api, carried, transformsGroup);
+                if (!string.IsNullOrEmpty(sig))
+                    rootCacheSig.Append("|attachment=").Append(sig);
+            }
+
+            var combinedCacheSig = rootCacheSig.Length > 0 ? rootCacheSig.ToString() : null;
 
             var signature = CarryRenderHelpers.BuildTransformPlanSignature(
                 carried,
                 transformsGroupBase,
                 matchedResolverCode,
-                resolverCacheSignature);
+                combinedCacheSig);
 
             if (cache.TransformPlans.TryGetValue(signature, out var existing))
             {
@@ -90,13 +103,13 @@ namespace CarryOn.Client.Logic.CarryRenderer
 
             // Cache miss: do expensive materialization only now
             var additionalSettingsList = new List<EffectiveTransformSetting>();
-            if (matchedResolution?.AdditionalGroupCandidates != null && matchedResolution.AdditionalGroupCandidates.Count > 0)
+            if (attachmentCandidates.Count > 0)
             {
                 var resolvedAdditional = ResolveAdditionalSettings(
                     carried,
                     carryBehavior,
-                    matchedResolution.AdditionalGroupCandidates,
-                    matchedResolution.EnableVertexWarpForAdditionalTransforms);
+                    attachmentCandidates,
+                    enableVertexWarp);
 
                 additionalSettingsList.AddRange(resolvedAdditional);
             }

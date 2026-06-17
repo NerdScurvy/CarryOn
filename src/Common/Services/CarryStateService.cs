@@ -256,7 +256,7 @@ namespace CarryOn.Common.Services
         {
             ArgumentNullException.ThrowIfNull(entity);
 
-            var animation = entity.GetCarried(slot)?.GetCarryableBehavior()?.Slots?[slot]?.Animation;
+            var animation = GetCarried(entity, slot)?.GetCarryableBehavior()?.Slots?[slot]?.Animation;
             if (animation != null) entity.StopAnimation(animation);
 
             if (entity is EntityAgent agent)
@@ -299,8 +299,8 @@ namespace CarryOn.Common.Services
             RemoveCarried(entity, first, markDirty: false);
             RemoveCarried(entity, second, markDirty: false);
 
-            carriedFirst?.Set(entity, second, markDirty: false);
-            carriedSecond?.Set(entity, first, markDirty: false);
+            if (carriedFirst != null) SetCarried(entity, carriedFirst, second, markDirty: false);
+            if (carriedSecond != null) SetCarried(entity, carriedSecond, first, markDirty: false);
 
             if (isServer) TouchCarriedAttributes(entity);
             return true;

@@ -1,14 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
 using CarryOn.Utility;
 using Vintagestory.API.Common;
-using Vintagestory.GameContent;
 
 namespace CarryOn.Client.Logic.CarryRenderer
 {
-    public sealed class CarryAnimationSync
+    public sealed class CarryAnimationSync(ICarryManager carryManager)
     {
         private readonly Dictionary<long, HashSet<string>> activeHandCarryAnimationsByEntityId = new();
         private readonly Dictionary<long, HashSet<string>> knownHandCarryAnimationsByEntityId = new();
@@ -32,7 +32,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
             var isSneaking = player.Controls?.Sneak ?? false;
             var isSitting = CarryAnimationResolver.IsSitting(player);
             var desiredAnimations = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            var handsCarried = player.GetCarried(CarrySlot.Hands);
+            var handsCarried = carryManager.GetCarried(player, CarrySlot.Hands);
 
             if (handsCarried != null)
             {

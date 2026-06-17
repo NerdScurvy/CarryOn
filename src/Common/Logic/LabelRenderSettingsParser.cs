@@ -18,9 +18,9 @@ namespace CarryOn.Common.Logic
             var hasAnyValue = false;
 
             var transformJson = transformInChildObject ? json["transform"] : json;
-            if (JsonHelper.HasAnyTransformValue(transformJson))
+            if (ModelTransformParser.HasAnyTransformValue(transformJson))
             {
-                settings.Transform = JsonHelper.GetTransform(transformJson, null);
+                settings.Transform = ModelTransformParser.GetTransform(transformJson, null);
                 hasAnyValue = true;
             }
 
@@ -73,9 +73,9 @@ namespace CarryOn.Common.Logic
             }
 
             var attachedTransformJson = transformInChildObject ? json["attachedTransform"] : json;
-            if (JsonHelper.HasAnyTransformValue(attachedTransformJson))
+            if (ModelTransformParser.HasAnyTransformValue(attachedTransformJson))
             {
-                settings.AttachedTransform = JsonHelper.GetTransform(attachedTransformJson, null);
+                settings.AttachedTransform = ModelTransformParser.GetTransform(attachedTransformJson, null);
                 hasAnyValue = true;
             }
 
@@ -87,8 +87,8 @@ namespace CarryOn.Common.Logic
                     var additional = new List<ModelTransform?>(arr.Length);
                     foreach (var entry in arr)
                     {
-                        if (JsonHelper.HasAnyTransformValue(entry))
-                            additional.Add(JsonHelper.GetTransform(entry, null));
+                        if (ModelTransformParser.HasAnyTransformValue(entry))
+                            additional.Add(ModelTransformParser.GetTransform(entry, null));
                     }
                     if (additional.Count > 0)
                     {

@@ -11,51 +11,40 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
     /// Example: mymod:fancybox-iron-west + baseGroup "hands" =>
     /// hands-fancybox-iron-west, hands-fancybox-iron, hands-fancybox.
     /// </summary>
-    public class GenericCodePathTransformGroupResolver : ICarriedTransformGroupResolver
+    public class GenericCodePathTransformGroupResolver : IRootTransformGroupResolver
     {
         public string ResolverCode => "codepath";
 
-        public bool TryResolve(ICoreAPI api, CarriedBlock carried, string baseGroup, out CarriedGroupResolution? resolution)
+        public bool TryResolve(ICoreAPI api, CarriedBlock carried, string baseGroup, out IList<string>? candidates)
         {
-            resolution = null;
+            candidates = null;
 
             if (carried?.Block?.Code == null || string.IsNullOrWhiteSpace(baseGroup))
-            {
                 return false;
-            }
 
             var codePath = carried.Block.Code.Path;
             if (string.IsNullOrWhiteSpace(codePath))
-            {
                 return false;
-            }
 
             var parts = codePath.Split('-', StringSplitOptions.RemoveEmptyEntries);
             if (parts.Length == 0)
-            {
                 return false;
-            }
 
             var normalizedBaseGroup = baseGroup.ToLowerInvariant();
-            var candidates = new List<string>(parts.Length);
+            var list = new List<string>(parts.Length);
 
             for (var i = parts.Length; i >= 1; i--)
             {
                 var suffix = string.Join('-', parts, 0, i).ToLowerInvariant();
-                candidates.Add(normalizedBaseGroup + "-" + suffix);
+                list.Add(normalizedBaseGroup + "-" + suffix);
             }
 
-            resolution = new CarriedGroupResolution
-            {
-                PrimaryGroupCandidates = candidates
-            };
-
+            candidates = list;
             return true;
         }
 
-        public string? GetCacheSignature(ICoreAPI api, CarriedBlock carried, string baseGroup, CarriedGroupResolution? resolution)
+        public string? GetCacheSignature(ICoreAPI api, CarriedBlock carried, string baseGroup)
         {
-            // Static derivation from block code and base group only; no extra signature needed.
             return string.Empty;
         }
     }

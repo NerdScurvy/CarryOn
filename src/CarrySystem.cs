@@ -11,6 +11,7 @@ using CarryOn.Client.Models;
 using CarryOn.Common.Behaviors;
 using CarryOn.Common.Handlers;
 using CarryOn.Common.Handlers.PackAdjustment;
+using CarryOn.Common.Logic;
 using CarryOn.Server.Behaviors;
 using CarryOn.Server.Logic;
 using CarryOn.Utility;
@@ -113,7 +114,7 @@ namespace CarryOn
             api.Register<BlockBehaviorCarryableInteract>();
             api.Register<EntityBehaviorAttachableCarryable>();
 
-            CarryHandler = new CarryHandler(this.Config, () => this.ClientModConfig?.Config?.CarryOnEnabled ?? true);
+  
             CarryEvents = new CarryEvents
             {
                 OnEventHandlerError = ex => api.World.Logger.Error(ex.ToString())
@@ -123,8 +124,7 @@ namespace CarryOn
             if (CarryOnLib != null)
             {
                 CarryOnLib.CarryManager = new CarryManager(api, this);
-                CarryHandler.CarryManager = CarryOnLib.CarryManager;
-
+                CarryHandler = new CarryHandler(CarryOnLib.CarryManager, this.Config, () => this.ClientModConfig?.Config?.CarryOnEnabled ?? true);
                 HotKeyHandler = new HotKeyHandler(CarryOnLib.CarryManager);
             }
             else
@@ -146,9 +146,12 @@ namespace CarryOn
 
             ClientChannel = api.Network.RegisterChannel(ModId);
 
-           
+            BlockBehaviorCarryableInteract.Init(CarryManager);
+            EntityBehaviorAttachableCarryable.Init(CarryManager);
+            CarryableInteractionHelpBuilder.Init(CarryManager);
+
             HudOverlayRenderer = new HudOverlayRenderer(api);
-            HudCarried = new HudCarried(api);
+            HudCarried = new HudCarried(api, CarryManager);
 
             try
             {
@@ -173,10 +176,13 @@ namespace CarryOn
             CarryManager?.InitEvents(api);
             HotKeyHandler.InitClient(api, this.ClientChannel!, this.ClientModConfig!);
 
-            CarryManager?.RegisterTransformGroupResolver(ModId, new PlantContainerTransformGroupResolver());
-            CarryManager?.RegisterTransformGroupResolver(ModId, new DisplayCaseTransformGroupResolver());
-            CarryManager?.RegisterTransformGroupResolver(ModId, new MoldRackTransformGroupResolver());
-            CarryManager?.RegisterTransformGroupResolver(ModId, new GenericCodePathTransformGroupResolver());
+            CarryManager?.RegisterRootTransformGroupResolver(ModId, new GenericCodePathTransformGroupResolver());
+            CarryManager?.RegisterAttachmentTransformGroupResolver(ModId, new DataAttributeTransformGroupResolver());
+            CarryManager?.RegisterAttachmentTransformGroupResolver(ModId, new ContainerSlotTransformGroupResolverBase());
+            CarryManager?.RegisterAttachmentTransformGroupResolver(ModId, new DisplayCaseTransformGroupResolver());
+            CarryManager?.RegisterAttachmentTransformGroupResolver(ModId, new MoldRackTransformGroupResolver());
+            CarryManager?.RegisterRootTransformGroupResolver(ModId, new PlantContainerTransformGroupResolver());
+            CarryManager?.RegisterAttachmentTransformGroupResolver(ModId, new PlantContainerTransformGroupResolver());
 
             if (Config.DebuggingOptions.EnablePackAdjustmentTool)
             {
@@ -196,14 +202,14 @@ namespace CarryOn
                 return;
             }
 
-            EntityBehaviorDropCarriedOnDamage.CarryManager = CarryManager;
-            EntityBehaviorDropCarriedOnDamage.Config = Config.DropCarriedOnDamage;
+            EntityBehaviorDropCarriedOnDamage.Init(CarryManager, Config.DropCarriedOnDamage);
+            BlockBehaviorCarryableInteract.Init(CarryManager);
             api.Register<EntityBehaviorDropCarriedOnDamage>();
 
             ServerApi = api;
             ServerChannel = api.Network.RegisterChannel(ModId);
 
-            DeathHandler = new DeathHandler(api);
+            DeathHandler = new DeathHandler(api, CarryManager);
             CarryHandler.InitServer(api, this.ServerChannel!);
             CarryManager.InitEvents(api);
             HotKeyHandler.InitServer(api, this.ServerChannel!);

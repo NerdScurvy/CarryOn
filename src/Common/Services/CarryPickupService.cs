@@ -99,7 +99,7 @@ namespace CarryOn.Common.Services
 
             failureCode ??= FailureCode.Ignore;
 
-            if (entity.GetCarried(slot) != null)
+            if (carryManager.GetCarried(entity, slot) != null)
             {
                 failureCode = FailureCode.AlreadyCarrying;
                 return false;

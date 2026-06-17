@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
 using CarryOn.Utility;
 using Vintagestory.API.Common;
@@ -13,26 +14,26 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
     {
         public override string ResolverCode => "moldrack";
 
-        public override bool TryResolve(ICoreAPI api, CarriedBlock carried, string baseGroup, out CarriedGroupResolution? resolution)
+        public override bool TryResolve(ICoreAPI api, CarriedBlock carried, string baseGroup, out AttachmentResolveResult? result)
         {
-            resolution = null;
+            result = null;
 
             if (api?.World == null || carried?.Block == null) return false;
             if (carried.Block.Class is not "BlockMoldRack") return false;
 
-            var containerSlots = TransformGroupResolverHelper.GetContainerSlots(carried);
+            var containerSlots = BlockUtils.GetContainerSlots(carried);
             if (containerSlots == null || containerSlots.Count == 0) return false;
 
-            var result = new CarriedGroupResolution();
-            AddSlotCandidates(api, containerSlots, "moldrack", result);
+            var resolveResult = new AttachmentResolveResult();
+            AddSlotCandidates(api, containerSlots, "moldrack", resolveResult);
 
-            if (result.AdditionalGroupCandidates.Count == 0) return false;
+            if (resolveResult.Candidates.Count == 0) return false;
 
-            resolution = result;
+            result = resolveResult;
             return true;
         }
 
-        protected override void AddSlotCandidates(ICoreAPI api, TreeAttribute containerSlots, string baseGroup, CarriedGroupResolution resolution)
+        protected override void AddSlotCandidates(ICoreAPI api, TreeAttribute containerSlots, string baseGroup, AttachmentResolveResult result)
         {
             foreach (var cSlot in containerSlots)
             {
@@ -42,23 +43,21 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
                 var slotBase = baseGroup + "-slot" + cSlot.Key;
                 var candidate = new CarriedGroupCandidateSet { SourceSlotKey = cSlot.Key };
 
-                // Highest priority: specific shield construction group (e.g. moldrack-slot0-shield-crude)
                 if (TryGetShieldConstruction(api, itemStack, out var shieldConstruction))
                 {
-                    candidate.Groups.Add(slotBase + "-" + shieldConstruction); // moldrack-slotN-shield-*
-                    candidate.Groups.Add(slotBase + "-shield");               // moldrack-slotN-shield
+                    candidate.Groups.Add(slotBase + "-" + shieldConstruction);
+                    candidate.Groups.Add(slotBase + "-shield");
                 }
 
-                // Fallback for all mold-rack items
-                candidate.Groups.Add(slotBase); // moldrack-slotN
+                candidate.Groups.Add(slotBase);
 
-                if (TransformGroupResolverHelper.TryResolveFallbackAsset(api, itemStack, out var assetType, out var assetName))
+                if (AssetResolutionHelper.TryResolveFallbackAsset(api, itemStack, out var assetType, out var assetName))
                 {
                     candidate.AssetTypeIfUnset = assetType;
                     candidate.AssetNameIfUnset = assetName;
                 }
 
-                resolution.AdditionalGroupCandidates.Add(candidate);
+                result.Candidates.Add(candidate);
             }
         }
 
@@ -71,12 +70,6 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
             var path = item?.Code?.Path;
             if (string.IsNullOrEmpty(path) || !path.StartsWith("shield-")) return false;
 
-            // Expected examples:
-            // shield-crude (this is the only case where the shield transform is different)
-            // shield-blackguard
-            // shield-woodmetal-...
-            // shield-woodmetalleather-...
-            // shield-metal-...
             var parts = path.Split('-');
             if (parts.Length < 2) return false;
 
@@ -84,13 +77,11 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
             return true;
         }
 
-        public override string? GetCacheSignature(ICoreAPI api, CarriedBlock carried, string baseGroup, CarriedGroupResolution? resolution)
+        public override string? GetCacheSignature(ICoreAPI api, CarriedBlock carried, string baseGroup)
         {
-            var slots = TransformGroupResolverHelper.GetContainerSlots(carried);
+            var slots = BlockUtils.GetContainerSlots(carried);
             if (slots == null || slots.Count == 0)
-            {
                 return "slots=none";
-            }
 
             var keys = slots.Keys?.ToList() ?? new List<string>();
             keys.Sort(StringComparer.Ordinal);
@@ -114,7 +105,6 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
                 {
                     sb.Append(":").Append(shieldConstruction);
 
-                    // If shield appearance is attribute-driven, include those too.
                     var attrs = stack.Attributes;
                     if (attrs != null)
                     {

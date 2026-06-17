@@ -1,4 +1,5 @@
 using System;
+using CarryOn.API.Common.Interfaces;
 using CarryOn.Common.Behaviors;
 using CarryOn.Client.Models;
 using CarryOn.Utility;
@@ -8,16 +9,8 @@ using Vintagestory.API.MathTools;
 
 namespace CarryOn.Common.Handlers.PackAdjustment
 {
-    internal sealed class PackAdjustmentEditor
+    internal sealed class PackAdjustmentEditor(ICoreClientAPI api, ICarryManager? carryManager, PackAdjustmentHandler handler)
     {
-        private readonly ICoreClientAPI api;
-        private readonly PackAdjustmentHandler handler;
-
-        public PackAdjustmentEditor(ICoreClientAPI api, PackAdjustmentHandler handler)
-        {
-            this.api = api;
-            this.handler = handler;
-        }
 
         public TextCommandResult SetCurrentTransformId(string newId)
         {
@@ -58,7 +51,7 @@ namespace CarryOn.Common.Handlers.PackAdjustment
             {
                 if (isLabelScope) return;
 
-                var currentBehavior = api?.World?.Player?.Entity?.GetCarried(handler.CarrySlot)?.GetCarryableBehavior();
+                var currentBehavior = carryManager?.GetCarried(api?.World?.Player?.Entity!, handler.CarrySlot)?.GetCarryableBehavior();
                 var defaultTransform = currentBehavior?.DefaultTransform ?? BlockBehaviorCarryable.DefaultBlockTransform;
 
                 transform = defaultTransform.Clone();
@@ -85,7 +78,7 @@ namespace CarryOn.Common.Handlers.PackAdjustment
                 handler.SelectedLabelTransform = transform;
             }
 
-            var behavior = api?.World?.Player?.Entity?.GetCarried(handler.CarrySlot)?.GetCarryableBehavior();
+            var behavior = carryManager?.GetCarried(api?.World?.Player?.Entity!, handler.CarrySlot)?.GetCarryableBehavior();
             if (behavior != null)
             {
                 if (isLabelScope)
@@ -113,7 +106,7 @@ namespace CarryOn.Common.Handlers.PackAdjustment
 
             if (handler.CurrentTransformScope == PackAdjustmentHandler.TransformScope.Label)
             {
-                var behavior = api?.World?.Player?.Entity?.GetCarried(handler.CarrySlot)?.GetCarryableBehavior();
+                var behavior = carryManager?.GetCarried(api?.World?.Player?.Entity!, handler.CarrySlot)?.GetCarryableBehavior();
                 var labelCount = PackAdjustmentTransformResolver.GetLabelTransformCount(behavior?.LabelRenderSettings);
                 if (labelCount <= 0)
                 {

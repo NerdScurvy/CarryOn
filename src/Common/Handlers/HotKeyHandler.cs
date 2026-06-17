@@ -14,21 +14,13 @@ namespace CarryOn.Common.Handlers
     /// <summary>
     /// Handles hotkey registrations and actions for toggling CarryOn behavior and quick dropping carried blocks.
     /// </summary>
-    public class HotKeyHandler
+    public class HotKeyHandler(ICarryManager carryManager)
     {
         private ICoreClientAPI? clientApi;
         private IClientNetworkChannel? clientChannel;
         private ClientModConfig? clientModConfig;
 
         public ICoreClientAPI? ClientApi => clientApi;
-
-        private readonly ICarryManager carryManager;
-
-        public HotKeyHandler(ICarryManager carryManager)
-        {
-            ArgumentNullException.ThrowIfNull(carryManager);
-            this.carryManager = carryManager;
-        }
 
         public void InitClient(ICoreClientAPI api, IClientNetworkChannel clientChannel, ClientModConfig clientModConfig)
         {
@@ -161,7 +153,7 @@ namespace CarryOn.Common.Handlers
             var carrySlots = message?.CarrySlots;
             if (entity == null || carrySlots == null) return;
 
-            this.carryManager.DropCarried(entity, carrySlots, 2);
+            carryManager.DropCarried(entity, carrySlots, 2);
         }
 
         /// <summary>

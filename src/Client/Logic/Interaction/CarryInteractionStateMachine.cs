@@ -82,8 +82,8 @@ namespace CarryOn.Client.Logic.Interaction
             if (Interaction.CarryAction != CarryAction.Interact && !player.Entity.CanInteract(requireEmptyHanded: requireEmpty))
             { CancelInteraction(resetTimeHeld: true); return; }
 
-            var carriedTarget = Interaction.CarrySlot.HasValue ? player.Entity.GetCarried(Interaction.CarrySlot.Value) : null;
-            var holdingAny = player.Entity.GetCarried(CarrySlot.Hands);
+            var carriedTarget = Interaction.CarrySlot.HasValue ? this.carryManager.GetCarried(player.Entity, Interaction.CarrySlot.Value) : null;
+            var holdingAny = this.carryManager.GetCarried(player.Entity, CarrySlot.Hands);
             BlockSelection? selection = null;
             BlockBehaviorCarryable? carryBehavior = null;
             BlockBehaviorCarryableInteract? interactBehavior = null;
@@ -130,7 +130,7 @@ namespace CarryOn.Client.Logic.Interaction
                 case CarryAction.SwapBack:
                     if (!validator.BackSlotEnabled) return;
 
-                    var carriedBack = player.Entity.GetCarried(CarrySlot.Back);
+                    var carriedBack = this.carryManager.GetCarried(player.Entity, CarrySlot.Back);
                     carryBehavior = (carriedTarget != null) ? carriedTarget?.GetCarryableBehavior() : carriedBack?.GetCarryableBehavior();
                     if (carryBehavior == null)
                     {
@@ -251,7 +251,7 @@ namespace CarryOn.Client.Logic.Interaction
                 return;
             }
 
-            if (player.Entity.SwapCarried(Interaction.CarrySlot.Value, CarrySlot.Back))
+            if (this.carryManager.SwapCarried(player.Entity, Interaction.CarrySlot.Value, CarrySlot.Back))
                 clientChannel.SendPacket(new SwapSlotsMessage(CarrySlot.Back, Interaction.CarrySlot.Value));
         }
 

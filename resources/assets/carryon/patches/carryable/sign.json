@@ -20,8 +20,8 @@
 						"maxWidth": 200,
 						"maxHeight": 96
 					},
-					"defaultRenderFacing": "north",
-					"defaultRenderVariant": "wall",
+					"rootRenderFacing": "north",
+					"rootRenderVariant": "wall",
 					"transformGroups": {
 						"hands": [
 							{

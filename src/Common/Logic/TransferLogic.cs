@@ -12,16 +12,8 @@ using CarryOn.API.Common.Interfaces;
  
 namespace CarryOn.Common.Logic
 {
-    public class TransferLogic
+    public class TransferLogic(ICoreAPI api, ICarryManager carryManager)
     {
-        private readonly ICoreAPI api;
-        private readonly ICarryManager carryManager;
-
-        public TransferLogic(ICoreAPI api, ICarryManager carryManager)
-        {
-            this.api = api ?? throw new ArgumentNullException(nameof(api));
-            this.carryManager = carryManager ?? throw new ArgumentNullException(nameof(carryManager));
-        }
 
         /// <summary>
         /// Initializes the transfer behaviors for carryable blocks.
@@ -93,7 +85,7 @@ namespace CarryOn.Common.Logic
             {
                 failureCode = FailureCode.Internal;
                 onScreenErrorMessage = LocalizationHelper.GetLang("unknown-error");
-                this.api.Logger.Error($"CanTakeCarryable method failed: {e}", e);
+                api.Logger.Error($"CanTakeCarryable method failed: {e}", e);
             }
 
             return false;
@@ -117,7 +109,7 @@ namespace CarryOn.Common.Logic
             if (transferHandler == null) return false;
 
 
-            var carriedHands = player?.Entity?.GetCarried(CarrySlot.Hands);
+            var carriedHands = player?.Entity != null ? carryManager.GetCarried(player.Entity, CarrySlot.Hands) : null;
             if (carriedHands == null) return false;
 
             if (carriedHands.BlockEntityData == null) return false;
@@ -131,7 +123,7 @@ namespace CarryOn.Common.Logic
             {
                 failureCode = FailureCode.Internal;
                 onScreenErrorMessage = LocalizationHelper.GetLang("unknown-error");
-                this.api.Logger.Error($"CanPutCarryable method failed: {e}");
+                api.Logger.Error($"CanPutCarryable method failed: {e}");
             }
 
             return false;
@@ -193,7 +185,7 @@ namespace CarryOn.Common.Logic
             onScreenErrorMessage = default!;
             blockPos = default!;
 
-            if (this.api == null)
+            if (api == null)
             {
                 throw new InvalidOperationException("Api is not initialized.");
             }
@@ -237,7 +229,7 @@ namespace CarryOn.Common.Logic
             if (!ValidateTransferPreconditions(player, message, methodName, out var blockPos, out failureCode, out onScreenErrorMessage))
                 return false;
 
-            var carriedHands = player.Entity.GetCarried(CarrySlot.Hands);
+            var carriedHands = carryManager.GetCarried(player.Entity, CarrySlot.Hands);
             if (carriedHands == null)
             {
                 api.Logger.Error($"{methodName}: Player hands are empty");
@@ -256,12 +248,7 @@ namespace CarryOn.Common.Logic
 
                 if (success)
                 {
-                    var entity = player.Entity;
-                    var carryManager = this.carryManager;
-                    if (entity != null && carryManager != null)
-                    {
-                        carryManager.RemoveCarried(entity, CarrySlot.Hands);
-                    }
+                    carryManager.RemoveCarried(player.Entity, CarrySlot.Hands);
                     return true;
                 }
             }
@@ -288,7 +275,7 @@ namespace CarryOn.Common.Logic
             if (!ValidateTransferPreconditions(player, message, methodName, out var blockPos, out failureCode, out onScreenErrorMessage))
                 return false;
 
-            var carriedHands = player.Entity.GetCarried(CarrySlot.Hands);
+            var carriedHands = carryManager.GetCarried(player.Entity, CarrySlot.Hands);
             if (carriedHands != null)
             {
                 api.Logger.Error($"{methodName}: Player hands are not empty");
@@ -307,12 +294,7 @@ namespace CarryOn.Common.Logic
 
                 if (success)
                 {
-                    var entity = player.Entity;
-                    var carryManager = this.carryManager;
-                    if (entity != null && carryManager != null)
-                    {
-                        carryManager.SetCarried(entity, new CarriedBlock(CarrySlot.Hands, itemStack, blockEntityData));
-                    }
+                    carryManager.SetCarried(player.Entity, new CarriedBlock(CarrySlot.Hands, itemStack, blockEntityData));
                     return true;
                 }
             }

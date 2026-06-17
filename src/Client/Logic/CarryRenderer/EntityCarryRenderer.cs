@@ -13,7 +13,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
         private CarryOnConfig config { get; }
         private ICoreClientAPI api { get; }
         private long renderTick;
-        private readonly CarryAnimationSync animationSync = new();
+        private readonly CarryAnimationSync animationSync;
         private readonly CarryFirstPersonRenderer firstPersonRenderer = new();
         private readonly CarryRenderCacheManager cacheManager;
         private readonly CarryRenderDispatcher dispatcher;
@@ -29,6 +29,8 @@ namespace CarryOn.Client.Logic.CarryRenderer
             this.api = api;
             this.clientModConfig = clientModConfig;
 
+            animationSync = new CarryAnimationSync(carryManager);
+
             bool renderAttached = this.clientModConfig.Config?.RenderAttachedBlocks ?? true;
 
             var cache = new CarryRenderCache();
@@ -37,7 +39,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
             var labelRenderer = new CarriedLabelRenderer(api);
 
             cacheManager = new CarryRenderCacheManager(api, carryManager, config, planBuilder, infoBuilder, cache);
-            dispatcher = new CarryRenderDispatcher(api, config, cacheManager, firstPersonRenderer, labelRenderer, renderAttached);
+            dispatcher = new CarryRenderDispatcher(api, carryManager, config, cacheManager, firstPersonRenderer, labelRenderer, renderAttached);
 
             this.api.Event.RegisterRenderer(this, EnumRenderStage.Opaque);
             this.api.Event.RegisterRenderer(this, EnumRenderStage.AfterOIT);

@@ -12,7 +12,7 @@
 				"transformTemplates": [
 					"carry-displaycase"
 				],
-				"transformGroupResolver": "displaycase",
+				"attachmentGroupResolver": "displaycase",
 				"slots": {
 					"Hands": {}
 				}
