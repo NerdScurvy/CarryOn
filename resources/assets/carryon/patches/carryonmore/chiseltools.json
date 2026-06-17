@@ -339,7 +339,7 @@
 				"transformTemplates": [
 					"carry-displaycase"
 				],
-				"transformGroupResolver": "displaycase",
+				"attachmentGroupResolver": "displaycase",
 				"transformGroups": {
 					"@hands": [
 						{

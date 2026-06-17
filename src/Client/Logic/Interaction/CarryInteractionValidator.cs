@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
 using CarryOn.Common.Behaviors;
 using CarryOn.Common.Models;
@@ -15,6 +16,7 @@ namespace CarryOn.Client.Logic.Interaction
     internal sealed class CarryInteractionValidator
     {
         private readonly ICoreClientAPI api;
+        private readonly ICarryManager carryManager;
         private readonly CarryOnConfig config;
         private readonly TransferLogic transferLogic;
         private readonly ICarryInteractionController controller;
@@ -33,11 +35,13 @@ namespace CarryOn.Client.Logic.Interaction
 
         public CarryInteractionValidator(
             ICoreClientAPI api,
+            ICarryManager carryManager,
             CarryOnConfig config,
             TransferLogic transferLogic,
             ICarryInteractionController controller)
         {
             this.api = api ?? throw new ArgumentNullException(nameof(api));
+            this.carryManager = carryManager ?? throw new ArgumentNullException(nameof(carryManager));
             this.config = config ?? throw new ArgumentNullException(nameof(config));
             this.transferLogic = transferLogic ?? throw new ArgumentNullException(nameof(transferLogic));
             this.controller = controller ?? throw new ArgumentNullException(nameof(controller));
@@ -98,7 +102,7 @@ namespace CarryOn.Client.Logic.Interaction
                 if (BeginBlockCarryableInteraction(ref handled)) return;
             }
 
-            var carriedHands = player.Entity.GetCarried(CarrySlot.Hands);
+            var carriedHands = carryManager.GetCarried(player.Entity, CarrySlot.Hands);
 
             if ((carriedHands != null) || (isInteracting && (controller.Interaction.TimeHeld > 0.0F)))
                 handled = EnumHandling.PreventDefault;
@@ -109,7 +113,7 @@ namespace CarryOn.Client.Logic.Interaction
             var world = this.api.World;
             var player = world.Player;
 
-            var carriedHands = player.Entity.GetCarried(CarrySlot.Hands);
+            var carriedHands = carryManager.GetCarried(player.Entity, CarrySlot.Hands);
 
             var carryAttachBehavior = player.CurrentEntitySelection?.Entity?.GetBehavior<EntityBehaviorAttachableCarryable>();
 
@@ -194,8 +198,8 @@ namespace CarryOn.Client.Logic.Interaction
 
             var world = this.api.World;
             var player = world.Player;
-            var carriedHands = player.Entity.GetCarried(CarrySlot.Hands);
-            var carriedBack = player.Entity.GetCarried(CarrySlot.Back);
+            var carriedHands = carryManager.GetCarried(player.Entity, CarrySlot.Hands);
+            var carriedBack = carryManager.GetCarried(player.Entity, CarrySlot.Back);
 
             if (!player.Entity.CanInteract(requireEmptyHanded: true))
             {
@@ -257,7 +261,7 @@ namespace CarryOn.Client.Logic.Interaction
         {
             var world = this.api.World;
             var player = world.Player;
-            var carriedHands = player.Entity.GetCarried(CarrySlot.Hands);
+            var carriedHands = carryManager.GetCarried(player.Entity, CarrySlot.Hands);
 
             if (carriedHands == null)
             {
@@ -296,7 +300,7 @@ namespace CarryOn.Client.Logic.Interaction
             }
 
             var selection = player.CurrentBlockSelection;
-            var carriedHands = player.Entity.GetCarried(CarrySlot.Hands);
+            var carriedHands = carryManager.GetCarried(player.Entity, CarrySlot.Hands);
 
             if (api.Input.IsCarrySwapBackKeyPressed() && selection != null)
             {
@@ -325,7 +329,7 @@ namespace CarryOn.Client.Logic.Interaction
                     var blockPos = BlockUtils.GetPlacedPosition(world.BlockAccessor, selection, carriedHands.Block);
                     if (blockPos == null) return true;
 
-                    if (!player.Entity.HasPermissionToCarry(blockPos))
+                    if (!carryManager.HasPermissionToCarry(player.Entity, blockPos))
                     {
                         CarryErrorHelper.ShowError(this.api, FailureCode.PlaceDownNoPermission);
                         handled = EnumHandling.PreventDefault;
@@ -392,7 +396,7 @@ namespace CarryOn.Client.Logic.Interaction
                 return false;
             }
 
-            var carriedHands = player.Entity.GetCarried(CarrySlot.Hands);
+            var carriedHands = carryManager.GetCarried(player.Entity, CarrySlot.Hands);
 
             string? failureCode;
             string? onScreenErrorMessage;

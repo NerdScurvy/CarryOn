@@ -305,7 +305,7 @@ namespace CarryOn.Common.Services
 
             if (selectedBlock == null) return false;
 
-            var carried = entity.GetCarried(carrySlot);
+            var carried = carryManager.GetCarried(entity, carrySlot);
             if (carried == null)
             {
                 failureCode = FailureCode.NotCarrying;

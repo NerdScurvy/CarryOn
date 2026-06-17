@@ -1,15 +1,17 @@
 using System;
+using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
+using CarryOn.Utility;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
-using CarryOn.Utility;
 
 namespace CarryOn.Client.Logic
 {
     public class HudCarried : IDisposable
     {
         private readonly ICoreClientAPI api;
+        private readonly ICarryManager carryManager;
         private IRenderer? renderer;
         // Toggle to show debug icons (can be controlled by client chat command)
         public static bool ShowDebugIcons { get; set; } = false;
@@ -91,10 +93,11 @@ namespace CarryOn.Client.Logic
             BackHighlightSecondsRemaining = Math.Max(BackHighlightSecondsRemaining, seconds);
         }
 
-        public HudCarried(ICoreClientAPI api)
+        public HudCarried(ICoreClientAPI api, ICarryManager carryManager)
         {
             this.api = api ?? throw new ArgumentNullException(nameof(api));
-            this.renderer = new HudCarriedRenderer(api);
+            this.carryManager = carryManager ?? throw new ArgumentNullException(nameof(carryManager));
+            this.renderer = new HudCarriedRenderer(api, carryManager);
             // Initialize parsed color cache
             UpdateParsedColors();
             this.api.Event.RegisterRenderer(this.renderer, EnumRenderStage.Ortho);
@@ -129,6 +132,7 @@ namespace CarryOn.Client.Logic
         private class HudCarriedRenderer : IRenderer
         {
             private readonly ICoreClientAPI api;
+            private readonly ICarryManager carryManager;
             
             // Cached positioning values - update only when GUI scale or frame size changes
             private float cachedGUIScale = -1f;
@@ -146,9 +150,10 @@ namespace CarryOn.Client.Logic
             private MeshRef? highlightMesh;
             private MeshRef? rectMesh;
 
-            public HudCarriedRenderer(ICoreClientAPI api)
+            public HudCarriedRenderer(ICoreClientAPI api, ICarryManager carryManager)
             {
                 this.api = api;
+                this.carryManager = carryManager;
             }
 
             public double RenderOrder => 1.0; // Higher than default (0) to render on top
@@ -270,14 +275,14 @@ namespace CarryOn.Client.Logic
                 }
 
                 // Render carried hands item (default position L1 -> first left position)
-                var carriedHands = player.Entity?.GetCarried(CarrySlot.Hands);
+                var carriedHands = carryManager.GetCarried(player.Entity, CarrySlot.Hands);
                 if (carriedHands != null)
                 {
                     RenderCarriedBlock(rapi, carriedHands, HudCarried.HandsAnchor, HudCarried.HandsHighlightSecondsRemaining);
                 }
 				
                 // Render carried back item (for now, just show in first right position)
-                var carriedBack = player.Entity?.GetCarried(CarrySlot.Back);
+                var carriedBack = carryManager.GetCarried(player.Entity, CarrySlot.Back);
 
                 if (carriedBack != null)
                 {

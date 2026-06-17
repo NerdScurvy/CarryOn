@@ -10,44 +10,36 @@ using Vintagestory.API.Datastructures;
 
 namespace CarryOn.Client.Logic.TransformGroupResolvers
 {
-    public class ContainerSlotTransformGroupResolverBase : ICarriedTransformGroupResolver
+    public class ContainerSlotTransformGroupResolverBase : IAttachmentTransformGroupResolver
     {
         public virtual string ResolverCode => "container-slot";
 
-        public virtual bool TryResolve(ICoreAPI api, CarriedBlock carried, string baseGroup, out CarriedGroupResolution? resolution)
+        public virtual bool TryResolve(ICoreAPI api, CarriedBlock carried, string baseGroup, out AttachmentResolveResult? result)
         {
-            resolution = null;
+            result = null;
 
             if (api?.World == null || carried?.Block == null || string.IsNullOrEmpty(baseGroup))
-            {
                 return false;
-            }
 
-            var containerSlots = TransformGroupResolverHelper.GetContainerSlots(carried);
+            var containerSlots = BlockUtils.GetContainerSlots(carried);
             if (containerSlots == null || containerSlots.Count == 0)
-            {
                 return false;
-            }
 
-            var result = new CarriedGroupResolution();
-            AddSlotCandidates(api, containerSlots, baseGroup, result);
+            var resolveResult = new AttachmentResolveResult();
+            AddSlotCandidates(api, containerSlots, baseGroup, resolveResult);
 
-            if (result.AdditionalGroupCandidates.Count == 0)
-            {
+            if (resolveResult.Candidates.Count == 0)
                 return false;
-            }
 
-            resolution = result;
+            result = resolveResult;
             return true;
         }
 
-        public virtual string? GetCacheSignature(ICoreAPI api, CarriedBlock carried, string baseGroup, CarriedGroupResolution? resolution)
+        public virtual string? GetCacheSignature(ICoreAPI api, CarriedBlock carried, string baseGroup)
         {
-            var slots = TransformGroupResolverHelper.GetContainerSlots(carried);
+            var slots = BlockUtils.GetContainerSlots(carried);
             if (slots == null || slots.Count == 0)
-            {
                 return "slots=none";
-            }
 
             var keys = slots.Keys?.ToList() ?? new List<string>();
             keys.Sort(StringComparer.Ordinal);
@@ -71,26 +63,24 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
             return sb.ToString();
         }
 
-        protected virtual void AddSlotCandidates(ICoreAPI api, TreeAttribute containerSlots, string baseGroup, CarriedGroupResolution resolution)
+        protected virtual void AddSlotCandidates(ICoreAPI api, TreeAttribute containerSlots, string baseGroup, AttachmentResolveResult result)
         {
             foreach (var cSlot in containerSlots)
             {
                 var itemStack = containerSlots.GetItemstack(cSlot.Key);
                 if (itemStack == null)
-                {
                     continue;
-                }
 
                 var candidate = new CarriedGroupCandidateSet { SourceSlotKey = cSlot.Key };
                 candidate.Groups.Add(baseGroup + "-slot" + cSlot.Key);
 
-                if (TransformGroupResolverHelper.TryResolveFallbackAsset(api, itemStack, out var assetType, out var assetName))
+                if (AssetResolutionHelper.TryResolveFallbackAsset(api, itemStack, out var assetType, out var assetName))
                 {
                     candidate.AssetTypeIfUnset = assetType;
                     candidate.AssetNameIfUnset = assetName;
                 }
 
-                resolution.AdditionalGroupCandidates.Add(candidate);
+                result.Candidates.Add(candidate);
             }
         }
     }

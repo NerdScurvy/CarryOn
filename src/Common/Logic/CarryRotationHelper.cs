@@ -299,7 +299,7 @@ namespace CarryOn.Common.Logic
 
         /// <summary>
         /// Resolves the block variant to use for rendering a carried block, based on its
-        /// <see cref="DefaultRenderVariant"/> and <see cref="DefaultRenderFacing"/> configuration.
+        /// <see cref="RootRenderVariant"/> and <see cref="RootRenderFacing"/> configuration.
         /// 
         /// When a block is picked up, <c>OnPickBlock</c> may normalize the block code (e.g.
         /// <c>sign-wall-north</c> becomes <c>sign-ground-north</c>). The render pipeline uses
@@ -307,14 +307,14 @@ namespace CarryOn.Common.Logic
         /// reconstructs the desired render variant by:
         /// <list type="number">
         ///   <item>Starting from <see cref="CarriedBlock.OriginalBlockCode"/> (preserves the original variant).</item>
-        ///   <item>Replacing the variant segment with <paramref name="defaultRenderVariant"/> (e.g. "wall").</item>
-        ///   <item>Setting the facing to <paramref name="defaultRenderFacing"/> (e.g. "north").</item>
+        ///   <item>Replacing the variant segment with <paramref name="rootRenderVariant"/> (e.g. "wall").</item>
+        ///   <item>Setting the facing to <paramref name="rootRenderFacing"/> (e.g. "north").</item>
         /// </list>
         /// Falls back to the carried block's base block if resolution fails.
         /// </summary>
-        public static Block? ResolveRenderBlock(IWorldAccessor world, CarriedBlock carriedBlock, string? defaultRenderVariant, string? defaultRenderFacing)
+        public static Block? ResolveRenderBlock(IWorldAccessor world, CarriedBlock carriedBlock, string? rootRenderVariant, string? rootRenderFacing)
         {
-            if (string.IsNullOrEmpty(defaultRenderVariant))
+            if (string.IsNullOrEmpty(rootRenderVariant))
                 return null;
 
             var code = carriedBlock.OriginalBlockCode ?? carriedBlock.Block.Code;
@@ -323,17 +323,17 @@ namespace CarryOn.Common.Logic
 
             if (parts.Length < 2) return null;
 
-            var facing = string.IsNullOrEmpty(defaultRenderFacing) ? "east" : defaultRenderFacing;
+            var facing = string.IsNullOrEmpty(rootRenderFacing) ? "east" : rootRenderFacing;
 
             string newPath;
             if (parts.Length == 2)
             {
-                newPath = $"{parts[0]}-{defaultRenderVariant}-{facing}";
+                newPath = $"{parts[0]}-{rootRenderVariant}-{facing}";
             }
             else
             {
                 var basePath = string.Join("-", parts, 0, parts.Length - 2);
-                newPath = $"{basePath}-{defaultRenderVariant}-{facing}";
+                newPath = $"{basePath}-{rootRenderVariant}-{facing}";
             }
 
             var newCode = new AssetLocation(code.Domain, newPath);

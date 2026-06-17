@@ -8,7 +8,7 @@
 			"name": "Carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.MoldRack",
-				"transformGroupResolver": "moldrack",
+				"attachmentGroupResolver": "moldrack",
 				"transformGroups": {
 					"hands": [
 						{

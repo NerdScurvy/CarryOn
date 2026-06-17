@@ -10,23 +10,14 @@ using Vintagestory.API.Datastructures;
 
 namespace CarryOn.Common.Handlers.PackAdjustment
 {
-    internal sealed class PackAdjustmentTransformResolver
+    internal sealed class PackAdjustmentTransformResolver(ICoreClientAPI api, ICarryManager? carryManager)
     {
-        private readonly ICoreClientAPI api;
-        private readonly ICarryManager? carryManager;
-
         private readonly List<string> availableChildGroups = new();
         private int childGroupIndex = -1;
         internal string? SelectedChildGroup;
 
         internal IReadOnlyList<string> AvailableChildGroups => availableChildGroups;
         internal int ChildGroupIndex => childGroupIndex;
-
-        internal PackAdjustmentTransformResolver(ICoreClientAPI api, ICarryManager? carryManager)
-        {
-            this.api = api;
-            this.carryManager = carryManager;
-        }
 
         internal void ClearChildGroups()
         {
@@ -40,26 +31,35 @@ namespace CarryOn.Common.Handlers.PackAdjustment
             string baseTransformsGroup, PackAdjustmentHandler.TransformScope scope)
         {
             var resolvedBaseGroup = baseTransformsGroup;
-            CarriedGroupResolution? resolverResolution = null;
             var primaryGroupCandidates = new List<string> { baseTransformsGroup };
-            var requestedResolverCode = carryBehavior.TransformGroupResolver;
 
-            if (!string.IsNullOrEmpty(requestedResolverCode)
-                && carryManager?.TryGetTransformGroupResolver(requestedResolverCode, out var resolver) == true && resolver != null)
+            var rootGroupResolverCode = carryBehavior.RootGroupResolver ?? carryBehavior.TransformGroupResolver;
+            var attachmentResolverCode = carryBehavior.AttachmentGroupResolver ?? carryBehavior.TransformGroupResolver;
+
+            var attachmentCandidates = new List<CarriedGroupCandidateSet>();
+
+            // Run primary resolver
+            if (!string.IsNullOrEmpty(rootGroupResolverCode)
+                && carryManager?.TryGetRootTransformGroupResolver(rootGroupResolverCode, out var primaryResolver) == true
+                && primaryResolver != null)
             {
-                if (resolver.TryResolve(api, carried, resolvedBaseGroup, out var resolution) && resolution != null)
+                if (primaryResolver.TryResolve(api, carried, resolvedBaseGroup, out var candidates)
+                    && candidates != null && candidates.Count > 0)
                 {
-                    resolverResolution = resolution;
-                    if (resolution.PrimaryGroupCandidates != null && resolution.PrimaryGroupCandidates.Count > 0)
-                    {
-                        primaryGroupCandidates = new List<string>(resolution.PrimaryGroupCandidates);
-                        resolvedBaseGroup = resolution.PrimaryGroupCandidates[0];
-                    }
-                    else if (!string.IsNullOrEmpty(resolution.PrimaryGroup))
-                    {
-                        primaryGroupCandidates = new List<string> { resolution.PrimaryGroup };
-                        resolvedBaseGroup = resolution.PrimaryGroup;
-                    }
+                    primaryGroupCandidates = new List<string>(candidates);
+                    resolvedBaseGroup = candidates[0];
+                }
+            }
+
+            // Run attachment resolver
+            if (!string.IsNullOrEmpty(attachmentResolverCode)
+                && carryManager?.TryGetAttachmentTransformGroupResolver(attachmentResolverCode, out var attachmentResolver) == true
+                && attachmentResolver != null)
+            {
+                if (attachmentResolver.TryResolve(api, carried, baseTransformsGroup, out var result)
+                    && result != null && result.Candidates.Count > 0)
+                {
+                    attachmentCandidates = new List<CarriedGroupCandidateSet>(result.Candidates);
                 }
             }
 
@@ -84,17 +84,14 @@ namespace CarryOn.Common.Handlers.PackAdjustment
                 }
             }
 
-            if (resolverResolution?.AdditionalGroupCandidates != null)
+            foreach (var candidateSet in attachmentCandidates)
             {
-                foreach (var candidateSet in resolverResolution.AdditionalGroupCandidates)
+                if (candidateSet?.Groups == null) continue;
+                foreach (var group in candidateSet.Groups)
                 {
-                    if (candidateSet?.Groups == null) continue;
-                    foreach (var group in candidateSet.Groups)
-                    {
-                        if (string.IsNullOrEmpty(group)) continue;
-                        if (carryBehavior.TransformGroupExists(carried, group))
-                            return group;
-                    }
+                    if (string.IsNullOrEmpty(group)) continue;
+                    if (carryBehavior.TransformGroupExists(carried, group))
+                        return group;
                 }
             }
 
@@ -108,29 +105,27 @@ namespace CarryOn.Common.Handlers.PackAdjustment
             SelectedChildGroup = null;
             childGroupIndex = -1;
 
-            CarriedGroupResolution? resolverResolution = null;
-            var requestedResolverCode = carryBehavior.TransformGroupResolver;
+            var attachmentResolverCode = carryBehavior.AttachmentGroupResolver ?? carryBehavior.TransformGroupResolver;
 
-            if (!string.IsNullOrEmpty(requestedResolverCode)
-                && carryManager?.TryGetTransformGroupResolver(requestedResolverCode, out var resolver) == true && resolver != null)
+            if (!string.IsNullOrEmpty(attachmentResolverCode)
+                && carryManager?.TryGetAttachmentTransformGroupResolver(attachmentResolverCode, out var attachmentResolver) == true
+                && attachmentResolver != null)
             {
-                if (resolver.TryResolve(api, carried, baseTransformsGroup, out var resolution) && resolution != null)
-                    resolverResolution = resolution;
-            }
-
-            if (resolverResolution?.AdditionalGroupCandidates == null)
-                return;
-
-            var seen = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var candidateSet in resolverResolution.AdditionalGroupCandidates)
-            {
-                if (candidateSet?.Groups == null) continue;
-                foreach (var group in candidateSet.Groups)
+                if (attachmentResolver.TryResolve(api, carried, baseTransformsGroup, out var result)
+                    && result != null && result.Candidates.Count > 0)
                 {
-                    if (string.IsNullOrEmpty(group)) continue;
-                    if (!carryBehavior.TransformGroupExists(carried, group)) continue;
-                    if (!seen.Add(group)) continue;
-                    availableChildGroups.Add(group);
+                    var seen = new HashSet<string>(StringComparer.Ordinal);
+                    foreach (var candidateSet in result.Candidates)
+                    {
+                        if (candidateSet?.Groups == null) continue;
+                        foreach (var group in candidateSet.Groups)
+                        {
+                            if (string.IsNullOrEmpty(group)) continue;
+                            if (!carryBehavior.TransformGroupExists(carried, group)) continue;
+                            if (!seen.Add(group)) continue;
+                            availableChildGroups.Add(group);
+                        }
+                    }
                 }
             }
 

@@ -31,7 +31,7 @@ namespace CarryOn.Common.Services
             if (range < 0) throw new ArgumentOutOfRangeException(nameof(range));
 
             var remaining = slots
-                .Select(s => entity.GetCarried(s))
+                .Select(s => carryManager.GetCarried(entity, s))
                 .OfType<CarriedBlock>()
                 .OrderBy(c => c.Block.GetBehavior<BlockBehaviorMultiblock>() != null)
                 .ToList();
@@ -128,6 +128,29 @@ namespace CarryOn.Common.Services
             var hadContents = false;
             var dropCount = 1;
             var dropVec3d = new Vec3d(centerBlock.X + 0.5, centerBlock.Y + 0.5, centerBlock.Z + 0.5);
+
+            // Spill items from configured beData attributes FIRST so they're removed
+            // from BE data before the itemstack is spawned (prevents duplication).
+            var beData = carriedBlock.BlockEntityData;
+            if (beData != null)
+            {
+                var carryBehavior = carriedBlock.GetCarryableBehavior();
+                var attrNames = carryBehavior?.DataAttributes;
+                if (attrNames != null && attrNames.Length > 0)
+                {
+                    foreach (var attrName in attrNames)
+                    {
+                        if (string.IsNullOrEmpty(attrName)) continue;
+                        if (beData[attrName] is not ItemstackAttribute itemAttr) continue;
+                        var stack = itemAttr.GetValue() as ItemStack;
+                        if (stack == null) continue;
+                        world.SpawnItemEntity(stack, dropVec3d);
+                        beData.RemoveAttribute(attrName);
+                        hadContents = true;
+                        dropCount++;
+                    }
+                }
+            }
 
             if (carriedBlock.BlockEntityData?["inventory"] is TreeAttribute inventory && inventory["slots"] is TreeAttribute invSlots)
             {

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
@@ -12,8 +13,14 @@ namespace CarryOn.Server.Behaviors
         public static string Name { get; }
             = CarryOnCode("dropondamage");
 
-        public static ICarryManager? CarryManager { get; set; }
-        public static DropCarriedOnDamageConfig? Config { get; set; }
+        private static ICarryManager? carryManager;
+        private static DropCarriedOnDamageConfig? config;
+
+        public static void Init(ICarryManager manager, DropCarriedOnDamageConfig? dropConfig)
+        {
+            carryManager = manager ?? throw new ArgumentNullException(nameof(manager));
+            config = dropConfig;
+        }
 
         public override string PropertyName() => Name;
 
@@ -24,17 +31,17 @@ namespace CarryOn.Server.Behaviors
 
         public override void OnEntityReceiveDamage(DamageSource damageSource, ref float damage)
         {
-            if (Config == null) return;
+            if (config == null) return;
             if (damageSource.Type == EnumDamageType.Heal) return;
 
             var slotsToDrop = new List<CarrySlot>(2);
-            if (Config.HandsEnabled && damage > Config.HandsDamageThreshold)
+            if (config.HandsEnabled && damage > config.HandsDamageThreshold)
                 slotsToDrop.Add(CarrySlot.Hands);
-            if (Config.BackEnabled && damage > Config.BackDamageThreshold)
+            if (config.BackEnabled && damage > config.BackDamageThreshold)
                 slotsToDrop.Add(CarrySlot.Back);
 
             if (slotsToDrop.Count == 0) return;
-            CarryManager?.DropCarried(entity, slotsToDrop, Config.DropRange);
+            carryManager?.DropCarried(entity, slotsToDrop, config.DropRange);
         }
     }
 }

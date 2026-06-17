@@ -39,7 +39,7 @@
 			"name": "Carryable",
 			"properties": {
 				"optimisticPickup": false,
-				"transformGroupResolver": "codepath",
+				"rootGroupResolver": "codepath",
 				"transformGroups": {
 					"hands": [
 						{
