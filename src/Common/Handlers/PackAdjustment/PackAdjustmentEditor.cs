@@ -51,7 +51,7 @@ namespace CarryOn.Common.Handlers.PackAdjustment
             {
                 if (isLabelScope) return;
 
-                var currentBehavior = carryManager?.GetCarried(api?.World?.Player?.Entity!, handler.CarrySlot)?.GetCarryableBehavior();
+                var currentBehavior = carryManager?.GetCarried(api.World.Player.Entity, handler.CarrySlot)?.GetCarryableBehavior();
                 var defaultTransform = currentBehavior?.DefaultTransform ?? BlockBehaviorCarryable.DefaultBlockTransform;
 
                 transform = defaultTransform.Clone();
@@ -78,7 +78,7 @@ namespace CarryOn.Common.Handlers.PackAdjustment
                 handler.SelectedLabelTransform = transform;
             }
 
-            var behavior = carryManager?.GetCarried(api?.World?.Player?.Entity!, handler.CarrySlot)?.GetCarryableBehavior();
+            var behavior = carryManager?.GetCarried(api.World.Player.Entity, handler.CarrySlot)?.GetCarryableBehavior();
             if (behavior != null)
             {
                 if (isLabelScope)
@@ -106,7 +106,7 @@ namespace CarryOn.Common.Handlers.PackAdjustment
 
             if (handler.CurrentTransformScope == PackAdjustmentHandler.TransformScope.Label)
             {
-                var behavior = carryManager?.GetCarried(api?.World?.Player?.Entity!, handler.CarrySlot)?.GetCarryableBehavior();
+                var behavior = carryManager?.GetCarried(api.World.Player.Entity, handler.CarrySlot)?.GetCarryableBehavior();
                 var labelCount = PackAdjustmentTransformResolver.GetLabelTransformCount(behavior?.LabelRenderSettings);
                 if (labelCount <= 0)
                 {

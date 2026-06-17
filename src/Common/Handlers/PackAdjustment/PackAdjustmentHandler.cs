@@ -149,7 +149,7 @@ namespace CarryOn.Common.Handlers.PackAdjustment
             if (TryGetCurrentCarried(out var carried, out var carryBehavior))
                 includeLabelScope = PackAdjustmentTransformResolver.HasCarriedLabel(api, carried, carryBehavior);
 
-            var entityPlayer = api?.World?.Player?.Entity;
+            var entityPlayer = api.World.Player.Entity;
             var baseTransformsGroup = entityPlayer?.ResolveCarryTransformGroupBase(config!, carrySlot);
 
             switch (currentTransformScope)
@@ -205,7 +205,7 @@ namespace CarryOn.Common.Handlers.PackAdjustment
             if (currentTarget == AdjustmentTarget.FrontCarryAttachment) return;
 
             bool hasChanged = false;
-            var entityPlayer = api?.World?.Player?.Entity;
+            var entityPlayer = api.World.Player.Entity;
             var carried =             carryManager?.GetCarried(entityPlayer!, carrySlot);
             if (carried == null) return;
 
@@ -304,7 +304,7 @@ namespace CarryOn.Common.Handlers.PackAdjustment
         {
             if (currentTransformScope == TransformScope.Label)
             {
-                var behavior = carryManager?.GetCarried(api?.World?.Player?.Entity!, carrySlot)?.GetCarryableBehavior();
+                var behavior = carryManager?.GetCarried(api.World.Player.Entity, carrySlot)?.GetCarryableBehavior();
                 var labelSettings = behavior?.LabelRenderSettings;
                 var labelCount = PackAdjustmentTransformResolver.GetLabelTransformCount(labelSettings);
 
@@ -332,7 +332,7 @@ namespace CarryOn.Common.Handlers.PackAdjustment
             if (currentTransformScope == TransformScope.Label)
             {
                 var labelItem = "unavailable";
-                var carried = carryManager?.GetCarried(api?.World?.Player?.Entity!, carrySlot);
+                var carried = carryManager?.GetCarried(api.World.Player.Entity, carrySlot);
                 var behavior = carried?.GetCarryableBehavior();
                 var labelCount = PackAdjustmentTransformResolver.GetLabelTransformCount(behavior?.LabelRenderSettings);
                 if (PackAdjustmentTransformResolver.HasCarriedLabel(api!, carried, behavior))
@@ -359,20 +359,20 @@ namespace CarryOn.Common.Handlers.PackAdjustment
 
         internal AttachmentPoint? GetFrontCarryAttachPoint()
         {
-            var apPose = api?.World?.Player?.Entity?.AnimManager?.Animator?.GetAttachmentPointPose(CarryCode.FrontCarryAttachmentPoint);
+            var apPose = api.World.Player.Entity?.AnimManager?.Animator?.GetAttachmentPointPose(CarryCode.FrontCarryAttachmentPoint);
             return apPose?.AttachPoint;
         }
 
         internal bool TryGetCurrentCarried(out CarriedBlock? carried, out BlockBehaviorCarryable? carryBehavior)
         {
-            carried = carryManager?.GetCarried(api?.World?.Player?.Entity!, carrySlot);
+            carried = carryManager?.GetCarried(api.World.Player.Entity, carrySlot);
             carryBehavior = carried?.GetCarryableBehavior();
             return carried != null && carryBehavior != null;
         }
 
         internal BlockBehaviorCarryable? GetCarryableBehavior(CarrySlot slot)
         {
-            var carried = carryManager?.GetCarried(api?.World?.Player?.Entity!, slot);
+            var carried = carryManager?.GetCarried(api.World.Player.Entity, slot);
             if (carried == null)
             {
                 ShowMessage($"[PackAdjustmentHandler] GetCarryableBehavior: No item carried in {slot} slot.");
@@ -388,7 +388,7 @@ namespace CarryOn.Common.Handlers.PackAdjustment
 
         internal SlotSettings? GetCarriedSlotSettings(CarrySlot slot)
         {
-            var carried = carryManager?.GetCarried(api?.World?.Player?.Entity!, slot);
+            var carried = carryManager?.GetCarried(api.World.Player.Entity, slot);
             if (carried == null)
             {
                 ShowMessage($"[PackAdjustmentHandler] GetCarriedSlot: No item carried in {slot} slot.");

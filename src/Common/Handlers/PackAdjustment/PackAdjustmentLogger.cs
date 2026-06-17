@@ -59,7 +59,7 @@ namespace CarryOn.Common.Handlers.PackAdjustment
 
         private void LogLabelTransform()
         {
-            var behavior = carryManager?.GetCarried(api?.World?.Player?.Entity!, handler.CarrySlot)?.GetCarryableBehavior();
+            var behavior = carryManager?.GetCarried(api.World.Player.Entity, handler.CarrySlot)?.GetCarryableBehavior();
             var labelTransform = handler.SelectedLabelTransform ?? behavior?.LabelRenderSettings?.Transform;
             if (labelTransform == null)
             {
