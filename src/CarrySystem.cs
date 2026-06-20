@@ -26,12 +26,12 @@ using Vintagestory.API.Config;
 
 [assembly: ModInfo("Carry On",
     modID: "carryon",
-    Version = "2.0.0-pre.4",
+    Version = "2.0.0-pre.5",
     Description = "Adds the capability to carry various things",
     Website = "https://github.com/NerdScurvy/CarryOn",
     Authors = new[] { "copygirl", "NerdScurvy" })]
 [assembly: ModDependency("game", "1.22.0")]
-[assembly: ModDependency("carryonlib", "1.0.0-pre.4")]
+[assembly: ModDependency("carryonlib", "1.0.0-pre.5")]
 
 namespace CarryOn
 {

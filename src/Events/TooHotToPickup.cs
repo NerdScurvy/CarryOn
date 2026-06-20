@@ -21,8 +21,9 @@ namespace CarryOn.Events
         public void Init(ICarryManager carryManager)
         {
             config = carryManager.Config;
-            carryEvents = carryManager.CarryEvents;
+            if (config?.CarryOptions?.TooHotToCarry != true) return;
 
+            carryEvents = carryManager.CarryEvents;
             if (carryEvents != null)
                 carryEvents.BeforePickUpBlock += OnBeforePickUpBlock;
         }

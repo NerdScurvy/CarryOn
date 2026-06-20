@@ -264,10 +264,10 @@ namespace CarryOn.Common.Services
             var slotAttribute = entity.WatchedAttributes.TryGet<ITreeAttribute>(
                 AttributeKey.Watched.EntityCarried, slot.ToString());
             var animation = slotAttribute?.GetString(AttrAnimation);
-            if (animation != null)
+            if (animation != null && slotAttribute != null)
             {
                 entity.StopAnimation(animation);
-                slotAttribute!.RemoveAttribute(AttrAnimation);
+                slotAttribute.RemoveAttribute(AttrAnimation);
             }
 
             if (entity is EntityAgent agent)
