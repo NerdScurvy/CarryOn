@@ -1,4 +1,7 @@
 using System;
+using System.IO;
+using System.Reflection;
+using CarryOn.Common.Network;
 using CarryOn.Common.Services;
 using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
@@ -19,6 +22,7 @@ using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Server;
 using static CarryOn.API.Common.Models.CarryCode;
+using Vintagestory.API.Config;
 
 [assembly: ModInfo("Carry On",
     modID: "carryon",
@@ -53,6 +57,11 @@ namespace CarryOn
         public IServerNetworkChannel? ServerChannel { get; private set; }
         public DeathHandler? DeathHandler { get; private set; }
 
+        // Config file watcher (server-side, detects AutoConfigLib saves and manual edits to reload config without restart)
+        private FileSystemWatcher? configWatcher;
+        private DateTime lastConfigFileChange = DateTime.MinValue;
+        private readonly object configWatcherLock = new();
+
         // Common
         public HotKeyHandler HotKeyHandler { get; private set; } = null!;
 
@@ -65,6 +74,25 @@ namespace CarryOn
         public ICarryManager? CarryManager => CarryOnLib?.CarryManager;
 
         public CarryOnConfig Config { get; private set; } = null!;
+
+        /// <summary>
+        /// Fired when config file changes
+        /// Subscribe to invalidate cached config values.
+        /// </summary>
+        public event Action<CarryOnConfig>? OnConfigChanged;
+
+        internal void NotifyConfigChanged()
+        {
+            OnConfigChanged?.Invoke(this.Config);
+        }
+
+        private void SyncConfigToDisk(ICoreAPI api)
+        {
+            if (api.Side != EnumAppSide.Server) return;
+            var tree = api.World.Config?.GetOrAddTreeAttribute(ModId);
+            tree?.MergeTree(this.Config.ToTreeAttribute());
+            api.StoreModConfig(this.Config, CarryCode.ConfigFile);
+        }
 
         public override void StartPre(ICoreAPI api)
         {
@@ -131,7 +159,131 @@ namespace CarryOn
             {
                 api.World.Logger.Error("CarryOn: Failed to load CarryOnLib mod system");
             }
-           
+
+            WireConfigChangeHandlers();
+
+        }
+
+        private void WireConfigChangeHandlers()
+        {
+            OnConfigChanged += _ => this.Config.InvalidateBackpackCache();
+            OnConfigChanged += _ => this.CarryHandler?.InvalidateConfigCache();
+            OnConfigChanged += _ =>
+            {
+                if (ServerApi == null) return;
+                var tree = ServerApi.World.Config?.GetOrAddTreeAttribute(ModId);
+                tree?.MergeTree(this.Config.ToTreeAttribute());
+                ServerApi.StoreModConfig(this.Config, CarryCode.ConfigFile);
+            };
+        }
+
+        private void TrySetupConfigWatcher(ICoreServerAPI api)
+        {
+            try
+            {
+                var configPath = Path.Combine(GamePaths.DataPath, "ModConfig", CarryCode.ConfigFile);
+                if (!File.Exists(configPath))
+                {
+                    api.Logger.Warning("CarryOn: Config file not found at " + configPath);
+                    return;
+                }
+
+                var configDir = Path.GetDirectoryName(configPath);
+                if (configDir == null) return;
+
+                configWatcher = new FileSystemWatcher(configDir, CarryCode.ConfigFile)
+                {
+                    NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.CreationTime,
+                    EnableRaisingEvents = true
+                };
+
+                configWatcher.Changed += OnConfigFileChanged;
+                configWatcher.Created += OnConfigFileChanged;
+
+                api.Logger.Notification("CarryOn: Watching " + configPath + " for config changes");
+            }
+            catch (Exception ex)
+            {
+                api.Logger?.Warning("CarryOn: Failed to set up config file watcher: " + ex.Message);
+            }
+        }
+
+        private void OnConfigFileChanged(object sender, FileSystemEventArgs e)
+        {
+            lock (configWatcherLock)
+            {
+                var now = DateTime.UtcNow;
+                if ((now - lastConfigFileChange).TotalMilliseconds < 500) return;
+                lastConfigFileChange = now;
+            }
+
+            // Small delay to ensure the file write is complete
+            System.Threading.Thread.Sleep(100);
+
+            if (ServerApi != null)
+                ServerApi.Logger.Notification("CarryOn: Config file change detected, reloading...");
+
+            ReloadAndBroadcastConfig();
+        }
+
+        private void ReloadAndBroadcastConfig()
+        {
+            if (ServerApi == null) return;
+
+            try
+            {
+                var reloaded = ServerApi.LoadModConfig<CarryOnConfig>(CarryCode.ConfigFile);
+                if (reloaded == null) return;
+
+                reloaded.UpgradeVersion();
+                ApplyConfigInPlace(reloaded);
+                NotifyConfigChanged();
+                ServerApi.Logger.Notification("CarryOn: Config reloaded and applied");
+
+                // Broadcast updated config to all connected clients
+                if (ServerChannel != null)
+                {
+                    var json = Newtonsoft.Json.JsonConvert.SerializeObject(reloaded);
+                    ServerChannel.BroadcastPacket(new ConfigSyncMessage(json));
+                    ServerApi.Logger.Notification("CarryOn: Config broadcast to all connected clients");
+                }
+            }
+            catch (Exception ex)
+            {
+                ServerApi.Logger?.Warning("CarryOn: Failed to reload config from file: " + ex.Message);
+            }
+        }
+
+        private void OnClientConfigSync(ConfigSyncMessage message)
+        {
+            if (message.ConfigJson == null || ClientApi == null) return;
+
+            try
+            {
+                var reloaded = Newtonsoft.Json.JsonConvert.DeserializeObject<CarryOnConfig>(message.ConfigJson);
+                if (reloaded != null)
+                {
+                    reloaded.UpgradeVersion();
+                    ApplyConfigInPlace(reloaded);
+                    NotifyConfigChanged();
+                    ClientApi.Logger?.Notification("CarryOn: Config synced from server and applied");
+                }
+            }
+            catch (Exception ex)
+            {
+                ClientApi.Logger?.Warning("CarryOn: Failed to apply synced config: " + ex.Message);
+            }
+        }
+
+        private void ApplyConfigInPlace(CarryOnConfig source)
+        {
+            foreach (var prop in typeof(CarryOnConfig).GetProperties(BindingFlags.Public | BindingFlags.Instance))
+            {
+                if (prop.CanRead && prop.CanWrite)
+                {
+                    prop.SetValue(this.Config, prop.GetValue(source));
+                }
+            }
         }
 
         public override void StartClientSide(ICoreClientAPI api)
@@ -173,6 +325,7 @@ namespace CarryOn
                 () => { if (this.HudOverlayRenderer != null) this.HudOverlayRenderer.CircleVisible = false; },
                 p => { if (this.HudOverlayRenderer != null) this.HudOverlayRenderer.CircleProgress = p; },
                 this.ClientModConfig!);
+            ClientChannel.SetMessageHandler<ConfigSyncMessage>(OnClientConfigSync);
             CarryManager?.InitEvents(api);
             HotKeyHandler.InitClient(api, this.ClientChannel!, this.ClientModConfig!);
 
@@ -214,6 +367,8 @@ namespace CarryOn
             CarryHandler.InitServer(api, this.ServerChannel!);
             CarryManager.InitEvents(api);
             HotKeyHandler.InitServer(api, this.ServerChannel!);
+
+            TrySetupConfigWatcher(api);
         }
 
         public override void AssetsFinalize(ICoreAPI api)
@@ -233,6 +388,13 @@ namespace CarryOn
 
         public override void Dispose()
         {
+            if (configWatcher != null)
+            {
+                configWatcher.EnableRaisingEvents = false;
+                configWatcher.Dispose();
+                configWatcher = null;
+            }
+
             CarryPatcher.Remove();
 
             if (ClientApi != null)

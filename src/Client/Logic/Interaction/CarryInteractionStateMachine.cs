@@ -128,7 +128,7 @@ namespace CarryOn.Client.Logic.Interaction
                     break;
 
                 case CarryAction.SwapBack:
-                    if (!validator.BackSlotEnabled) return;
+                    if (carriedTarget != null && !validator.BackSlotEnabled) return;
 
                     var carriedBack = this.carryManager.GetCarried(player.Entity, CarrySlot.Back);
                     carryBehavior = (carriedTarget != null) ? carriedTarget?.GetCarryableBehavior() : carriedBack?.GetCarryableBehavior();

@@ -21,17 +21,13 @@ namespace CarryOn.Client.Logic.Interaction
         private readonly TransferLogic transferLogic;
         private readonly ICarryInteractionController controller;
 
-        private bool? backSlotEnabled;
-        private bool? removeInteractDelayWhileCarrying;
-        private float? interactSpeedMultiplier;
+        private Type[] preventSwapFromBackOnBehaviors;
+        private string[] preventSwapFromBackOnClasses;
+        private string[] preventSwapFromBackOnCodes;
 
-        private readonly Type[] preventSwapFromBackOnBehaviors;
-        private readonly string[] preventSwapFromBackOnClasses;
-        private readonly string[] preventSwapFromBackOnCodes;
-
-        public bool RemoveInteractDelayWhileCarrying => removeInteractDelayWhileCarrying ??= this.config?.CarryOptions?.RemoveInteractDelayWhileCarrying ?? false;
-        public bool BackSlotEnabled => backSlotEnabled ??= this.config?.CarryOptions?.BackSlotEnabled ?? false;
-        public float InteractSpeedMultiplier => interactSpeedMultiplier ??= this.config?.CarryOptions?.InteractSpeedMultiplier ?? 1.0f;
+        public bool RemoveInteractDelayWhileCarrying => this.config?.CarryOptions?.RemoveInteractDelayWhileCarrying ?? false;
+        public bool BackSlotEnabled => this.config?.CarryOptions?.BackSlotEnabled ?? false;
+        public float InteractSpeedMultiplier => this.config?.CarryOptions?.InteractSpeedMultiplier ?? 1.0f;
 
         public CarryInteractionValidator(
             ICoreClientAPI api,
@@ -78,6 +74,32 @@ namespace CarryOn.Client.Logic.Interaction
                 preventSwapFromBackOnClasses = [];
                 preventSwapFromBackOnCodes = [];
             }
+        }
+
+        public void InvalidateConfigCache()
+        {
+            var entries = config?.CarryOptions?.PreventSwapFromBackOnTarget ?? Array.Empty<string>();
+            const string behaviorPrefix = "behavior::";
+            const string classPrefix = "class::";
+            const string codePrefix = "code::";
+
+            preventSwapFromBackOnBehaviors = entries
+                .Where(x => x.StartsWith(behaviorPrefix))
+                .Select(x => api.ClassRegistry.GetBlockBehaviorClass(x.Substring(behaviorPrefix.Length)))
+                .Where(x => x != null)
+                .ToArray();
+
+            preventSwapFromBackOnClasses = entries
+                .Where(x => x.StartsWith(classPrefix))
+                .Select(x => x.Substring(classPrefix.Length))
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .ToArray();
+
+            preventSwapFromBackOnCodes = entries
+                .Where(x => x.StartsWith(codePrefix))
+                .Select(x => x.Substring(codePrefix.Length))
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .ToArray();
         }
 
         public void TryBeginInteraction(bool isInteracting, ref EnumHandling handled)
@@ -192,14 +214,13 @@ namespace CarryOn.Client.Logic.Interaction
 
         private bool BeginSwapBackInteraction(ref EnumHandling handled)
         {
-            var backSlotEnabled = this.config?.CarryOptions?.BackSlotEnabled ?? false;
-
-            if (!backSlotEnabled) return false;
-
             var world = this.api.World;
             var player = world.Player;
             var carriedHands = carryManager.GetCarried(player.Entity, CarrySlot.Hands);
             var carriedBack = carryManager.GetCarried(player.Entity, CarrySlot.Back);
+
+            var backSlotEnabled = this.config?.CarryOptions?.BackSlotEnabled ?? false;
+            if (carriedHands != null && !backSlotEnabled) return false;
 
             if (!player.Entity.CanInteract(requireEmptyHanded: true))
             {
