@@ -86,14 +86,6 @@ namespace CarryOn
             OnConfigChanged?.Invoke(this.Config);
         }
 
-        private void SyncConfigToDisk(ICoreAPI api)
-        {
-            if (api.Side != EnumAppSide.Server) return;
-            var tree = api.World.Config?.GetOrAddTreeAttribute(ModId);
-            tree?.MergeTree(this.Config.ToTreeAttribute());
-            api.StoreModConfig(this.Config, CarryCode.ConfigFile);
-        }
-
         public override void StartPre(ICoreAPI api)
         {
 
@@ -220,10 +212,9 @@ namespace CarryOn
             // Small delay to ensure the file write is complete
             System.Threading.Thread.Sleep(100);
 
-            if (ServerApi != null)
-                ServerApi.Logger.Notification("CarryOn: Config file change detected, reloading...");
-
-            ReloadAndBroadcastConfig();
+            // FileSystemWatcher fires on a thread-pool thread; all game API calls
+            // (LoadModConfig, BroadcastPacket, Logger, etc.) must run on the main thread.
+            ServerApi?.Event.EnqueueMainThreadTask(ReloadAndBroadcastConfig, "carryon-config-reload");
         }
 
         private void ReloadAndBroadcastConfig()
