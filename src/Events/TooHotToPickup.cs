@@ -1,6 +1,7 @@
 using System;
 using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
+using CarryOn.API.Event;
 using static CarryOn.API.Common.Models.CarryCode;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
@@ -15,21 +16,24 @@ namespace CarryOn.Events
     public class TooHotToPickup : ICarryEvent
     {
         private CarryOnConfig? config;
+        private CarryEvents? carryEvents;
+
         public void Init(ICarryManager carryManager)
         {
             config = carryManager.Config;
-            if (config?.CarryOptions?.TooHotToCarry != true) return;
+            carryEvents = carryManager.CarryEvents;
 
-            var carryEvents = carryManager.CarryEvents;
-            if (carryEvents == null) return;
-
-            carryEvents.BeforePickUpBlock += OnBeforePickUpBlock;
+            if (carryEvents != null)
+                carryEvents.BeforePickUpBlock += OnBeforePickUpBlock;
         }
 
         private void OnBeforePickUpBlock(Entity entity, BlockPos pos, CarrySlot slot, CarriedBlock carried, out bool? canPickUp, out string failureCode)
         {
             canPickUp = null;
             failureCode = string.Empty;
+
+            if (config?.CarryOptions?.TooHotToCarry != true)
+                return;
 
             var world = entity?.World;
             if (world == null) return;

@@ -44,6 +44,11 @@ namespace CarryOn.Client.Logic.Interaction
             validator.TryBeginInteraction(isInteracting, ref handled);
         }
 
+        public void InvalidateConfigCache()
+        {
+            validator.InvalidateConfigCache();
+        }
+
         public void TryContinueInteraction(float deltaTime)
         {
             stateMachine.TryContinueInteraction(deltaTime);

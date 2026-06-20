@@ -28,6 +28,7 @@ namespace CarryOn.Common.Services
         private const string AttrOriginalFace = "OriginalFace";
         private const string AttrOriginalBlockCode = "OriginalBlockCode";
         private const string AttrOriginalMeshAngle = "OriginalMeshAngle";
+        private const string AttrAnimation = "Animation";
 
         private readonly WalkSpeedModifierResolver walkSpeedModifierResolver = new();
         private readonly HungerRateModifierResolver hungerRateModifierResolver = new();
@@ -224,6 +225,9 @@ namespace CarryOn.Common.Services
             if (slotSettings?.Animation != null)
             {
                 entity.StartAnimation(slotSettings.Animation);
+                var slotAttr = entity.WatchedAttributes
+                    .TryGet<ITreeAttribute>(entityCarriedKey, slot.ToString());
+                slotAttr?.SetString(AttrAnimation, slotSettings.Animation);
             }
 
             if (entity is EntityAgent agent)
@@ -257,22 +261,34 @@ namespace CarryOn.Common.Services
         {
             ArgumentNullException.ThrowIfNull(entity);
 
-            var animation = GetCarried(entity, slot)?.GetCarryableBehavior()?.Slots?[slot]?.Animation;
-            if (animation != null) entity.StopAnimation(animation);
+            var slotAttribute = entity.WatchedAttributes.TryGet<ITreeAttribute>(
+                AttributeKey.Watched.EntityCarried, slot.ToString());
+            var animation = slotAttribute?.GetString(AttrAnimation);
+            if (animation != null)
+            {
+                entity.StopAnimation(animation);
+                slotAttribute!.RemoveAttribute(AttrAnimation);
+            }
 
             if (entity is EntityAgent agent)
             {
                 agent.Stats.Remove("walkspeed", CarryOnCode(slot.ToString()));
                 agent.Stats.Remove("hungerrate", CarryOnCode(slot.ToString()));
-
-                if (slot == CarrySlot.Hands) LockedItemSlot.Restore(agent.RightHandItemSlot);
-                if (slot != CarrySlot.Back) LockedItemSlot.Restore(agent.LeftHandItemSlot);
                 SendLockSlotsMessage(agent as EntityPlayer);
             }
 
             entity.WatchedAttributes.Remove(AttributeKey.Watched.EntityCarried, slot.ToString());
             if (markDirty) TouchCarriedAttributes(entity);
             entity.Attributes.Remove(AttributeKey.Watched.EntityCarried, slot.ToString());
+
+            // Restore hand locks only when no carriable remains in the Hands slot.
+            // This handles stale locks from desync (Back remove with empty Hands)
+            // while preserving locks when both Hands and Back are occupied.
+            if (entity is EntityAgent agentForLocks && GetCarried(entity, CarrySlot.Hands) == null)
+            {
+                LockedItemSlot.Restore(agentForLocks.RightHandItemSlot);
+                LockedItemSlot.Restore(agentForLocks.LeftHandItemSlot);
+            }
         }
 
         /// <summary>

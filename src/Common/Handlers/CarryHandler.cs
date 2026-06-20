@@ -38,13 +38,14 @@ namespace CarryOn.Common.Handlers
             typeof(DetachMessage),
             typeof(PutMessage),
             typeof(TakeMessage),
-            typeof(DismountMessage)
+            typeof(DismountMessage),
+            typeof(ConfigSyncMessage)
         ];
 
 
         private long gameTickListenerId;
 
-        private readonly CarryOnConfig config;
+        private CarryOnConfig config;
         private readonly Func<bool> getIsCarryOnEnabled;
 
         private readonly ICarryManager carryManager;
@@ -53,7 +54,7 @@ namespace CarryOn.Common.Handlers
 
         private bool lastCanInteractState = true;
 
-        public bool BackSlotEnabled { get; private set; }
+        public bool BackSlotEnabled => this.config.CarryOptions?.BackSlotEnabled ?? false;
 
         private ICoreAPI? api;
 
@@ -100,6 +101,11 @@ namespace CarryOn.Common.Handlers
             this.interactionLogic.HudHelp = hudHelp;
         }
 
+        public void InvalidateConfigCache()
+        {
+            interactionLogic?.InvalidateConfigCache();
+        }
+
         /// <summary>
         /// Initializes a new instance of the CarryHandler class.
         /// </summary>
@@ -114,7 +120,6 @@ namespace CarryOn.Common.Handlers
             this.carryManager = carryManager;
             this.config = config;
             this.getIsCarryOnEnabled = isCarryOnEnabled;
-            this.BackSlotEnabled = this.config.CarryOptions?.BackSlotEnabled ?? false;
         }
 
         /// <summary>
@@ -390,11 +395,16 @@ namespace CarryOn.Common.Handlers
         /// <param name="message"> The message containing the slot swap details. </param>
         public void OnSwapSlotsMessage(IServerPlayer player, SwapSlotsMessage message)
         {
-            if (!this.BackSlotEnabled) return;
             if ((message.First != message.Second)
                 && (message.First == CarrySlot.Back || message.Second == CarrySlot.Back)
                 && player.Entity.CanInteract(requireEmptyHanded: true))
             {
+                var carriedHands = this.carryManager.GetCarried(player.Entity, CarrySlot.Hands);
+                if (carriedHands != null && !this.BackSlotEnabled)
+                {
+                    this.carryManager.TouchCarriedAttributes(player.Entity);
+                    return;
+                }
 
                 if (this.carryManager.SwapCarried(player.Entity, message.First, message.Second))
                 {

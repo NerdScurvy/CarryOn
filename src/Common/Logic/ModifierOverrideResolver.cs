@@ -1,6 +1,5 @@
 using System;
 using CarryOn.API.Common.Models;
-using CarryOn.Utility;
 using Vintagestory.API.Common;
 
 namespace CarryOn.Common.Logic
@@ -16,33 +15,33 @@ namespace CarryOn.Common.Logic
         {
             value = 0.0f;
 
-            var map = configured?.ByBlockCode;
+            var list = configured?.ByBlockCode;
             var blockCode = block?.Code?.ToString();
-            if (map == null || map.Count == 0 || string.IsNullOrWhiteSpace(blockCode))
+            if (list == null || list.Count == 0 || string.IsNullOrWhiteSpace(blockCode))
                 return false;
 
             SlotModifierConfig? bestConfig = null;
             var bestBlockScore = -1;
             var bestTypeScore = -1;
 
-            foreach (var entry in map)
+            foreach (var entry in list)
             {
-                if (entry.Value == null) continue;
+                if (entry == null) continue;
 
-                var key = entry.Key?.Trim();
-                if (string.IsNullOrWhiteSpace(key)) continue;
+                var k = entry.Key?.Trim();
+                if (string.IsNullOrWhiteSpace(k)) continue;
 
-                var pipeIndex = key.IndexOf('|');
+                var pipeIndex = k.IndexOf('|');
                 string blockPattern;
                 string? typePattern;
                 if (pipeIndex >= 0)
                 {
-                    blockPattern = key.Substring(0, pipeIndex);
-                    typePattern = key.Substring(pipeIndex + 1);
+                    blockPattern = k.Substring(0, pipeIndex);
+                    typePattern = k.Substring(pipeIndex + 1);
                 }
                 else
                 {
-                    blockPattern = key;
+                    blockPattern = k;
                     typePattern = null;
                 }
 
@@ -97,7 +96,7 @@ namespace CarryOn.Common.Logic
                 if (blockScore > bestBlockScore
                     || (blockScore == bestBlockScore && typeScore > bestTypeScore))
                 {
-                    bestConfig = entry.Value;
+                    bestConfig = entry;
                     bestBlockScore = blockScore;
                     bestTypeScore = typeScore;
                 }
@@ -117,15 +116,21 @@ namespace CarryOn.Common.Logic
         {
             value = 0.0f;
 
-            var map = configured?.ByBlockClass;
+            var list = configured?.ByBlockClass;
             var blockClass = block?.Class;
-            if (map == null || map.Count == 0 || string.IsNullOrWhiteSpace(blockClass))
+            if (list == null || list.Count == 0 || string.IsNullOrWhiteSpace(blockClass))
                 return false;
 
-            if (!JsonHelper.TryGetValueTrimmedIgnoreCase(map, blockClass, out var slotConfig) || slotConfig == null)
-                return false;
+            foreach (var entry in list)
+            {
+                if (entry == null || string.IsNullOrWhiteSpace(entry.Key))
+                    continue;
 
-            return TryGetSlotModifier(slotConfig, slot, out value);
+                if (string.Equals(entry.Key.Trim(), blockClass, StringComparison.OrdinalIgnoreCase))
+                    return TryGetSlotModifier(entry, slot, out value);
+            }
+
+            return false;
         }
 
         public static bool TryGetSlotModifier(SlotModifierConfig? slotConfig, CarrySlot slot, out float value)
