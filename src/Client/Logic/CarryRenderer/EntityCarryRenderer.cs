@@ -10,7 +10,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
     public class EntityCarryRenderer : IRenderer
     {
         private ICarryManager carryManager { get; }
-        private CarryOnConfig config { get; }
+        private CarryOnConfig config;
         private ICoreClientAPI api { get; }
         private long renderTick;
         private readonly CarryAnimationSync animationSync;
@@ -59,6 +59,13 @@ namespace CarryOn.Client.Logic.CarryRenderer
         }
 
         public void InvalidateRenderCaches() => cacheManager.InvalidateAll();
+
+        public void UpdateConfig(CarryOnConfig newConfig)
+        {
+            this.config = newConfig;
+            cacheManager.UpdateConfig(newConfig);
+            dispatcher.UpdateConfig(newConfig);
+        }
 
         public void SetRenderAttachedBlocks(bool enabled)
         {

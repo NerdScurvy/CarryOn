@@ -5,6 +5,7 @@ using CarryOn.API.Common.Models;
 using CarryOn.Common.Behaviors;
 using CarryOn.Common.Models;
 using CarryOn.Common.Logic;
+using CarryOn.Common.Entities;
 using CarryOn.Utility;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
@@ -17,7 +18,7 @@ namespace CarryOn.Client.Logic.Interaction
     {
         private readonly ICoreClientAPI api;
         private readonly ICarryManager carryManager;
-        private readonly CarryOnConfig config;
+        private CarryOnConfig config;
         private readonly TransferLogic transferLogic;
         private readonly ICarryInteractionController controller;
 
@@ -102,6 +103,12 @@ namespace CarryOn.Client.Logic.Interaction
                 .ToArray();
         }
 
+        public void UpdateConfig(CarryOnConfig newConfig)
+        {
+            this.config = newConfig;
+            InvalidateConfigCache();
+        }
+
         public void TryBeginInteraction(bool isInteracting, ref EnumHandling handled)
         {
             if (controller.Interaction.CarryAction != CarryAction.None)
@@ -117,6 +124,7 @@ namespace CarryOn.Client.Logic.Interaction
 
             if (isInteracting)
             {
+                if (BeginEntityCarriedBlockInteraction(ref handled)) return;
                 if (BeginEntityCarryableInteraction(ref handled)) return;
                 if (BeginSwapBackInteraction(ref handled)) return;
                 if (BeginBlockEntityInteraction(ref handled)) return;
@@ -210,6 +218,19 @@ namespace CarryOn.Client.Logic.Interaction
             }
 
             return false;
+        }
+
+        private bool BeginEntityCarriedBlockInteraction(ref EnumHandling handled)
+        {
+            if (!api.Input.IsCarryKeyPressed()) return false;
+
+            var entitySelection = this.api.World.Player.CurrentEntitySelection;
+            if (entitySelection?.Entity is not EntityCarriedBlock) return false;
+
+            controller.Interaction.CarryAction = CarryAction.PickupEntity;
+            controller.Interaction.TargetEntity = entitySelection.Entity;
+            handled = EnumHandling.PreventDefault;
+            return true;
         }
 
         private bool BeginSwapBackInteraction(ref EnumHandling handled)

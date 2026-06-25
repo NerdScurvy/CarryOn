@@ -11,8 +11,30 @@ using Vintagestory.API.Datastructures;
 
 namespace CarryOn.Client.Logic.CarryRenderer
 {
-    internal sealed class CarryRenderCacheManager(ICoreClientAPI api, ICarryManager carryManager, CarryOnConfig config, CarryTransformPlanBuilder planBuilder, CarryRenderInfoBuilder infoBuilder, CarryRenderCache cache)
+    internal sealed class CarryRenderCacheManager
     {
+        private readonly ICoreClientAPI api;
+        private readonly ICarryManager carryManager;
+        private CarryOnConfig config;
+        private readonly CarryTransformPlanBuilder planBuilder;
+        private readonly CarryRenderInfoBuilder infoBuilder;
+        private readonly CarryRenderCache cache;
+
+        public CarryRenderCacheManager(ICoreClientAPI api, ICarryManager carryManager, CarryOnConfig config, CarryTransformPlanBuilder planBuilder, CarryRenderInfoBuilder infoBuilder, CarryRenderCache cache)
+        {
+            this.api = api ?? throw new ArgumentNullException(nameof(api));
+            this.carryManager = carryManager ?? throw new ArgumentNullException(nameof(carryManager));
+            this.config = config ?? throw new ArgumentNullException(nameof(config));
+            this.planBuilder = planBuilder ?? throw new ArgumentNullException(nameof(planBuilder));
+            this.infoBuilder = infoBuilder ?? throw new ArgumentNullException(nameof(infoBuilder));
+            this.cache = cache ?? throw new ArgumentNullException(nameof(cache));
+        }
+
+        public void UpdateConfig(CarryOnConfig newConfig)
+        {
+            this.config = newConfig;
+        }
+
         private readonly Dictionary<(long EntityId, CarrySlot Slot), SignatureSidecarState> signatureSidecars = new();
 
         private sealed class SignatureSidecarState

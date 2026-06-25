@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
 using CarryOn.Common.Behaviors;
 using CarryOn.Common.Logic;
@@ -17,17 +18,8 @@ using static CarryOn.API.Common.Models.CarryCode;
 
 namespace CarryOn.Common.Services
 {
-    internal sealed class CarryStateService(CarryOnConfig config, IServerNetworkChannel? serverChannel)
+    internal sealed class CarryStateService(IConfigProvider configProvider, IServerNetworkChannel? serverChannel)
     {
-        private const string AttrStack = "Stack";
-        private const string AttrData = "Data";
-        private const string AttrChildren = "Children";
-        private const string AttrOffsetX = "OffsetX";
-        private const string AttrOffsetY = "OffsetY";
-        private const string AttrOffsetZ = "OffsetZ";
-        private const string AttrOriginalFace = "OriginalFace";
-        private const string AttrOriginalBlockCode = "OriginalBlockCode";
-        private const string AttrOriginalMeshAngle = "OriginalMeshAngle";
         private const string AttrAnimation = "Animation";
 
         private readonly WalkSpeedModifierResolver walkSpeedModifierResolver = new();
@@ -62,112 +54,7 @@ namespace CarryOn.Common.Services
                 .TryGet<ITreeAttribute>(entityCarriedKey, slot.ToString());
             if (slotAttribute == null) return null;
 
-            var stack = slotAttribute.GetItemstack(AttrStack);
-            if (stack?.Class != EnumItemClass.Block) return null;
-            if (stack.Block == null)
-            {
-                stack.ResolveBlockOrItem(entity.World);
-                if (stack.Block == null) return null;
-            }
-
-            var blockEntityData = entity.WatchedAttributes.TryGet<ITreeAttribute>(entityCarriedKey, slot.ToString(), AttrData);
-
-            var attachedBlocks = DeserializeAttachedBlocks(entity, slotAttribute);
-
-            var originalCodeStr = slotAttribute.GetString(AttrOriginalBlockCode, null);
-            var originalCode = originalCodeStr != null ? new AssetLocation(originalCodeStr) : null;
-
-            float? originalMeshAngle = null;
-            if (slotAttribute.HasAttribute(AttrOriginalMeshAngle))
-                originalMeshAngle = slotAttribute.GetFloat(AttrOriginalMeshAngle);
-
-            return new CarriedBlock(slot, stack, blockEntityData, attachedBlocks, originalCode, originalMeshAngle);
-        }
-
-        private List<AttachedCarriedBlock>? DeserializeAttachedBlocks(Entity entity, ITreeAttribute slotAttribute)
-        {
-            if (slotAttribute[AttrChildren] is not TreeAttribute childrenTree || childrenTree.Count == 0)
-                return null;
-
-            var attached = new List<AttachedCarriedBlock>();
-            foreach (var key in childrenTree.Keys)
-            {
-                if (childrenTree[key] is not ITreeAttribute childAttr) continue;
-
-                var childStack = childAttr.GetItemstack(AttrStack);
-                if (childStack?.Class != EnumItemClass.Block) continue;
-                if (childStack.Block == null)
-                {
-                    childStack.ResolveBlockOrItem(entity.World);
-                    if (childStack.Block == null) continue;
-                }
-
-                var childData = childAttr[AttrData] as ITreeAttribute;
-
-                var offsetX = childAttr.GetInt(AttrOffsetX, 0);
-                var offsetY = childAttr.GetInt(AttrOffsetY, 0);
-                var offsetZ = childAttr.GetInt(AttrOffsetZ, 0);
-                var relativeOffset = new BlockPos(offsetX, offsetY, offsetZ);
-
-                var faceCode = childAttr.GetString(AttrOriginalFace, null);
-                var originalFace = faceCode != null ? BlockFacing.FromCode(faceCode) : null;
-
-                var originalCodeStr = childAttr.GetString(AttrOriginalBlockCode, null);
-                var originalCode = originalCodeStr != null ? new AssetLocation(originalCodeStr) : null;
-
-                float? originalMeshAngle = null;
-                if (childAttr.HasAttribute(AttrOriginalMeshAngle))
-                    originalMeshAngle = childAttr.GetFloat(AttrOriginalMeshAngle);
-
-                var carriedBlock = new CarriedBlock(CarrySlot.Attached, childStack, childData, null, originalCode, originalMeshAngle);
-                attached.Add(new AttachedCarriedBlock(relativeOffset, carriedBlock, originalFace));
-            }
-
-            return attached.Count > 0 ? attached : null;
-        }
-
-        private static void SerializeAttachedBlocks(ITreeAttribute slotAttribute, IReadOnlyList<AttachedCarriedBlock>? attachedBlocks)
-        {
-            slotAttribute.RemoveAttribute(AttrChildren);
-
-            if (attachedBlocks == null || attachedBlocks.Count == 0) return;
-
-            var childrenTree = new TreeAttribute();
-            for (int i = 0; i < attachedBlocks.Count; i++)
-            {
-                var child = attachedBlocks[i];
-                var childAttr = new TreeAttribute();
-
-                childAttr.SetItemstack(AttrStack, child.ItemStack);
-
-                if (child.BlockEntityData != null)
-                {
-                    childAttr[AttrData] = child.BlockEntityData;
-                }
-
-                childAttr.SetInt(AttrOffsetX, child.RelativeOffset.X);
-                childAttr.SetInt(AttrOffsetY, child.RelativeOffset.Y);
-                childAttr.SetInt(AttrOffsetZ, child.RelativeOffset.Z);
-
-                if (child.OriginalLocalFace != null)
-                {
-                    childAttr.SetString(AttrOriginalFace, child.OriginalLocalFace.Code);
-                }
-
-                if (child.OriginalBlockCode != null)
-                    childAttr.SetString(AttrOriginalBlockCode, child.OriginalBlockCode.ToString());
-                else
-                    childAttr.RemoveAttribute(AttrOriginalBlockCode);
-
-                if (child.OriginalMeshAngle.HasValue)
-                    childAttr.SetFloat(AttrOriginalMeshAngle, child.OriginalMeshAngle.Value);
-                else
-                    childAttr.RemoveAttribute(AttrOriginalMeshAngle);
-
-                childrenTree[$"child_{i}"] = childAttr;
-            }
-
-            slotAttribute[AttrChildren] = childrenTree;
+            return CarriedBlockTreeSerializer.Deserialize(slotAttribute, entity.World, slot);
         }
 
         /// <summary>
@@ -190,28 +77,32 @@ namespace CarryOn.Common.Services
             var originalMeshAngle = carriedBlock.OriginalMeshAngle;
 
             var entityCarriedKey = AttributeKey.Watched.EntityCarried;
-            entity.WatchedAttributes.Set(stack, entityCarriedKey, slot.ToString(), AttrStack);
+            entity.WatchedAttributes.Set(stack, entityCarriedKey, slot.ToString(), AttributeKey.CarriedBlock.Stack);
 
             if (blockEntityData != null)
             {
-                entity.WatchedAttributes.Set(blockEntityData, entityCarriedKey, slot.ToString(), AttrData);
+                entity.WatchedAttributes.Set(blockEntityData, entityCarriedKey, slot.ToString(), AttributeKey.CarriedBlock.Data);
             }
 
             var slotAttribute = entity.WatchedAttributes
                 .TryGet<ITreeAttribute>(entityCarriedKey, slot.ToString());
             if (slotAttribute != null)
             {
-                SerializeAttachedBlocks(slotAttribute, attachedBlocks);
+                slotAttribute.RemoveAttribute(AttributeKey.CarriedBlock.Children);
+
+                var childrenTree = CarriedBlockTreeSerializer.BuildAttachedBlocksTree(attachedBlocks);
+                if (childrenTree != null)
+                    slotAttribute[AttributeKey.CarriedBlock.Children] = childrenTree;
 
                 if (originalBlockCode != null)
-                    slotAttribute.SetString(AttrOriginalBlockCode, originalBlockCode.ToString());
+                    slotAttribute.SetString(AttributeKey.CarriedBlock.OriginalBlockCode, originalBlockCode.ToString());
                 else
-                    slotAttribute.RemoveAttribute(AttrOriginalBlockCode);
+                    slotAttribute.RemoveAttribute(AttributeKey.CarriedBlock.OriginalBlockCode);
 
                 if (originalMeshAngle.HasValue)
-                    slotAttribute.SetFloat(AttrOriginalMeshAngle, originalMeshAngle.Value);
+                    slotAttribute.SetFloat(AttributeKey.CarriedBlock.OriginalMeshAngle, originalMeshAngle.Value);
                 else
-                    slotAttribute.RemoveAttribute(AttrOriginalMeshAngle);
+                    slotAttribute.RemoveAttribute(AttributeKey.CarriedBlock.OriginalMeshAngle);
             }
 
             if (entity.Api.Side == EnumAppSide.Server)
@@ -348,7 +239,7 @@ namespace CarryOn.Common.Services
 
         private void ApplyWalkSpeed(EntityAgent agent, CarrySlot slot, SlotSettings? slotSettings = null, ItemStack? stack = null, BlockBehaviorCarryable? behavior = null)
         {
-            var walkSpeedConfig = config?.CarryWalkSpeed;
+            var walkSpeedConfig = configProvider.Config.CarryWalkSpeed;
             if (walkSpeedConfig == null) return;
 
             if (!walkSpeedModifierResolver.IsEnabled(slot, walkSpeedConfig)) return;
@@ -369,7 +260,7 @@ namespace CarryOn.Common.Services
 
         private void ApplyHungerRate(EntityAgent agent, CarrySlot slot, SlotSettings? slotSettings = null, ItemStack? stack = null, BlockBehaviorCarryable? behavior = null)
         {
-            var hungerRateConfig = config?.CarryHungerRate;
+            var hungerRateConfig = configProvider.Config.CarryHungerRate;
             if (hungerRateConfig == null) return;
 
             if (!hungerRateModifierResolver.IsEnabled(slot, hungerRateConfig)) return;
