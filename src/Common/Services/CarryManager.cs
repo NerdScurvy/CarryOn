@@ -23,21 +23,22 @@ namespace CarryOn.Common.Services
 
         public ICoreAPI Api { get; private set; }
 
-        public CarrySystem CarrySystem { get; private set; }
+        public IConfigProvider ConfigProvider { get; private set; }
 
-        public CarryEvents CarryEvents => CarrySystem.CarryEvents;
+        public CarryEvents CarryEvents { get; private set; }
 
         internal CarryManagerServices Services { get; }
         private readonly CarryResolverRegistry ResolverRegistry = new();
 
-        public CarryManager(ICoreAPI api, CarrySystem carrySystem)
+        public CarryManager(ICoreAPI api, IConfigProvider configProvider, CarryEvents carryEvents)
         {
-            CarrySystem = carrySystem ?? throw new ArgumentNullException(nameof(carrySystem));
+            ConfigProvider = configProvider ?? throw new ArgumentNullException(nameof(configProvider));
+            CarryEvents = carryEvents ?? throw new ArgumentNullException(nameof(carryEvents));
             Api = api ?? throw new ArgumentNullException(nameof(api));
-            Services = new CarryManagerServices(Api, CarrySystem, this);
+            Services = new CarryManagerServices(Api, ConfigProvider, this);
         }
 
-        public CarryOnConfig? Config => CarrySystem?.Config;
+        public CarryOnConfig? Config => ConfigProvider?.Config;
 
         /// <inheritdoc/>
         public void RegisterRootTransformGroupResolver(string modId, IRootTransformGroupResolver resolver)

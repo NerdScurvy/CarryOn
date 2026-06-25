@@ -161,6 +161,11 @@ namespace CarryOn.Client.Logic.Interaction
                     attachableCarryBehavior = Interaction.TargetEntity?.GetBehavior<EntityBehaviorAttachableCarryable>();
                     break;
 
+                case CarryAction.PickupEntity:
+                    if (Interaction.TargetEntity == null || !Interaction.TargetEntity.Alive)
+                    { CancelInteraction(); return; }
+                    break;
+
                 case CarryAction.Put:
                 case CarryAction.Take:
                     break;
@@ -253,6 +258,17 @@ namespace CarryOn.Client.Logic.Interaction
 
             if (this.carryManager.SwapCarried(player.Entity, Interaction.CarrySlot.Value, CarrySlot.Back))
                 clientChannel.SendPacket(new SwapSlotsMessage(CarrySlot.Back, Interaction.CarrySlot.Value));
+        }
+
+        private void ContinuePickupEntityAction(IPlayer player, IClientNetworkChannel clientChannel)
+        {
+            if (Interaction.TargetEntity == null || !Interaction.TargetEntity.Alive)
+            {
+                CancelInteraction();
+                return;
+            }
+
+            clientChannel.SendPacket(new PickupEntityMessage(Interaction.TargetEntity.EntityId));
         }
 
         private void ContinueAttachAction(EntityBehaviorAttachableCarryable? attachableCarryBehavior, IClientNetworkChannel clientChannel)
@@ -374,6 +390,10 @@ namespace CarryOn.Client.Logic.Interaction
 
                 case CarryAction.SwapBack:
                     ContinueSwapBackAction(player, clientChannel);
+                    break;
+
+                case CarryAction.PickupEntity:
+                    ContinuePickupEntityAction(player, clientChannel);
                     break;
 
                 case CarryAction.Attach:

@@ -13,7 +13,7 @@ using static CarryOn.API.Common.Models.CarryCode;
 
 namespace CarryOn.Common.Services
 {
-    internal sealed class CarryAttachmentService(ICoreAPI api, CarryOnConfig config, ICarryManager carryManager)
+    internal sealed class CarryAttachmentService(ICoreAPI api, IConfigProvider configProvider, ICarryManager carryManager)
     {
         private const string MountedBagInventoryPrefix = "mountedbaginv";
 
@@ -357,6 +357,6 @@ namespace CarryOn.Common.Services
         }
 
         private int GetMaxInteractionDistance()
-            => config?.CarryOptions?.MaxInteractionDistance ?? Default.MaxInteractionDistance;
+            => configProvider.Config.CarryOptions?.MaxInteractionDistance ?? Default.MaxInteractionDistance;
     }
 }

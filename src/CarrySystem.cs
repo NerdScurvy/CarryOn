@@ -1,6 +1,4 @@
 using System;
-using System.IO;
-using System.Reflection;
 using CarryOn.Common.Network;
 using CarryOn.Common.Services;
 using CarryOn.API.Common.Interfaces;
@@ -22,7 +20,8 @@ using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Server;
 using static CarryOn.API.Common.Models.CarryCode;
-using Vintagestory.API.Config;
+using CarryOn.Common.Entities;
+using Newtonsoft.Json;
 
 [assembly: ModInfo("Carry On",
     modID: "carryon",
@@ -37,7 +36,7 @@ namespace CarryOn
 {
     /// <summary> Main system for the "Carry On" mod, which allows certain
     ///           blocks such as chests to be picked up and carried around. </summary>
-    public class CarrySystem : ModSystem
+    public class CarrySystem : ModSystem, IConfigProvider
     {
         // Client
         public ICoreClientAPI? ClientApi { get; private set; }
@@ -56,16 +55,12 @@ namespace CarryOn
         public ICoreServerAPI? ServerApi { get; private set; }
         public IServerNetworkChannel? ServerChannel { get; private set; }
         public DeathHandler? DeathHandler { get; private set; }
-
-        // Config file watcher (server-side, detects AutoConfigLib saves and manual edits to reload config without restart)
-        private FileSystemWatcher? configWatcher;
-        private DateTime lastConfigFileChange = DateTime.MinValue;
-        private readonly object configWatcherLock = new();
+        public CarriedBlockEntityService? CarriedBlockEntityService { get; private set; }
 
         // Common
-        public HotKeyHandler HotKeyHandler { get; private set; } = null!;
+        public HotKeyHandler? HotKeyHandler { get; private set; }
 
-        public CarryHandler CarryHandler { get; private set; } = null!;
+        public CarryHandler? CarryHandler { get; private set; }
 
         public CarryEvents CarryEvents { get; private set; } = null!;
 
@@ -73,26 +68,9 @@ namespace CarryOn
 
         public ICarryManager? CarryManager => CarryOnLib?.CarryManager;
 
-        public CarryOnConfig Config { get; private set; } = null!;
+        public CarryOnConfigService ConfigService { get; private set; } = null!;
 
-        /// <summary>
-        /// Fired when config file changes
-        /// Subscribe to invalidate cached config values.
-        /// </summary>
-        public event Action<CarryOnConfig>? OnConfigChanged;
-
-        internal void NotifyConfigChanged()
-        {
-            OnConfigChanged?.Invoke(this.Config);
-        }
-
-        private void SyncConfigToDisk(ICoreAPI api)
-        {
-            if (api.Side != EnumAppSide.Server) return;
-            var tree = api.World.Config?.GetOrAddTreeAttribute(ModId);
-            tree?.MergeTree(this.Config.ToTreeAttribute());
-            api.StoreModConfig(this.Config, CarryCode.ConfigFile);
-        }
+        public CarryOnConfig Config => ConfigService.Config;
 
         public override void StartPre(ICoreAPI api)
         {
@@ -114,15 +92,19 @@ namespace CarryOn
 
             var carryOnWorldConfig = api.World.Config?.GetTreeAttribute(ModId);
 
+            CarryOnConfig config;
             if (carryOnWorldConfig == null)
             {
                 api.World.Logger.Warning("CarryOn: No world config found for CarryOn; using defaults");
-                Config = new CarryOnConfig();
+                config = new CarryOnConfig();
             }
             else
             {
-                Config = CarryOnConfig.FromTreeAttribute(carryOnWorldConfig);
+                config = CarryOnConfig.FromTreeAttribute(carryOnWorldConfig);
             }
+
+            ConfigService = new CarryOnConfigService(config);
+            EntityCarriedBlock.Config = config.CarriedBlockEntity;
 
             if (!Config.DebuggingOptions.DisableHarmonyPatch)
             {
@@ -142,7 +124,8 @@ namespace CarryOn
             api.Register<BlockBehaviorCarryableInteract>();
             api.Register<EntityBehaviorAttachableCarryable>();
 
-  
+            api.RegisterEntity("EntityCarriedBlock", typeof(EntityCarriedBlock));
+
             CarryEvents = new CarryEvents
             {
                 OnEventHandlerError = ex => api.World.Logger.Error(ex.ToString())
@@ -151,7 +134,7 @@ namespace CarryOn
             CarryOnLib = api.ModLoader.GetModSystem<CarryOnLib.Core>();
             if (CarryOnLib != null)
             {
-                CarryOnLib.CarryManager = new CarryManager(api, this);
+                CarryOnLib.CarryManager = new CarryManager(api, this, CarryEvents);
                 CarryHandler = new CarryHandler(CarryOnLib.CarryManager, this.Config, () => this.ClientModConfig?.Config?.CarryOnEnabled ?? true);
                 HotKeyHandler = new HotKeyHandler(CarryOnLib.CarryManager);
             }
@@ -166,92 +149,29 @@ namespace CarryOn
 
         private void WireConfigChangeHandlers()
         {
-            OnConfigChanged += _ => this.Config.InvalidateBackpackCache();
-            OnConfigChanged += _ => this.CarryHandler?.InvalidateConfigCache();
-            OnConfigChanged += _ =>
+            ConfigService.OnConfigChanged += _ => Config.InvalidateBackpackCache();
+            ConfigService.OnConfigChanged += cfg => this.CarryHandler?.UpdateConfig(cfg);
+            ConfigService.OnConfigChanged += cfg => this.EntityCarryRenderer?.UpdateConfig(cfg);
+            ConfigService.OnConfigChanged += _ => EntityCarriedBlock.Config = Config.CarriedBlockEntity;
+            ConfigService.OnConfigChanged += _ =>
             {
                 if (ServerApi == null) return;
                 var tree = ServerApi.World.Config?.GetOrAddTreeAttribute(ModId);
-                tree?.MergeTree(this.Config.ToTreeAttribute());
-                ServerApi.StoreModConfig(this.Config, CarryCode.ConfigFile);
+                tree?.MergeTree(Config.ToTreeAttribute());
+                ServerApi.StoreModConfig(Config, ConfigFile);
+            };
+            ConfigService.OnConfigChanged += _ =>
+            {
+                if (ServerChannel == null) return;
+                var json = JsonConvert.SerializeObject(Config);
+                ServerChannel.BroadcastPacket(new ConfigSyncMessage(json));
             };
         }
 
-        private void TrySetupConfigWatcher(ICoreServerAPI api)
+        private void InitCommon(ICoreAPI api)
         {
-            try
-            {
-                var configPath = Path.Combine(GamePaths.DataPath, "ModConfig", CarryCode.ConfigFile);
-                if (!File.Exists(configPath))
-                {
-                    api.Logger.Warning("CarryOn: Config file not found at " + configPath);
-                    return;
-                }
-
-                var configDir = Path.GetDirectoryName(configPath);
-                if (configDir == null) return;
-
-                configWatcher = new FileSystemWatcher(configDir, CarryCode.ConfigFile)
-                {
-                    NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.CreationTime,
-                    EnableRaisingEvents = true
-                };
-
-                configWatcher.Changed += OnConfigFileChanged;
-                configWatcher.Created += OnConfigFileChanged;
-
-                api.Logger.Notification("CarryOn: Watching " + configPath + " for config changes");
-            }
-            catch (Exception ex)
-            {
-                api.Logger?.Warning("CarryOn: Failed to set up config file watcher: " + ex.Message);
-            }
-        }
-
-        private void OnConfigFileChanged(object sender, FileSystemEventArgs e)
-        {
-            lock (configWatcherLock)
-            {
-                var now = DateTime.UtcNow;
-                if ((now - lastConfigFileChange).TotalMilliseconds < 500) return;
-                lastConfigFileChange = now;
-            }
-
-            // Small delay to ensure the file write is complete
-            System.Threading.Thread.Sleep(100);
-
-            if (ServerApi != null)
-                ServerApi.Logger.Notification("CarryOn: Config file change detected, reloading...");
-
-            ReloadAndBroadcastConfig();
-        }
-
-        private void ReloadAndBroadcastConfig()
-        {
-            if (ServerApi == null) return;
-
-            try
-            {
-                var reloaded = ServerApi.LoadModConfig<CarryOnConfig>(CarryCode.ConfigFile);
-                if (reloaded == null) return;
-
-                reloaded.UpgradeVersion();
-                ApplyConfigInPlace(reloaded);
-                NotifyConfigChanged();
-                ServerApi.Logger.Notification("CarryOn: Config reloaded and applied");
-
-                // Broadcast updated config to all connected clients
-                if (ServerChannel != null)
-                {
-                    var json = Newtonsoft.Json.JsonConvert.SerializeObject(reloaded);
-                    ServerChannel.BroadcastPacket(new ConfigSyncMessage(json));
-                    ServerApi.Logger.Notification("CarryOn: Config broadcast to all connected clients");
-                }
-            }
-            catch (Exception ex)
-            {
-                ServerApi.Logger?.Warning("CarryOn: Failed to reload config from file: " + ex.Message);
-            }
+            BlockBehaviorCarryableInteract.Init(CarryManager!);
+            CarryManager!.InitEvents(api);
         }
 
         private void OnClientConfigSync(ConfigSyncMessage message)
@@ -260,12 +180,11 @@ namespace CarryOn
 
             try
             {
-                var reloaded = Newtonsoft.Json.JsonConvert.DeserializeObject<CarryOnConfig>(message.ConfigJson);
+                var reloaded = JsonConvert.DeserializeObject<CarryOnConfig>(message.ConfigJson);
                 if (reloaded != null)
                 {
                     reloaded.UpgradeVersion();
-                    ApplyConfigInPlace(reloaded);
-                    NotifyConfigChanged();
+                    ConfigService.Replace(reloaded);
                     ClientApi.Logger?.Notification("CarryOn: Config synced from server and applied");
                 }
             }
@@ -275,21 +194,8 @@ namespace CarryOn
             }
         }
 
-        private void ApplyConfigInPlace(CarryOnConfig source)
-        {
-            foreach (var prop in typeof(CarryOnConfig).GetProperties(BindingFlags.Public | BindingFlags.Instance))
-            {
-                if (prop.CanRead && prop.CanWrite)
-                {
-                    prop.SetValue(this.Config, prop.GetValue(source));
-                }
-            }
-        }
-
         public override void StartClientSide(ICoreClientAPI api)
         {
-            ClientApi = api;
-
             if (CarryManager == null)
             {
                 api.Logger.Error("CarryOn: CarryManager not available — CarryOnLib failed to load. Client-side features disabled.");
@@ -298,9 +204,9 @@ namespace CarryOn
 
             ClientChannel = api.Network.RegisterChannel(ModId);
 
-            BlockBehaviorCarryableInteract.Init(CarryManager);
             EntityBehaviorAttachableCarryable.Init(CarryManager);
             CarryableInteractionHelpBuilder.Init(CarryManager);
+            InitCommon(api);
 
             HudOverlayRenderer = new HudOverlayRenderer(api);
             HudCarried = new HudCarried(api, CarryManager);
@@ -321,13 +227,12 @@ namespace CarryOn
 
             EntityCarryRenderer = new EntityCarryRenderer(api, this.CarryManager, this.Config, this.ClientModConfig!);
 
-            CarryHandler.InitClient(api, this.ClientChannel!,
+            CarryHandler!.InitClient(api, this.ClientChannel!,
                 () => { if (this.HudOverlayRenderer != null) this.HudOverlayRenderer.CircleVisible = false; },
                 p => { if (this.HudOverlayRenderer != null) this.HudOverlayRenderer.CircleProgress = p; },
                 this.ClientModConfig!);
             ClientChannel.SetMessageHandler<ConfigSyncMessage>(OnClientConfigSync);
-            CarryManager?.InitEvents(api);
-            HotKeyHandler.InitClient(api, this.ClientChannel!, this.ClientModConfig!);
+            HotKeyHandler!.InitClient(api, this.ClientChannel!, this.ClientModConfig!);
 
             CarryManager?.RegisterRootTransformGroupResolver(ModId, new GenericCodePathTransformGroupResolver());
             CarryManager?.RegisterAttachmentTransformGroupResolver(ModId, new DataAttributeTransformGroupResolver());
@@ -357,18 +262,20 @@ namespace CarryOn
             }
 
             EntityBehaviorDropCarriedOnDamage.Init(CarryManager, Config.DropCarriedOnDamage);
-            BlockBehaviorCarryableInteract.Init(CarryManager);
+            InitCommon(api);
             api.Register<EntityBehaviorDropCarriedOnDamage>();
+            api.RegisterEntity("EntityCarriedBlock", typeof(Common.Entities.EntityCarriedBlock));
 
             ServerApi = api;
             ServerChannel = api.Network.RegisterChannel(ModId);
 
-            DeathHandler = new DeathHandler(api, CarryManager);
-            CarryHandler.InitServer(api, this.ServerChannel!);
-            CarryManager.InitEvents(api);
-            HotKeyHandler.InitServer(api, this.ServerChannel!);
+            CarriedBlockEntityService = new Server.Logic.CarriedBlockEntityService(api);
 
-            TrySetupConfigWatcher(api);
+            DeathHandler = new DeathHandler(api, CarryManager);
+            CarryHandler!.InitServer(api, this.ServerChannel!);
+            HotKeyHandler!.InitServer(api, this.ServerChannel!);
+
+            ConfigService.SetupFileWatcher(api);
         }
 
         public override void AssetsFinalize(ICoreAPI api)
@@ -388,12 +295,7 @@ namespace CarryOn
 
         public override void Dispose()
         {
-            if (configWatcher != null)
-            {
-                configWatcher.EnableRaisingEvents = false;
-                configWatcher.Dispose();
-                configWatcher = null;
-            }
+            ConfigService.Dispose();
 
             CarryPatcher.Remove();
 
@@ -402,14 +304,9 @@ namespace CarryOn
                 EntityCarryRenderer?.Dispose();
                 HudOverlayRenderer?.Dispose();
                 HudCarried?.Dispose();
-
-                CarryHandler?.Dispose();
             }
 
-            if (ServerApi != null)
-            {
-                CarryHandler?.Dispose();
-            }
+            CarryHandler?.Dispose();
             base.Dispose();
         }
     }

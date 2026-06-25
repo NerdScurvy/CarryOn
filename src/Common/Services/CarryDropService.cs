@@ -63,6 +63,13 @@ namespace CarryOn.Common.Services
             var player = (entity as EntityPlayer)?.Player as IServerPlayer;
 
             var centerBlock = entity.Pos.AsBlockPos.UpCopy();
+
+            if (carryManager.Config?.CarriedBlockEntity?.AlwaysDropAsEntity == true)
+            {
+                DropBlockAsItem(carriedBlock, centerBlock, player, entity);
+                return;
+            }
+
             blockPlacer ??= new BlockPlacer(entity.Api);
 
             if (carriedBlock.HasAttachedBlocks)
@@ -78,12 +85,31 @@ namespace CarryOn.Common.Services
                 return;
             }
 
-            if (carryManager.TryPlaceDown(entity, carriedBlock, blockSelection, dropped: true))
+            var failureCode = FailureCode.Ignore;
+            if (carryManager.TryPlaceDown(entity, carriedBlock, blockSelection, ref failureCode, dropped: true))
             {
                 return;
             }
 
+            if (ShouldDropAsEntityOnPermissionDenied(failureCode))
+            {
+                DropBlockAsItem(carriedBlock, centerBlock, player, entity, forceEntity: true);
+                return;
+            }
+
             DropBlockAsItem(carriedBlock, centerBlock, player, entity);
+        }
+
+        private bool ShouldDropAsEntityOnPermissionDenied(string failureCode)
+        {
+            var config = carryManager.Config?.CarriedBlockEntity;
+            if (config?.DropAsEntityOnPermissionDenied != true)
+                return false;
+
+            if (string.IsNullOrEmpty(failureCode) || failureCode == FailureCode.Ignore || failureCode == FailureCode.Internal)
+                return false;
+
+            return true;
         }
 
         private void DropClusterBlock(Entity entity, CarriedBlock carriedBlock, int range, BlockPlacer blockPlacer, BlockPos centerBlock, IServerPlayer? player)
@@ -94,9 +120,17 @@ namespace CarryOn.Common.Services
                 centerBlock,
                 range);
 
-            if (blockSelection != null && carryManager.TryPlaceDown(entity, carriedBlock, blockSelection, dropped: true))
+            if (blockSelection != null)
             {
-                return;
+                var failureCode = FailureCode.Ignore;
+                if (carryManager.TryPlaceDown(entity, carriedBlock, blockSelection, ref failureCode, dropped: true))
+                    return;
+
+                if (ShouldDropAsEntityOnPermissionDenied(failureCode))
+                {
+                    DropBlockAsItem(carriedBlock, centerBlock, player, entity, forceEntity: true);
+                    return;
+                }
             }
 
             // Cluster placement failed — drop parent plus all children as items
@@ -121,8 +155,26 @@ namespace CarryOn.Common.Services
         /// <param name="centerBlock">Center position for item spawning and audio.</param>
         /// <param name="player">Optional acting server player for contextual drops.</param>
         /// <param name="entity">Entity source for state mutation and events.</param>
-        public void DropBlockAsItem(CarriedBlock carriedBlock, BlockPos centerBlock, IServerPlayer? player, Entity entity)
+        /// <param name="forceEntity">When true, spawns a block entity instead of item drops regardless of AlwaysDropAsEntity setting.</param>
+        public void DropBlockAsItem(CarriedBlock carriedBlock, BlockPos centerBlock, IServerPlayer? player, Entity entity, bool forceEntity = false)
         {
+            if (api.Side == EnumAppSide.Server && (forceEntity || carryManager.Config?.CarriedBlockEntity?.AlwaysDropAsEntity == true))
+            {
+                var carrySystem = api.ModLoader.GetModSystem<CarrySystem>();
+                var entityService = carrySystem?.CarriedBlockEntityService;
+                if (entityService != null)
+                {
+                    var playerUid = player?.PlayerUID ?? "unknown";
+                    var candidatePos = new Vec3d(entity.Pos.X, entity.Pos.Y, entity.Pos.Z);
+                    var config = carryManager.Config?.CarriedBlockEntity;
+                    var randomYaw = config?.RandomDropRotation ?? true;
+                    var scale = config?.Scale ?? 1.0f;
+                    entityService.SpawnCarriedBlockEntityWithGravity(carriedBlock, playerUid, candidatePos, randomYaw: randomYaw, scale: scale);
+                    carryManager.RemoveCarried(entity, carriedBlock.Slot);
+                    return;
+                }
+            }
+
             var world = api.World;
             var blockDestroyed = false;
             var hadContents = false;

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using CarryOn.Common.Network;
 using CarryOn.Utility;
@@ -18,6 +19,7 @@ using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
 using CarryOn.Client.Logic.Interaction;
 using CarryOn.Client.Models;
+using CarryOn.Common.Entities;
 
 namespace CarryOn.Common.Handlers
 {
@@ -39,7 +41,8 @@ namespace CarryOn.Common.Handlers
             typeof(PutMessage),
             typeof(TakeMessage),
             typeof(DismountMessage),
-            typeof(ConfigSyncMessage)
+            typeof(ConfigSyncMessage),
+            typeof(PickupEntityMessage)
         ];
 
 
@@ -104,6 +107,12 @@ namespace CarryOn.Common.Handlers
         public void InvalidateConfigCache()
         {
             interactionLogic?.InvalidateConfigCache();
+        }
+
+        public void UpdateConfig(CarryOnConfig newConfig)
+        {
+            this.config = newConfig;
+            interactionLogic?.UpdateConfig(newConfig);
         }
 
         /// <summary>
@@ -192,7 +201,8 @@ namespace CarryOn.Common.Handlers
                 .SetMessageHandler<DetachMessage>(OnDetachMessage)
                 .SetMessageHandler<PutMessage>(OnPutMessage)
                 .SetMessageHandler<TakeMessage>(OnTakeMessage)
-                .SetMessageHandler<DismountMessage>(OnDismountMessage);
+                .SetMessageHandler<DismountMessage>(OnDismountMessage)
+                .SetMessageHandler<PickupEntityMessage>(OnPickupEntityMessage);
 
             serverEvent.OnEntitySpawn += OnServerEntitySpawn;
             serverEvent.PlayerNowPlaying += OnServerPlayerNowPlaying;
@@ -550,6 +560,72 @@ namespace CarryOn.Common.Handlers
                 .Controls?.StopAllMovement();
         }
 
+
+        /// <summary>
+        /// Handles the pickup entity action for a player.
+        /// </summary>
+        /// <param name="player"> The player performing the pickup. </param>
+        /// <param name="message"> The message containing the entity ID. </param>
+        private void OnPickupEntityMessage(IServerPlayer player, PickupEntityMessage message)
+        {
+            var entity = player.Entity.World.GetEntityById(message.EntityId) as EntityCarriedBlock;
+            if (entity == null) return;
+
+            if (TryPickupFromEntity(player, entity))
+                entity.Die(EnumDespawnReason.Death, null);
+        }
+
+        /// <summary>
+        /// Attempts to pick up a CarriedBlock from an EntityCarriedBlock into the player's Hands slot.
+        /// </summary>
+        private bool TryPickupFromEntity(IServerPlayer player, EntityCarriedBlock entity)
+        {
+            var carriedTree = entity.CarriedBlockTree;
+            if (carriedTree == null) return false;
+
+            var api = entity.Api;
+            if (api == null) return false;
+
+            var carriedBlock = CarriedBlockTreeSerializer.Deserialize(carriedTree, api);
+            if (carriedBlock == null) return false;
+
+            if (this.carryManager.GetCarried(player.Entity, CarrySlot.Hands) != null)
+            {
+                player.SendIngameError(FailureCode.AlreadyCarrying, LocalizationHelper.GetLang("pick-up-already-carrying"));
+                return false;
+            }
+
+            if (!CanPickupFromEntity(player, entity))
+                return false;
+
+            this.carryManager.SetCarried(player.Entity, carriedBlock, CarrySlot.Hands);
+
+            var pickupSound = carriedBlock.Block?.Sounds?.Place.Location
+                ?? new AssetLocation(SoundPath.DefaultPlace);
+            api.World.PlaySoundAt(pickupSound, player.Entity);
+
+            return true;
+        }
+
+        private bool CanPickupFromEntity(IServerPlayer player, EntityCarriedBlock entity)
+        {
+            var cfg = this.config.CarriedBlockEntity;
+            if (cfg == null) return true;
+
+            if (!CarriedBlockAccessPolicy.CanPickup(
+                player.WorldData.CurrentGameMode,
+                player.PlayerUID,
+                entity.OwnerUid,
+                cfg.PickupAccess,
+                cfg.GracePeriodSeconds,
+                entity.DropTimeRealTicks))
+            {
+                player.SendIngameError(FailureCode.NotOwner, LocalizationHelper.GetLang("pickup-not-owner"));
+                return false;
+            }
+
+            return true;
+        }
 
         // ------------------------------
         //  Both side event handlers
