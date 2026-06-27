@@ -47,7 +47,7 @@ namespace CarryOn.Common.Services
                     return false;
             }
 
-            var placed = (entity is EntityPlayer playerEntity && !dropped)
+            var placed = entity is EntityPlayer playerEntity && (!dropped || carryManager.Config?.CarryOptions?.TrackDroppedBlocks != true)
                 ? TryPlaceDownAsPlayer(world, playerEntity, carriedBlock, selection, ref failureCode)
                 : TryPlaceDownDirect(world, carriedBlock, selection);
 

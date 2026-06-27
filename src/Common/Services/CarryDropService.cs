@@ -64,9 +64,11 @@ namespace CarryOn.Common.Services
 
             var centerBlock = entity.Pos.AsBlockPos.UpCopy();
 
-            if (carryManager.Config?.CarriedBlockEntity?.AlwaysDropAsEntity == true)
+            var dropMode = carryManager.Config?.CarriedBlockEntity?.DropMode ?? DropMode.Items;
+
+            if (dropMode == DropMode.EntityAlways)
             {
-                DropBlockAsItem(carriedBlock, centerBlock, player, entity);
+                DropBlockAsEntityOrItem(carriedBlock, centerBlock, player, entity);
                 return;
             }
 
@@ -81,39 +83,32 @@ namespace CarryOn.Common.Services
             var blockSelection = blockPlacer.FindBlockPlacement(carriedBlock.Block, centerBlock, range);
             if (blockSelection == null)
             {
-                DropBlockAsItem(carriedBlock, centerBlock, player, entity);
+                if (dropMode == DropMode.EntityOnFailedPlacement)
+                {
+                    DropBlockAsEntityOrItem(carriedBlock, centerBlock, player, entity, forceEntity: true);
+                    return;
+                }
+                DropBlockAsEntityOrItem(carriedBlock, centerBlock, player, entity);
                 return;
             }
 
             var failureCode = FailureCode.Ignore;
             if (carryManager.TryPlaceDown(entity, carriedBlock, blockSelection, ref failureCode, dropped: true))
+                return;
+
+            if (dropMode == DropMode.EntityOnFailedPlacement)
             {
+                DropBlockAsEntityOrItem(carriedBlock, centerBlock, player, entity, forceEntity: true);
                 return;
             }
 
-            if (ShouldDropAsEntityOnPermissionDenied(failureCode))
-            {
-                DropBlockAsItem(carriedBlock, centerBlock, player, entity, forceEntity: true);
-                return;
-            }
-
-            DropBlockAsItem(carriedBlock, centerBlock, player, entity);
-        }
-
-        private bool ShouldDropAsEntityOnPermissionDenied(string failureCode)
-        {
-            var config = carryManager.Config?.CarriedBlockEntity;
-            if (config?.DropAsEntityOnPermissionDenied != true)
-                return false;
-
-            if (string.IsNullOrEmpty(failureCode) || failureCode == FailureCode.Ignore || failureCode == FailureCode.Internal)
-                return false;
-
-            return true;
+            DropBlockAsEntityOrItem(carriedBlock, centerBlock, player, entity);
         }
 
         private void DropClusterBlock(Entity entity, CarriedBlock carriedBlock, int range, BlockPlacer blockPlacer, BlockPos centerBlock, IServerPlayer? player)
         {
+            var dropMode = carryManager.Config?.CarriedBlockEntity?.DropMode ?? DropMode.Items;
+
             var blockSelection = blockPlacer.FindClusterPlacement(
                 carriedBlock.Block,
                 carriedBlock.AttachedBlocks as IReadOnlyList<AttachedCarriedBlock>,
@@ -126,18 +121,23 @@ namespace CarryOn.Common.Services
                 if (carryManager.TryPlaceDown(entity, carriedBlock, blockSelection, ref failureCode, dropped: true))
                     return;
 
-                if (ShouldDropAsEntityOnPermissionDenied(failureCode))
+                if (dropMode == DropMode.EntityOnFailedPlacement)
                 {
-                    DropBlockAsItem(carriedBlock, centerBlock, player, entity, forceEntity: true);
+                    DropBlockAsEntityOrItem(carriedBlock, centerBlock, player, entity, forceEntity: true);
                     return;
                 }
+            }
+            else if (dropMode == DropMode.EntityOnFailedPlacement)
+            {
+                DropBlockAsEntityOrItem(carriedBlock, centerBlock, player, entity, forceEntity: true);
+                return;
             }
 
             // Cluster placement failed — drop parent plus all children as items
             var world = api.World;
             var dropVec3d = new Vec3d(centerBlock.X + 0.5, centerBlock.Y + 0.5, centerBlock.Z + 0.5);
 
-            DropBlockAsItem(carriedBlock, centerBlock, player, entity);
+            DropBlockAsEntityOrItem(carriedBlock, centerBlock, player, entity);
 
             if (carriedBlock.AttachedBlocks != null)
             {
@@ -149,16 +149,16 @@ namespace CarryOn.Common.Services
         }
 
         /// <summary>
-        /// Drops the carried block as item entities, including any serialized inventory contents.
+        /// Drops the carried block as CarriedBlockEntity or item entities, including any serialized inventory contents.
         /// </summary>
         /// <param name="carriedBlock">Carried block being dropped.</param>
         /// <param name="centerBlock">Center position for item spawning and audio.</param>
         /// <param name="player">Optional acting server player for contextual drops.</param>
         /// <param name="entity">Entity source for state mutation and events.</param>
-        /// <param name="forceEntity">When true, spawns a block entity instead of item drops regardless of AlwaysDropAsEntity setting.</param>
-        public void DropBlockAsItem(CarriedBlock carriedBlock, BlockPos centerBlock, IServerPlayer? player, Entity entity, bool forceEntity = false)
+        /// <param name="forceEntity">When true, spawns a block entity instead of item drops regardless of DropMode.</param>
+        public void DropBlockAsEntityOrItem(CarriedBlock carriedBlock, BlockPos centerBlock, IServerPlayer? player, Entity entity, bool forceEntity = false)
         {
-            if (api.Side == EnumAppSide.Server && (forceEntity || carryManager.Config?.CarriedBlockEntity?.AlwaysDropAsEntity == true))
+            if (api.Side == EnumAppSide.Server && (forceEntity || carryManager.Config?.CarriedBlockEntity?.DropMode == DropMode.EntityAlways))
             {
                 var carrySystem = api.ModLoader.GetModSystem<CarrySystem>();
                 var entityService = carrySystem?.CarriedBlockEntityService;

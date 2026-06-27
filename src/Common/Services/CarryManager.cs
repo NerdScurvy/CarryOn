@@ -193,9 +193,9 @@ namespace CarryOn.Common.Services
         }
 
         /// <inheritdoc/>
-        public void DropBlockAsItem(CarriedBlock carriedBlock, BlockPos centerBlock, IServerPlayer player, Entity entity)
+        public void DropBlockAsEntityOrItem(CarriedBlock carriedBlock, BlockPos centerBlock, IServerPlayer player, Entity entity)
         {
-            Services.Drop.DropBlockAsItem(carriedBlock, centerBlock, player, entity);
+            Services.Drop.DropBlockAsEntityOrItem(carriedBlock, centerBlock, player, entity);
         }
 
         /// <inheritdoc/>
