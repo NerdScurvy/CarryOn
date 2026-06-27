@@ -139,12 +139,14 @@ namespace CarryOn.Common.Services
 
             DropBlockAsEntityOrItem(carriedBlock, centerBlock, player, entity);
 
-            if (carriedBlock.AttachedBlocks != null)
+            var attachedCount = carriedBlock.AttachedBlocks?.Count ?? 0;
+            if (attachedCount > 0)
             {
-                foreach (var child in carriedBlock.AttachedBlocks)
+                foreach (var child in carriedBlock.AttachedBlocks!)
                 {
                     world.SpawnItemEntity(child.ItemStack, dropVec3d);
                 }
+                api.World.Logger.Audit($"[{ModId}] Player {player?.PlayerName ?? "unknown"} dropped {attachedCount} attached child block(s) from {carriedBlock.Block?.Code ?? "unknown"} at {centerBlock}");
             }
         }
 
@@ -171,6 +173,9 @@ namespace CarryOn.Common.Services
                     var scale = config?.Scale ?? 1.0f;
                     entityService.SpawnCarriedBlockEntityWithGravity(carriedBlock, playerUid, candidatePos, randomYaw: randomYaw, scale: scale);
                     carryManager.RemoveCarried(entity, carriedBlock.Slot);
+
+                    api.World.Logger.Audit($"[{ModId}] Player {player?.PlayerName ?? "unknown"} dropped carried block {carriedBlock.Block?.Code ?? "unknown"} as entity at {centerBlock}");
+                    carryManager.CarryEvents?.TriggerBlockDropped(centerBlock, entity, carriedBlock, destroyed: false, hadContents: false, blockPlaced: false);
                     return;
                 }
             }
