@@ -116,13 +116,31 @@ namespace CarryOn.Server.Logic
                     continue;
                 }
 
+                var surfaceTop = GetBlockSurfaceTop(block);
+                var hasCollisionBoxes = block.CollisionBoxes is { Length: > 0 };
+
+                // If the block has no collision boxes but the player's feet
+                // are inside it, the player's offset within the block gives
+                // the true surface height (handles partial blocks like paths).
+                if (!hasCollisionBoxes && candidatePos.Y > y && candidatePos.Y < y + surfaceTop)
+                    surfaceTop = Math.Max(0f, Math.Min((float)(candidatePos.Y - y), surfaceTop));
+
                 if (!IsPassable(block))
                 {
-                    var surfaceTop = GetBlockSurfaceTop(block);
                     var targetPos = new Vec3d(x + 0.5, y + surfaceTop, z + 0.5);
                     if (HasRoomAt(targetPos, blockAccessor, scale, pos))
                         return targetPos;
 
+                    return targetPos;
+                }
+
+                // Passable block with a surface the entity can stand on
+                // (e.g. wooden paths — passable but walkable)
+                if (surfaceTop > 0f && block.Id != 0 && candidatePos.Y >= y + surfaceTop)
+                {
+                    var targetPos = new Vec3d(x + 0.5, y + surfaceTop, z + 0.5);
+                    if (HasRoomAt(targetPos, blockAccessor, scale, pos))
+                        return targetPos;
                     return targetPos;
                 }
             }
@@ -181,12 +199,14 @@ namespace CarryOn.Server.Logic
 
         /// <summary>
         /// Returns the top surface Y (block-local 0-1 range) for the given block's
-        /// collision shape. Falls back to 1.0 (full block height) if the block has
-        /// no collision boxes.
+        /// collision shape. Falls back to selection boxes, then to 1.0 (full block
+        /// height) if the block has no boxes.
         /// </summary>
         private static float GetBlockSurfaceTop(Block block)
         {
             var boxes = block.CollisionBoxes;
+            if (boxes == null || boxes.Length == 0)
+                boxes = block.SelectionBoxes;
             if (boxes == null || boxes.Length == 0)
                 return 1.0f;
 

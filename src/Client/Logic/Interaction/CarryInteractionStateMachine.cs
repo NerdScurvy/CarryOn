@@ -79,7 +79,9 @@ namespace CarryOn.Client.Logic.Interaction
 
             var requireEmpty = (Interaction.CarryAction != CarryAction.PlaceDown) || (Interaction.CarrySlot != CarrySlot.Hands);
 
-            if (Interaction.CarryAction != CarryAction.Interact && !player.Entity.CanInteract(requireEmptyHanded: requireEmpty))
+            if (Interaction.CarryAction != CarryAction.Interact && !(Interaction.CarryAction == CarryAction.PickupEntity
+                ? player.Entity.CanDoCarryAction(requireEmptyHanded: true)
+                : player.Entity.CanInteract(requireEmptyHanded: requireEmpty)))
             { CancelInteraction(resetTimeHeld: true); return; }
 
             var carriedTarget = Interaction.CarrySlot.HasValue ? this.carryManager.GetCarried(player.Entity, Interaction.CarrySlot.Value) : null;

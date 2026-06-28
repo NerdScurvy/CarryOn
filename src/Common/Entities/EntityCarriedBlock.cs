@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using CarryOn.API.Common.Models;
 using CarryOn.Common.Logic;
+using CarryOn.Utility;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
@@ -138,6 +139,9 @@ namespace CarryOn.Common.Entities
             return LocalizationHelper.GetLang("duration-days", (int)(totalSeconds / 86400));
         }
 
+        private static ItemStack[]? handsfreeStacks;
+        private static ItemStack[]? nohandsfreeStacks;
+
         public override WorldInteraction[] GetInteractionHelp(IClientWorldAccessor world, EntitySelection es, IClientPlayer player)
         {
             var canPickup = CarriedBlockAccessPolicy.CanPickup(
@@ -148,13 +152,20 @@ namespace CarryOn.Common.Entities
                 this.gracePeriodSeconds,
                 this.DropTimeRealTicks);
 
+            if (!canPickup) return [];
+
+            handsfreeStacks ??= [new ItemStack(world.GetItem(new AssetLocation("carryon:icon-handsfree")))];
+            nohandsfreeStacks ??= [new ItemStack(world.GetItem(new AssetLocation("carryon:icon-nohandsfree")))];
+
+            bool canDoCarryAction = player.Entity?.CanDoCarryAction(requireEmptyHanded: true) == true;
+            var itemstacks = canDoCarryAction ? handsfreeStacks : nohandsfreeStacks;
+
             return [new WorldInteraction
             {
-                ActionLangCode = canPickup
-                    ? CarryOnCode("entityhelp-pickup-carriedblock")
-                    : CarryOnCode("entityhelp-pickup-carriedblock-no-permission"),
+                ActionLangCode = CarryOnCode("entityhelp-pickup-carriedblock"),
                 MouseButton = EnumMouseButton.Right,
-                RequireFreeHand = true
+                RequireFreeHand = true,
+                Itemstacks = itemstacks
             }];
         }
 

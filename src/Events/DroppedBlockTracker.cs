@@ -30,17 +30,17 @@ namespace CarryOn.Events
 
             if (carryManager.Api.Side == EnumAppSide.Client)
             {
-                events.CheckPermissionToCarry += OnCheckPermissionToCarryClient;
+                events.CheckPermissionAt += OnCheckPermissionAtClient;
                 return;
             }
 
-            events.CheckPermissionToCarry += OnCheckPermissionToCarry;
+            events.CheckPermissionAt += OnCheckPermissionAt;
             events.BlockDropped += OnCarriedBlockDropped;
 
             events.BlockRemoved += OnCarryableBlockRemoved;
         }
 
-        public void OnCheckPermissionToCarryClient(EntityPlayer playerEntity, BlockPos pos, bool isReinforced, out bool? hasPermission)
+        public void OnCheckPermissionAtClient(EntityPlayer playerEntity, BlockPos pos, bool isReinforced, out bool? hasPermission)
         {
             hasPermission = null;
             if (carryManager?.Config?.CarryOptions?.TrackDroppedBlocks != true)
@@ -58,7 +58,7 @@ namespace CarryOn.Events
         /// <param name="pos"></param>
         /// <param name="isReinforced"></param>
         /// <param name="hasPermission"></param>
-        public void OnCheckPermissionToCarry(EntityPlayer playerEntity, BlockPos pos, bool isReinforced, out bool? hasPermission)
+        public void OnCheckPermissionAt(EntityPlayer playerEntity, BlockPos pos, bool isReinforced, out bool? hasPermission)
         {
             // A null value means the server should continue to check other delegates
             hasPermission = null;

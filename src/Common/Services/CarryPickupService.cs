@@ -17,24 +17,6 @@ namespace CarryOn.Common.Services
     internal sealed class CarryPickupService(ICoreAPI api, ICarryManager carryManager)
     {
         private const int MultiblockScanRadius = 5;
-        public bool HasPermissionToCarry(Entity entity, BlockPos pos)
-        {
-            var isReinforced = entity.Api.ModLoader.GetModSystem<ModSystemBlockReinforcement>()?.IsReinforced(pos) ?? false;
-            if (entity is EntityPlayer playerEntity)
-            {
-                var result = entity.World.GetCarryEvents()?.TriggerCheckPermissionToCarry(playerEntity, pos, isReinforced);
-                if (result.HasValue) return result.Value;
-
-                var isCreative = playerEntity.Player.WorldData.CurrentGameMode == EnumGameMode.Creative;
-                if (!isCreative && isReinforced) return false;
-
-                return entity.World.Claims.TryAccess(playerEntity.Player, pos, EnumBlockAccessFlags.BuildOrBreak);
-            }
-            else
-            {
-                return !isReinforced;
-            }
-        }
 
         private bool CanPickUp(Entity entity, BlockPos pos, CarrySlot slot, CarriedBlock carried, ref string failureCode)
         {
@@ -105,7 +87,7 @@ namespace CarryOn.Common.Services
                 return false;
             }
 
-            if (entity.Api.Side == EnumAppSide.Server && !HasPermissionToCarry(entity, pos))
+            if (entity.Api.Side == EnumAppSide.Server && !carryManager.HasPermissionAt(entity, pos))
             {
                 failureCode = FailureCode.NoPermission;
                 return false;

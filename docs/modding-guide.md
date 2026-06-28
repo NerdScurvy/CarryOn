@@ -133,8 +133,12 @@ Top-level properties read by `BlockBehaviorCarryable`:
 | `transformGroups` | object | Inline transform group definitions. |
 | `groups` | object | Type-to-group map for variant-based transform resolution. |
 | `labelRenderSettings` | object | Settings for rendering inventory-icon labels on the carried block. See [Label Render Settings](#label-render-settings) below. |
-| `defaultRenderFacing` | string | Overrides the facing direction used when resolving the carried block's render shape. Used for blocks like signs where the wall/ground variant normalizes during pickup. Example: `"north"`. |
-| `defaultRenderVariant` | string | Overrides the variant segment used when resolving the carried block's render shape. Used alongside `defaultRenderFacing` to render the correct visual variant (e.g. `"wall"` for signs). When omitted, no render-block resolution is attempted. |
+| `rootRenderFacing` | string | Overrides the facing direction used when resolving the carried block's render shape. Used for blocks like signs where the wall/ground variant normalizes during pickup. Example: `"north"`. |
+| `rootRenderVariant` | string | Overrides the variant segment used when resolving the carried block's render shape. Used alongside `rootRenderFacing` to render the correct visual variant (e.g. `"wall"` for signs). When omitted, no render-block resolution is attempted. |
+| `rootGroupResolver` | string | Resolver code for root transform group selection. If omitted, falls back to `transformGroupResolver` (if set), otherwise no resolver is used. Canonical form is `modid:code`. |
+| `attachmentGroupResolver` | string | Resolver code for attachment (cluster child) transform group selection. If omitted, falls back to `transformGroupResolver` (if set), otherwise no resolver is used. Canonical form is `modid:code`. |
+| `dataAttributes` | string[] | Attribute names used by the `data-attributes` transform group resolver. Typically references block data attributes that encode visual state (e.g. contents, logged state). |
+| `dataAttributesPrefix` | string | Prefix prepended to data attribute values when generating group candidates via the `data-attributes` resolver. |
 | `slots` | object | Per-slot carry configuration keyed by slot name. |
 
 ### Label Render Settings
@@ -157,14 +161,14 @@ The `labelRenderSettings` object controls how inventory-icon labels appear on th
 
 ### Render Block Resolution for Multi-Variant Blocks
 
-Blocks with multiple visual variants (e.g. `sign-wall-north`, `sign-ground-north`) may lose variant information when picked up because `OnPickBlock` can normalize the block code. The `defaultRenderFacing` and `defaultRenderVariant` properties restore the correct render shape:
+Blocks with multiple visual variants (e.g. `sign-wall-north`, `sign-ground-north`) may lose variant information when picked up because `OnPickBlock` can normalize the block code. The `rootRenderFacing` and `rootRenderVariant` properties restore the correct render shape:
 
-- **`defaultRenderVariant`** specifies the variant segment (e.g. `"wall"` for signs).
-- **`defaultRenderFacing`** specifies the facing direction (e.g. `"north"`).
+- **`rootRenderVariant`** specifies the variant segment (e.g. `"wall"` for signs).
+- **`rootRenderFacing`** specifies the facing direction (e.g. `"north"`).
 
-When both are set, CarryOn reconstructs the original block code from `OriginalBlockCode` by replacing the variant and facing segments, then resolves the appropriate block for rendering. If `defaultRenderFacing` is omitted, `"east"` is used as the default. If `defaultRenderVariant` is omitted, no resolution is attempted.
+When both are set, CarryOn reconstructs the original block code from `OriginalBlockCode` by replacing the variant and facing segments, then resolves the appropriate block for rendering. If `rootRenderFacing` is omitted, `"east"` is used as the default. If `rootRenderVariant` is omitted, no resolution is attempted.
 
-**Example from `sign.json`** — a wall sign uses `defaultRenderFacing` and `defaultRenderVariant` to ensure the carried render shows the wall variant facing north, plus `labelRenderSettings` for the sign text label. The `attachedTransform` adjusts the label position when the sign is rendered as an attached block using the cluster carry feature (e.g. when carried alongside a chest via `CaptureAttachedWallSigns`):
+**Example from `sign.json`** — a wall sign uses `rootRenderFacing` and `rootRenderVariant` to ensure the carried render shows the wall variant facing north, plus `labelRenderSettings` for the sign text label. The `attachedTransform` adjusts the label position when the sign is rendered as an attached block using the cluster carry feature (e.g. when carried alongside a chest via `CaptureAttachedWallSigns`):
 
 ```json
 {
@@ -182,8 +186,8 @@ When both are set, CarryOn reconstructs the original block code from `OriginalBl
       "maxWidth": 200,
       "maxHeight": 96
     },
-    "defaultRenderFacing": "north",
-    "defaultRenderVariant": "wall"
+    "rootRenderFacing": "north",
+    "rootRenderVariant": "wall"
   }
 }
 ```
@@ -222,6 +226,9 @@ Per-slot properties:
 | `walkSpeedModifier` | Walk speed penalty applied in this slot. Negative values slow the player. |
 | `walkSpeedModifierByBlockType` | Optional map of `type` value to walk speed modifier for this slot. Supports exact keys and trailing `*` prefix wildcards (for example `owl*`). |
 | `walkSpeedModifierByGroup` | Optional map of carryable `groups` name to walk speed modifier for this slot. |
+| `hungerModifier` | Hunger rate multiplier applied when carrying in this slot. Positive values increase hunger drain. |
+| `hungerModifierByBlockType` | Optional map of `type` value to hunger rate modifier for this slot. Supports exact keys and trailing `*` prefix wildcards. |
+| `hungerModifierByGroup` | Optional map of carryable `groups` name to hunger rate modifier for this slot. |
 | `enabledCondition` | Condition evaluated specifically for this slot. If false, this slot is unavailable. |
 | `excludedTypes` | Block type wildcards excluded from using this slot. |
 
@@ -230,6 +237,14 @@ If both maps are present, slot speed resolution is:
 1. `walkSpeedModifierByBlockType` (most specific)
 2. `walkSpeedModifierByGroup`
 3. `walkSpeedModifier`
+
+Similarly, slot hunger modifier resolution follows the same order:
+
+1. `hungerModifierByBlockType`
+2. `hungerModifierByGroup`
+3. `hungerModifier`
+
+Both speed and hunger values can be overridden from `carryon-config.md` via `CarryWalkSpeed.ModifierOverrides` and `CarryHungerRate.ModifierOverrides` respectively, which take priority over patch-level values.
 
 Example for chest compact variants:
 

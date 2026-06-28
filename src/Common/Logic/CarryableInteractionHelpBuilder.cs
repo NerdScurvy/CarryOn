@@ -44,6 +44,14 @@ namespace CarryOn.Common.Logic
 
             bool isTargetCarryable = selection?.Block != null && itemStack != null;
 
+            // Suppress pickup hints when the client-side permission check denies access
+            if (carryManager?.Config?.CarryOptions?.ClientSidePermissionCheck == true &&
+                forPlayer?.Entity != null && selection?.Position != null &&
+                !carryManager.HasPermissionAt(forPlayer.Entity, selection.Position))
+            {
+                return [];
+            }
+
             CarryHintType defaultHints = CarryHintType.None;
 
             if (!isCarryingInHands && behavior.TransferBlockCarryAllowed(forPlayer, selection))

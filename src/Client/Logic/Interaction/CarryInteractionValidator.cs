@@ -222,13 +222,30 @@ namespace CarryOn.Client.Logic.Interaction
 
         private bool BeginEntityCarriedBlockInteraction(ref EnumHandling handled)
         {
-            if (!api.Input.IsCarryKeyPressed()) return false;
-
             var entitySelection = this.api.World.Player.CurrentEntitySelection;
-            if (entitySelection?.Entity is not EntityCarriedBlock) return false;
+            if (entitySelection?.Entity is not EntityCarriedBlock carriedBlockEntity) return false;
+
+            var cfg = this.config.CarriedBlockEntity;
+            if (cfg != null)
+            {
+                var canPickup = CarriedBlockAccessPolicy.CanPickup(
+                    this.api.World.Player.WorldData.CurrentGameMode,
+                    this.api.World.Player.PlayerUID,
+                    carriedBlockEntity.OwnerUid,
+                    cfg.PickupAccess,
+                    cfg.GracePeriodSeconds,
+                    carriedBlockEntity.DropTimeRealTicks);
+
+                if (!canPickup)
+                {
+                    CarryErrorHelper.ShowError(this.api, FailureCode.NotOwner, "pickup-not-owner");
+                    handled = EnumHandling.PreventDefault;
+                    return true;
+                }
+            }
 
             controller.Interaction.CarryAction = CarryAction.PickupEntity;
-            controller.Interaction.TargetEntity = entitySelection.Entity;
+            controller.Interaction.TargetEntity = carriedBlockEntity;
             handled = EnumHandling.PreventDefault;
             return true;
         }
@@ -371,7 +388,7 @@ namespace CarryOn.Client.Logic.Interaction
                     var blockPos = BlockUtils.GetPlacedPosition(world.BlockAccessor, selection, carriedHands.Block);
                     if (blockPos == null) return true;
 
-                    if (!carryManager.HasPermissionToCarry(player.Entity, blockPos))
+                    if (!carryManager.HasPermissionAt(player.Entity, blockPos))
                     {
                         CarryErrorHelper.ShowError(this.api, FailureCode.PlaceDownNoPermission);
                         handled = EnumHandling.PreventDefault;
@@ -394,6 +411,13 @@ namespace CarryOn.Client.Logic.Interaction
 
                 if (selection?.Block != null && selection.Block.CanCarryInSlot(CarrySlot.Hands, itemStack))
                 {
+                    if (!carryManager.HasPermissionAt(player.Entity, selection.Position))
+                    {
+                        CarryErrorHelper.ShowError(this.api, FailureCode.PickUpNoPermission);
+                        handled = EnumHandling.PreventDefault;
+                        return false;
+                    }
+
                     controller.Interaction.CarrySlot = CarrySlot.Hands;
                     controller.Interaction.CarryAction = CarryAction.PickUp;
                     controller.Interaction.TargetBlockPos = selection.Position?.Copy()!;
