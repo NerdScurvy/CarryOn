@@ -8,7 +8,7 @@
 	"client": {
 		"renderer": "Shape",
 		"shape": {
-			"base": "carryon:entity/carriedblock"
+			"base": "game:block/wood/crate/normal-closed"
 		},
 		"textures": {
 			"sides": {"base": "game:block/wood/crate/kapok-sides"},

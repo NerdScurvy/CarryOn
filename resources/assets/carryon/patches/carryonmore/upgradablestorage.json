@@ -1,0 +1,206 @@
+[
+	{
+		"op": "add",
+		"path": "/behaviors/-",
+		"file": "upgradablestorage:blocktypes/chests",
+		"side": "Server",
+		"value": {
+			"name": "Carryable",
+			"properties": {
+				"enabledCondition": "carryon.Carryables.Chest",
+				"transformTemplates": [
+					"carry-chest"
+				],
+				"slots": {
+					"Hands": {},
+					"Back": {
+						"enabledCondition": "carryon.Carryables.Chest&&carryon.CarryOptions.AllowHighCapacityStorageOnBack",
+						"walkSpeedModifier": -0.2
+					}
+				},
+				"patchPriority": 1
+			}
+		},
+		"dependsOn": [
+			{
+				"modid": "upgradablestorage"
+			}
+		]
+	},
+	{
+		"op": "add",
+		"path": "/behaviors/-",
+		"file": "upgradablestorage:blocktypes/labeledchests",
+		"side": "Server",
+		"value": {
+			"name": "Carryable",
+			"properties": {
+				"enabledCondition": "carryon.Carryables.Chest",
+				"labelRenderSettings": {
+					"transform": {
+						"translation": [ -0.907, 0.627, 0.59 ],
+						"rotation": [ 0.0, -90.0, 0.0 ],
+						"scale": 1.0
+					}
+				},
+				"transformTemplates": [
+					"carry-chest"
+				],
+				"slots": {
+					"Hands": {},
+					"Back": {
+						"enabledCondition": "carryon.Carryables.Chest&&carryon.CarryOptions.AllowHighCapacityStorageOnBack",
+						"walkSpeedModifier": -0.2
+					}
+				},
+				"patchPriority": 1
+			}
+		},
+		"dependsOn": [
+			{
+				"modid": "upgradablestorage"
+			}
+		]
+	},
+	{
+		"file": "upgradablestorage:blocktypes/labeledtrunks",
+		"side": "Server",
+		"op": "add",
+		"path": "/behaviors/-",
+		"value": {
+			"name": "Carryable",
+			"properties": {
+				"enabledCondition": "carryon.Carryables.ChestTrunk",
+				"transformTemplates": [
+					"carry-trunk"
+				],
+				"labelRenderSettings": {
+					"transform": {
+						"translation": [ -0.907, 0.627, 1.09 ],
+						"rotation": [ 0.0, -90.0, 0.0 ],
+						"scale": 1.0
+					}
+				},
+				"slots": {
+					"Hands": {
+						"animation": "carryon:holdheavy",
+						"walkSpeedModifier": -0.5,
+						"hungerModifier": 0.3
+					},
+					"Back": {
+						"enabledCondition": "carryon.CarryablesOnBack.ChestTrunk&&carryon.CarryOptions.AllowHighCapacityStorageOnBack",
+						"walkSpeedModifier": -0.3,
+						"hungerModifier": 0.4
+					}
+				},
+				"patchPriority": 1
+			}
+		},
+		"dependsOn": [
+			{
+				"modid": "upgradablestorage"
+			}
+		]
+	},
+	{
+		"file": "upgradablestorage:blocktypes/trunks",
+		"side": "Server",
+		"op": "add",
+		"path": "/behaviors/-",
+		"value": {
+			"name": "Carryable",
+			"properties": {
+				"enabledCondition": "carryon.Carryables.ChestTrunk",
+				"transformTemplates": [
+					"carry-trunk"
+				],
+				"slots": {
+					"Hands": {
+						"animation": "carryon:holdheavy",
+						"walkSpeedModifier": -0.5,
+						"hungerModifier": 0.3
+					},
+					"Back": {
+						"enabledCondition": "carryon.CarryablesOnBack.ChestTrunk&&carryon.CarryOptions.AllowHighCapacityStorageOnBack",
+						"walkSpeedModifier": -0.3,
+						"hungerModifier": 0.4
+					}
+				},
+				"patchPriority": 1
+			}
+		},
+		"dependsOn": [
+			{
+				"modid": "upgradablestorage"
+			}
+		]
+	},
+	{
+		"file": "upgradablestorage:blocktypes/labeledstoragevessel",
+		"side": "Server",
+		"op": "add",
+		"path": "/behaviors/-",
+		"value": {
+			"name": "Carryable",
+			"properties": {
+				"enabledCondition": "carryon.Carryables.StorageVessel",
+				"labelRenderSettings": {
+					"transform": {
+						"translation": [ -0.907, 0.627, 0.59 ],
+						"rotation": [ 0.0, -90.0, 0.0 ],
+						"scale": 1.0
+					}
+				},
+				"transformTemplates": [
+					"carry-storagevessel"
+				],
+				"slots": {
+					"Hands": {},
+					"Back": {
+						"enabledCondition": "carryon.CarryablesOnBack.StorageVessel&&carryon.CarryOptions.AllowHighCapacityStorageOnBack"
+					}
+				},
+				"patchPriority": 1
+			}
+		},
+		"dependsOn": [
+			{
+				"modid": "upgradablestorage"
+			}
+		]
+	},
+	{
+		"file": "upgradablestorage:blocktypes/storagevessel",
+		"side": "Server",
+		"op": "add",
+		"path": "/behaviors/-",
+		"value": {
+			"name": "Carryable",
+			"properties": {
+				"enabledCondition": "carryon.Carryables.StorageVessel",
+				"labelRenderSettings": {
+					"transform": {
+						"translation": [ -0.907, 0.627, 0.59 ],
+						"rotation": [ 0.0, -90.0, 0.0 ],
+						"scale": 1.0
+					}
+				},
+				"transformTemplates": [
+					"carry-storagevessel"
+				],
+				"slots": {
+					"Hands": {},
+					"Back": {
+						"enabledCondition": "carryon.CarryablesOnBack.StorageVessel&&carryon.CarryOptions.AllowHighCapacityStorageOnBack"
+					}
+				},
+				"patchPriority": 1
+			}
+		},
+		"dependsOn": [
+			{
+				"modid": "upgradablestorage"
+			}
+		]
+	}
+]

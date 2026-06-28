@@ -37,6 +37,11 @@ namespace CarryOn.Common.Logic
             OnConfigChanged?.Invoke(Config);
         }
 
+        public void Reload()
+        {
+            ReloadFromFile();
+        }
+
         public void SetupFileWatcher(ICoreServerAPI api)
         {
             serverApi = api;

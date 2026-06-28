@@ -150,9 +150,9 @@ namespace CarryOn.Common.Services
         }
 
         /// <inheritdoc/>
-        public bool HasPermissionToCarry(Entity entity, BlockPos pos)
+        public bool HasPermissionAt(Entity entity, BlockPos pos, bool showErrorMessage = true)
         {
-            return Services.Pickup.HasPermissionToCarry(entity, pos);
+            return Services.Permission.HasPermissionAt(entity, pos, showErrorMessage);
         }
 
         /// <inheritdoc/>

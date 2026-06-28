@@ -17,18 +17,22 @@ Source of truth for fields and defaults:
 - If missing, CarryOn creates it with defaults.
 - If legacy keys are present, CarryOn upgrades them to the current structure.
 - The upgraded/default config is written back to disk.
-- Current version is `ConfigVersion: 3`.
+- Current version is `ConfigVersion: 4`.
 
 ## Top-Level Schema
 
 ```json
 {
-  "ConfigVersion": 3,
+  "ConfigVersion": 4,
   "Carryables": { ... },
   "CarryablesOnBack": { ... },
   "Interactables": { ... },
+  "CarryWalkSpeed": { ... },
+  "CarryHungerRate": { ... },
+  "DropCarriedOnDamage": { ... },
   "CarryOptions": { ... },
   "CarryablesFilters": { ... },
+  "CarriedBlockEntity": { ... },
   "BackpackTypes": { ... },
   "DebuggingOptions": { ... }
 }
@@ -37,7 +41,7 @@ Source of truth for fields and defaults:
 ## ConfigVersion
 
 - `ConfigVersion` (`int`): Config schema version used by CarryOn upgrade logic.
-- Current value: `3`.
+- Current value: `4`.
 - Recommendation: do not edit manually.
 
 ## Carryables
@@ -109,24 +113,130 @@ Default values:
 | `Barrel` | `true` |
 | `Storage` | `true` |
 
+## CarryWalkSpeed
+
+Per-slot walk speed penalty configuration, including per-block overrides and sprint toggles.
+
+| Key | Type | Default | Description |
+| --- | --- | --- | --- |
+| `HandsEnabled` | `bool` | `true` | Apply walk speed penalty when carrying in hands. |
+| `BackEnabled` | `bool` | `true` | Apply walk speed penalty when carrying on back. |
+| `HandsAllowSprint` | `bool` | `false` | Allow sprinting while carrying in hands. |
+| `BackAllowSprint` | `bool` | `true` | Allow sprinting while carrying on back. |
+| `ModifierOverrides` | `object` | See below | Per-block walk speed modifier overrides. |
+
+When `HandsEnabled`/`BackEnabled` is `false`, the walk speed penalty for that slot is not applied regardless of per-block overrides.
+
+`ModifierOverrides` structure:
+
+```json
+{
+  "ByBlockCode": [
+    { "Key": "game:chest-normal", "Hands": -0.25, "Back": -0.15 }
+  ],
+  "ByBlockClass": [
+    { "Key": "BlockCrate", "Hands": -0.80 }
+  ],
+  "SlotDefaults": {
+    "Key": null,
+    "Hands": -0.25,
+    "Back": -0.15
+  }
+}
+```
+
+`ModifierOverrides` sub-fields:
+
+| Key | Type | Description |
+| --- | --- | --- |
+| `ByBlockCode` | `array` | List of per-block-code override entries. Each entry has `Key` (block code pattern, with optional `\|type` suffix), `Hands` (float or null), `Back` (float or null). Supports exact match and trailing `*` prefix patterns. |
+| `ByBlockClass` | `array` | List of per-block-class override entries. Each entry has `Key` (block class name e.g. `BlockChest`), `Hands` (float or null), `Back` (float or null). |
+| `SlotDefaults` | `object` | Fallback values used when no other override matches. Has `Hands` and `Back` float fields. |
+
+Resolution order for effective slot walk speed:
+
+1. `ModifierOverrides.ByBlockCode` (config-level per-block-code overrides)
+2. `ModifierOverrides.ByBlockClass` (config-level per-block-class overrides)
+3. Carryable patch slot type override (`slots.<Slot>.walkSpeedModifierByBlockType`, exact key or trailing `*` prefix wildcard; longest prefix wins)
+4. Carryable patch slot group override (`slots.<Slot>.walkSpeedModifierByGroup`)
+5. Carryable patch slot value (`slots.<Slot>.walkSpeedModifier`)
+6. `ModifierOverrides.SlotDefaults`
+7. Hardcoded slot defaults (`Hands=-0.25`, `Back=-0.15`)
+
+The penalty is applied as a non-additive stat replace (`agent.Stats.Set("walkspeed", ..., speed, false)`).
+
+## CarryHungerRate
+
+Per-slot hunger rate multiplier configuration. Increases hunger drain rate while carrying.
+
+| Key | Type | Default | Description |
+| --- | --- | --- | --- |
+| `HandsEnabled` | `bool` | `false` | Apply hunger rate modifier when carrying in hands. |
+| `BackEnabled` | `bool` | `true` | Apply hunger rate modifier when carrying on back. |
+| `MinSaturationThreshold` | `float` | `150.0` | Minimum saturation before hunger modifier takes effect. Set to `0` to disable. When the player's saturation drops below this threshold, the hunger rate penalty is suspended to prevent starvation. |
+| `ModifierOverrides` | `object` | See below | Per-block hunger rate modifier overrides. |
+
+`ModifierOverrides` uses the same structure as `CarryWalkSpeed.ModifierOverrides`:
+
+```json
+{
+  "ByBlockCode": [
+    { "Key": "game:log*", "Hands": 0.1, "Back": 0.2 }
+  ],
+  "ByBlockClass": [
+    { "Key": "BlockLog", "Hands": 0.15 }
+  ],
+  "SlotDefaults": {
+    "Hands": 0.2,
+    "Back": 0.3
+  }
+}
+```
+
+Resolution order for effective slot hunger rate (higher priority wins):
+
+1. `ModifierOverrides.ByBlockCode`
+2. `ModifierOverrides.ByBlockClass`
+3. Patch `hungerModifierByBlockType` (per-type override in block JSON)
+4. Patch `hungerModifierByGroup` (per-group override via TypeGroup mapping)
+5. Patch `hungerModifier` (direct slot value in block JSON)
+6. `ModifierOverrides.SlotDefaults`
+7. Hardcoded defaults (`Hands=0.2`, `Back=0.3`)
+
+The modifier is clamped to `[0.0, 9.0]` and applied as a multiplier to the base hunger drain rate.
+
+## DropCarriedOnDamage
+
+Controls whether carried blocks are dropped when the player takes damage.
+
+| Key | Type | Default | Description |
+| --- | --- | --- | --- |
+| `HandsEnabled` | `bool` | `true` | Drop hands-carried block when taking damage. |
+| `BackEnabled` | `bool` | `true` | Drop back-carried block when taking damage. |
+| `HandsDamageThreshold` | `float` | `1.0` | Minimum damage to drop hands-carried block (damage must be strictly greater than this value). |
+| `BackDamageThreshold` | `float` | `6.0` | Minimum damage to drop back-carried block (damage must be strictly greater than this value). |
+| `DropRange` | `int` | `2` | Max search range (in blocks) for drop placement. |
+
+Healing damage is excluded. The dropped block behavior respects the `DropMode` in `CarriedBlockEntity`.
+
 ## CarryOptions
 
 General carrying and interaction behavior.
 
 | Key | Type | Default | Description |
 | --- | --- | --- | --- |
-| `AllowSprintWhileCarrying` | `bool` | `false` | Allows sprint while carrying block in hands. |
-| `IgnoreCarrySpeedPenalty` | `bool` | `false` | Ignores configured walk speed penalties from carry slot settings. |
 | `RemoveInteractDelayWhileCarrying` | `bool` | `false` | Removes carry interaction delay for allowed interactions while carrying. |
 | `InteractSpeedMultiplier` | `float` | `1.0` | Multiplier applied to carry interaction times. Higher is faster (`requiredTime /= multiplier`). |
 | `MaxInteractionDistance` | `int` | `6` | Maximum allowed interaction distance for attachable/carry transfer interactions. |
 | `BackSlotEnabled` | `bool` | `true` | Global toggle for back-slot carry/swap behavior. |
 | `AllowHighCapacityStorageOnBack` | `bool` | `false` | Allows large/high-capacity storage variants on back when supported by behavior rules. |
 | `PreventSwapFromBackOnTarget` | `string[]` | See below | Prevents swap-from-back on matching targets. |
-| `WalkSpeedOverrides` | `object` | See below | Optional override rules for per-slot walk speed penalties. |
 | `TooHotToCarry` | `bool` | `true` | Blocks pickup of hot blocks/items when true. |
 | `TooHotToCarryTemperature` | `int` | `50` | Temperature threshold used by hot-item checks. |
 | `CarryAttachedWallSigns` | `bool` | `false` | When enabled, wall signs attached to a carryable block are captured and carried together with it. See [cluster-carry.md](cluster-carry.md). |
+| `ClientSidePermissionCheck` | `bool` | `true` | Allow client-side permission checks to avoid optimistic pickup attempts on claims (may be inaccurate). |
+| `LegacyTrackDroppedBlocks` | `bool` | `false` | Track dropped blocks to allow pickup from claimed areas (legacy behavior). |
+| `BackpackSelectionMode` | `string` | `LastFound` | How to select which backpack to render. One of: `LastFound` (last backpack found in inventory), `FirstFound` (first backpack found), `FirstOnly` (only first backpack, no fallback). |
 
 `PreventSwapFromBackOnTarget` default entries:
 
@@ -147,44 +257,6 @@ Entry prefixes:
 - `code::<substring>`: match block code string contains
 
 This option is commonly used to avoid accidental swap/back actions when interacting with containers, doors, portals, or ground storage.
-
-`WalkSpeedOverrides` structure:
-
-```json
-{
-  "ByBlockCode": {
-    "game:stationarybasket*": { "Back": -0.10 },
-    "lc:lblstationarybasket*": { "Back": -0.10 },
-    "lcupdated:lblstationarybasket*": { "Back": -0.10 },
-    "game:chest*|owl*": { "Back": -0.08 },
-    "game:chest*|golden*": { "Back": -0.10 },
-    "game:chest*": { "Back": -0.15 }
-  },
-  "ByBlockClass": {
-    "BlockCrate": { "Hands": -0.80 }
-  },
-  "SlotDefaults": {
-    "Hands": -0.25,
-    "Back": -0.15
-  }
-}
-```
-
-`WalkSpeedOverrides` notes:
-
-- `ByBlockCode`: matches full block code strings. Supports exact entries and trailing `*` prefix patterns. Keys may include an optional `|type` suffix to match the block's carry type (the same type resolved by `walkSpeedModifierByBlockType` in patches). For example, `"game:chest*|owl*"` matches any chest variant whose type starts with `owl`. Among matching entries, the most specific block-code prefix wins; ties are broken by type-pattern specificity. Entries without `|type` match regardless of type, but lose to type-constrained entries with equal block-code specificity.
-- `ByBlockClass`: matches block `class` names (for example `BlockMushroom`).
-- `SlotDefaults`: optional fallback values used only when a carry slot has no resolved slot value.
-
-Resolution order for effective slot walk speed:
-
-1. `ByBlockCode`
-2. `ByBlockClass`
-3. Carryable patch slot type override (`slots.<Slot>.walkSpeedModifierByBlockType`, exact key or trailing `*` prefix wildcard; longest prefix wins)
-4. Carryable patch slot group override (`slots.<Slot>.walkSpeedModifierByGroup`)
-5. Carryable patch slot value (`slots.<Slot>.walkSpeedModifier`)
-6. `SlotDefaults`
-7. Hardcoded slot defaults (`Hands=-0.25`, `Back=-0.15`)
 
 ## CarryablesFilters
 
@@ -213,6 +285,20 @@ Name note:
 - In `CarryOnConfig.json`, this section is `CarryablesFilters`.
 - In the internal world-config tree used by `enabledCondition`, it is exposed as `CarryableFilters`.
 
+## CarriedBlockEntity
+
+Controls the behavior of dropped block entities (spawned when placement fails or `DropMode` is `EntityAlways`).
+
+| Key | Type | Default | Description |
+| --- | --- | --- | --- |
+| `DropMode` | `string` | `EntityOnFailedPlacement` | Controls how carried blocks are dropped. One of: `Items` (always drop as item entities), `EntityOnFailedPlacement` (try to place in world; on failure, drop as block entity), `EntityAlways` (always drop as block entity). |
+| `RandomDropRotation` | `bool` | `true` | When enabled, dropped block entities spawn with a random facing rotation. |
+| `ShowParticles` | `bool` | `true` | When enabled, dropped block entities display glowing pickup particles. |
+| `DespawnAfterDays` | `float` | `30` | In-game days after which a dropped block entity despawns. `0` or negative to never despawn. |
+| `PickupAccess` | `string` | `OwnerFirst` | Who can pick up the dropped block entity. One of: `Anyone` (no restrictions), `OwnerOnly` (only the dropper, forever), `OwnerFirst` (only the dropper for `GracePeriodSeconds`, then anyone). |
+| `GracePeriodSeconds` | `float` | `300` | Real-time seconds the owner has exclusive pickup access. Only relevant when `PickupAccess` is `OwnerFirst`. |
+| `Scale` | `float` | `0.6` | Uniform scale for the dropped block entity visual size and collision hitbox (0.1 to 10.0). |
+
 ## BackpackTypes
 
 Maps item codes to backpack type names used by carry transforms and strap/group selection.
@@ -228,6 +314,8 @@ Default:
 
 You can add custom backpack codes under existing or new type names.
 
+The order of types and items within them determines the backpack selection order when `BackpackSelectionMode` is `FirstFound` or `FirstOnly`.
+
 ## DebuggingOptions
 
 Debug and development toggles.
@@ -240,18 +328,28 @@ Debug and development toggles.
 
 ## Legacy Keys And Upgrades
 
-CarryOn 2.0 still upgrades several older keys automatically.
+CarryOn 2.0 upgrades several older keys automatically through version steps:
 
-Examples of legacy keys mapped during upgrade:
+**Legacy → v2 upgrade:**
 
-- `AnvilEnabled` -> `Carryables.Anvil`
-- `InteractDoorEnabled` -> `Interactables.Door`
-- `AllowLargeChestsOnBack` -> `CarryOptions.AllowHighCapacityStorageOnBack`
-- `AllowChestTrunksOnBack` -> `CarryablesOnBack.ChestTrunk`
-- `AllowCratesOnBack` -> `CarryablesOnBack.Crate`
-- `HarmonyPatchEnabled` -> inverse of `DebuggingOptions.DisableHarmonyPatch`
+- `AnvilEnabled` → `Carryables.Anvil`
+- `InteractDoorEnabled` → `Interactables.Door`
+- `HarmonyPatchEnabled` → inverse of `DebuggingOptions.DisableHarmonyPatch`
+- Various other `*Enabled` legacy keys → `Carryables.*` and `Interactables.*`
 
-Unknown legacy JSON data is read for upgrade purposes but not persisted back as unknown fields.
+**v2 → v3 upgrade:**
+
+- `CarryOptions.AllowLargeChestsOnBack` → `CarryOptions.AllowHighCapacityStorageOnBack`
+- `CarryOptions.AllowChestTrunksOnBack` → `CarryablesOnBack.ChestTrunk`
+- `CarryOptions.AllowCratesOnBack` → `CarryablesOnBack.Crate`
+
+**v3 → v4 upgrade:**
+
+- `CarryOptions.IgnoreCarrySpeedPenalty` → inverted and split into `CarryWalkSpeed.HandsEnabled` and `CarryWalkSpeed.BackEnabled`
+- `CarryOptions.AllowSprintWhileCarrying` → split into `CarryWalkSpeed.HandsAllowSprint` and `CarryWalkSpeed.BackAllowSprint`
+- `CarryOptions.WalkSpeedOverrides` (nested dictionary format) → `CarryWalkSpeed.ModifierOverrides` (list-based format)
+
+Unknown legacy JSON data is read for upgrade purposes but not persisted as unknown fields.
 
 ## Important Notes
 

@@ -51,7 +51,6 @@
 	"blockhelp-take": "Take out and carry",
 	"pick-up-already-carrying": "You are already carrying something in your hands.",
 	"entityhelp-pickup-carriedblock": "Pick up dropped block",
-	"entityhelp-pickup-carriedblock-no-permission": "Cannot pick up - belongs to another player",
 	"pickup-not-owner": "This dropped block belongs to another player",
 	"offline-player": "(Offline Player)",
 	"dropped-block": "Dropped {0}",

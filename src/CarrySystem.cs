@@ -276,6 +276,9 @@ namespace CarryOn
             HotKeyHandler!.InitServer(api, this.ServerChannel!);
 
             ConfigService.SetupFileWatcher(api);
+
+            var serverCommands = new ServerCommands(api, ConfigService);
+            serverCommands.Register();
         }
 
         public override void AssetsFinalize(ICoreAPI api)
