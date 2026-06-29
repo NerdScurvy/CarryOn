@@ -13,7 +13,7 @@ using static CarryOn.API.Common.Models.CarryCode;
 
 namespace CarryOn.Common.Services
 {
-    internal sealed class CarryAttachmentService(ICoreAPI api, CarryOnConfig config, ICarryManager carryManager)
+    internal sealed class CarryAttachmentService(ICoreAPI api, IConfigProvider configProvider, ICarryManager carryManager)
     {
         private const string MountedBagInventoryPrefix = "mountedbaginv";
 
@@ -52,7 +52,7 @@ namespace CarryOn.Common.Services
             if (context == null) return false;
 
             var (world, targetEntity, attachableBehavior) = context;
-            var carriedBlock = player.Entity.GetCarried(CarrySlot.Hands);
+            var carriedBlock = carryManager.GetCarried(player.Entity, CarrySlot.Hands);
             if (carriedBlock == null)
             {
                 return false;
@@ -94,7 +94,7 @@ namespace CarryOn.Common.Services
             backupAttributes.RemoveAttribute("inventory");
 
             attr.SetString("type", blockEntityData.GetString("type"));
-            var backpack = BlockUtils.ConvertBlockInventoryToBackpack(blockEntityData.GetTreeAttribute("inventory"));
+            var backpack = InventoryConverter.ConvertBlockInventoryToBackpack(blockEntityData.GetTreeAttribute("inventory"));
             attr.SetAttribute("backpack", backpack);
             attr.SetAttribute("carryonbackup", backupAttributes);
 
@@ -213,7 +213,7 @@ namespace CarryOn.Common.Services
                 return false;
             }
 
-            var carriedInHands = player.Entity.GetCarried(CarrySlot.Hands);
+            var carriedInHands = carryManager.GetCarried(player.Entity, CarrySlot.Hands);
             if (carriedInHands != null)
             {
                 return false;
@@ -226,7 +226,7 @@ namespace CarryOn.Common.Services
             }
 
             var sourceBackpack = itemstack.Attributes?["backpack"] as ITreeAttribute;
-            var destInventory = BlockUtils.ConvertBackpackToBlockInventory(sourceBackpack);
+            var destInventory = InventoryConverter.ConvertBackpackToBlockInventory(sourceBackpack);
 
             TreeAttribute blockEntityData;
             if (itemstack.Attributes?["carryonbackup"] is not TreeAttribute backupAttributes)
@@ -357,6 +357,6 @@ namespace CarryOn.Common.Services
         }
 
         private int GetMaxInteractionDistance()
-            => config?.CarryOptions?.MaxInteractionDistance ?? Default.MaxInteractionDistance;
+            => configProvider.Config.CarryOptions?.MaxInteractionDistance ?? Default.MaxInteractionDistance;
     }
 }

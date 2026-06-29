@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
+using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
 using CarryOn.Utility;
 using Vintagestory.API.Client;
@@ -11,16 +12,8 @@ using Vintagestory.API.MathTools;
 
 namespace CarryOn.Common.Handlers.PackAdjustment
 {
-    internal sealed class PackAdjustmentLogger
+    internal sealed class PackAdjustmentLogger(ICoreClientAPI api, ICarryManager? carryManager, PackAdjustmentHandler handler)
     {
-        private readonly ICoreClientAPI api;
-        private readonly PackAdjustmentHandler handler;
-
-        public PackAdjustmentLogger(ICoreClientAPI api, PackAdjustmentHandler handler)
-        {
-            this.api = api;
-            this.handler = handler;
-        }
 
         public void LogCurrentValues()
         {
@@ -66,7 +59,7 @@ namespace CarryOn.Common.Handlers.PackAdjustment
 
         private void LogLabelTransform()
         {
-            var behavior = api?.World?.Player?.Entity?.GetCarried(handler.CarrySlot)?.GetCarryableBehavior();
+            var behavior = carryManager?.GetCarried(api.World.Player.Entity, handler.CarrySlot)?.GetCarryableBehavior();
             var labelTransform = handler.SelectedLabelTransform ?? behavior?.LabelRenderSettings?.Transform;
             if (labelTransform == null)
             {

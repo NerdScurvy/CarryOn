@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
 using CarryOn.Utility;
 using Vintagestory.API.Common;
@@ -12,19 +13,19 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
     {
         public override string ResolverCode => "displaycase";
 
-        public override bool TryResolve(ICoreAPI api, CarriedBlock carried, string baseGroup, out CarriedGroupResolution resolution)
+        public override bool TryResolve(ICoreAPI api, CarriedBlock carried, string baseGroup, out AttachmentResolveResult? result)
         {
-            resolution = new CarriedGroupResolution();
+            result = null;
 
             if (api?.World == null || carried?.Block == null || string.IsNullOrEmpty(baseGroup)) return false;
 
-            var containerSlots = TransformGroupResolverHelper.GetContainerSlots(carried);
+            var containerSlots = BlockUtils.GetContainerSlots(carried);
             if (containerSlots == null || containerSlots.Count == 0) return false;
 
-            var result = new CarriedGroupResolution();
             bool haveCenterPlacement = carried.BlockEntityData?.GetBool("haveCenterPlacement", false) == true;
 
             var carryBehavior = carried.GetCarryableBehavior();
+            var resolveResult = new AttachmentResolveResult();
 
             foreach (var cSlot in containerSlots)
             {
@@ -32,9 +33,7 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
                 if (itemStack == null) continue;
 
                 if (itemStack.Collectible == null)
-                {
                     itemStack.ResolveBlockOrItem(api.World);
-                }
 
                 var slotKey = haveCenterPlacement ? "-center" : cSlot.Key;
                 var candidate = new CarriedGroupCandidateSet
@@ -45,32 +44,29 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
                     ApplyOnDisplayTransform = true
                 };
 
-                // Crystal-specific group first, fallback to normal group.
                 if (IsCrystal(itemStack))
                 {
                     var crystalGroup = "displaycase-slot" + slotKey + "-crystal";
                     if (carryBehavior?.TransformGroupExists(carried, crystalGroup) == true)
-                    {
                         candidate.Groups.Add(crystalGroup);
-                    }
                 }
 
                 candidate.Groups.Add("displaycase-slot" + slotKey);
 
-                if (TransformGroupResolverHelper.TryResolveFallbackAsset(api, itemStack, out var assetType, out var assetName))
+                if (AssetResolutionHelper.TryResolveFallbackAsset(api, itemStack, out var assetType, out var assetName))
                 {
                     candidate.AssetTypeIfUnset = assetType;
                     candidate.AssetNameIfUnset = assetName;
                 }
 
-                result.AdditionalGroupCandidates.Add(candidate);
+                resolveResult.Candidates.Add(candidate);
 
                 if (haveCenterPlacement) break;
             }
 
-            if (result.AdditionalGroupCandidates.Count == 0) return false;
+            if (resolveResult.Candidates.Count == 0) return false;
 
-            resolution = result;
+            result = resolveResult;
             return true;
         }
 
@@ -79,19 +75,16 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
             var path = stack?.Collectible?.Code?.Path;
             if (string.IsNullOrEmpty(path)) return false;
 
-            // Start simple, tighten later if needed
             return path.Contains("crystal", StringComparison.OrdinalIgnoreCase);
         }
 
-        public override string? GetCacheSignature(ICoreAPI api, CarriedBlock carried, string baseGroup, CarriedGroupResolution? resolution)
+        public override string? GetCacheSignature(ICoreAPI api, CarriedBlock carried, string baseGroup)
         {
             var haveCenterPlacement = carried?.BlockEntityData?.GetBool("haveCenterPlacement", false) == true ? "1" : "0";
-            var containerSlots = TransformGroupResolverHelper.GetContainerSlots(carried);
+            var containerSlots = BlockUtils.GetContainerSlots(carried);
 
             if (containerSlots == null || containerSlots.Count == 0)
-            {
                 return "center=" + haveCenterPlacement + "|slots=none";
-            }
 
             var keys = containerSlots.Keys?.ToList() ?? new List<string>();
             keys.Sort(StringComparer.Ordinal);
@@ -109,9 +102,7 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
                 }
 
                 if (stack.Collectible == null)
-                {
                     stack.ResolveBlockOrItem(api?.World);
-                }
 
                 var code = stack.Collectible?.Code?.ToString() ?? "unresolved";
 

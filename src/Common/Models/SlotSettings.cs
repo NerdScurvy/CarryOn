@@ -13,6 +13,11 @@ namespace CarryOn.Common.Models
             = new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase);
         public IDictionary<string, float> WalkSpeedModifierByGroup { get; set; }
             = new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase);
+        public float? HungerModifier { get; set; }
+        public IDictionary<string, float> HungerModifierByType { get; set; }
+            = new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase);
+        public IDictionary<string, float> HungerModifierByGroup { get; set; }
+            = new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase);
         public string? EnabledCondition { get; set; }
         public string?[]? ExcludedTypes { get; set; }
     }

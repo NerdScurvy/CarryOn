@@ -12,17 +12,9 @@ using Vintagestory.API.MathTools;
 
 namespace CarryOn.Client.Logic.CarryRenderer
 {
-    internal sealed class CarryRenderInfoBuilder
+    internal sealed class CarryRenderInfoBuilder(ICoreClientAPI api, bool renderAttachedBlocks = true)
     {
-        private readonly ICoreClientAPI api;
-        private bool renderAttachedBlocks;
         private readonly Dictionary<AssetLocation, MultiTextureMeshRef> attachedBlockMeshCache = new();
-
-        internal CarryRenderInfoBuilder(ICoreClientAPI api, bool renderAttachedBlocks = true)
-        {
-            this.api = api;
-            this.renderAttachedBlocks = renderAttachedBlocks;
-        }
 
         internal bool RenderAttachedBlocks { get => renderAttachedBlocks; set => renderAttachedBlocks = value; }
 
@@ -37,7 +29,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
 
         internal CarriedRenderInfo[] BuildFromPlan(CarriedBlock carried, CachedTransformPlan? plan, TreeAttribute? containerSlots = null)
         {
-            var world = this.api.World;
+            var world = api.World;
             if (carried == null || world == null)
             {
                 return Array.Empty<CarriedRenderInfo>();
@@ -46,13 +38,13 @@ namespace CarryOn.Client.Logic.CarryRenderer
             var carriedBlock = carried;
             var carryBehavior = carriedBlock.GetCarryableBehavior();
 
-            // Resolve the render block variant if DefaultRenderVariant is configured
+            // Resolve the render block variant if RootRenderVariant is configured
             Block? renderVariantBlock = null;
             ItemStack renderStack = carriedBlock.ItemStack;
-            if (carryBehavior != null && !string.IsNullOrEmpty(carryBehavior.DefaultRenderVariant))
+            if (carryBehavior != null && !string.IsNullOrEmpty(carryBehavior.RootRenderVariant))
             {
                 renderVariantBlock = CarryRotationHelper.ResolveRenderBlock(
-                    world, carriedBlock, carryBehavior.DefaultRenderVariant, carryBehavior.DefaultRenderFacing);
+                    world, carriedBlock, carryBehavior.RootRenderVariant, carryBehavior.RootRenderFacing);
                 if (renderVariantBlock != null)
                 {
                     renderStack = new ItemStack(renderVariantBlock);
@@ -61,7 +53,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
             }
 
             var slot = new DummySlot(renderStack);
-            var baseRenderInfo = this.api.Render.GetItemStackRenderInfo(slot, EnumItemRenderTarget.Ground, 0);
+            var baseRenderInfo = api.Render.GetItemStackRenderInfo(slot, EnumItemRenderTarget.Ground, 0);
 
             if (renderVariantBlock != null)
             {
@@ -78,7 +70,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
             }
 
             var renderInfoList = new List<CarriedRenderInfo>();
-            var playerPos = this.api.World?.Player?.Entity?.Pos;
+            var playerPos = api.World?.Player?.Entity?.Pos;
 
             foreach (var effective in plan.EffectiveSettings)
             {
@@ -96,7 +88,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
                             setting.ClimateTintMap,
                             setting.SeasonalTintMap,
                             new BlockPos((int)playerPos.X, (int)playerPos.Y, (int)playerPos.Z),
-                            this.api);
+                            api);
                     }
                 }
 
@@ -109,7 +101,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
                     slotItemStack = CarryRenderHelpers.TryGetSlotItemStackByKey(containerSlots, effective.SourceSlotKey);
                     if (slotItemStack != null && slotItemStack.Collectible == null)
                     {
-                        slotItemStack.ResolveBlockOrItem(this.api.World);
+                        slotItemStack.ResolveBlockOrItem(api.World);
                     }
                 }
 
@@ -147,7 +139,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
 
                 if (useSlotStack)
                 {
-                    targetRenderInfo = this.api.Render.GetItemStackRenderInfo(
+                    targetRenderInfo = api.Render.GetItemStackRenderInfo(
                         new DummySlot(slotItemStack),
                         EnumItemRenderTarget.Ground,
                         0);
@@ -170,21 +162,21 @@ namespace CarryOn.Client.Logic.CarryRenderer
                     if (itemOrBlock == null) continue;
 
                     var itemStack = new ItemStack(itemOrBlock);
-                    targetRenderInfo = this.api.Render.GetItemStackRenderInfo(
+                    targetRenderInfo = api.Render.GetItemStackRenderInfo(
                         new DummySlot(itemStack),
                         EnumItemRenderTarget.Ground,
                         0);
                 }
                 else if (beDataItemStack != null)
                 {
-                    targetRenderInfo = this.api.Render.GetItemStackRenderInfo(
+                    targetRenderInfo = api.Render.GetItemStackRenderInfo(
                         new DummySlot(beDataItemStack),
                         EnumItemRenderTarget.Ground,
                         0);
                 }
                 else
                 {
-                    targetRenderInfo = this.api.Render.GetItemStackRenderInfo(
+                    targetRenderInfo = api.Render.GetItemStackRenderInfo(
                         slot,
                         EnumItemRenderTarget.Ground,
                         0);
@@ -241,10 +233,10 @@ namespace CarryOn.Client.Logic.CarryRenderer
             var attachedBlocks = carried.AttachedBlocks;
             if (attachedBlocks == null || attachedBlocks.Count == 0) return;
 
-            var world = this.api.World;
+            var world = api.World;
             if (world == null) return;
 
-            var defaultFacing = carried.GetCarryableBehavior()?.DefaultRenderFacing;
+            var defaultFacing = carried.GetCarryableBehavior()?.RootRenderFacing;
             int offsetSteps = CarryRotationHelper.GetOriginalToModelDefaultSteps(carried, defaultFacing);
 
             foreach (var attached in attachedBlocks)
@@ -281,7 +273,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
                         childStack.ResolveBlockOrItem(world);
                 }
 
-                var childRenderInfo = this.api.Render.GetItemStackRenderInfo(new DummySlot(childStack), EnumItemRenderTarget.Ground, 0);
+                var childRenderInfo = api.Render.GetItemStackRenderInfo(new DummySlot(childStack), EnumItemRenderTarget.Ground, 0);
 
                 MultiTextureMeshRef? worldMeshRef = null;
                 if (variantBlock != null)
@@ -317,10 +309,10 @@ namespace CarryOn.Client.Logic.CarryRenderer
                 return cached;
             }
 
-            var meshData = this.api.TesselatorManager.GetDefaultBlockMesh(block);
+            var meshData = api.TesselatorManager.GetDefaultBlockMesh(block);
             if (meshData == null) return null;
 
-            var meshRef = this.api.Render.UploadMultiTextureMesh(meshData);
+            var meshRef = api.Render.UploadMultiTextureMesh(meshData);
             attachedBlockMeshCache[block.Code] = meshRef;
             return meshRef;
         }

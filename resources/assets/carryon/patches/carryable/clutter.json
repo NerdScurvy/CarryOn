@@ -8,7 +8,7 @@
 			"name": "Carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Clutter",
-				"transformGroupResolver": "codepath",
+				"rootGroupResolver": "codepath",
 				"transformGroups": {
 					"hands": [
 						{

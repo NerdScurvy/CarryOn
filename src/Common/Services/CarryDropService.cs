@@ -31,7 +31,7 @@ namespace CarryOn.Common.Services
             if (range < 0) throw new ArgumentOutOfRangeException(nameof(range));
 
             var remaining = slots
-                .Select(s => entity.GetCarried(s))
+                .Select(s => carryManager.GetCarried(entity, s))
                 .OfType<CarriedBlock>()
                 .OrderBy(c => c.Block.GetBehavior<BlockBehaviorMultiblock>() != null)
                 .ToList();
@@ -63,6 +63,15 @@ namespace CarryOn.Common.Services
             var player = (entity as EntityPlayer)?.Player as IServerPlayer;
 
             var centerBlock = entity.Pos.AsBlockPos.UpCopy();
+
+            var dropMode = carryManager.Config?.CarriedBlockEntity?.DropMode ?? DropMode.Items;
+
+            if (dropMode == DropMode.EntityAlways)
+            {
+                DropBlockAsEntityOrItem(carriedBlock, centerBlock, player, entity);
+                return;
+            }
+
             blockPlacer ??= new BlockPlacer(entity.Api);
 
             if (carriedBlock.HasAttachedBlocks)
@@ -74,28 +83,53 @@ namespace CarryOn.Common.Services
             var blockSelection = blockPlacer.FindBlockPlacement(carriedBlock.Block, centerBlock, range);
             if (blockSelection == null)
             {
-                DropBlockAsItem(carriedBlock, centerBlock, player, entity);
+                if (dropMode == DropMode.EntityOnFailedPlacement)
+                {
+                    DropBlockAsEntityOrItem(carriedBlock, centerBlock, player, entity, forceEntity: true);
+                    return;
+                }
+                DropBlockAsEntityOrItem(carriedBlock, centerBlock, player, entity);
                 return;
             }
 
-            if (carryManager.TryPlaceDown(entity, carriedBlock, blockSelection, dropped: true))
+            var failureCode = FailureCode.Ignore;
+            if (carryManager.TryPlaceDown(entity, carriedBlock, blockSelection, ref failureCode, dropped: true))
+                return;
+
+            if (dropMode == DropMode.EntityOnFailedPlacement)
             {
+                DropBlockAsEntityOrItem(carriedBlock, centerBlock, player, entity, forceEntity: true);
                 return;
             }
 
-            DropBlockAsItem(carriedBlock, centerBlock, player, entity);
+            DropBlockAsEntityOrItem(carriedBlock, centerBlock, player, entity);
         }
 
         private void DropClusterBlock(Entity entity, CarriedBlock carriedBlock, int range, BlockPlacer blockPlacer, BlockPos centerBlock, IServerPlayer? player)
         {
+            var dropMode = carryManager.Config?.CarriedBlockEntity?.DropMode ?? DropMode.Items;
+
             var blockSelection = blockPlacer.FindClusterPlacement(
                 carriedBlock.Block,
                 carriedBlock.AttachedBlocks as IReadOnlyList<AttachedCarriedBlock>,
                 centerBlock,
                 range);
 
-            if (blockSelection != null && carryManager.TryPlaceDown(entity, carriedBlock, blockSelection, dropped: true))
+            if (blockSelection != null)
             {
+                var failureCode = FailureCode.Ignore;
+                if (carryManager.TryPlaceDown(entity, carriedBlock, blockSelection, ref failureCode, dropped: true))
+                    return;
+
+                if (dropMode == DropMode.EntityOnFailedPlacement)
+                {
+                    DropBlockAsEntityOrItem(carriedBlock, centerBlock, player, entity, forceEntity: true);
+                    return;
+                }
+            }
+            else if (dropMode == DropMode.EntityOnFailedPlacement)
+            {
+                DropBlockAsEntityOrItem(carriedBlock, centerBlock, player, entity, forceEntity: true);
                 return;
             }
 
@@ -103,31 +137,77 @@ namespace CarryOn.Common.Services
             var world = api.World;
             var dropVec3d = new Vec3d(centerBlock.X + 0.5, centerBlock.Y + 0.5, centerBlock.Z + 0.5);
 
-            DropBlockAsItem(carriedBlock, centerBlock, player, entity);
+            DropBlockAsEntityOrItem(carriedBlock, centerBlock, player, entity);
 
-            if (carriedBlock.AttachedBlocks != null)
+            var attachedCount = carriedBlock.AttachedBlocks?.Count ?? 0;
+            if (attachedCount > 0)
             {
-                foreach (var child in carriedBlock.AttachedBlocks)
+                foreach (var child in carriedBlock.AttachedBlocks!)
                 {
                     world.SpawnItemEntity(child.ItemStack, dropVec3d);
                 }
+                api.World.Logger.Audit($"[{ModId}] Player {player?.PlayerName ?? "unknown"} dropped {attachedCount} attached child block(s) from {carriedBlock.Block?.Code ?? "unknown"} at {centerBlock}");
             }
         }
 
         /// <summary>
-        /// Drops the carried block as item entities, including any serialized inventory contents.
+        /// Drops the carried block as CarriedBlockEntity or item entities, including any serialized inventory contents.
         /// </summary>
         /// <param name="carriedBlock">Carried block being dropped.</param>
         /// <param name="centerBlock">Center position for item spawning and audio.</param>
         /// <param name="player">Optional acting server player for contextual drops.</param>
         /// <param name="entity">Entity source for state mutation and events.</param>
-        public void DropBlockAsItem(CarriedBlock carriedBlock, BlockPos centerBlock, IServerPlayer? player, Entity entity)
+        /// <param name="forceEntity">When true, spawns a block entity instead of item drops regardless of DropMode.</param>
+        public void DropBlockAsEntityOrItem(CarriedBlock carriedBlock, BlockPos centerBlock, IServerPlayer? player, Entity entity, bool forceEntity = false)
         {
+            if (api.Side == EnumAppSide.Server && (forceEntity || carryManager.Config?.CarriedBlockEntity?.DropMode == DropMode.EntityAlways))
+            {
+                var carrySystem = api.ModLoader.GetModSystem<CarrySystem>();
+                var entityService = carrySystem?.CarriedBlockEntityService;
+                if (entityService != null)
+                {
+                    var playerUid = player?.PlayerUID ?? "unknown";
+                    var candidatePos = new Vec3d(entity.Pos.X, entity.Pos.Y, entity.Pos.Z);
+                    var config = carryManager.Config?.CarriedBlockEntity;
+                    var randomYaw = config?.RandomDropRotation ?? true;
+                    var scale = config?.Scale ?? 1.0f;
+                    entityService.SpawnCarriedBlockEntityWithGravity(carriedBlock, playerUid, candidatePos, randomYaw: randomYaw, scale: scale);
+                    carryManager.RemoveCarried(entity, carriedBlock.Slot);
+
+                    api.World.Logger.Audit($"[{ModId}] Player {player?.PlayerName ?? "unknown"} dropped carried block {carriedBlock.Block?.Code ?? "unknown"} as entity at {centerBlock}");
+                    carryManager.CarryEvents?.TriggerBlockDropped(centerBlock, entity, carriedBlock, destroyed: false, hadContents: false, blockPlaced: false);
+                    return;
+                }
+            }
+
             var world = api.World;
             var blockDestroyed = false;
             var hadContents = false;
             var dropCount = 1;
             var dropVec3d = new Vec3d(centerBlock.X + 0.5, centerBlock.Y + 0.5, centerBlock.Z + 0.5);
+
+            // Spill items from configured beData attributes FIRST so they're removed
+            // from BE data before the itemstack is spawned (prevents duplication).
+            var beData = carriedBlock.BlockEntityData;
+            if (beData != null)
+            {
+                var carryBehavior = carriedBlock.GetCarryableBehavior();
+                var attrNames = carryBehavior?.DataAttributes;
+                if (attrNames != null && attrNames.Length > 0)
+                {
+                    foreach (var attrName in attrNames)
+                    {
+                        if (string.IsNullOrEmpty(attrName)) continue;
+                        if (beData[attrName] is not ItemstackAttribute itemAttr) continue;
+                        var stack = itemAttr.GetValue() as ItemStack;
+                        if (stack == null) continue;
+                        world.SpawnItemEntity(stack, dropVec3d);
+                        beData.RemoveAttribute(attrName);
+                        hadContents = true;
+                        dropCount++;
+                    }
+                }
+            }
 
             if (carriedBlock.BlockEntityData?["inventory"] is TreeAttribute inventory && inventory["slots"] is TreeAttribute invSlots)
             {

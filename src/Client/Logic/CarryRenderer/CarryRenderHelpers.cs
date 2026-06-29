@@ -188,7 +188,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
                 renderVariantSignature ?? "novariant");
         }
 
-        internal static string BuildRenderInfoVariantSignature(CarriedBlock carried, TreeAttribute? containerSlots, IReadOnlyList<EffectiveTransformSetting> effectiveSettings, IWorldAccessor world, string? defaultRenderVariant = null)
+        internal static string BuildRenderInfoVariantSignature(CarriedBlock carried, TreeAttribute? containerSlots, IReadOnlyList<EffectiveTransformSetting> effectiveSettings, IWorldAccessor world, string? rootRenderVariant = null)
         {
             var sb = new StringBuilder(160);
             var be = carried?.BlockEntityData;
@@ -243,9 +243,9 @@ namespace CarryOn.Client.Logic.CarryRenderer
                 sb.Append("|origMeshAngle=").Append(carried.OriginalMeshAngle.Value.ToString("R", CultureInfo.InvariantCulture));
             }
 
-            if (!string.IsNullOrEmpty(defaultRenderVariant))
+            if (!string.IsNullOrEmpty(rootRenderVariant))
             {
-                sb.Append("|renderVariant=").Append(defaultRenderVariant);
+                sb.Append("|renderVariant=").Append(rootRenderVariant);
             }
 
             if (carried?.HasAttachedBlocks == true && carried.AttachedBlocks != null)

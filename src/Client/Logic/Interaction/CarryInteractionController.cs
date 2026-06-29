@@ -13,6 +13,7 @@ namespace CarryOn.Client.Logic.Interaction
     {
         private readonly CarryInteractionValidator validator;
         private readonly CarryInteractionStateMachine stateMachine;
+        private CarryOnConfig config;
 
         public CarryInteraction Interaction => stateMachine.Interaction;
         public Vintagestory.Client.NoObf.HudElementInteractionHelp? HudHelp
@@ -22,7 +23,6 @@ namespace CarryOn.Client.Logic.Interaction
         }
 
         public bool RemoveInteractDelayWhileCarrying => validator.RemoveInteractDelayWhileCarrying;
-        public bool AllowSprintWhileCarrying => validator.AllowSprintWhileCarrying;
         public bool BackSlotEnabled => validator.BackSlotEnabled;
         public float InteractSpeedMultiplier => validator.InteractSpeedMultiplier;
 
@@ -36,13 +36,25 @@ namespace CarryOn.Client.Logic.Interaction
             ArgumentNullException.ThrowIfNull(setOverlayProgress);
 
             var transferLogic = new TransferLogic(api, carryManager);
-            validator = new CarryInteractionValidator(api, config, transferLogic, this);
+            this.config = config;
+            validator = new CarryInteractionValidator(api, carryManager, config, transferLogic, this);
             stateMachine = new CarryInteractionStateMachine(api, carryManager, clientChannel, hideOverlay, setOverlayProgress, validator, transferLogic, clientModConfig);
         }
 
         public void TryBeginInteraction(bool isInteracting, ref EnumHandling handled)
         {
             validator.TryBeginInteraction(isInteracting, ref handled);
+        }
+
+        public void InvalidateConfigCache()
+        {
+            validator.InvalidateConfigCache();
+        }
+
+        public void UpdateConfig(CarryOnConfig newConfig)
+        {
+            this.config = newConfig;
+            validator.UpdateConfig(newConfig);
         }
 
         public void TryContinueInteraction(float deltaTime)

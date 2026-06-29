@@ -51,7 +51,16 @@ Blocks with `Carryable` behavior added by CarryOnMore patches.
 | kevinsfurniture | kevinsfurniture:blocktypes/containers/doorlesscabinet | — | Yes | — | — | — | — |
 | labeledcontainers (lc) | lc:blocktypes/stationarybasket | carryon.Carryables.ReedChest | Yes | Yes | — | — | carryon:carry-reedchest |
 | labeledcontainers (lc) | lc:blocktypes/storagevessel* | carryon.Carryables.StorageVessel | Yes | Yes | — | — | carryon:carry-storagevessel |
+| labeledcontainers (lcupdated) | lcupdated:blocktypes/stationarybasket | carryon.Carryables.ReedChest | Yes | Yes | — | — | carryon:carry-reedchest |
+| labeledcontainers (lcupdated) | lcupdated:blocktypes/storagevessel* | carryon.Carryables.StorageVessel | Yes | Yes | — | — | carryon:carry-storagevessel |
 | labeledtrunks | labeledtrunk:blocktypes/chest-trunk | carryon.Carryables.ChestTrunk | Yes | Yes | — | — | carryon:carry-trunk |
+| interestingme | interestingme:blocktypes/muckbin | carryon.Carryables.Crate | Yes | Yes | — | 1 | carryon:carry-crate |
+| upgradablestorage | upgradablestorage:blocktypes/chests | carryon.Carryables.Chest | Yes | Yes | — | 1 | carryon:carry-chest |
+| upgradablestorage | upgradablestorage:blocktypes/labeledchests | carryon.Carryables.Chest | Yes | Yes | — | 1 | carryon:carry-chest |
+| upgradablestorage | upgradablestorage:blocktypes/trunks | carryon.Carryables.ChestTrunk | Yes | Yes | — | 1 | carryon:carry-trunk |
+| upgradablestorage | upgradablestorage:blocktypes/labeledtrunks | carryon.Carryables.ChestTrunk | Yes | Yes | — | 1 | carryon:carry-trunk |
+| upgradablestorage | upgradablestorage:blocktypes/storagevessel | carryon.Carryables.StorageVessel | Yes | Yes | — | 1 | carryon:carry-storagevessel |
+| upgradablestorage | upgradablestorage:blocktypes/labeledstoragevessel | carryon.Carryables.StorageVessel | Yes | Yes | — | 1 | carryon:carry-storagevessel |
 
 ---
 

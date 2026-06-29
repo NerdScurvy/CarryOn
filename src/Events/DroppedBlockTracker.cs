@@ -1,6 +1,5 @@
 using System;
 using CarryOn.API.Common.Interfaces;
-using CarryOn.API.Common.Models;
 using CarryOn.API.Event.Data;
 using CarryOn.Server.Models;
 using Vintagestory.API.Common;
@@ -24,22 +23,29 @@ namespace CarryOn.Events
             this.carryManager = carryManager;
             this.loggingEnabled = carryManager.Config?.DebuggingOptions?.LoggingEnabled ?? false;
 
+            if (carryManager.Config?.CarryOptions?.TrackDroppedBlocks != true)
+                return;
+
             var events = carryManager.CarryEvents ?? throw new InvalidOperationException("CarryEvents not initialized");
 
             if (carryManager.Api.Side == EnumAppSide.Client)
             {
-                events.CheckPermissionToCarry += OnCheckPermissionToCarryClient;
+                events.CheckPermissionAt += OnCheckPermissionAtClient;
                 return;
             }
 
-            events.CheckPermissionToCarry += OnCheckPermissionToCarry;
+            events.CheckPermissionAt += OnCheckPermissionAt;
             events.BlockDropped += OnCarriedBlockDropped;
 
             events.BlockRemoved += OnCarryableBlockRemoved;
         }
 
-        public void OnCheckPermissionToCarryClient(EntityPlayer playerEntity, BlockPos pos, bool isReinforced, out bool? hasPermission)
+        public void OnCheckPermissionAtClient(EntityPlayer playerEntity, BlockPos pos, bool isReinforced, out bool? hasPermission)
         {
+            hasPermission = null;
+            if (carryManager?.Config?.CarryOptions?.TrackDroppedBlocks != true)
+                return;
+            
             // Allow client side permission so checks are done server side unless is reinforced
             hasPermission = isReinforced ? null : true;
         }
@@ -52,10 +58,13 @@ namespace CarryOn.Events
         /// <param name="pos"></param>
         /// <param name="isReinforced"></param>
         /// <param name="hasPermission"></param>
-        public void OnCheckPermissionToCarry(EntityPlayer playerEntity, BlockPos pos, bool isReinforced, out bool? hasPermission)
+        public void OnCheckPermissionAt(EntityPlayer playerEntity, BlockPos pos, bool isReinforced, out bool? hasPermission)
         {
             // A null value means the server should continue to check other delegates
             hasPermission = null;
+
+            if (carryManager?.Config?.CarryOptions?.TrackDroppedBlocks != true)
+                return;
 
             if (isReinforced) return;
 
@@ -79,6 +88,9 @@ namespace CarryOn.Events
         /// <param name="e"></param>
         public void OnCarriedBlockDropped(object? sender, BlockDroppedEventArgs e)
         {
+            if (carryManager?.Config?.CarryOptions?.TrackDroppedBlocks != true)
+                return;
+
             ArgumentNullException.ThrowIfNull(e);
             if (!e.BlockPlaced || e.Position == null) return;
             if (e.CarriedBlock == null) return;

@@ -25,11 +25,19 @@ namespace CarryOn.Common.Behaviors
 
         public bool RenderRootFirst { get; set; } = false;
 
-        public string? DefaultRenderFacing { get; set; }
+        public string? RootRenderFacing { get; set; }
 
-        public string? DefaultRenderVariant { get; set; }
+        public string? RootRenderVariant { get; set; }
 
         public string? TransformGroupResolver { get; set; }
+
+        public string? RootGroupResolver { get; set; }
+
+        public string? AttachmentGroupResolver { get; set; }
+
+        public string[]? DataAttributes { get; private set; } = [];
+
+        public string? DataAttributesPrefix { get; private set; }
 
         public bool HasLocalTransformGroups { get; private set; } = false;
 
@@ -45,12 +53,6 @@ namespace CarryOn.Common.Behaviors
             Origin = new Vec3f(0.5F, 0.5F, 0.5F),
             ScaleXYZ = new Vec3f(0.5F, 0.5F, 0.5F)
         };
-
-        public static readonly IReadOnlyDictionary<CarrySlot, float> DefaultWalkSpeed
-            = new Dictionary<CarrySlot, float> {
-                { CarrySlot.Hands    , -0.25F },
-                { CarrySlot.Back     , -0.15F }
-            };
 
         public static readonly IReadOnlyDictionary<CarrySlot, string> DefaultAnimation
             = new Dictionary<CarrySlot, string> {
@@ -111,9 +113,25 @@ namespace CarryOn.Common.Behaviors
             if (!SwapBackKeyPassthrough && JsonHelper.TryGetBool(properties, "preventSwapBack", out var psb)) SwapBackKeyPassthrough = psb;
             if (JsonHelper.TryGetString(properties, "enabledCondition", out var e)) EnabledCondition = e ?? string.Empty;
             if (JsonHelper.TryGetBool(properties, "renderRootFirst", out var rootFirst)) RenderRootFirst = rootFirst;
-            if (JsonHelper.TryGetString(properties, "defaultRenderFacing", out var drf)) DefaultRenderFacing = drf;
-            if (JsonHelper.TryGetString(properties, "defaultRenderVariant", out var drv)) DefaultRenderVariant = drv;
+            if (JsonHelper.TryGetString(properties, "rootRenderFacing", out var drf)) RootRenderFacing = drf;
+            if (JsonHelper.TryGetString(properties, "rootRenderVariant", out var drv)) RootRenderVariant = drv;
             if (JsonHelper.TryGetString(properties, "transformGroupResolver", out var g)) TransformGroupResolver = g;
+            if (JsonHelper.TryGetString(properties, "rootGroupResolver", out var rg)) RootGroupResolver = rg;
+            if (JsonHelper.TryGetString(properties, "attachmentGroupResolver", out var ag)) AttachmentGroupResolver = ag;
+
+            if (TransformGroupResolver != null)
+            {
+                RootGroupResolver ??= TransformGroupResolver;
+                AttachmentGroupResolver ??= TransformGroupResolver;
+            }
+
+            if (properties.KeyExists("dataAttributes"))
+            {
+                var attrs = properties["dataAttributes"].AsArray<string>();
+                DataAttributes = attrs?.Select(a => a ?? string.Empty).ToArray() ?? [];
+            }
+            if (JsonHelper.TryGetString(properties, "dataAttributesPrefix", out var bp))
+                DataAttributesPrefix = bp;
 
             if (properties.KeyExists("transformTemplates"))
             {
@@ -147,7 +165,7 @@ namespace CarryOn.Common.Behaviors
             else if (properties.KeyExists("labelTransform"))
                 LabelRenderSettings = LabelRenderSettingsParser.Parse(properties["labelTransform"], transformInChildObject: false);
 
-            DefaultTransform = JsonHelper.GetTransform(properties, DefaultBlockTransform);
+            DefaultTransform = ModelTransformParser.GetTransform(properties, DefaultBlockTransform);
             Slots.Initialize(properties["slots"]);
         }
 

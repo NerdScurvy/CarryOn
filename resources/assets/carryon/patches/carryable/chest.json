@@ -36,7 +36,14 @@
 					}
 				},
 				"slots": {
-					"Hands": {},
+					"Hands": {
+						"hungerModifierByGroup": {
+							"compact": 0.05
+						},
+						"hungerModifierByBlockType": {
+							"owl*": 0.04
+						}
+					},
 					"Back": {
 						"enabledCondition": "carryon.CarryablesOnBack.Chest",
 						"walkSpeedModifier": -0.15,
@@ -51,7 +58,13 @@
 							"collapsed1",
 							"collapsed2",
 							"collapsed3"
-						]
+						],
+						"hungerModifierByGroup": {
+							"compact": 0.1
+						},
+						"hungerModifierByBlockType": {
+							"owl*": 0.05
+						}
 					}
 				}
 			}

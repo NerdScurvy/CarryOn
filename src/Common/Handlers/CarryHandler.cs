@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using CarryOn.Common.Network;
 using CarryOn.Utility;
@@ -18,6 +19,7 @@ using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
 using CarryOn.Client.Logic.Interaction;
 using CarryOn.Client.Models;
+using CarryOn.Common.Entities;
 
 namespace CarryOn.Common.Handlers
 {
@@ -38,22 +40,24 @@ namespace CarryOn.Common.Handlers
             typeof(DetachMessage),
             typeof(PutMessage),
             typeof(TakeMessage),
-            typeof(DismountMessage)
+            typeof(DismountMessage),
+            typeof(ConfigSyncMessage),
+            typeof(PickupEntityMessage)
         ];
 
 
         private long gameTickListenerId;
 
-        private readonly CarryOnConfig config;
+        private CarryOnConfig config;
         private readonly Func<bool> getIsCarryOnEnabled;
 
-        public ICarryManager CarryManager { get; set; } = null!;
+        private readonly ICarryManager carryManager;
 
         public bool IsCarryOnEnabled => this.getIsCarryOnEnabled();
 
         private bool lastCanInteractState = true;
 
-        public bool BackSlotEnabled { get; private set; }
+        public bool BackSlotEnabled => this.config.CarryOptions?.BackSlotEnabled ?? false;
 
         private ICoreAPI? api;
 
@@ -72,6 +76,20 @@ namespace CarryOn.Common.Handlers
         private TransferLogic? TransferLogic { get; set; } = null;
 
 
+        private bool CanSprintWhileCarrying(EntityPlayer player)
+        {
+            var cfg = this.config?.CarryWalkSpeed;
+            if (cfg == null) return true;
+
+            var handsCarried = this.carryManager.GetCarried(player, CarrySlot.Hands);
+            var backCarried = this.carryManager.GetCarried(player, CarrySlot.Back);
+
+            if (handsCarried != null && !cfg.HandsAllowSprint) return false;
+            if (backCarried != null && !cfg.BackAllowSprint) return false;
+
+            return true;
+        }
+
         /// <summary>
         /// Sets the HUD element for interaction help, so that it can be updated when carrying interactable blocks.
         /// </summary>
@@ -86,18 +104,31 @@ namespace CarryOn.Common.Handlers
             this.interactionLogic.HudHelp = hudHelp;
         }
 
+        public void InvalidateConfigCache()
+        {
+            interactionLogic?.InvalidateConfigCache();
+        }
+
+        public void UpdateConfig(CarryOnConfig newConfig)
+        {
+            this.config = newConfig;
+            interactionLogic?.UpdateConfig(newConfig);
+        }
+
         /// <summary>
         /// Initializes a new instance of the CarryHandler class.
         /// </summary>
         /// <param name="config"> The CarryOn configuration. </param>
         /// <param name="isCarryOnEnabled"> Function returning the current CarryOn enabled state (client-side). </param>
-        public CarryHandler(CarryOnConfig config, Func<bool> isCarryOnEnabled)
+        public CarryHandler(ICarryManager carryManager, CarryOnConfig config, Func<bool> isCarryOnEnabled)
         {
+            ArgumentNullException.ThrowIfNull(carryManager);
             ArgumentNullException.ThrowIfNull(config);
             ArgumentNullException.ThrowIfNull(isCarryOnEnabled);
+            
+            this.carryManager = carryManager;
             this.config = config;
             this.getIsCarryOnEnabled = isCarryOnEnabled;
-            this.BackSlotEnabled = this.config.CarryOptions?.BackSlotEnabled ?? false;
         }
 
         /// <summary>
@@ -127,7 +158,7 @@ namespace CarryOn.Common.Handlers
             ArgumentNullException.ThrowIfNull(hideOverlay);
             ArgumentNullException.ThrowIfNull(setOverlayProgress);
 
-            this.interactionLogic = new CarryInteractionController(ClientApi, this.CarryManager, clientChannel, this.config, hideOverlay, setOverlayProgress, clientModConfig);
+            this.interactionLogic = new CarryInteractionController(ClientApi, this.carryManager, clientChannel, this.config, hideOverlay, setOverlayProgress, clientModConfig);
 
             RegisterCarryMessageTypes(clientChannel)
                 .SetMessageHandler<LockSlotsMessage>(OnLockSlotsMessage);
@@ -159,7 +190,7 @@ namespace CarryOn.Common.Handlers
 
             var serverEvent = api.Event;
 
-            this.TransferLogic = new TransferLogic(api, this.CarryManager);
+            this.TransferLogic = new TransferLogic(api, this.carryManager);
 
             RegisterCarryMessageTypes(serverChannel)
                 .SetMessageHandler<InteractMessage>(OnInteractMessage)
@@ -170,7 +201,8 @@ namespace CarryOn.Common.Handlers
                 .SetMessageHandler<DetachMessage>(OnDetachMessage)
                 .SetMessageHandler<PutMessage>(OnPutMessage)
                 .SetMessageHandler<TakeMessage>(OnTakeMessage)
-                .SetMessageHandler<DismountMessage>(OnDismountMessage);
+                .SetMessageHandler<DismountMessage>(OnDismountMessage)
+                .SetMessageHandler<PickupEntityMessage>(OnPickupEntityMessage);
 
             serverEvent.OnEntitySpawn += OnServerEntitySpawn;
             serverEvent.PlayerNowPlaying += OnServerPlayerNowPlaying;
@@ -291,7 +323,7 @@ namespace CarryOn.Common.Handlers
             }
 
             string failureCode = FailureCode.Ignore;
-            if (CarryManager.TryPickUp(
+            if (this.carryManager.TryPickUp(
                 player.Entity,
                 message.Position,
                 message.Slot,
@@ -326,7 +358,7 @@ namespace CarryOn.Common.Handlers
             }
 
             string failureCode = FailureCode.Ignore;
-            if (CarryManager.TryPlaceDownAt(
+            if (this.carryManager.TryPlaceDownAt(
                 player,
                 message.Slot,
                 message.Selection,
@@ -352,9 +384,9 @@ namespace CarryOn.Common.Handlers
             }
 
             if (pos != null) player.Entity.World.BlockAccessor.MarkBlockDirty(pos);
-            CarryManager.TouchCarriedAttributes(player.Entity);
+            this.carryManager.TouchCarriedAttributes(player.Entity);
             player.Entity.WatchedAttributes.MarkPathDirty("stats/walkspeed");
-            CarryManager.LockHotbarSlots(player);
+            this.carryManager.LockHotbarSlots(player);
 
             if (!string.IsNullOrEmpty(failureCode) && failureCode != FailureCode.Ignore)
             {
@@ -373,16 +405,21 @@ namespace CarryOn.Common.Handlers
         /// <param name="message"> The message containing the slot swap details. </param>
         public void OnSwapSlotsMessage(IServerPlayer player, SwapSlotsMessage message)
         {
-            if (!this.BackSlotEnabled) return;
             if ((message.First != message.Second)
                 && (message.First == CarrySlot.Back || message.Second == CarrySlot.Back)
                 && player.Entity.CanInteract(requireEmptyHanded: true))
             {
+                var carriedHands = this.carryManager.GetCarried(player.Entity, CarrySlot.Hands);
+                if (carriedHands != null && !this.BackSlotEnabled)
+                {
+                    this.carryManager.TouchCarriedAttributes(player.Entity);
+                    return;
+                }
 
-                if (player.Entity.SwapCarried(message.First, message.Second))
+                if (this.carryManager.SwapCarried(player.Entity, message.First, message.Second))
                 {
                     Api.World.PlaySoundAt(new AssetLocation(CarryCode.SoundPath.Throw), player.Entity);
-                    CarryManager.TouchCarriedAttributes(player.Entity);
+                    this.carryManager.TouchCarriedAttributes(player.Entity);
                 }
             }
         }
@@ -401,7 +438,7 @@ namespace CarryOn.Common.Handlers
             }
 
             string failureCode = FailureCode.Ignore;
-            if (CarryManager.TryAttach(player, message.TargetEntityId, message.SlotIndex, ref failureCode))
+            if (this.carryManager.TryAttach(player, message.TargetEntityId, message.SlotIndex, ref failureCode))
             {
                 return;
             }
@@ -423,7 +460,7 @@ namespace CarryOn.Common.Handlers
             }
 
             string failureCode = FailureCode.Ignore;
-            if (CarryManager.TryDetach(player, message.TargetEntityId, message.SlotIndex, ref failureCode))
+            if (this.carryManager.TryDetach(player, message.TargetEntityId, message.SlotIndex, ref failureCode))
             {
                 return;
             }
@@ -524,6 +561,72 @@ namespace CarryOn.Common.Handlers
         }
 
 
+        /// <summary>
+        /// Handles the pickup entity action for a player.
+        /// </summary>
+        /// <param name="player"> The player performing the pickup. </param>
+        /// <param name="message"> The message containing the entity ID. </param>
+        private void OnPickupEntityMessage(IServerPlayer player, PickupEntityMessage message)
+        {
+            var entity = player.Entity.World.GetEntityById(message.EntityId) as EntityCarriedBlock;
+            if (entity == null) return;
+
+            if (TryPickupFromEntity(player, entity))
+                entity.Die(EnumDespawnReason.Death, null);
+        }
+
+        /// <summary>
+        /// Attempts to pick up a CarriedBlock from an EntityCarriedBlock into the player's Hands slot.
+        /// </summary>
+        private bool TryPickupFromEntity(IServerPlayer player, EntityCarriedBlock entity)
+        {
+            var carriedTree = entity.CarriedBlockTree;
+            if (carriedTree == null) return false;
+
+            var api = entity.Api;
+            if (api == null) return false;
+
+            var carriedBlock = CarriedBlockTreeSerializer.Deserialize(carriedTree, api);
+            if (carriedBlock == null) return false;
+
+            if (this.carryManager.GetCarried(player.Entity, CarrySlot.Hands) != null)
+            {
+                player.SendIngameError(FailureCode.AlreadyCarrying, LocalizationHelper.GetLang("pick-up-already-carrying"));
+                return false;
+            }
+
+            if (!CanPickupFromEntity(player, entity))
+                return false;
+
+            this.carryManager.SetCarried(player.Entity, carriedBlock, CarrySlot.Hands);
+
+            var pickupSound = carriedBlock.Block?.Sounds?.Place.Location
+                ?? new AssetLocation(SoundPath.DefaultPlace);
+            api.World.PlaySoundAt(pickupSound, player.Entity);
+
+            return true;
+        }
+
+        private bool CanPickupFromEntity(IServerPlayer player, EntityCarriedBlock entity)
+        {
+            var cfg = this.config.CarriedBlockEntity;
+            if (cfg == null) return true;
+
+            if (!CarriedBlockAccessPolicy.CanPickup(
+                player.WorldData.CurrentGameMode,
+                player.PlayerUID,
+                entity.OwnerUid,
+                cfg.PickupAccess,
+                cfg.GracePeriodSeconds,
+                entity.DropTimeRealTicks))
+            {
+                player.SendIngameError(FailureCode.NotOwner, LocalizationHelper.GetLang("pickup-not-owner"));
+                return false;
+            }
+
+            return true;
+        }
+
         // ------------------------------
         //  Both side event handlers
         // ------------------------------
@@ -537,7 +640,7 @@ namespace CarryOn.Common.Handlers
         {
             // If the player is carrying something in their hands,
             // prevent them from changing their active hotbar slot.
-            return (entity.GetCarried(CarrySlot.Hands) != null)
+            return (this.carryManager.GetCarried(entity, CarrySlot.Hands) != null)
                 ? EnumHandling.PreventDefault
                 : EnumHandling.PassThrough;
         }
@@ -624,9 +727,12 @@ namespace CarryOn.Common.Handlers
                     isInteracting = false;
                     break;
                 case EnumEntityAction.Sprint:
-                    if (this.interactionLogic.AllowSprintWhileCarrying) return;
-                    isInteracting = false;
-                    break;
+                {
+                    var player = this.ClientApi?.World.Player?.Entity;
+                    if (player != null && CanSprintWhileCarrying(player)) return;
+                    handled = EnumHandling.PreventDefault;
+                    return;
+                }
                 default: return;
             }
 
@@ -677,8 +783,8 @@ namespace CarryOn.Common.Handlers
             if (entity is EntityPlayer) return;
 
             // Set this again so walk speed modifiers and animations can be applied.
-            foreach (var carried in entity.GetCarried() ?? [])
-                carried.Set(entity, carried.Slot);
+            foreach (var carried in this.carryManager.GetAllCarried(entity))
+                this.carryManager.SetCarried(entity, carried, carried.Slot);
         }
 
         /// <summary>
@@ -687,8 +793,8 @@ namespace CarryOn.Common.Handlers
         /// <param name="player"> The player who has started playing. </param>
         public void OnServerPlayerNowPlaying(IServerPlayer player)
         {
-            foreach (var carried in player.Entity.GetCarried() ?? [])
-                carried.Set(player.Entity, carried.Slot);
+            foreach (var carried in this.carryManager.GetAllCarried(player.Entity))
+                this.carryManager.SetCarried(player.Entity, carried, carried.Slot);
         }
 
         /// <summary>

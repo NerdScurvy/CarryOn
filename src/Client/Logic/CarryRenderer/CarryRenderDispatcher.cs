@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
 using CarryOn.Client.Models;
 using CarryOn.Common.Logic;
@@ -15,6 +16,31 @@ namespace CarryOn.Client.Logic.CarryRenderer
 {
     internal sealed class CarryRenderDispatcher
     {
+        private readonly ICoreClientAPI api;
+        private readonly ICarryManager carryManager;
+        private CarryOnConfig config;
+        private readonly CarryRenderCacheManager cacheManager;
+        private readonly CarryFirstPersonRenderer firstPersonRenderer;
+        private readonly CarriedLabelRenderer labelRenderer;
+        private readonly bool renderAttachedBlocks;
+
+        public CarryRenderDispatcher(ICoreClientAPI api, ICarryManager carryManager, CarryOnConfig config, CarryRenderCacheManager cacheManager, CarryFirstPersonRenderer firstPersonRenderer, CarriedLabelRenderer labelRenderer, bool renderAttachedBlocks = true)
+        {
+            this.api = api ?? throw new ArgumentNullException(nameof(api));
+            this.carryManager = carryManager ?? throw new ArgumentNullException(nameof(carryManager));
+            this.config = config ?? throw new ArgumentNullException(nameof(config));
+            this.cacheManager = cacheManager ?? throw new ArgumentNullException(nameof(cacheManager));
+            this.firstPersonRenderer = firstPersonRenderer ?? throw new ArgumentNullException(nameof(firstPersonRenderer));
+            this.labelRenderer = labelRenderer ?? throw new ArgumentNullException(nameof(labelRenderer));
+            this.renderAttachedBlocks = renderAttachedBlocks;
+            this.RenderAttachedBlocks = renderAttachedBlocks;
+        }
+
+        public void UpdateConfig(CarryOnConfig newConfig)
+        {
+            this.config = newConfig;
+        }
+
         private const float FirstPersonVerticalOffset = -0.05F;
 
         private static readonly Dictionary<CarrySlot, Dictionary<string, SlotRenderSettings>> RenderSettings = CreateRenderSettings();
@@ -50,26 +76,11 @@ namespace CarryOn.Client.Logic.CarryRenderer
         private const float PlantTintBrightnessBoost = 1.12f;
         private readonly Vec4f plantTintScratch = new(1f, 1f, 1f, 1f);
 
-        private readonly ICoreClientAPI api;
-        private readonly CarryOnConfig config;
-        private readonly CarryRenderCacheManager cacheManager;
-        private readonly CarryFirstPersonRenderer firstPersonRenderer;
-        private readonly CarriedLabelRenderer labelRenderer;
         private readonly Stack<float[]> matrixPool = new();
         internal bool RenderAttachedBlocks { get; set; }
         private object? lastCameraMatrixRef;
         private float[] cachedViewMat = new float[16];
         private static readonly Vec3f ZeroOffset = new(0, 0, 0);
-
-        public CarryRenderDispatcher(ICoreClientAPI api, CarryOnConfig config, CarryRenderCacheManager cacheManager, CarryFirstPersonRenderer firstPersonRenderer, CarriedLabelRenderer labelRenderer, bool renderAttachedBlocks = true)
-        {
-            this.api = api;
-            this.config = config;
-            this.cacheManager = cacheManager;
-            this.firstPersonRenderer = firstPersonRenderer;
-            this.labelRenderer = labelRenderer;
-            this.RenderAttachedBlocks = renderAttachedBlocks;
-        }
 
         public void ClearMatrixPool()
         {
@@ -95,10 +106,10 @@ namespace CarryOn.Client.Logic.CarryRenderer
 
         public void RenderAllCarried(EntityAgent entity, float deltaTime, EnumRenderStage stage, bool isShadowPass, long renderTick)
         {
-            var allCarried = entity.GetCarried()?.ToList() ?? [];
+            var allCarried = carryManager.GetAllCarried(entity).ToList();
             if (allCarried.Count == 0) return;
 
-            var player = this.api.World.Player;
+            var player = api.World.Player;
             var isLocalPlayer = entity == player.Entity;
             var isFirstPerson = isLocalPlayer && (player.CameraMode == EnumCameraMode.FirstPerson);
             var isImmersiveFirstPerson = player.ImmersiveFpMode;
@@ -129,7 +140,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
                 if (stage == EnumRenderStage.Opaque && deferHandsOpaqueUntilAfterOit) return;
             }
 
-            var cam = this.api.Render.CameraMatrixOrigin;
+            var cam = api.Render.CameraMatrixOrigin;
             if (!ReferenceEquals(cam, lastCameraMatrixRef))
             {
                 for (int i = 0; i < 16 && i < cam.Length; i++) cachedViewMat[i] = (float)cam[i];
@@ -207,7 +218,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
 
         private void RenderCarriedShadowPass(CarriedRenderInfo[] carriedRenderInfo, float[] initialMatrix, float[]? attachedRootMatrix, Vec3f zeroOffset, EntityShapeRenderer renderer)
         {
-            var rapi = this.api.Render;
+            var rapi = api.Render;
             var prog = rapi.CurrentActiveShader;
 
             foreach (var info in carriedRenderInfo)
@@ -272,7 +283,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
                                            EnumRenderStage stage, bool deferHandsOpaqueUntilAfterOit,
                                            float[] viewMat, EntityShapeRenderer renderer)
         {
-            var rapi = this.api.Render;
+            var rapi = api.Render;
             var renderOpaquePhase = stage == EnumRenderStage.Opaque || (stage == EnumRenderStage.AfterOIT && deferHandsOpaqueUntilAfterOit);
             var renderTranslucentPhase = stage == EnumRenderStage.AfterOIT;
 
@@ -361,7 +372,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
             float[] viewMat,
             EntityShapeRenderer renderer)
         {
-            var rapi = this.api.Render;
+            var rapi = api.Render;
 
             if (translucentPhase)
             {
@@ -421,10 +432,10 @@ namespace CarryOn.Client.Logic.CarryRenderer
         {
             if (carried.AttachedBlocks == null) return;
 
-            var world = this.api.World;
+            var world = api.World;
             if (world == null) return;
 
-            var defaultFacing = carried.GetCarryableBehavior()?.DefaultRenderFacing;
+            var defaultFacing = carried.GetCarryableBehavior()?.RootRenderFacing;
             int offsetSteps = CarryRotationHelper.GetOriginalToModelDefaultSteps(carried, defaultFacing);
 
             foreach (var attached in carried.AttachedBlocks)

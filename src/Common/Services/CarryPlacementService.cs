@@ -47,9 +47,25 @@ namespace CarryOn.Common.Services
                     return false;
             }
 
-            var placed = (entity is EntityPlayer playerEntity && !dropped)
-                ? TryPlaceDownAsPlayer(world, playerEntity, carriedBlock, selection, ref failureCode)
-                : TryPlaceDownDirect(world, carriedBlock, selection);
+            bool placed = false;
+            if (entity is EntityPlayer playerEntity)
+            {
+                if (!dropped)
+                {
+                    placed = TryPlaceDownAsPlayer(world, playerEntity, carriedBlock, selection, ref failureCode);
+                }
+                else
+                {
+                    if (!carryManager.HasPermissionAt(entity, selection.Position, showErrorMessage: false))
+                    {
+                        failureCode = FailureCode.NoPermission;
+                    }
+                    else
+                    {
+                        placed = TryPlaceDownDirect(world, carriedBlock, selection);
+                    }
+                }
+            }
 
             if (!placed) return false;
 
@@ -305,7 +321,7 @@ namespace CarryOn.Common.Services
 
             if (selectedBlock == null) return false;
 
-            var carried = entity.GetCarried(carrySlot);
+            var carried = carryManager.GetCarried(entity, carrySlot);
             if (carried == null)
             {
                 failureCode = FailureCode.NotCarrying;

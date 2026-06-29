@@ -1,9 +1,11 @@
 using System;
 using System.Linq;
+using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
 using CarryOn.Common.Behaviors;
 using CarryOn.Common.Models;
 using CarryOn.Common.Logic;
+using CarryOn.Common.Entities;
 using CarryOn.Utility;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
@@ -15,31 +17,28 @@ namespace CarryOn.Client.Logic.Interaction
     internal sealed class CarryInteractionValidator
     {
         private readonly ICoreClientAPI api;
-        private readonly CarryOnConfig config;
+        private readonly ICarryManager carryManager;
+        private CarryOnConfig config;
         private readonly TransferLogic transferLogic;
         private readonly ICarryInteractionController controller;
 
-        private bool? allowSprintWhileCarrying;
-        private bool? backSlotEnabled;
-        private bool? removeInteractDelayWhileCarrying;
-        private float? interactSpeedMultiplier;
+        private Type[] preventSwapFromBackOnBehaviors;
+        private string[] preventSwapFromBackOnClasses;
+        private string[] preventSwapFromBackOnCodes;
 
-        private readonly Type[] preventSwapFromBackOnBehaviors;
-        private readonly string[] preventSwapFromBackOnClasses;
-        private readonly string[] preventSwapFromBackOnCodes;
-
-        public bool RemoveInteractDelayWhileCarrying => removeInteractDelayWhileCarrying ??= this.config?.CarryOptions?.RemoveInteractDelayWhileCarrying ?? false;
-        public bool AllowSprintWhileCarrying => allowSprintWhileCarrying ??= this.config?.CarryOptions?.AllowSprintWhileCarrying ?? false;
-        public bool BackSlotEnabled => backSlotEnabled ??= this.config?.CarryOptions?.BackSlotEnabled ?? false;
-        public float InteractSpeedMultiplier => interactSpeedMultiplier ??= this.config?.CarryOptions?.InteractSpeedMultiplier ?? 1.0f;
+        public bool RemoveInteractDelayWhileCarrying => this.config?.CarryOptions?.RemoveInteractDelayWhileCarrying ?? false;
+        public bool BackSlotEnabled => this.config?.CarryOptions?.BackSlotEnabled ?? false;
+        public float InteractSpeedMultiplier => this.config?.CarryOptions?.InteractSpeedMultiplier ?? 1.0f;
 
         public CarryInteractionValidator(
             ICoreClientAPI api,
+            ICarryManager carryManager,
             CarryOnConfig config,
             TransferLogic transferLogic,
             ICarryInteractionController controller)
         {
             this.api = api ?? throw new ArgumentNullException(nameof(api));
+            this.carryManager = carryManager ?? throw new ArgumentNullException(nameof(carryManager));
             this.config = config ?? throw new ArgumentNullException(nameof(config));
             this.transferLogic = transferLogic ?? throw new ArgumentNullException(nameof(transferLogic));
             this.controller = controller ?? throw new ArgumentNullException(nameof(controller));
@@ -78,6 +77,38 @@ namespace CarryOn.Client.Logic.Interaction
             }
         }
 
+        public void InvalidateConfigCache()
+        {
+            var entries = config?.CarryOptions?.PreventSwapFromBackOnTarget ?? Array.Empty<string>();
+            const string behaviorPrefix = "behavior::";
+            const string classPrefix = "class::";
+            const string codePrefix = "code::";
+
+            preventSwapFromBackOnBehaviors = entries
+                .Where(x => x.StartsWith(behaviorPrefix))
+                .Select(x => api.ClassRegistry.GetBlockBehaviorClass(x.Substring(behaviorPrefix.Length)))
+                .Where(x => x != null)
+                .ToArray();
+
+            preventSwapFromBackOnClasses = entries
+                .Where(x => x.StartsWith(classPrefix))
+                .Select(x => x.Substring(classPrefix.Length))
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .ToArray();
+
+            preventSwapFromBackOnCodes = entries
+                .Where(x => x.StartsWith(codePrefix))
+                .Select(x => x.Substring(codePrefix.Length))
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .ToArray();
+        }
+
+        public void UpdateConfig(CarryOnConfig newConfig)
+        {
+            this.config = newConfig;
+            InvalidateConfigCache();
+        }
+
         public void TryBeginInteraction(bool isInteracting, ref EnumHandling handled)
         {
             if (controller.Interaction.CarryAction != CarryAction.None)
@@ -93,6 +124,7 @@ namespace CarryOn.Client.Logic.Interaction
 
             if (isInteracting)
             {
+                if (BeginEntityCarriedBlockInteraction(ref handled)) return;
                 if (BeginEntityCarryableInteraction(ref handled)) return;
                 if (BeginSwapBackInteraction(ref handled)) return;
                 if (BeginBlockEntityInteraction(ref handled)) return;
@@ -100,7 +132,7 @@ namespace CarryOn.Client.Logic.Interaction
                 if (BeginBlockCarryableInteraction(ref handled)) return;
             }
 
-            var carriedHands = player.Entity.GetCarried(CarrySlot.Hands);
+            var carriedHands = carryManager.GetCarried(player.Entity, CarrySlot.Hands);
 
             if ((carriedHands != null) || (isInteracting && (controller.Interaction.TimeHeld > 0.0F)))
                 handled = EnumHandling.PreventDefault;
@@ -111,7 +143,7 @@ namespace CarryOn.Client.Logic.Interaction
             var world = this.api.World;
             var player = world.Player;
 
-            var carriedHands = player.Entity.GetCarried(CarrySlot.Hands);
+            var carriedHands = carryManager.GetCarried(player.Entity, CarrySlot.Hands);
 
             var carryAttachBehavior = player.CurrentEntitySelection?.Entity?.GetBehavior<EntityBehaviorAttachableCarryable>();
 
@@ -188,16 +220,45 @@ namespace CarryOn.Client.Logic.Interaction
             return false;
         }
 
+        private bool BeginEntityCarriedBlockInteraction(ref EnumHandling handled)
+        {
+            var entitySelection = this.api.World.Player.CurrentEntitySelection;
+            if (entitySelection?.Entity is not EntityCarriedBlock carriedBlockEntity) return false;
+
+            var cfg = this.config.CarriedBlockEntity;
+            if (cfg != null)
+            {
+                var canPickup = CarriedBlockAccessPolicy.CanPickup(
+                    this.api.World.Player.WorldData.CurrentGameMode,
+                    this.api.World.Player.PlayerUID,
+                    carriedBlockEntity.OwnerUid,
+                    cfg.PickupAccess,
+                    cfg.GracePeriodSeconds,
+                    carriedBlockEntity.DropTimeRealTicks);
+
+                if (!canPickup)
+                {
+                    CarryErrorHelper.ShowError(this.api, FailureCode.NotOwner, "pickup-not-owner");
+                    handled = EnumHandling.PreventDefault;
+                    return true;
+                }
+            }
+
+            controller.Interaction.CarryAction = CarryAction.PickupEntity;
+            controller.Interaction.TargetEntity = carriedBlockEntity;
+            handled = EnumHandling.PreventDefault;
+            return true;
+        }
+
         private bool BeginSwapBackInteraction(ref EnumHandling handled)
         {
-            var backSlotEnabled = this.config?.CarryOptions?.BackSlotEnabled ?? false;
-
-            if (!backSlotEnabled) return false;
-
             var world = this.api.World;
             var player = world.Player;
-            var carriedHands = player.Entity.GetCarried(CarrySlot.Hands);
-            var carriedBack = player.Entity.GetCarried(CarrySlot.Back);
+            var carriedHands = carryManager.GetCarried(player.Entity, CarrySlot.Hands);
+            var carriedBack = carryManager.GetCarried(player.Entity, CarrySlot.Back);
+
+            var backSlotEnabled = this.config?.CarryOptions?.BackSlotEnabled ?? false;
+            if (carriedHands != null && !backSlotEnabled) return false;
 
             if (!player.Entity.CanInteract(requireEmptyHanded: true))
             {
@@ -259,7 +320,7 @@ namespace CarryOn.Client.Logic.Interaction
         {
             var world = this.api.World;
             var player = world.Player;
-            var carriedHands = player.Entity.GetCarried(CarrySlot.Hands);
+            var carriedHands = carryManager.GetCarried(player.Entity, CarrySlot.Hands);
 
             if (carriedHands == null)
             {
@@ -298,7 +359,7 @@ namespace CarryOn.Client.Logic.Interaction
             }
 
             var selection = player.CurrentBlockSelection;
-            var carriedHands = player.Entity.GetCarried(CarrySlot.Hands);
+            var carriedHands = carryManager.GetCarried(player.Entity, CarrySlot.Hands);
 
             if (api.Input.IsCarrySwapBackKeyPressed() && selection != null)
             {
@@ -327,7 +388,7 @@ namespace CarryOn.Client.Logic.Interaction
                     var blockPos = BlockUtils.GetPlacedPosition(world.BlockAccessor, selection, carriedHands.Block);
                     if (blockPos == null) return true;
 
-                    if (!player.Entity.HasPermissionToCarry(blockPos))
+                    if (!carryManager.HasPermissionAt(player.Entity, blockPos))
                     {
                         CarryErrorHelper.ShowError(this.api, FailureCode.PlaceDownNoPermission);
                         handled = EnumHandling.PreventDefault;
@@ -350,6 +411,13 @@ namespace CarryOn.Client.Logic.Interaction
 
                 if (selection?.Block != null && selection.Block.CanCarryInSlot(CarrySlot.Hands, itemStack))
                 {
+                    if (!carryManager.HasPermissionAt(player.Entity, selection.Position))
+                    {
+                        CarryErrorHelper.ShowError(this.api, FailureCode.PickUpNoPermission);
+                        handled = EnumHandling.PreventDefault;
+                        return false;
+                    }
+
                     controller.Interaction.CarrySlot = CarrySlot.Hands;
                     controller.Interaction.CarryAction = CarryAction.PickUp;
                     controller.Interaction.TargetBlockPos = selection.Position?.Copy()!;
@@ -394,7 +462,7 @@ namespace CarryOn.Client.Logic.Interaction
                 return false;
             }
 
-            var carriedHands = player.Entity.GetCarried(CarrySlot.Hands);
+            var carriedHands = carryManager.GetCarried(player.Entity, CarrySlot.Hands);
 
             string? failureCode;
             string? onScreenErrorMessage;

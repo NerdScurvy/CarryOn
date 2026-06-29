@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
@@ -6,6 +7,7 @@ using Vintagestory.API.MathTools;
 using Vintagestory.API.Util;
 using Vintagestory.GameContent;
 using static CarryOn.API.Common.Models.CarryCode;
+using CarryOn.API.Common.Interfaces;
 using CarryOn.Utility;
 using CarryOn.API.Common.Models;
 
@@ -14,6 +16,12 @@ namespace CarryOn.Common.Behaviors
 
     public class EntityBehaviorAttachableCarryable : EntityBehavior, ICustomInteractionHelpPositioning
     {
+        private static ICarryManager? carryManager;
+
+        public static void Init(ICarryManager manager)
+        {
+            carryManager = manager ?? throw new ArgumentNullException(nameof(manager));
+        }
 
         public readonly ICoreAPI Api;
 
@@ -107,7 +115,7 @@ namespace CarryOn.Common.Behaviors
             else
             {
                 langCode = CarryOnCode("blockhelp-attach");
-                if (player?.Entity?.GetCarried(CarrySlot.Hands) != null)
+                if (player?.Entity != null && carryManager?.GetCarried(player.Entity, CarrySlot.Hands) != null)
                 {
                     itemstacks = putStacks;
                 } else

@@ -3,7 +3,7 @@
 		
 		<AssemblyTitle>Carry On</AssemblyTitle>
 		<Authors>copygirl,NerdScurvy</Authors>
-		<Version>2.0.0-pre.4</Version>
+		<Version>2.0.0-pre.5</Version>
 		
 		<Description>Vintage Story mod which adds the capability to carry various things</Description>
 		<RepositoryUrl>https://github.com/NerdScurvy/CarryOn</RepositoryUrl>
@@ -51,7 +51,7 @@
 			<HintPath>$(VINTAGE_STORY)/Lib/protobuf-net.dll</HintPath>
 			<Private>false</Private>
 		</Reference>	
-        <Reference Include="0Harmony">
+		<Reference Include="0Harmony">
             <HintPath>$(VINTAGE_STORY)/Lib/0Harmony.dll</HintPath>
             <Private>false</Private>
         </Reference>

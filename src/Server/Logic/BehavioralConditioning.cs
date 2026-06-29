@@ -9,7 +9,6 @@ using Newtonsoft.Json.Linq;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.Util;
-using static CarryOn.Utility.Extensions;
 
 namespace CarryOn.Server.Logic
 {

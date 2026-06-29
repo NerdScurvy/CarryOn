@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
@@ -11,6 +12,13 @@ namespace CarryOn.Common.Logic
 {
     public static class CarryableInteractionHelpBuilder
     {
+        private static ICarryManager? carryManager;
+
+        public static void Init(ICarryManager manager)
+        {
+            carryManager = manager ?? throw new ArgumentNullException(nameof(manager));
+        }
+
         private static ItemStack[]? handsfreeStacks;
         private static ItemStack[]? nohandsfreeStacks;
 
@@ -31,10 +39,18 @@ namespace CarryOn.Common.Logic
             nohandsfreeStacks ??= [new ItemStack(world.GetItem(new AssetLocation("carryon:icon-nohandsfree")))];
 
             bool canDoCarryAction = forPlayer?.Entity?.CanDoCarryAction(requireEmptyHanded: true) == true;
-            bool isCarryingInHands = forPlayer?.Entity?.GetCarried(CarrySlot.Hands) != null;
+            bool isCarryingInHands = forPlayer?.Entity != null && carryManager?.GetCarried(forPlayer.Entity, CarrySlot.Hands) != null;
             var pickupStacks = canDoCarryAction ? handsfreeStacks : nohandsfreeStacks;
 
             bool isTargetCarryable = selection?.Block != null && itemStack != null;
+
+            // Suppress pickup hints when the client-side permission check denies access
+            if (carryManager?.Config?.CarryOptions?.ClientSidePermissionCheck == true &&
+                forPlayer?.Entity != null && selection?.Position != null &&
+                !carryManager.HasPermissionAt(forPlayer.Entity, selection.Position))
+            {
+                return [];
+            }
 
             CarryHintType defaultHints = CarryHintType.None;
 

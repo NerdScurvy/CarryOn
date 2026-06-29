@@ -23,41 +23,46 @@ namespace CarryOn.Common.Services
 
         public ICoreAPI Api { get; private set; }
 
-        public CarrySystem CarrySystem { get; private set; }
+        public IConfigProvider ConfigProvider { get; private set; }
 
-        public CarryEvents CarryEvents => CarrySystem.CarryEvents;
+        public CarryEvents CarryEvents { get; private set; }
 
         internal CarryManagerServices Services { get; }
         private readonly CarryResolverRegistry ResolverRegistry = new();
 
-        public CarryManager(ICoreAPI api, CarrySystem carrySystem)
+        public CarryManager(ICoreAPI api, IConfigProvider configProvider, CarryEvents carryEvents)
         {
-            CarrySystem = carrySystem ?? throw new ArgumentNullException(nameof(carrySystem));
+            ConfigProvider = configProvider ?? throw new ArgumentNullException(nameof(configProvider));
+            CarryEvents = carryEvents ?? throw new ArgumentNullException(nameof(carryEvents));
             Api = api ?? throw new ArgumentNullException(nameof(api));
-            Services = new CarryManagerServices(Api, CarrySystem, this);
+            Services = new CarryManagerServices(Api, ConfigProvider, this);
         }
 
-        public CarryOnConfig? Config => CarrySystem?.Config;
+        public CarryOnConfig? Config => ConfigProvider?.Config;
 
         /// <inheritdoc/>
-        public void RegisterTransformGroupResolver(string modId, ICarriedTransformGroupResolver resolver)
-            => ResolverRegistry.Register(modId, resolver);
+        public void RegisterRootTransformGroupResolver(string modId, IRootTransformGroupResolver resolver)
+            => ResolverRegistry.RegisterRoot(modId, resolver);
 
         /// <inheritdoc/>
-        public bool TryGetTransformGroupResolver(string resolverCode, out ICarriedTransformGroupResolver? resolver)
-            => ResolverRegistry.TryGetResolver(resolverCode, out resolver);
+        public bool TryGetRootTransformGroupResolver(string resolverCode, out IRootTransformGroupResolver? resolver)
+            => ResolverRegistry.TryGetRootResolver(resolverCode, out resolver);
 
         /// <inheritdoc/>
-        public bool TryGetTransformGroupResolverRegistration(string resolverCode, out RegisteredTransformGroupResolver? registration)
-            => ResolverRegistry.TryGetRegistration(resolverCode, out registration);
+        public void RegisterAttachmentTransformGroupResolver(string modId, IAttachmentTransformGroupResolver resolver)
+            => ResolverRegistry.RegisterAttachment(modId, resolver);
 
         /// <inheritdoc/>
-        public bool UnregisterTransformGroupResolver(ICarriedTransformGroupResolver resolver)
-            => ResolverRegistry.Unregister(resolver);
+        public bool TryGetAttachmentTransformGroupResolver(string resolverCode, out IAttachmentTransformGroupResolver? resolver)
+            => ResolverRegistry.TryGetAttachmentResolver(resolverCode, out resolver);
 
         /// <inheritdoc/>
-        public IReadOnlyList<RegisteredTransformGroupResolver> GetTransformGroupResolvers()
-            => ResolverRegistry.GetAll();
+        public bool UnregisterRootTransformGroupResolver(IRootTransformGroupResolver resolver)
+            => ResolverRegistry.UnregisterRoot(resolver);
+
+        /// <inheritdoc/>
+        public bool UnregisterAttachmentTransformGroupResolver(IAttachmentTransformGroupResolver resolver)
+            => ResolverRegistry.UnregisterAttachment(resolver);
 
         /// <inheritdoc/>
         public IEnumerable<CarriedBlock> GetAllCarried(Entity entity)
@@ -145,9 +150,9 @@ namespace CarryOn.Common.Services
         }
 
         /// <inheritdoc/>
-        public bool HasPermissionToCarry(Entity entity, BlockPos pos)
+        public bool HasPermissionAt(Entity entity, BlockPos pos, bool showErrorMessage = true)
         {
-            return Services.Pickup.HasPermissionToCarry(entity, pos);
+            return Services.Permission.HasPermissionAt(entity, pos, showErrorMessage);
         }
 
         /// <inheritdoc/>
@@ -188,9 +193,9 @@ namespace CarryOn.Common.Services
         }
 
         /// <inheritdoc/>
-        public void DropBlockAsItem(CarriedBlock carriedBlock, BlockPos centerBlock, IServerPlayer player, Entity entity)
+        public void DropBlockAsEntityOrItem(CarriedBlock carriedBlock, BlockPos centerBlock, IServerPlayer player, Entity entity)
         {
-            Services.Drop.DropBlockAsItem(carriedBlock, centerBlock, player, entity);
+            Services.Drop.DropBlockAsEntityOrItem(carriedBlock, centerBlock, player, entity);
         }
 
         /// <inheritdoc/>

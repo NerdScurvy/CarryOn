@@ -18,7 +18,8 @@
 				"slots": {
 					"Hands": {
 						"animation": "carryon:holdheavy",
-						"walkSpeedModifier": -0.2
+						"walkSpeedModifier": -0.2,
+						"hungerModifier": 0.3
 					}
 				}
 			}
@@ -38,7 +39,7 @@
 			"name": "Carryable",
 			"properties": {
 				"optimisticPickup": false,
-				"transformGroupResolver": "codepath",
+				"rootGroupResolver": "codepath",
 				"transformGroups": {
 					"hands": [
 						{

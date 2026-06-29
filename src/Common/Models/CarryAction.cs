@@ -11,6 +11,7 @@ namespace CarryOn.Common.Models
         Attach,
         Detach,
         Put,
-        Take
+        Take,
+        PickupEntity
     }
 }

@@ -22,10 +22,13 @@
 					"carry-crate"
 				],
 				"slots": {
-					"Hands": {},
+					"Hands": {
+						"hungerModifier": 0.3
+					},
 					"Back": {
+						"enabledCondition": "carryon.CarryablesOnBack.Crate",
 						"walkSpeedModifier": -0.2,
-						"enabledCondition": "carryon.CarryablesOnBack.Crate"
+						"hungerModifier": 0.4
 					}
 				},
 				"patchPriority": 1
@@ -69,11 +72,13 @@
 				],
 				"slots": {
 					"Hands": {
-						"walkSpeedModifier": -0.3
+						"walkSpeedModifier": -0.3,
+						"hungerModifier": 0.3
 					},
 					"Back": {
+						"enabledCondition": "carryon.CarryablesOnBack.Crate",
 						"walkSpeedModifier": -0.3,
-						"enabledCondition": "carryon.CarryablesOnBack.Crate"
+						"hungerModifier": 0.4
 					}
 				},
 				"patchPriority": 1

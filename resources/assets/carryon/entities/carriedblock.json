@@ -1,0 +1,22 @@
+{
+	"code": "carriedblock",
+	"class": "EntityCarriedBlock",
+	"hitboxSize": {
+		"x": 1.0,
+		"y": 1.0
+	},
+	"client": {
+		"renderer": "Shape",
+		"shape": {
+			"base": "game:block/wood/crate/normal-closed"
+		},
+		"textures": {
+			"sides": {"base": "game:block/wood/crate/kapok-sides"},
+			"frame-generic": {"base": "game:block/wood/crate/frame-generic"}
+		},
+		"behaviors": [  ]
+	},
+	"server": {
+		"behaviors": [  ]
+	}
+}

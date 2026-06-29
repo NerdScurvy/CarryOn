@@ -16,7 +16,9 @@
 					]
 				},
 				"slots": {
-					"Hands": {}
+					"Hands": {
+						"hungerModifier": 0.3
+					}
 				}
 			}
 		}
