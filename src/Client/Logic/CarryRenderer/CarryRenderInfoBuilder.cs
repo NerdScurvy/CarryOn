@@ -302,48 +302,13 @@ namespace CarryOn.Client.Logic.CarryRenderer
             }
         }
 
-        private MultiTextureMeshRef? GetOrCreateOwnedMeshRef(ItemStack? stack)
-        {
-            if (stack?.Collectible == null) return null;
-
-            if (stack.Block != null)
-                return GetOrCreateBlockMeshRef(stack.Block);
-
-            if (stack.Item != null)
-                return GetOrCreateItemMeshRef(stack.Item);
-
-            return null;
-        }
-
-        private MultiTextureMeshRef? GetOrCreateItemMeshRef(Item item)
-        {
-            if (ownedMeshCache.TryGetValue(item.Code, out var cached))
-            {
-                return cached;
-            }
-
-            MeshData? meshData = null;
-            try
-            {
-                api.Tesselator.TesselateItem(item, out meshData);
-            }
-            catch
-            {
-                return null;
-            }
-
-            if (meshData == null) return null;
-
-            var meshRef = api.Render.UploadMultiTextureMesh(meshData);
-            ownedMeshCache[item.Code] = meshRef;
-            return meshRef;
-        }
-
         private MultiTextureMeshRef? GetOrCreateBlockMeshRef(Block block)
         {
             if (ownedMeshCache.TryGetValue(block.Code, out var cached))
             {
-                return cached;
+                if (!cached.Disposed)
+                    return cached;
+                ownedMeshCache.Remove(block.Code);
             }
 
             var meshData = api.TesselatorManager.GetDefaultBlockMesh(block);
