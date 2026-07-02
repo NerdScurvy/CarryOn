@@ -1,5 +1,5 @@
 {
-  "modVersion": "2.0.0-pre.5",
+  "modVersion": "2.0.0-pre.6",
   "dependencies": {
     "game": "1.22.0",
     "carryonlib": "1.0.0-pre.5"
