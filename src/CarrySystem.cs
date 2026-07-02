@@ -25,7 +25,7 @@ using Newtonsoft.Json;
 
 [assembly: ModInfo("Carry On",
     modID: "carryon",
-    Version = "2.0.0-pre.5",
+    Version = "2.0.0-pre.6",
     Description = "Adds the capability to carry various things",
     Website = "https://github.com/NerdScurvy/CarryOn",
     Authors = new[] { "copygirl", "NerdScurvy" })]

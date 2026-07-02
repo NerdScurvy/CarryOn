@@ -14,17 +14,17 @@ namespace CarryOn.Client.Logic.CarryRenderer
 {
     internal sealed class CarryRenderInfoBuilder(ICoreClientAPI api, bool renderAttachedBlocks = true)
     {
-        private readonly Dictionary<AssetLocation, MultiTextureMeshRef> attachedBlockMeshCache = new();
+        private readonly Dictionary<AssetLocation, MultiTextureMeshRef> ownedMeshCache = new();
 
         internal bool RenderAttachedBlocks { get => renderAttachedBlocks; set => renderAttachedBlocks = value; }
 
         public void Dispose()
         {
-            foreach (var meshRef in attachedBlockMeshCache.Values)
+            foreach (var meshRef in ownedMeshCache.Values)
             {
                 meshRef?.Dispose();
             }
-            attachedBlockMeshCache.Clear();
+            ownedMeshCache.Clear();
         }
 
         internal CarriedRenderInfo[] BuildFromPlan(CarriedBlock carried, CachedTransformPlan? plan, TreeAttribute? containerSlots = null)
@@ -302,9 +302,46 @@ namespace CarryOn.Client.Logic.CarryRenderer
             }
         }
 
+        private MultiTextureMeshRef? GetOrCreateOwnedMeshRef(ItemStack? stack)
+        {
+            if (stack?.Collectible == null) return null;
+
+            if (stack.Block != null)
+                return GetOrCreateBlockMeshRef(stack.Block);
+
+            if (stack.Item != null)
+                return GetOrCreateItemMeshRef(stack.Item);
+
+            return null;
+        }
+
+        private MultiTextureMeshRef? GetOrCreateItemMeshRef(Item item)
+        {
+            if (ownedMeshCache.TryGetValue(item.Code, out var cached))
+            {
+                return cached;
+            }
+
+            MeshData? meshData = null;
+            try
+            {
+                api.Tesselator.TesselateItem(item, out meshData);
+            }
+            catch
+            {
+                return null;
+            }
+
+            if (meshData == null) return null;
+
+            var meshRef = api.Render.UploadMultiTextureMesh(meshData);
+            ownedMeshCache[item.Code] = meshRef;
+            return meshRef;
+        }
+
         private MultiTextureMeshRef? GetOrCreateBlockMeshRef(Block block)
         {
-            if (attachedBlockMeshCache.TryGetValue(block.Code, out var cached))
+            if (ownedMeshCache.TryGetValue(block.Code, out var cached))
             {
                 return cached;
             }
@@ -313,7 +350,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
             if (meshData == null) return null;
 
             var meshRef = api.Render.UploadMultiTextureMesh(meshData);
-            attachedBlockMeshCache[block.Code] = meshRef;
+            ownedMeshCache[block.Code] = meshRef;
             return meshRef;
         }
 

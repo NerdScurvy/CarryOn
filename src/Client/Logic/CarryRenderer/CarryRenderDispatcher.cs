@@ -81,6 +81,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
         private object? lastCameraMatrixRef;
         private float[] cachedViewMat = new float[16];
         private static readonly Vec3f ZeroOffset = new(0, 0, 0);
+        private bool disposedDetected;
 
         public void ClearMatrixPool()
         {
@@ -109,6 +110,8 @@ namespace CarryOn.Client.Logic.CarryRenderer
             var allCarried = carryManager.GetAllCarried(entity).ToList();
             if (allCarried.Count == 0) return;
 
+            disposedDetected = false;
+
             var player = api.World.Player;
             var isLocalPlayer = entity == player.Entity;
             var isFirstPerson = isLocalPlayer && (player.CameraMode == EnumCameraMode.FirstPerson);
@@ -124,6 +127,11 @@ namespace CarryOn.Client.Logic.CarryRenderer
                 RenderCarried(entity, carried, deltaTime,
                               isFirstPerson, isImmersiveFirstPerson,
                               stage, isShadowPass, renderer, animator, renderTick);
+            }
+
+            if (disposedDetected)
+            {
+                cacheManager.InvalidateAll();
             }
         }
 
@@ -224,6 +232,12 @@ namespace CarryOn.Client.Logic.CarryRenderer
             foreach (var info in carriedRenderInfo)
             {
                 if (!info.RenderEnabled) continue;
+
+                if (info.RenderInfo.ModelRef == null || info.RenderInfo.ModelRef.Disposed)
+                {
+                    disposedDetected = true;
+                    continue;
+                }
 
                 float[] matrix;
                 bool rentedMatrix = false;
@@ -392,6 +406,13 @@ namespace CarryOn.Client.Logic.CarryRenderer
                     if (!CarryRenderHelpers.ShouldDrawInPhase(d.Phases, translucentPhase)) continue;
 
                     var info = d.Info;
+
+                    if (info.RenderInfo.ModelRef == null || info.RenderInfo.ModelRef.Disposed)
+                    {
+                        disposedDetected = true;
+                        continue;
+                    }
+
                     bool disabledCull = false;
 
                     try

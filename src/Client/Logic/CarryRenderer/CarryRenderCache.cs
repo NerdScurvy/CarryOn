@@ -19,6 +19,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
         public string Signature { get; init; } = null!;
         public CarriedRenderInfo[] RenderInfos { get; init; } = null!;
         public DateTime LastUsedAtUtc { get; set; }
+        public DateTime CreatedAtUtc { get; set; }
     }
 
     internal sealed class SlotCacheState
@@ -34,6 +35,9 @@ namespace CarryOn.Client.Logic.CarryRenderer
         private static readonly TimeSpan TransformPlanCacheTtl = TimeSpan.FromMinutes(5);
         private const int RenderInfoCacheMaxEntries = 512;
         private static readonly TimeSpan RenderInfoCacheTtl = TimeSpan.FromMinutes(3);
+        internal static readonly TimeSpan RenderInfoRebuildTtl = TimeSpan.FromMinutes(2);
+        private static readonly TimeSpan RenderInfoEvictionAge = TimeSpan.FromMinutes(5);
+        private static readonly TimeSpan TransformPlanEvictionAge = TimeSpan.FromMinutes(5);
 
         internal readonly Dictionary<string, CachedTransformPlan> TransformPlans = new(StringComparer.Ordinal);
         internal readonly Dictionary<string, CachedRenderInfos> RenderInfos = new(StringComparer.Ordinal);
@@ -87,12 +91,16 @@ namespace CarryOn.Client.Logic.CarryRenderer
         }
 
         private void PruneCache<TKey, TValue>(
-            Dictionary<TKey, TValue> dict, int maxEntries, TimeSpan ttl, Func<TValue, DateTime> lastUsedSelector) where TKey : notnull
+            Dictionary<TKey, TValue> dict, int maxEntries, TimeSpan ttl, TimeSpan evictionAge, Func<TValue, DateTime> lastUsedSelector) where TKey : notnull
         {
-            if (dict.Count <= maxEntries) return;
-            var cutoff = DateTime.UtcNow - ttl;
-            var staleKeys = dict.Where(kv => lastUsedSelector(kv.Value) < cutoff).Select(kv => kv.Key).ToList();
+            var ageCutoff = DateTime.UtcNow - evictionAge;
+            var staleKeys = dict.Where(kv => lastUsedSelector(kv.Value) < ageCutoff).Select(kv => kv.Key).ToList();
             foreach (var key in staleKeys) dict.Remove(key);
+
+            if (dict.Count <= maxEntries) return;
+            var ttlCutoff = DateTime.UtcNow - ttl;
+            var expiredKeys = dict.Where(kv => lastUsedSelector(kv.Value) < ttlCutoff).Select(kv => kv.Key).ToList();
+            foreach (var key in expiredKeys) dict.Remove(key);
             if (dict.Count <= maxEntries) return;
             foreach (var key in dict.OrderBy(kv => lastUsedSelector(kv.Value))
                                     .Take(dict.Count - maxEntries)
@@ -103,9 +111,9 @@ namespace CarryOn.Client.Logic.CarryRenderer
         }
         // Usage:
         internal void PruneTransformPlans() =>
-            PruneCache(TransformPlans, TransformPlanCacheMaxEntries, TransformPlanCacheTtl, v => v.LastUsedAtUtc);
+            PruneCache(TransformPlans, TransformPlanCacheMaxEntries, TransformPlanCacheTtl, TransformPlanEvictionAge, v => v.LastUsedAtUtc);
         internal void PruneRenderInfos() =>
-            PruneCache(RenderInfos, RenderInfoCacheMaxEntries, RenderInfoCacheTtl, v => v.LastUsedAtUtc);
+            PruneCache(RenderInfos, RenderInfoCacheMaxEntries, RenderInfoCacheTtl, RenderInfoEvictionAge, v => v.LastUsedAtUtc);
 
     }
 }

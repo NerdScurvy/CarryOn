@@ -64,6 +64,8 @@ namespace CarryOn.Client.Logic.CarryRenderer
         private long lastLoggedRenderInfoBuildCount;
         private DateTime nextDebugCounterLogAtUtc = DateTime.MinValue;
         private static readonly TimeSpan DebugCounterLogInterval = TimeSpan.FromSeconds(5);
+        private DateTime nextPruneAtUtc = DateTime.MinValue;
+        private static readonly TimeSpan PruneInterval = TimeSpan.FromSeconds(10);
 
         public CarriedRenderInfo[] GetRenderInfoCached(EntityAgent entity, CarriedBlock carried, string transformsGroup)
         {
@@ -142,11 +144,18 @@ namespace CarryOn.Client.Logic.CarryRenderer
 
             if (cache.RenderInfos.TryGetValue(renderInfoKey, out var cachedRenderInfos))
             {
-                persistentRenderInfoHitCount++;
-                cachedRenderInfos.LastUsedAtUtc = now;
-                var clonedFromPersistent = CarryRenderHelpers.CloneCarriedRenderInfos(cachedRenderInfos.RenderInfos);
-                cache.FrameRenderInfos[frameKey] = CarryRenderHelpers.CloneCarriedRenderInfos(clonedFromPersistent);
-                return clonedFromPersistent;
+                if (now - cachedRenderInfos.CreatedAtUtc > CarryRenderCache.RenderInfoRebuildTtl)
+                {
+                    cache.RenderInfos.Remove(renderInfoKey);
+                }
+                else
+                {
+                    persistentRenderInfoHitCount++;
+                    cachedRenderInfos.LastUsedAtUtc = now;
+                    var clonedFromPersistent = CarryRenderHelpers.CloneCarriedRenderInfos(cachedRenderInfos.RenderInfos);
+                    cache.FrameRenderInfos[frameKey] = CarryRenderHelpers.CloneCarriedRenderInfos(clonedFromPersistent);
+                    return clonedFromPersistent;
+                }
             }
 
             containerSlots ??= BlockUtils.GetContainerSlots(carriedBlock);
@@ -156,7 +165,8 @@ namespace CarryOn.Client.Logic.CarryRenderer
             {
                 Signature = renderInfoKey,
                 RenderInfos = built,
-                LastUsedAtUtc = now
+                LastUsedAtUtc = now,
+                CreatedAtUtc = now
             };
 
             cache.FrameRenderInfos[frameKey] = built;
@@ -176,6 +186,10 @@ namespace CarryOn.Client.Logic.CarryRenderer
 
         public void PruneCaches()
         {
+            var now = DateTime.UtcNow;
+            if (now < nextPruneAtUtc) return;
+            nextPruneAtUtc = now + PruneInterval;
+
             cache.PruneTransformPlans();
             cache.PruneRenderInfos();
         }
