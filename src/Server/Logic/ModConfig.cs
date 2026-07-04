@@ -45,12 +45,16 @@ namespace CarryOn.Server.Logic
             }
 
             // Cleanup old world config: Remove all keys starting with "carryon:"
+            // and the ModId tree itself so stale entries from previous sessions
+            // are cleared. MergeTree does not delete absent keys, so without
+            // removing the tree first, old override entries would persist forever.
             if (worldConfig is TreeAttribute tree)
             {
                 var keysToRemove = new List<string>();
                 foreach (var key in tree.Keys)
                 {
-                    if (key.StartsWith(CarryCode.WorldConfigPrefix, StringComparison.OrdinalIgnoreCase))
+                    if (key.StartsWith(CarryCode.WorldConfigPrefix, StringComparison.OrdinalIgnoreCase)
+                        || key == ModId)
                         keysToRemove.Add(key);
                 }
                 foreach (var key in keysToRemove)

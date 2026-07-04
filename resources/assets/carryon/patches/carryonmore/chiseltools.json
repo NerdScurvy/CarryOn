@@ -643,11 +643,10 @@
 		"file": "chiseltools:blocktypes/chiseledsign",
 		"side": "Server",
 		"op": "add",
-		"path": "/behaviors",
-		"value": [
-			{
-				"name": "Carryable",
-				"properties": {
+		"path": "/behaviors/-",
+		"value": {
+			"name": "Carryable",
+			"properties": {
 					"enabledCondition": "carryon.Carryables.Sign",
 					"labelRenderSettings": {
 						"maxWidth": 100,
@@ -680,8 +679,7 @@
 					},
 					"preventAttaching": true
 				}
-			}
-		],
+			},
 		"dependsOn": [
 			{
 				"modid": "chiseltools"

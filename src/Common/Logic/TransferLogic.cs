@@ -112,8 +112,6 @@ namespace CarryOn.Common.Logic
             var carriedHands = player?.Entity != null ? carryManager.GetCarried(player.Entity, CarrySlot.Hands) : null;
             if (carriedHands == null) return false;
 
-            if (carriedHands.BlockEntityData == null) return false;
-
             try
             {
                 return transferHandler.CanPutCarryable(player!, blockEntity, index, carriedHands.ItemStack, carriedHands.BlockEntityData,
@@ -239,8 +237,6 @@ namespace CarryOn.Common.Logic
             if (!TryResolveTransferTarget(blockPos, methodName, out var blockEntity, out _, out var transferHandler, out failureCode, out onScreenErrorMessage))
                 return false;
 
-            if (carriedHands.BlockEntityData == null) return false;
-
             try
             {
                 var success = transferHandler!.TryPutCarryable(player, blockEntity, message.Index, carriedHands.ItemStack, carriedHands.BlockEntityData,
@@ -286,7 +282,7 @@ namespace CarryOn.Common.Logic
                 return false;
 
             ItemStack itemStack;
-            ITreeAttribute blockEntityData;
+            ITreeAttribute? blockEntityData;
             try
             {
                 var success = transferHandler!.TryTakeCarryable(player, blockEntity, message.Index, out itemStack, out blockEntityData,

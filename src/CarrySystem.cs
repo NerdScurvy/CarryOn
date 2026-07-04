@@ -18,6 +18,7 @@ using CarryOn.Server.Logic;
 using CarryOn.Utility;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
+using Vintagestory.API.Datastructures;
 using Vintagestory.API.Server;
 using static CarryOn.API.Common.Models.CarryCode;
 using CarryOn.Common.Entities;
@@ -25,12 +26,12 @@ using Newtonsoft.Json;
 
 [assembly: ModInfo("Carry On",
     modID: "carryon",
-    Version = "2.0.0-pre.6",
+    Version = "2.0.0-pre.7",
     Description = "Adds the capability to carry various things",
     Website = "https://github.com/NerdScurvy/CarryOn",
     Authors = new[] { "copygirl", "NerdScurvy" })]
 [assembly: ModDependency("game", "1.22.0")]
-[assembly: ModDependency("carryonlib", "1.0.0-pre.5")]
+[assembly: ModDependency("carryonlib", "1.0.0-pre.7")]
 
 namespace CarryOn
 {
@@ -156,8 +157,8 @@ namespace CarryOn
             ConfigService.OnConfigChanged += _ =>
             {
                 if (ServerApi == null) return;
-                var tree = ServerApi.World.Config?.GetOrAddTreeAttribute(ModId);
-                tree?.MergeTree(Config.ToTreeAttribute());
+                if (ServerApi.World.Config is ITreeAttribute worldTree)
+                    worldTree[ModId] = Config.ToTreeAttribute();
                 ServerApi.StoreModConfig(Config, ConfigFile);
             };
             ConfigService.OnConfigChanged += _ =>

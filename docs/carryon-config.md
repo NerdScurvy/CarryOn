@@ -138,7 +138,6 @@ When `HandsEnabled`/`BackEnabled` is `false`, the walk speed penalty for that sl
     { "Key": "BlockCrate", "Hands": -0.80 }
   ],
   "SlotDefaults": {
-    "Key": null,
     "Hands": -0.25,
     "Back": -0.15
   }
