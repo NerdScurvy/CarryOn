@@ -157,7 +157,7 @@ namespace CarryOn
             ConfigService.OnConfigChanged += _ =>
             {
                 if (ServerApi == null) return;
-                if (ServerApi.World.Config is TreeAttribute worldTree)
+                if (ServerApi.World.Config is ITreeAttribute worldTree)
                     worldTree[ModId] = Config.ToTreeAttribute();
                 ServerApi.StoreModConfig(Config, ConfigFile);
             };
