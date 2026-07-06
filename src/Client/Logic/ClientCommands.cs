@@ -7,8 +7,6 @@ using Vintagestory.API.Common;
     
 namespace CarryOn.Client.Logic
 {
-
-
     public class ClientCommands
 
     {

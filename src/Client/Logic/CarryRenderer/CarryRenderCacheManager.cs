@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
+using CarryOn.Common.Models;
 using CarryOn.Client.Models;
 using CarryOn.Utility;
 using Vintagestory.API.Client;

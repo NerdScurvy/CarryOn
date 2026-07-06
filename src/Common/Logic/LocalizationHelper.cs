@@ -1,5 +1,5 @@
 using Vintagestory.API.Config;
-using static CarryOn.API.Common.Models.CarryCode;
+using static CarryOn.Common.Models.CarryCode;
 
 namespace CarryOn.Common.Logic
 {

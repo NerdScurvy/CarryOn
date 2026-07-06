@@ -1,12 +1,13 @@
-using System;
 using CarryOn.API.Common.Interfaces;
+using CarryOn.Common.Interfaces;
 using CarryOn.API.Common.Models;
+using CarryOn.Common.Models;
 using CarryOn.API.Event;
-using static CarryOn.API.Common.Models.CarryCode;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
 using Vintagestory.API.MathTools;
 using Vintagestory.GameContent;
+using static CarryOn.Common.Models.CarryCode;
 
 namespace CarryOn.Events
 {
@@ -20,7 +21,7 @@ namespace CarryOn.Events
 
         public void Init(ICarryManager carryManager)
         {
-            config = carryManager.Config;
+            config = (carryManager as IConfigProvider)?.Config;
             if (config?.CarryOptions?.TooHotToCarry != true) return;
 
             carryEvents = carryManager.CarryEvents;

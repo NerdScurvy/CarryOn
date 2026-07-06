@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using CarryOn.API.Common.Interfaces;
-using CarryOn.API.Common.Models;
+using CarryOn.Common.Models;
 using CarryOn.Client.Models;
 using Vintagestory.API.Client;
 

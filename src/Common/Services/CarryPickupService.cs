@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using CarryOn.API.Common.Interfaces;
+using CarryOn.Common.Interfaces;
 using CarryOn.API.Common.Models;
 using CarryOn.Common.Behaviors;
 using CarryOn.Common.Logic;
@@ -10,11 +11,11 @@ using Vintagestory.API.Common.Entities;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using Vintagestory.GameContent;
-using static CarryOn.API.Common.Models.CarryCode;
+using static CarryOn.Common.Models.CarryCode;
 
 namespace CarryOn.Common.Services
 {
-    internal sealed class CarryPickupService(ICoreAPI api, ICarryManager carryManager)
+    internal sealed class CarryPickupService(ICoreAPI api, ICarryManager carryManager, IConfigProvider configProvider)
     {
         private const int MultiblockScanRadius = 5;
 
@@ -39,7 +40,7 @@ namespace CarryOn.Common.Services
 
             if (entity != null && !CanPickUp(entity, pos, slot, carried, ref failureCode)) return null;
 
-            bool canCapture = carryManager.Config?.CarryOptions?.CarryAttachedWallSigns == true;
+            bool canCapture = configProvider?.Config?.CarryOptions?.CarryAttachedWallSigns == true;
             bool shouldCapture = canCapture && (captureAttachedSigns ?? true);
             if (shouldCapture)
             {

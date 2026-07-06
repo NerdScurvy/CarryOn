@@ -1,11 +1,9 @@
-using System.Linq;
 using CarryOn.API.Common.Models;
+using CarryOn.Common.Models;
 using CarryOn.API.Event;
 using CarryOn.Common.Behaviors;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
-using Vintagestory.API.Util;
-using static CarryOn.API.Common.Models.CarryCode;
 
 namespace CarryOn.Utility
 {
@@ -114,35 +112,6 @@ namespace CarryOn.Utility
             return (activeHotbarSlot >= 0) && (activeHotbarSlot < CarryCode.Default.HotbarSize);
         }
 
-
-        /// <summary>
-        /// Checks if the carry key is currently pressed.
-        /// Always returns false on server.
-        /// </summary>
-        /// <param name="checkMouse"></param>
-        /// <returns></returns>
-        public static bool IsCarryKeyPressed(this IInputAPI input, bool checkMouse = false)
-        {
-            if (checkMouse && !input.InWorldMouseButton.Right) return false;
-
-            var hotKey = input.HotKeys.Get(HotKeyCode.Pickup);
-            if (hotKey?.CurrentMapping == null) return false;
-
-            return input.KeyboardKeyState[hotKey.CurrentMapping.KeyCode];
-        }
-
-        /// <summary>
-        /// Checks if the carry swap key is currently pressed.
-        /// Always returns false on server.
-        /// </summary>
-        /// <returns></returns>
-        public static bool IsCarrySwapBackKeyPressed(this IInputAPI input)
-        {
-            var hotKey = input.HotKeys.Get(HotKeyCode.SwapBackModifier);
-            if (hotKey?.CurrentMapping == null) return false;
-
-            return input.KeyboardKeyState[hotKey.CurrentMapping.KeyCode];
-        }
 
     }
 }

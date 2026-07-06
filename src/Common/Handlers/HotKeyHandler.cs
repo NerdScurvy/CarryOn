@@ -3,11 +3,10 @@ using CarryOn.Client.Models;
 using CarryOn.Common.Network;
 using Vintagestory.API.Client;
 using Vintagestory.API.Server;
-using static CarryOn.API.Common.Models.CarryCode;
 using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
 using CarryOn.Common.Logic;
-
+using static CarryOn.Common.Models.CarryCode;
 
 namespace CarryOn.Common.Handlers
 {

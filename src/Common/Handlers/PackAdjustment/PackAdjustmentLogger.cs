@@ -4,7 +4,7 @@ using System.IO;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using CarryOn.API.Common.Interfaces;
-using CarryOn.API.Common.Models;
+using CarryOn.Common.Models;
 using CarryOn.Utility;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;

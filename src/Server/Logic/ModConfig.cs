@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
-using CarryOn.API.Common.Models;
+using CarryOn.Common.Models;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
-using static CarryOn.API.Common.Models.CarryCode;
+using static CarryOn.Common.Models.CarryCode;
 
 namespace CarryOn.Server.Logic
 {

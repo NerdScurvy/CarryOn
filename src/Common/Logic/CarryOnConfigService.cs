@@ -1,10 +1,10 @@
 using System;
 using System.IO;
 using System.Threading;
-using CarryOn.API.Common.Models;
+using CarryOn.Common.Models;
 using Vintagestory.API.Config;
 using Vintagestory.API.Server;
-using static CarryOn.API.Common.Models.CarryCode;
+using static CarryOn.Common.Models.CarryCode;
 
 namespace CarryOn.Common.Logic
 {

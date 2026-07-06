@@ -1,7 +1,6 @@
 using System;
 using CarryOn.Common.Behaviors;
 using Vintagestory.API.Common;
-using static CarryOn.API.Common.Models.CarryCode;
 using CarryOn.Utility;
 using CarryOn.Common.Network;
 using Vintagestory.API.Datastructures;
@@ -9,6 +8,7 @@ using CarryOn.API.Common.Models;
 using System.Linq;
 using Vintagestory.API.MathTools;
 using CarryOn.API.Common.Interfaces;
+using static CarryOn.Common.Models.CarryCode;
  
 namespace CarryOn.Common.Logic
 {
