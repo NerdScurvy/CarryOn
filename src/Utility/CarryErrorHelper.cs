@@ -1,6 +1,6 @@
 using Vintagestory.API.Client;
 using CarryOn.Common.Logic;
-using static CarryOn.API.Common.Models.CarryCode;
+using static CarryOn.Common.Models.CarryCode;
 
 namespace CarryOn.Utility
 {

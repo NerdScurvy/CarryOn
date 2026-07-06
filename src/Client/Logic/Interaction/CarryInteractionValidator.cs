@@ -2,15 +2,15 @@ using System;
 using System.Linq;
 using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
-using CarryOn.Common.Behaviors;
 using CarryOn.Common.Models;
+using CarryOn.Common.Behaviors;
 using CarryOn.Common.Logic;
 using CarryOn.Common.Entities;
 using CarryOn.Utility;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.GameContent;
-using static CarryOn.API.Common.Models.CarryCode;
+using static CarryOn.Common.Models.CarryCode;
 
 namespace CarryOn.Client.Logic.Interaction
 {

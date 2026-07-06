@@ -6,10 +6,10 @@ using Vintagestory.API.Common.Entities;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Util;
 using Vintagestory.GameContent;
-using static CarryOn.API.Common.Models.CarryCode;
 using CarryOn.API.Common.Interfaces;
 using CarryOn.Utility;
 using CarryOn.API.Common.Models;
+using static CarryOn.Common.Models.CarryCode;
 
 namespace CarryOn.Common.Behaviors
 {

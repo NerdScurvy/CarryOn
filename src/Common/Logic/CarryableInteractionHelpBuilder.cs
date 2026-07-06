@@ -1,12 +1,13 @@
 using System;
 using System.Collections.Generic;
 using CarryOn.API.Common.Interfaces;
+using CarryOn.Common.Interfaces;
 using CarryOn.API.Common.Models;
 using CarryOn.Common.Behaviors;
 using CarryOn.Utility;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
-using static CarryOn.API.Common.Models.CarryCode;
+using static CarryOn.Common.Models.CarryCode;
 
 namespace CarryOn.Common.Logic
 {
@@ -45,9 +46,9 @@ namespace CarryOn.Common.Logic
             bool isTargetCarryable = selection?.Block != null && itemStack != null;
 
             // Suppress pickup hints when the client-side permission check denies access
-            if (carryManager?.Config?.CarryOptions?.ClientSidePermissionCheck == true &&
+            if ((carryManager as IConfigProvider)?.Config?.CarryOptions?.ClientSidePermissionCheck == true &&
                 forPlayer?.Entity != null && selection?.Position != null &&
-                !carryManager.HasPermissionAt(forPlayer.Entity, selection.Position))
+                !carryManager!.HasPermissionAt(forPlayer.Entity, selection.Position))
             {
                 return [];
             }

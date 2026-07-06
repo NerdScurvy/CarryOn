@@ -25,12 +25,7 @@ namespace CarryOn.Common.Models
         public void Initialize(JsonObject properties)
         {
             SlotSettingsDict.Clear();
-            if (properties?.Exists != true)
-            {
-                if (!BlockBehaviorCarryable.DefaultAnimation.TryGetValue(CarrySlot.Hands, out string? anim)) anim = null;
-                SlotSettingsDict.Add(CarrySlot.Hands, new SlotSettings { Animation = anim });
-            }
-            else
+            if (properties?.Exists == true)
             {
                 foreach (var slot in Enum.GetValues(typeof(CarrySlot)).Cast<CarrySlot>())
                 {

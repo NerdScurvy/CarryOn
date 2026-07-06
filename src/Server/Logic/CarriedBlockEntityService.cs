@@ -1,13 +1,12 @@
 using System;
 using CarryOn.API.Common.Models;
+using CarryOn.Common.Models;
 using CarryOn.Common.Entities;
-using CarryOn.Common.Logic;
-using CarryOn.Common.Services;
+using CarryOn.Utility;
 using Vintagestory.API.Common;
-using Vintagestory.API.Common.Entities;
-using Vintagestory.API.Datastructures;
+
 using Vintagestory.API.MathTools;
-using static CarryOn.API.Common.Models.CarryCode;
+using static CarryOn.Common.Models.CarryCode;
 
 namespace CarryOn.Server.Logic
 {
@@ -70,7 +69,7 @@ namespace CarryOn.Server.Logic
         }
 
         /// <summary>
-        /// Spawns a CarriedBlockEntity with gravity — resolves the spawn position
+        /// Spawns a CarriedBlockEntity with gravity - resolves the spawn position
         /// by iterating downward through passable blocks to find the floor.
         /// </summary>
         public EntityCarriedBlock? SpawnCarriedBlockEntityWithGravity(
@@ -86,7 +85,7 @@ namespace CarryOn.Server.Logic
         }
 
         /// <summary>
-        /// Resolves the spawn position by applying gravity — iterates downward
+        /// Resolves the spawn position by applying gravity - iterates downward
         /// through passable blocks from one below the candidate position to find
         /// the first solid surface or liquid to land on.
         /// </summary>
@@ -135,7 +134,7 @@ namespace CarryOn.Server.Logic
                 }
 
                 // Passable block with a surface the entity can stand on
-                // (e.g. wooden paths — passable but walkable)
+                // (e.g. wooden paths - passable but walkable)
                 if (surfaceTop > 0f && block.Id != 0 && candidatePos.Y >= y + surfaceTop)
                 {
                     var targetPos = new Vec3d(x + 0.5, y + surfaceTop, z + 0.5);
@@ -186,7 +185,7 @@ namespace CarryOn.Server.Logic
         }
 
         /// <summary>
-        /// Determines whether a block is passable — entities can fall through it.
+        /// Determines whether a block is passable - entities can fall through it.
         /// </summary>
         private static bool IsPassable(Block block)
         {

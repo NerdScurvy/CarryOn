@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CarryOn.API.Common.Interfaces;
+using CarryOn.Common.Interfaces;
 using CarryOn.API.Common.Models;
+using CarryOn.Common.Models;
 using CarryOn.Server.Logic;
 using CarryOn.Utility;
 using Vintagestory.API.Common;
@@ -11,11 +13,11 @@ using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Server;
 using Vintagestory.GameContent;
-using static CarryOn.API.Common.Models.CarryCode;
+using static CarryOn.Common.Models.CarryCode;
 
 namespace CarryOn.Common.Services
 {
-    internal sealed class CarryDropService(ICoreAPI api, ICarryManager carryManager)
+    internal sealed class CarryDropService(ICoreAPI api, ICarryManager carryManager, IConfigProvider configProvider)
     {
 
         /// <summary>
@@ -64,7 +66,7 @@ namespace CarryOn.Common.Services
 
             var centerBlock = entity.Pos.AsBlockPos.UpCopy();
 
-            var dropMode = carryManager.Config?.CarriedBlockEntity?.DropMode ?? DropMode.Items;
+            var dropMode = configProvider?.Config?.CarriedBlockEntity?.DropMode ?? DropMode.Items;
 
             if (dropMode == DropMode.EntityAlways)
             {
@@ -107,7 +109,7 @@ namespace CarryOn.Common.Services
 
         private void DropClusterBlock(Entity entity, CarriedBlock carriedBlock, int range, BlockPlacer blockPlacer, BlockPos centerBlock, IServerPlayer? player)
         {
-            var dropMode = carryManager.Config?.CarriedBlockEntity?.DropMode ?? DropMode.Items;
+            var dropMode = configProvider?.Config?.CarriedBlockEntity?.DropMode ?? DropMode.Items;
 
             var blockSelection = blockPlacer.FindClusterPlacement(
                 carriedBlock.Block,
@@ -133,7 +135,7 @@ namespace CarryOn.Common.Services
                 return;
             }
 
-            // Cluster placement failed — drop parent plus all children as items
+            // Cluster placement failed â€” drop parent plus all children as items
             var world = api.World;
             var dropVec3d = new Vec3d(centerBlock.X + 0.5, centerBlock.Y + 0.5, centerBlock.Z + 0.5);
 
@@ -160,7 +162,7 @@ namespace CarryOn.Common.Services
         /// <param name="forceEntity">When true, spawns a block entity instead of item drops regardless of DropMode.</param>
         public void DropBlockAsEntityOrItem(CarriedBlock carriedBlock, BlockPos centerBlock, IServerPlayer? player, Entity entity, bool forceEntity = false)
         {
-            if (api.Side == EnumAppSide.Server && (forceEntity || carryManager.Config?.CarriedBlockEntity?.DropMode == DropMode.EntityAlways))
+            if (api.Side == EnumAppSide.Server && (forceEntity || configProvider?.Config?.CarriedBlockEntity?.DropMode == DropMode.EntityAlways))
             {
                 var carrySystem = api.ModLoader.GetModSystem<CarrySystem>();
                 var entityService = carrySystem?.CarriedBlockEntityService;
@@ -168,7 +170,7 @@ namespace CarryOn.Common.Services
                 {
                     var playerUid = player?.PlayerUID ?? "unknown";
                     var candidatePos = new Vec3d(entity.Pos.X, entity.Pos.Y, entity.Pos.Z);
-                    var config = carryManager.Config?.CarriedBlockEntity;
+                    var config = configProvider?.Config?.CarriedBlockEntity;
                     var randomYaw = config?.RandomDropRotation ?? true;
                     var scale = config?.Scale ?? 1.0f;
                     entityService.SpawnCarriedBlockEntityWithGravity(carriedBlock, playerUid, candidatePos, randomYaw: randomYaw, scale: scale);

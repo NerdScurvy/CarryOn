@@ -3,7 +3,7 @@ using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
 using Newtonsoft.Json.Linq;
 using CarryOn.Utility;
-using CarryOn.API.Common.Models;
+using CarryOn.Common.Models;
 
 namespace CarryOn.Client.Logic.TransformTemplates
 {

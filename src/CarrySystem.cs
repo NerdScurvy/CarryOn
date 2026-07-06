@@ -2,7 +2,8 @@ using System;
 using CarryOn.Common.Network;
 using CarryOn.Common.Services;
 using CarryOn.API.Common.Interfaces;
-using CarryOn.API.Common.Models;
+using CarryOn.Common.Interfaces;
+using CarryOn.Common.Models;
 using CarryOn.API.Event;
 using CarryOn.Client.Logic;
 using CarryOn.Client.Logic.CarryRenderer;
@@ -20,9 +21,10 @@ using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.Server;
-using static CarryOn.API.Common.Models.CarryCode;
 using CarryOn.Common.Entities;
 using Newtonsoft.Json;
+using CarryOn.CarryOnLib;
+using static CarryOn.Common.Models.CarryCode;
 
 [assembly: ModInfo("Carry On",
     modID: "carryon",
@@ -65,7 +67,7 @@ namespace CarryOn
 
         public CarryEvents CarryEvents { get; private set; } = null!;
 
-        public CarryOnLib.Core? CarryOnLib { get; private set; }
+        public CarryOnLibSystem? CarryOnLib { get; private set; }
 
         public ICarryManager? CarryManager => CarryOnLib?.CarryManager;
 
@@ -132,7 +134,7 @@ namespace CarryOn
                 OnEventHandlerError = ex => api.World.Logger.Error(ex.ToString())
             };
 
-            CarryOnLib = api.ModLoader.GetModSystem<CarryOnLib.Core>();
+            CarryOnLib = api.ModLoader.GetModSystem<CarryOnLibSystem>();
             if (CarryOnLib != null)
             {
                 CarryOnLib.CarryManager = new CarryManager(api, this, CarryEvents);
@@ -199,7 +201,7 @@ namespace CarryOn
         {
             if (CarryManager == null)
             {
-                api.Logger.Error("CarryOn: CarryManager not available — CarryOnLib failed to load. Client-side features disabled.");
+                api.Logger.Error("CarryOn: CarryManager not available - CarryOnLib failed to load. Client-side features disabled.");
                 return;
             }
 
@@ -258,19 +260,19 @@ namespace CarryOn
         {
             if (CarryManager == null)
             {
-                api.Logger.Error("CarryOn: CarryManager not available — CarryOnLib failed to load. Server-side features disabled.");
+                api.Logger.Error("CarryOn: CarryManager not available - CarryOnLib failed to load. Server-side features disabled.");
                 return;
             }
 
             EntityBehaviorDropCarriedOnDamage.Init(CarryManager, Config.DropCarriedOnDamage);
             InitCommon(api);
             api.Register<EntityBehaviorDropCarriedOnDamage>();
-            api.RegisterEntity("EntityCarriedBlock", typeof(Common.Entities.EntityCarriedBlock));
+            api.RegisterEntity("EntityCarriedBlock", typeof(EntityCarriedBlock));
 
             ServerApi = api;
             ServerChannel = api.Network.RegisterChannel(ModId);
 
-            CarriedBlockEntityService = new Server.Logic.CarriedBlockEntityService(api);
+            CarriedBlockEntityService = new CarriedBlockEntityService(api);
 
             DeathHandler = new DeathHandler(api, CarryManager);
             CarryHandler!.InitServer(api, this.ServerChannel!);

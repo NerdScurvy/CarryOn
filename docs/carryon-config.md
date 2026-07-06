@@ -132,7 +132,8 @@ When `HandsEnabled`/`BackEnabled` is `false`, the walk speed penalty for that sl
 ```json
 {
   "ByBlockCode": [
-    { "Key": "game:chest-normal", "Hands": -0.25, "Back": -0.15 }
+    { "Key": "game:chest-normal", "Hands": -0.25, "Back": -0.15 },
+    { "Key": "upgradablestorage:chest*|steel", "Hands": -0.3, "Back": -0.2 }
   ],
   "ByBlockClass": [
     { "Key": "BlockCrate", "Hands": -0.80 }

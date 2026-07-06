@@ -1,16 +1,16 @@
 using System;
 using System.Collections.Generic;
 using CarryOn.API.Common.Interfaces;
+using CarryOn.Common.Interfaces;
 using CarryOn.API.Common.Models;
+using CarryOn.Common.Models;
 using CarryOn.API.Event;
 using CarryOn.Common.Behaviors;
 using CarryOn.Server.Logic;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
-using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Server;
-
 
 namespace CarryOn.Common.Services
 {
@@ -163,7 +163,7 @@ namespace CarryOn.Common.Services
 
         /// <summary>
         /// Sends a lock-slots network message to the specified player entity.
-        /// Internal — prefer <see cref="LockHotbarSlots"/> for public API usage.
+        /// Internal â€” prefer <see cref="LockHotbarSlots"/> for public API usage.
         /// </summary>
         internal void SendLockSlotsMessage(EntityPlayer player)
         {

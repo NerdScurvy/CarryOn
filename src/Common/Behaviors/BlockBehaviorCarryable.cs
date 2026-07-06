@@ -3,17 +3,17 @@ using System.Collections.Generic;
 using System.Linq;
 using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
+using CarryOn.Common.Models;
 using CarryOn.Client.Logic.TransformTemplates;
 using CarryOn.Client.Models;
 using CarryOn.Common.Logic;
-using CarryOn.Common.Models;
 using CarryOn.Utility;
 using Newtonsoft.Json.Linq;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
-using static CarryOn.API.Common.Models.CarryCode;
+using static CarryOn.Common.Models.CarryCode;
 
 namespace CarryOn.Common.Behaviors
 {

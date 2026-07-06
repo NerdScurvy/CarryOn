@@ -1,10 +1,10 @@
 using System;
 using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
+using CarryOn.Common.Models;
 using CarryOn.Client.Logic.CarryRenderer;
 using CarryOn.Client.Models;
 using CarryOn.Common.Behaviors;
-using CarryOn.Common.Models;
 using CarryOn.Utility;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;

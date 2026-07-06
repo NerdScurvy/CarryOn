@@ -1,7 +1,7 @@
 using System;
 using CarryOn.API.Common.Models;
-using CarryOn.Common.Behaviors;
 using CarryOn.Common.Models;
+using CarryOn.Common.Behaviors;
 using Vintagestory.API.Common;
 
 namespace CarryOn.Common.Logic

@@ -1,5 +1,6 @@
 using System;
 using CarryOn.API.Common.Models;
+using CarryOn.Common.Models;
 using Vintagestory.API.Common;
 
 namespace CarryOn.Common.Logic

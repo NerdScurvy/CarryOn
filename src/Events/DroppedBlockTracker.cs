@@ -1,5 +1,7 @@
 using System;
 using CarryOn.API.Common.Interfaces;
+using CarryOn.Common.Interfaces;
+using CarryOn.Common.Models;
 using CarryOn.API.Event.Data;
 using CarryOn.Server.Models;
 using Vintagestory.API.Common;
@@ -14,6 +16,7 @@ namespace CarryOn.Events
     public class DroppedBlockTracker : ICarryEvent
     {
         private ICarryManager? carryManager;
+        private CarryOnConfig? config;
 
         private bool loggingEnabled = false;
 
@@ -21,9 +24,10 @@ namespace CarryOn.Events
         {
             ArgumentNullException.ThrowIfNull(carryManager);
             this.carryManager = carryManager;
-            this.loggingEnabled = carryManager.Config?.DebuggingOptions?.LoggingEnabled ?? false;
+            this.config = (carryManager as IConfigProvider)?.Config;
+            this.loggingEnabled = this.config?.DebuggingOptions?.LoggingEnabled ?? false;
 
-            if (carryManager.Config?.CarryOptions?.TrackDroppedBlocks != true)
+            if (this.config?.CarryOptions?.TrackDroppedBlocks != true)
                 return;
 
             var events = carryManager.CarryEvents ?? throw new InvalidOperationException("CarryEvents not initialized");
@@ -43,7 +47,7 @@ namespace CarryOn.Events
         public void OnCheckPermissionAtClient(EntityPlayer playerEntity, BlockPos pos, bool isReinforced, out bool? hasPermission)
         {
             hasPermission = null;
-            if (carryManager?.Config?.CarryOptions?.TrackDroppedBlocks != true)
+            if (config?.CarryOptions?.TrackDroppedBlocks != true)
                 return;
             
             // Allow client side permission so checks are done server side unless is reinforced
@@ -63,7 +67,7 @@ namespace CarryOn.Events
             // A null value means the server should continue to check other delegates
             hasPermission = null;
 
-            if (carryManager?.Config?.CarryOptions?.TrackDroppedBlocks != true)
+            if (config?.CarryOptions?.TrackDroppedBlocks != true)
                 return;
 
             if (isReinforced) return;
@@ -88,7 +92,7 @@ namespace CarryOn.Events
         /// <param name="e"></param>
         public void OnCarriedBlockDropped(object? sender, BlockDroppedEventArgs e)
         {
-            if (carryManager?.Config?.CarryOptions?.TrackDroppedBlocks != true)
+            if (config?.CarryOptions?.TrackDroppedBlocks != true)
                 return;
 
             ArgumentNullException.ThrowIfNull(e);

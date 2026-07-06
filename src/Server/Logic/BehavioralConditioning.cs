@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CarryOn.API.Common.Interfaces;
-using CarryOn.API.Common.Models;
+using CarryOn.Common.Models;
 using CarryOn.Common.Behaviors;
 using CarryOn.Utility;
 using Newtonsoft.Json.Linq;

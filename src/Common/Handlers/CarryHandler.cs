@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using CarryOn.Common.Network;
 using CarryOn.Utility;
@@ -14,12 +13,12 @@ using Vintagestory.API.Util;
 using CarryOn.Common.Behaviors;
 using CarryOn.Common.Models;
 using CarryOn.Common.Logic;
-using static CarryOn.API.Common.Models.CarryCode;
 using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
 using CarryOn.Client.Logic.Interaction;
 using CarryOn.Client.Models;
 using CarryOn.Common.Entities;
+using static CarryOn.Common.Models.CarryCode;
 
 namespace CarryOn.Common.Handlers
 {
