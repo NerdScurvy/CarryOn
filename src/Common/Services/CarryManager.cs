@@ -163,7 +163,7 @@ namespace CarryOn.Common.Services
 
         /// <summary>
         /// Sends a lock-slots network message to the specified player entity.
-        /// Internal â€” prefer <see cref="LockHotbarSlots"/> for public API usage.
+        /// Internal - prefer <see cref="LockHotbarSlots"/> for public API usage.
         /// </summary>
         internal void SendLockSlotsMessage(EntityPlayer player)
         {
