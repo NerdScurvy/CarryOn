@@ -16,18 +16,15 @@ namespace CarryOn.Events
     public class DroppedBlockTracker : ICarryEvent
     {
         private ICarryManager? carryManager;
-        private CarryOnConfig? config;
-
-        private bool loggingEnabled = false;
+        private IConfigProvider configProvider = null!;
 
         public void Init(ICarryManager carryManager)
         {
             ArgumentNullException.ThrowIfNull(carryManager);
             this.carryManager = carryManager;
-            this.config = (carryManager as IConfigProvider)?.Config;
-            this.loggingEnabled = this.config?.DebuggingOptions?.LoggingEnabled ?? false;
+            this.configProvider = carryManager as IConfigProvider ?? throw new ArgumentException("carryManager must implement IConfigProvider", nameof(carryManager));
 
-            if (this.config?.CarryOptions?.TrackDroppedBlocks != true)
+            if (configProvider.Config.CarryOptions?.TrackDroppedBlocks != true)
                 return;
 
             var events = carryManager.CarryEvents ?? throw new InvalidOperationException("CarryEvents not initialized");
@@ -47,7 +44,7 @@ namespace CarryOn.Events
         public void OnCheckPermissionAtClient(EntityPlayer playerEntity, BlockPos pos, bool isReinforced, out bool? hasPermission)
         {
             hasPermission = null;
-            if (config?.CarryOptions?.TrackDroppedBlocks != true)
+            if (configProvider.Config.CarryOptions?.TrackDroppedBlocks != true)
                 return;
             
             // Allow client side permission so checks are done server side unless is reinforced
@@ -67,22 +64,23 @@ namespace CarryOn.Events
             // A null value means the server should continue to check other delegates
             hasPermission = null;
 
-            if (config?.CarryOptions?.TrackDroppedBlocks != true)
+            if (configProvider.Config.CarryOptions?.TrackDroppedBlocks != true)
                 return;
 
             if (isReinforced) return;
 
             var world = playerEntity.Api.World;
+            var loggingEnabled = configProvider.Config.DebuggingOptions?.LoggingEnabled ?? false;
 
             // Check if block was dropped by a player
             var droppedBlock = DroppedBlockInfo.Get(pos, playerEntity.Player);
             if (droppedBlock != null)
             {
-                if (this.loggingEnabled) world.Logger.Debug($"Dropped block found at '{pos}'");
+                if (loggingEnabled) world.Logger.Debug($"Dropped block found at '{pos}'");
                 hasPermission = true;
                 return;
             }
-            if (this.loggingEnabled) world.Logger.Debug($"No dropped block found at '{pos}'");
+            if (loggingEnabled) world.Logger.Debug($"No dropped block found at '{pos}'");
         }
 
         /// <summary>
@@ -92,7 +90,7 @@ namespace CarryOn.Events
         /// <param name="e"></param>
         public void OnCarriedBlockDropped(object? sender, BlockDroppedEventArgs e)
         {
-            if (config?.CarryOptions?.TrackDroppedBlocks != true)
+            if (configProvider.Config.CarryOptions?.TrackDroppedBlocks != true)
                 return;
 
             ArgumentNullException.ThrowIfNull(e);

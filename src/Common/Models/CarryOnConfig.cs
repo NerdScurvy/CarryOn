@@ -322,7 +322,7 @@ namespace CarryOn.Common.Models
         [TreeValue("LoggingEnabled")] public bool LoggingEnabled { get; set; } = false;
 
         [DisplayName("Disable Harmony Patch")]
-        [Description("Disable Harmony runtime patching â€” changes require a server restart")]
+        [Description("Disable Harmony runtime patching - changes require a server restart")]
         [DefaultValue(false)]
         [TreeValue("DisableHarmonyPatch")] public bool DisableHarmonyPatch { get; set; } = false;
 
@@ -346,17 +346,17 @@ namespace CarryOn.Common.Models
 
         [Category("Carryables (requires restart)")]
         [DisplayName("Carryables")]
-        [Description("Which blocks can be carried â€” changes require a server restart to take effect")]
+        [Description("Which blocks can be carried - changes require a server restart to take effect")]
         public CarryablesConfig Carryables { get; set; } = new CarryablesConfig();
 
         [Category("Carryables on Back (requires restart)")]
         [DisplayName("Carryables on Back")]
-        [Description("Which blocks can be placed on the back slot â€” changes require a server restart")]
+        [Description("Which blocks can be placed on the back slot - changes require a server restart")]
         public CarryablesOnBackConfig CarryablesOnBack { get; set; } = new CarryablesOnBackConfig();
 
         [Category("Interactables (requires restart)")]
         [DisplayName("Interactables")]
-        [Description("Which block interactions are allowed while carrying â€” changes require a server restart")]
+        [Description("Which block interactions are allowed while carrying - changes require a server restart")]
         public InteractablesConfig Interactables { get; set; } = new InteractablesConfig();
 
         [Category("Hunger Rate")]
@@ -376,7 +376,7 @@ namespace CarryOn.Common.Models
 
         [Category("Carryable Filters (requires restart)")]
         [DisplayName("Carryable Filters")]
-        [Description("Advanced carryable filtering rules â€” changes require a server restart")]
+        [Description("Advanced carryable filtering rules - changes require a server restart")]
         public CarryablesFiltersConfig CarryablesFilters { get; set; } = new CarryablesFiltersConfig();
 
         [JsonIgnore]
@@ -417,7 +417,7 @@ namespace CarryOn.Common.Models
 
         [Category("Debugging (requires restart)")]
         [DisplayName("Debugging")]
-        [Description("Debug and developer options â€” some changes require a server restart")]
+        [Description("Debug and developer options - some changes require a server restart")]
         public DebuggingOptionsConfig DebuggingOptions { get; set; } = new DebuggingOptionsConfig();
 
         [JsonExtensionData(ReadData = true, WriteData = false)]

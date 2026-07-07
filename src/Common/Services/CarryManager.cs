@@ -18,7 +18,7 @@ namespace CarryOn.Common.Services
     /// Default implementation of <see cref="ICarryManager"/>. Delegates all operations
     /// to the underlying service portfolio via <see cref="CarryManagerServices"/>.
     /// </summary>
-    public class CarryManager : ICarryManager
+    public class CarryManager : ICarryManager, IConfigProvider
     {
 
         public ICoreAPI Api { get; private set; }
@@ -38,7 +38,7 @@ namespace CarryOn.Common.Services
             Services = new CarryManagerServices(Api, ConfigProvider, this);
         }
 
-        public CarryOnConfig? Config => ConfigProvider?.Config;
+        public CarryOnConfig Config => ConfigProvider.Config;
 
         /// <inheritdoc/>
         public void RegisterRootTransformGroupResolver(string modId, IRootTransformGroupResolver resolver)
@@ -163,7 +163,7 @@ namespace CarryOn.Common.Services
 
         /// <summary>
         /// Sends a lock-slots network message to the specified player entity.
-        /// Internal â€” prefer <see cref="LockHotbarSlots"/> for public API usage.
+        /// Internal - prefer <see cref="LockHotbarSlots"/> for public API usage.
         /// </summary>
         internal void SendLockSlotsMessage(EntityPlayer player)
         {

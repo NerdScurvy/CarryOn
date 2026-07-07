@@ -14,10 +14,12 @@ namespace CarryOn.Common.Logic
     public static class CarryableInteractionHelpBuilder
     {
         private static ICarryManager? carryManager;
+        private static IConfigProvider configProvider = null!;
 
         public static void Init(ICarryManager manager)
         {
             carryManager = manager ?? throw new ArgumentNullException(nameof(manager));
+            configProvider = manager as IConfigProvider ?? throw new ArgumentException("manager must implement IConfigProvider", nameof(manager));
         }
 
         private static ItemStack[]? handsfreeStacks;
@@ -46,7 +48,7 @@ namespace CarryOn.Common.Logic
             bool isTargetCarryable = selection?.Block != null && itemStack != null;
 
             // Suppress pickup hints when the client-side permission check denies access
-            if ((carryManager as IConfigProvider)?.Config?.CarryOptions?.ClientSidePermissionCheck == true &&
+            if (configProvider.Config.CarryOptions?.ClientSidePermissionCheck == true &&
                 forPlayer?.Entity != null && selection?.Position != null &&
                 !carryManager!.HasPermissionAt(forPlayer.Entity, selection.Position))
             {

@@ -85,25 +85,29 @@ namespace CarryOn
             else
             {
                 ServerApi = api as ICoreServerAPI;
-
-                // Load the configuration into the world config
-                var modConfig = new ModConfig();
-                modConfig.Load(api);
             }
 
             base.StartPre(api);
 
-            var carryOnWorldConfig = api.World.Config?.GetTreeAttribute(ModId);
-
             CarryOnConfig config;
-            if (carryOnWorldConfig == null)
+
+            if (api is ICoreServerAPI sapi)
             {
-                api.World.Logger.Warning("CarryOn: No world config found for CarryOn; using defaults");
-                config = new CarryOnConfig();
+                // Load from disk and sync to world config for client access
+                config = new ModConfig().Load(sapi) ?? new CarryOnConfig();
             }
             else
             {
-                config = CarryOnConfig.FromTreeAttribute(carryOnWorldConfig);
+                var carryOnWorldConfig = api.World.Config?.GetTreeAttribute(ModId);
+                if (carryOnWorldConfig == null)
+                {
+                    api.World.Logger.Warning("CarryOn: No world config found for CarryOn; using defaults");
+                    config = new CarryOnConfig();
+                }
+                else
+                {
+                    config = CarryOnConfig.FromTreeAttribute(carryOnWorldConfig);
+                }
             }
 
             ConfigService = new CarryOnConfigService(config);
@@ -138,7 +142,7 @@ namespace CarryOn
             if (CarryOnLib != null)
             {
                 CarryOnLib.CarryManager = new CarryManager(api, this, CarryEvents);
-                CarryHandler = new CarryHandler(CarryOnLib.CarryManager, this.Config, () => this.ClientModConfig?.Config?.CarryOnEnabled ?? true);
+                CarryHandler = new CarryHandler(CarryOnLib.CarryManager, () => this.ClientModConfig?.Config?.CarryOnEnabled ?? true);
                 HotKeyHandler = new HotKeyHandler(CarryOnLib.CarryManager);
             }
             else
@@ -153,8 +157,7 @@ namespace CarryOn
         private void WireConfigChangeHandlers()
         {
             ConfigService.OnConfigChanged += _ => Config.InvalidateBackpackCache();
-            ConfigService.OnConfigChanged += cfg => this.CarryHandler?.UpdateConfig(cfg);
-            ConfigService.OnConfigChanged += cfg => this.EntityCarryRenderer?.UpdateConfig(cfg);
+            ConfigService.OnConfigChanged += _ => this.CarryHandler?.RefreshConfigCache();
             ConfigService.OnConfigChanged += _ => EntityCarriedBlock.Config = Config.CarriedBlockEntity;
             ConfigService.OnConfigChanged += _ =>
             {
@@ -228,7 +231,7 @@ namespace CarryOn
 
             HudCarried.UpdateParsedColors();
 
-            EntityCarryRenderer = new EntityCarryRenderer(api, this.CarryManager, this.Config, this.ClientModConfig!);
+            EntityCarryRenderer = new EntityCarryRenderer(api, this.CarryManager, this.ClientModConfig!);
 
             CarryHandler!.InitClient(api, this.ClientChannel!,
                 () => { if (this.HudOverlayRenderer != null) this.HudOverlayRenderer.CircleVisible = false; },

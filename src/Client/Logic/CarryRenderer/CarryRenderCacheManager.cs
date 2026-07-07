@@ -4,6 +4,7 @@ using System.Linq;
 using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
 using CarryOn.Common.Models;
+using CarryOn.Common.Interfaces;
 using CarryOn.Client.Models;
 using CarryOn.Utility;
 using Vintagestory.API.Client;
@@ -16,25 +17,22 @@ namespace CarryOn.Client.Logic.CarryRenderer
     {
         private readonly ICoreClientAPI api;
         private readonly ICarryManager carryManager;
-        private CarryOnConfig config;
+        private readonly IConfigProvider configProvider;
         private readonly CarryTransformPlanBuilder planBuilder;
         private readonly CarryRenderInfoBuilder infoBuilder;
         private readonly CarryRenderCache cache;
 
-        public CarryRenderCacheManager(ICoreClientAPI api, ICarryManager carryManager, CarryOnConfig config, CarryTransformPlanBuilder planBuilder, CarryRenderInfoBuilder infoBuilder, CarryRenderCache cache)
+        public CarryRenderCacheManager(ICoreClientAPI api, ICarryManager carryManager, CarryTransformPlanBuilder planBuilder, CarryRenderInfoBuilder infoBuilder, CarryRenderCache cache)
         {
             this.api = api ?? throw new ArgumentNullException(nameof(api));
             this.carryManager = carryManager ?? throw new ArgumentNullException(nameof(carryManager));
-            this.config = config ?? throw new ArgumentNullException(nameof(config));
+            this.configProvider = carryManager as IConfigProvider ?? throw new ArgumentException("carryManager must implement IConfigProvider", nameof(carryManager));
             this.planBuilder = planBuilder ?? throw new ArgumentNullException(nameof(planBuilder));
             this.infoBuilder = infoBuilder ?? throw new ArgumentNullException(nameof(infoBuilder));
             this.cache = cache ?? throw new ArgumentNullException(nameof(cache));
         }
 
-        public void UpdateConfig(CarryOnConfig newConfig)
-        {
-            this.config = newConfig;
-        }
+        public CarryOnConfig Config => configProvider.Config;
 
         private readonly Dictionary<(long EntityId, CarrySlot Slot), SignatureSidecarState> signatureSidecars = new();
 
@@ -205,7 +203,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
 
         public void TryLogCounters(ICoreClientAPI api)
         {
-            var loggingEnabled = config?.DebuggingOptions?.LoggingEnabled ?? false;
+            var loggingEnabled = Config?.DebuggingOptions?.LoggingEnabled ?? false;
             if (!loggingEnabled) return;
 
             var now = DateTime.UtcNow;

@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using CarryOn.API.Common.Interfaces;
-using CarryOn.Common.Models;
 using CarryOn.Client.Models;
 using Vintagestory.API.Client;
 
@@ -10,7 +9,6 @@ namespace CarryOn.Client.Logic.CarryRenderer
     public class EntityCarryRenderer : IRenderer
     {
         private ICarryManager carryManager { get; }
-        private CarryOnConfig config;
         private ICoreClientAPI api { get; }
         private long renderTick;
         private readonly CarryAnimationSync animationSync;
@@ -20,12 +18,11 @@ namespace CarryOn.Client.Logic.CarryRenderer
         private readonly ClientModConfig clientModConfig;
         private readonly CarryRenderInfoBuilder infoBuilder;
 
-        public EntityCarryRenderer(ICoreClientAPI api, ICarryManager carryManager, CarryOnConfig config, ClientModConfig clientModConfig)
+        public EntityCarryRenderer(ICoreClientAPI api, ICarryManager carryManager, ClientModConfig clientModConfig)
         {
             ArgumentNullException.ThrowIfNull(api);
 
             this.carryManager = carryManager;
-            this.config = config;
             this.api = api;
             this.clientModConfig = clientModConfig;
 
@@ -38,8 +35,8 @@ namespace CarryOn.Client.Logic.CarryRenderer
             infoBuilder = new CarryRenderInfoBuilder(api, renderAttached);
             var labelRenderer = new CarriedLabelRenderer(api);
 
-            cacheManager = new CarryRenderCacheManager(api, carryManager, config, planBuilder, infoBuilder, cache);
-            dispatcher = new CarryRenderDispatcher(api, carryManager, config, cacheManager, firstPersonRenderer, labelRenderer, renderAttached);
+            cacheManager = new CarryRenderCacheManager(api, carryManager, planBuilder, infoBuilder, cache);
+            dispatcher = new CarryRenderDispatcher(api, carryManager, cacheManager, firstPersonRenderer, labelRenderer, renderAttached);
 
             this.api.Event.RegisterRenderer(this, EnumRenderStage.Opaque);
             this.api.Event.RegisterRenderer(this, EnumRenderStage.AfterOIT);
@@ -59,13 +56,6 @@ namespace CarryOn.Client.Logic.CarryRenderer
         }
 
         public void InvalidateRenderCaches() => cacheManager.InvalidateAll();
-
-        public void UpdateConfig(CarryOnConfig newConfig)
-        {
-            this.config = newConfig;
-            cacheManager.UpdateConfig(newConfig);
-            dispatcher.UpdateConfig(newConfig);
-        }
 
         public void SetRenderAttachedBlocks(bool enabled)
         {
