@@ -9,39 +9,38 @@ namespace CarryOn.Server.Logic
 {
     public class ModConfig
     {
-        public CarryOnConfig? Config { get; private set; }
-
-        public void Load(ICoreAPI api)
+        public CarryOnConfig? Load(ICoreAPI api)
         {
             var coreApi = api ?? throw new ArgumentNullException(nameof(api));
-            if (coreApi.Side != EnumAppSide.Server) return;
+            if (coreApi.Side != EnumAppSide.Server) return null;
 
+            CarryOnConfig config;
             try
             {
                 var loadedConfig = coreApi.LoadModConfig<CarryOnConfig>(ConfigFile);
                 if (loadedConfig != null)
                 {
                     loadedConfig.UpgradeVersion();
-                    Config = loadedConfig;
+                    config = loadedConfig;
                 }
                 else
                 {
-                    Config = new CarryOnConfig(CurrentConfigVersion);
+                    config = new CarryOnConfig(CurrentConfigVersion);
                 }
 
-                coreApi.StoreModConfig(Config, ConfigFile);
+                coreApi.StoreModConfig(config, ConfigFile);
             }
             catch (Exception ex)
             {
                 coreApi.Logger?.Error("CarryOn: Exception loading config: " + ex);
-                Config = new CarryOnConfig(CurrentConfigVersion);
+                config = new CarryOnConfig(CurrentConfigVersion);
             }
 
             var worldConfig = coreApi.World?.Config;
             if (worldConfig == null)
             {
                 coreApi.Logger?.Error("CarryOn: Unable to access world config. CarryOn features may not work correctly.");
-                return;
+                return config;
             }
 
             // Cleanup old world config: Remove all keys starting with "carryon:"
@@ -62,7 +61,8 @@ namespace CarryOn.Server.Logic
             }
 
             // Sync to world config so JSON patching and clients can access values
-            worldConfig.GetOrAddTreeAttribute(ModId).MergeTree(Config.ToTreeAttribute());
+            worldConfig.GetOrAddTreeAttribute(ModId).MergeTree(config.ToTreeAttribute());
+            return config;
         }
     }
 }

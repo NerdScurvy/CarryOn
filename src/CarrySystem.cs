@@ -85,25 +85,29 @@ namespace CarryOn
             else
             {
                 ServerApi = api as ICoreServerAPI;
-
-                // Load the configuration into the world config
-                var modConfig = new ModConfig();
-                modConfig.Load(api);
             }
 
             base.StartPre(api);
 
-            var carryOnWorldConfig = api.World.Config?.GetTreeAttribute(ModId);
-
             CarryOnConfig config;
-            if (carryOnWorldConfig == null)
+
+            if (api is ICoreServerAPI sapi)
             {
-                api.World.Logger.Warning("CarryOn: No world config found for CarryOn; using defaults");
-                config = new CarryOnConfig();
+                // Load from disk and sync to world config for client access
+                config = new ModConfig().Load(sapi) ?? new CarryOnConfig();
             }
             else
             {
-                config = CarryOnConfig.FromTreeAttribute(carryOnWorldConfig);
+                var carryOnWorldConfig = api.World.Config?.GetTreeAttribute(ModId);
+                if (carryOnWorldConfig == null)
+                {
+                    api.World.Logger.Warning("CarryOn: No world config found for CarryOn; using defaults");
+                    config = new CarryOnConfig();
+                }
+                else
+                {
+                    config = CarryOnConfig.FromTreeAttribute(carryOnWorldConfig);
+                }
             }
 
             ConfigService = new CarryOnConfigService(config);
