@@ -21,102 +21,164 @@ Minimal interface. Two implementers:
 | Implementer | File | Behavior |
 |---|---|---|
 | `CarrySystem` | `src/CarrySystem.cs:42` | Returns `ConfigService.Config` |
-| `CarryManager` | `src/Common/Services/CarryManager.cs:21` | Delegates to its stored `IConfigProvider` |
+| `CarryManager` | `src/Common/Services/CarryManager.cs:21` | Delegates to its stored `IConfigProvider` (`CarrySystem`) |
+
+### Config Access Pattern
+
+`ICarryManager` (in CarryOnLib) cannot expose `CarryOnConfig` directly —
+the config type is too volatile for the API library. Consumers that need
+config hold `ICarryManager` and cast to `IConfigProvider` once in their
+constructor:
+
+```csharp
+this.configProvider = (IConfigProvider)carryManager
+    ?? throw new ArgumentException("carryManager must implement IConfigProvider", ...);
+```
+
+This cast is safe: `CarryManager` is the only `ICarryManager` implementation
+and always implements both interfaces. The cast fires once per instance and
+has zero hot-path cost.
+
+**4 consumers use this pattern:**
+- `CarryHandler` (`src/Common/Handlers/CarryHandler.cs`)
+- `CarryInteractionValidator` (`src/Client/Logic/Interaction/`)
+- `CarryRenderCacheManager` (`src/Client/Logic/CarryRenderer/`)
+- `CarryRenderDispatcher` (`src/Client/Logic/CarryRenderer/`)
 
 ---
 
 ## 2. Initialization Sequence
 
-### 2a. Config File Loading (Server side only)
+### 2a. Server Startup (`StartPre`)
 
+```mermaid
+flowchart TD
+    disk["CarryOnConfig.json<br>&lt;VintagestoryData&gt;/ModConfig"]
+    load["ModConfig.Load(ICoreServerAPI)"]
+    upgrade["UpgradeVersion()"]
+    worldTree["World Config Tree<br>api.World.Config['carryon']"]
+    store["api.StoreModConfig()"]
+    configService["CarryOnConfigService(config)"]
+    clientSync["VS network syncs world tree<br>to connected clients"]
+
+    disk -->|LoadModConfig| load
+    load -->|null? use defaults| upgrade
+    upgrade --> configService
+    upgrade --> store
+    upgrade --> worldTree
+    worldTree --> clientSync
 ```
-CarrySystem.StartPre()
-  └─ ICoreServerAPI only:
-       new ModConfig().Load(api)
-         ├─ api.LoadModConfig<CarryOnConfig>("CarryOnConfig.json")
-         │    └─ reads from <VintagestoryData>/ModConfig/CarryOnConfig.json
-         ├─ if null ⇒ new CarryOnConfig(CurrentConfigVersion)  // defaults
-         ├─ UpgradeVersion()  // migrates v1→2→3→4
-         ├─ api.StoreModConfig(config, "CarryOnConfig.json")
-         └─ world config tree:
-              api.World.Config
-                .GetOrAddTreeAttribute("carryon")
-                .MergeTree(config.ToTreeAttribute())
+
+**`ModConfig.Load(ICoreServerAPI)`** returns `CarryOnConfig?`:
+
+```csharp
+// src/Server/Logic/ModConfig.cs
+public CarryOnConfig? Load(ICoreServerAPI api)
+{
+    var config = api.LoadModConfig<CarryOnConfig>(ConfigFile)
+                 ?? new CarryOnConfig(CurrentConfigVersion);
+    config.UpgradeVersion();
+    api.StoreModConfig(config, ConfigFile);
+    // write to world config tree (needed for client sync)
+    var worldTree = api.World.Config.GetOrAddTreeAttribute("carryon");
+    worldTree.MergeTree(config.ToTreeAttribute());
+    return config;   // caller uses this directly
+}
 ```
 
-`ModConfig.Load()` serializes the config into the world's `ITreeAttribute` storage.
-This is how the config survives world reloads and syncs to clients.
+### 2b. Client Startup (`StartPre`)
 
-### 2b. Config Deserialization (Both Sides)
+```mermaid
+flowchart TD
+    worldTree["World Config Tree<br>(synced by VS network layer)"]
+    fromTree["CarryOnConfig.FromTreeAttribute(tree)"]
+    defaults["new CarryOnConfig()"]
+    configService["CarryOnConfigService(config)"]
 
-After `ModConfig.Load()` has written the world config tree, `CarrySystem.StartPre()`
-reads it back:
-
-```
-CarrySystem.StartPre()
-  ├─ Api.Side == server:
-  │    ModConfig.Load(api)          // loads file → world config tree
-  │
-  ├─ Api.Side == client:
-  │    (world config tree already synced by VS network layer)
-  │
-  ├─ config = api.World.Config["carryon"] is ITreeAttribute tree
-  │    ? CarryOnConfig.FromTreeAttribute(tree)   // deserialize from tree
-  │    : new CarryOnConfig()                     // fallback defaults
-  │
-  └─ ConfigService = new CarryOnConfigService(config)
+    worldTree -->|tree exists| fromTree
+    worldTree -->|no tree| defaults
+    fromTree --> configService
+    defaults --> configService
 ```
 
 The **client** never reads `CarryOnConfig.json` from disk. It receives the config
-via the server's world config sync or via the `ConfigSyncMessage` network packet.
+via the server's world config sync (VS built-in) or via the `ConfigSyncMessage`
+network packet (for hot-reload).
 
-### 2c. Config Distribution
+### 2c. Server + Client Combined (`StartPre`)
 
-In `CarrySystem.Start()`:
+```csharp
+// src/CarrySystem.cs
+CarryOnConfig config;
 
+if (api is ICoreServerAPI sapi)
+{
+    config = new ModConfig().Load(sapi) ?? new CarryOnConfig();
+}
+else
+{
+    var tree = api.World.Config?.GetTreeAttribute(ModId);
+    config = tree != null
+        ? CarryOnConfig.FromTreeAttribute(tree)
+        : new CarryOnConfig();
+}
+
+ConfigService = new CarryOnConfigService(config);
 ```
-CarrySystem.Start()
-  ├─ CarryManager = new CarryManager(api, this, CarryEvents)
-  │    └─ this (CarrySystem) is passed as IConfigProvider
-  │    └─ CarryManager.Config ⇒ ConfigProvider.Config ⇒ CarrySystem.Config ⇒ ConfigService.Config
-  │
-  ├─ CarryHandler = new CarryHandler(carryManager, this.Config, ...)
-  │    └─ stores private copy of config (mutable, updated via UpdateConfig())
-  │
-  ├─ (client only) EntityCarryRenderer = new(api, carryManager, this.Config, ...)
-  │    └─ stores private copy, passes to CacheManager & Dispatcher
-  │
-  └─ WireConfigChangeHandlers()
-       └─ subscribes to ConfigService.OnConfigChanged
+
+**Key improvement over the old architecture:** The server no longer performs a
+redundant deserialization round-trip. `ModConfig.Load()` returns the loaded
+config directly. The world config tree is still written (for client sync), but
+the server doesn't read it back.
+
+### 2d. Distribution (`Start`)
+
+```mermaid
+flowchart TD
+    cfgService["CarryOnConfigService"]
+    cs["CarrySystem (IConfigProvider)<br>Config ⇒ ConfigService.Config"]
+    cm["CarryManager<br>(receives CarrySystem as IConfigProvider)"]
+    ch["CarryHandler<br>reads via configProvider.Config"]
+    er["EntityCarryRenderer<br>reads via child renderers"]
+    wired["WireConfigChangeHandlers()"]
+
+    cs -->|"new CarryManager(api, this, ...)"| cm
+    cs -->|"new CarryHandler(carryManager, ...)"| ch
+    cs -->|"new EntityCarryRenderer(api, carryManager, ...)"| er
+    cs --> wired
+
+    cm -.->|cast to IConfigProvider| ch
+    cm -.->|cast to IConfigProvider| er
 ```
+
+No consumer stores a private `CarryOnConfig` copy. All read live from
+`carryManager` via the cast-to-`IConfigProvider` pattern.
 
 ---
 
 ## 3. Config Consumer Chain
 
-```
-CarrySystem (IConfigProvider)
-  │
-  ├── Config property ⇒ ConfigService.Config
-  │
-  ├── AS IConfigProvider → CarryManager constructor
-  │    └── CarryManager.Config (delegates to IConfigProvider.Config)
-  │
-  ├── AS CarryOnConfig (value copy) → CarryHandler
-  │    └── → CarryInteractionController (via InitClient)
-  │         └── → CarryInteractionValidator
-  │              └── Invalidates parsed arrays (PreventSwapFromBackOnTarget)
-  │
-  ├── AS CarryOnConfig (value copy) → EntityCarryRenderer
-  │    └── → CarryRenderCacheManager
-  │    └── → CarryRenderDispatcher
-  │
-  └── AS CarryOnConfig (value copy) → BehavioralConditioning.Init(api, config)
-       └── One-shot at AssetsFinalize (not wired to reload)
+```mermaid
+flowchart LR
+    cs["CarrySystem<br>(IConfigProvider)"]
+    cs -->|Config| csc["ConfigService.Config"]
+    cs -->|as IConfigProvider| cm["CarryManager.Config"]
+    cm -->|cast to IConfigProvider| ch["CarryHandler"]
+    cm -->|cast to IConfigProvider| cv["CarryInteractionValidator"]
+    cm -->|cast to IConfigProvider| rcm["CarryRenderCacheManager"]
+    cm -->|cast to IConfigProvider| rd["CarryRenderDispatcher"]
+    cs -->|direct| bc["BehavioralConditioning<br>(one-shot, not wired to reload)"]
+    cs -->|direct| ecb["EntityCarriedBlock.Config<br>(static, pushed on change)"]
 ```
 
-Every consumer stores a **private mutable field** for config, then relies on
-`UpdateConfig()` to receive new instances on change.
+| Consumer | Access Path | Reacts to Change? |
+|---|---|---|
+| `CarryHandler` | `configProvider.Config.X` | Yes — relays to `RefreshConfigCache()` |
+| `CarryInteractionValidator` | `configProvider.Config.X` | Yes — re-parses `PreventSwapFromBackOnTarget` |
+| `CarryRenderCacheManager` | `configProvider.Config.X` | No — reads live each render tick |
+| `CarryRenderDispatcher` | `configProvider.Config.X` | No — reads live each render tick |
+| `EntityCarriedBlock` (static) | Pushed via subscriber | Yes — `Config = Config.CarriedBlockEntity` |
+| `BehavioralConditioning` | Direct `CarryOnConfig` param | No — one-shot at `AssetsFinalize` |
 
 ---
 
@@ -136,17 +198,20 @@ Every consumer stores a **private mutable field** for config, then relies on
 `CarryOnConfigService.SetupFileWatcher(ICoreServerAPI)` creates a
 `FileSystemWatcher` on `<VintagestoryData>/ModConfig/CarryOnConfig.json`:
 
-```
-FileSystemWatcher.Changed / .Created
-  └─ OnConfigFileChanged()
-       ├─ debounce 500ms (prevents double-fire)
-       ├─ Thread.Sleep(100)  (let file IO settle)
-       └─ api.Event.EnqueueMainThreadTask(ReloadFromFile)
-            ├─ api.LoadModConfig<CarryOnConfig>(ConfigFile)
-            ├─ reloaded.UpgradeVersion()
-            └─ Replace(reloaded)
-                 ├─ Config = newConfig
-                 └─ OnConfigChanged?.Invoke(newConfig)
+```mermaid
+flowchart TD
+    fs["FileSystemWatcher<br>.Changed / .Created"]
+    debounce["Debounce 500ms<br>Thread.Sleep(100)"]
+    mainThread["EnqueueMainThreadTask<br>(ReloadFromFile)"]
+    load["api.LoadModConfig<br>&lt;CarryOnConfig&gt;"]
+    upgrade["UpgradeVersion()"]
+    replace["Replace(reloaded)<br>Config = newConfig<br>OnConfigChanged?.Invoke(newConfig)"]
+
+    fs --> debounce
+    debounce --> mainThread
+    mainThread --> load
+    load --> upgrade
+    upgrade --> replace
 ```
 
 Disabled when `DebuggingOptions.DisableConfigWatcher` is `true`.
@@ -171,113 +236,108 @@ All in `CarrySystem.Start()`:
 | Order | Subscriber | Effect |
 |---|---|---|
 | 1 | `Config.InvalidateBackpackCache()` | Clears lazy-parsed `BackpackMapping` dictionary |
-| 2 | `CarryHandler?.UpdateConfig(cfg)` | Updates private config; forwards to `InteractionController` → `Validator` → `InvalidateConfigCache()` (re-parses `PreventSwapFromBackOnTarget` filters) |
-| 3 | `EntityCarryRenderer?.UpdateConfig(cfg)` | Updates private config; forwards to `CacheManager.UpdateConfig()`, `Dispatcher.UpdateConfig()` |
-| 4 | `EntityCarriedBlock.Config = Config.CarriedBlockEntity` | Carried block entity behavior settings |
-| 5 | (server) persist to world config + disk | `ServerApi.StoreModConfig(Config, ConfigFile)` |
-| 6 | (server) broadcast to clients | `ServerChannel.BroadcastPacket(new ConfigSyncMessage(json))` |
+| 2 | `CarryHandler?.RefreshConfigCache()` | Forwards to `InteractionController` → `Validator` → re-parses `PreventSwapFromBackOnTarget` filters |
+| 3 | `EntityCarriedBlock.Config = Config.CarriedBlockEntity` | Carried block entity behavior settings |
+| 4 | (server) persist to world config + disk | `ServerApi.StoreModConfig(Config, ConfigFile)` |
+| 5 | (server) broadcast to clients | `ServerChannel.BroadcastPacket(new ConfigSyncMessage(json))` |
+
+No more forwarding to 6+ individual `UpdateConfig()` methods. Consumers
+read config live from `carryManager` — they don't need to be pushed a copy.
 
 ### 4e. Network Sync
 
-```
-Server (OnConfigChanged):
-  ├─ json = JsonConvert.SerializeObject(Config)
-  └─ ServerChannel.BroadcastPacket(new ConfigSyncMessage(json))
-
-Client (CarrySystem.OnClientConfigSync):
-  ├─ var reloaded = JsonConvert.DeserializeObject<CarryOnConfig>(message.ConfigJson)
-  ├─ reloaded.UpgradeVersion()
-  └─ ConfigService.Replace(reloaded)
-       └─ fires OnConfigChanged (subscribers 1-4 above run client-side)
+```mermaid
+sequenceDiagram
+    participant Server
+    participant Clients
+    Server->>Server: ConfigService.Replace(newConfig)
+    Server->>Server: OnConfigChanged fired
+    Server->>Server: JsonConvert.SerializeObject(Config)
+    Server->>Clients: BroadcastPacket(ConfigSyncMessage(json))
+    Clients->>Clients: OnClientConfigSync(message)
+    Clients->>Clients: Deserialize + UpgradeVersion
+    Clients->>Clients: ConfigService.Replace(reloaded)
+    Clients->>Clients: OnConfigChanged fired (client subscribers)
 ```
 
 ---
 
-## 5. Flow Diagram
+## 5. Full Flow Diagram
 
-```
-                          ┌──────────────────────────────┐
-                          │       CarryOnConfig.json      │
-                          │  <VintagestoryData>/ModConfig │
-                          └──────────────┬───────────────┘
-                                         │
-                          ┌──────────────▼───────────────┐
-                          │  ModConfig.Load(api)         │
-                          │  (server StartPre)           │
-                          │  • LoadModConfig             │
-                          │  • UpgradeVersion            │
-                          │  • StoreModConfig            │
-                          │  • worldConfig.MergeTree()   │
-                          └──────────────┬───────────────┘
-                                         │ (via world config ITreeAttribute)
-                          ┌──────────────▼───────────────┐
-                          │  CarryOnConfig.FromTreeAttr()│
-                          │  (both sides, StartPre)      │
-                          └──────────────┬───────────────┘
-                                         │
-                          ┌──────────────▼───────────────┐
-                          │  CarryOnConfigService(config) │
-                          │  • Config property            │
-                          │  • OnConfigChanged event      │
-                          │  • Replace() / Reload()       │
-                          │  • SetupFileWatcher()         │
-                          └──────┬───────────────────────┘
-                                 │
-                    ┌────────────┼────────────────────────────┐
-                    │            │                            │
-         ┌──────────▼────┐ ┌────▼──────────┐     ┌───────────▼──────────┐
-         │  CarrySystem   │ │ CarryHandler  │     │ EntityCarryRenderer  │
-         │  (IConfigPro-  │ │ (private copy)│     │ (private copy)       │
-         │   vider)       │ │              │     │                      │
-         │  Config ⇒      │ │ UpdateConfig │     │ UpdateConfig         │
-         │  ConfigService │ │   ↓           │     │   ↓                  │
-         │                │ │ Interaction   │     ├─ CacheManager        │
-         │  Passed as     │ │ Controller    │     └─ Dispatcher         │
-         │  IConfigProv.  │ │   ↓           │                          │
-         │  → CarryManager│ │ Validator     │                          │
-         └────────────────┘ └──────────────┘     └──────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Startup["Startup Sequence"]
+        disk["CarryOnConfig.json"]
+        sapi["ICoreServerAPI"]
+        modcfg["ModConfig.Load(sapi)"]
+        upgrade["UpgradeVersion()"]
+        worldtree["World Config Tree"]
+        store["StoreModConfig"]
+        csc["CarryOnConfigService(config)"]
+    end
 
-                     HOT RELOAD FLOW (server):
+    subgraph Distribution["Config Distribution"]
+        cs["CarrySystem<br>(IConfigProvider)"]
+        cm["CarryManager<br>(delegates to IConfigProvider)"]
+        ch["CarryHandler<br>(reads via IConfigProvider cast)"]
+        cv["Validator<br>(reads via IConfigProvider cast)"]
+        rcm["CacheManager<br>(reads via IConfigProvider cast)"]
+        rd["Dispatcher<br>(reads via IConfigProvider cast)"]
+        ecb["EntityCarriedBlock.Config<br>(static push)"]
+    end
 
-  Disk change ──► FileWatcher ──► ReloadFromFile()
-                                    │
-                                    ▼
-  /carryon reload ─────────────► Reload() ──► Replace(newConfig)
-                                    │
-                                    ▼
-                            OnConfigChanged
-                                    │
-              ┌─────────────────────┼──────────────────────┐
-              ▼                     ▼                      ▼
-      InvalidateBackpack     Update Consumers        Broadcast to
-              │              (Handler, Renderer,     Clients via
-              │               EntityCarriedBlock)    ConfigSyncMessage
-              │                                         │
-              ▼                                         ▼
-      BackpackMapping                              Client Dispatches
-      recalculated on                              OnClientConfigSync
-      next access                                         │
-                                                          ▼
-                                                   ConfigService.Replace()
-                                                          │
-                                                          ▼
-                                                   OnConfigChanged
-                                                   (client-side subscribers)
+    subgraph HotReload["Hot Reload"]
+        fw["FileSystemWatcher"]
+        reload["ReloadFromFile()"]
+        replace["Replace(newConfig)"]
+        evt["OnConfigChanged"]
+        inv_bp["InvalidateBackpackCache"]
+        inv_v["RefreshConfigCache"]
+        push_ecb["EntityCarriedBlock.Config = ..."]
+        persist["Persist world tree + disk"]
+        broadcast["Broadcast ConfigSyncMessage"]
+    end
+
+    disk --> modcfg
+    sapi --> modcfg
+    modcfg --> upgrade
+    upgrade --> worldtree
+    upgrade --> store
+    upgrade --> csc
+
+    csc --> cs
+    cs --> cm
+    cm --> ch
+    cm --> cv
+    cm --> rcm
+    cm --> rd
+    cs --> ecb
+
+    fw --> reload --> replace --> evt
+    evt --> inv_bp
+    evt --> inv_v
+    evt --> push_ecb
+    evt --> persist
+    evt --> broadcast
 ```
 
 ---
 
 ## 6. Key Design Points
 
-- **ConfigService is the single source of truth.** `CarrySystem.Config` delegates
+- **`ConfigService` is the single source of truth.** `CarrySystem.Config` delegates
   to it. `CarryManager.Config` delegates through `CarrySystem` via `IConfigProvider`.
-- **Private mutable copies.** Most consumers take a config snapshot at construction
-  and rely on `UpdateConfig()` for hot-reload. This avoids coupling to the service
-  lifecycle and makes testing simpler.
+- **No private copies.** All consumers read config live from `carryManager` via the
+  `IConfigProvider` cast. `UpdateConfig()` no longer exists.
 - **Server-authoritative.** Only the server can trigger hot-reload from disk.
   Clients receive the config as a serialized JSON message.
-- **Two serializations at startup.** `ModConfig.Load()` writes POCO → `ITreeAttribute`
-  (world config), then `StartPre()` reads `ITreeAttribute` → POCO. This ensures
-  the config is always consistent with world storage.
+- **One serialization at startup.** `ModConfig.Load()` returns the loaded config
+  directly. The server no longer reads it back from the world config tree. The
+  world tree is still written (for client sync), but only the client deserializes
+  from it.
 - **`BehavioralConditioning` is NOT wired to hot-reload.** It runs once at
   `AssetsFinalize`. Carryables, interactables, and filter changes require restart.
+- **The cast pattern is a deliberate trade-off.** `ICarryManager` (CarryOnLib)
+  can't reference the volatile `CarryOnConfig` type. The runtime cast to
+  `IConfigProvider` is safe (`CarryManager` always implements both) and has
+  zero hot-path cost. Four consumers use it.
