@@ -255,10 +255,16 @@ sequenceDiagram
     Server->>Server: JsonConvert.SerializeObject(Config)
     Server->>Clients: BroadcastPacket(ConfigSyncMessage(json))
     Clients->>Clients: OnClientConfigSync(message)
-    Clients->>Clients: Deserialize + UpgradeVersion
+    Clients->>Clients: Deserialize + UpgradeVersion (*)
     Clients->>Clients: ConfigService.Replace(reloaded)
     Clients->>Clients: OnConfigChanged fired (client subscribers)
 ```
+
+> **(\*) `UpgradeVersion()` is a no-op on this path.** The server always
+> serializes its already-upgraded config (current version 4). The client
+> calls `UpgradeVersion` only because it uses the same `CarryOnConfig`
+> deserialization code path as the server — a defensive guard in case the
+> source is an older server or corrupt data.
 
 ---
 
