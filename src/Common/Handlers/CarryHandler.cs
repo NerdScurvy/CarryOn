@@ -16,6 +16,7 @@ using CarryOn.Common.Logic;
 using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
 using CarryOn.Client.Logic.Interaction;
+using CarryOn.Common.Interfaces;
 using CarryOn.Client.Models;
 using CarryOn.Common.Entities;
 using static CarryOn.Common.Models.CarryCode;
@@ -47,16 +48,16 @@ namespace CarryOn.Common.Handlers
 
         private long gameTickListenerId;
 
-        private CarryOnConfig config;
         private readonly Func<bool> getIsCarryOnEnabled;
 
         private readonly ICarryManager carryManager;
+        private readonly IConfigProvider configProvider;
 
         public bool IsCarryOnEnabled => this.getIsCarryOnEnabled();
 
         private bool lastCanInteractState = true;
 
-        public bool BackSlotEnabled => this.config.CarryOptions?.BackSlotEnabled ?? false;
+        public bool BackSlotEnabled => configProvider.Config.CarryOptions?.BackSlotEnabled ?? false;
 
         private ICoreAPI? api;
 
@@ -77,7 +78,7 @@ namespace CarryOn.Common.Handlers
 
         private bool CanSprintWhileCarrying(EntityPlayer player)
         {
-            var cfg = this.config?.CarryWalkSpeed;
+            var cfg = this.configProvider.Config.CarryWalkSpeed;
             if (cfg == null) return true;
 
             var handsCarried = this.carryManager.GetCarried(player, CarrySlot.Hands);
@@ -103,30 +104,22 @@ namespace CarryOn.Common.Handlers
             this.interactionLogic.HudHelp = hudHelp;
         }
 
-        public void InvalidateConfigCache()
+        public void RefreshConfigCache()
         {
-            interactionLogic?.InvalidateConfigCache();
-        }
-
-        public void UpdateConfig(CarryOnConfig newConfig)
-        {
-            this.config = newConfig;
-            interactionLogic?.UpdateConfig(newConfig);
+            interactionLogic?.RefreshConfigCache();
         }
 
         /// <summary>
         /// Initializes a new instance of the CarryHandler class.
         /// </summary>
-        /// <param name="config"> The CarryOn configuration. </param>
         /// <param name="isCarryOnEnabled"> Function returning the current CarryOn enabled state (client-side). </param>
-        public CarryHandler(ICarryManager carryManager, CarryOnConfig config, Func<bool> isCarryOnEnabled)
+        public CarryHandler(ICarryManager carryManager, Func<bool> isCarryOnEnabled)
         {
             ArgumentNullException.ThrowIfNull(carryManager);
-            ArgumentNullException.ThrowIfNull(config);
             ArgumentNullException.ThrowIfNull(isCarryOnEnabled);
             
             this.carryManager = carryManager;
-            this.config = config;
+            this.configProvider = (IConfigProvider)carryManager ?? throw new ArgumentException("carryManager must implement IConfigProvider", nameof(carryManager));
             this.getIsCarryOnEnabled = isCarryOnEnabled;
         }
 
@@ -157,7 +150,7 @@ namespace CarryOn.Common.Handlers
             ArgumentNullException.ThrowIfNull(hideOverlay);
             ArgumentNullException.ThrowIfNull(setOverlayProgress);
 
-            this.interactionLogic = new CarryInteractionController(ClientApi, this.carryManager, clientChannel, this.config, hideOverlay, setOverlayProgress, clientModConfig);
+            this.interactionLogic = new CarryInteractionController(ClientApi, this.carryManager, clientChannel, hideOverlay, setOverlayProgress, clientModConfig);
 
             RegisterCarryMessageTypes(clientChannel)
                 .SetMessageHandler<LockSlotsMessage>(OnLockSlotsMessage);
@@ -608,7 +601,7 @@ namespace CarryOn.Common.Handlers
 
         private bool CanPickupFromEntity(IServerPlayer player, EntityCarriedBlock entity)
         {
-            var cfg = this.config.CarriedBlockEntity;
+            var cfg = this.configProvider.Config.CarriedBlockEntity;
             if (cfg == null) return true;
 
             if (!CarriedBlockAccessPolicy.CanPickup(

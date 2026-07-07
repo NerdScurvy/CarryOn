@@ -4,6 +4,7 @@ using System.Linq;
 using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
 using CarryOn.Common.Models;
+using CarryOn.Common.Interfaces;
 using CarryOn.Client.Models;
 using CarryOn.Utility;
 using Vintagestory.API.Client;
@@ -18,27 +19,22 @@ namespace CarryOn.Client.Logic.CarryRenderer
     {
         private readonly ICoreClientAPI api;
         private readonly ICarryManager carryManager;
-        private CarryOnConfig config;
+        private readonly IConfigProvider configProvider;
         private readonly CarryRenderCacheManager cacheManager;
         private readonly CarryFirstPersonRenderer firstPersonRenderer;
         private readonly CarriedLabelRenderer labelRenderer;
         private readonly bool renderAttachedBlocks;
 
-        public CarryRenderDispatcher(ICoreClientAPI api, ICarryManager carryManager, CarryOnConfig config, CarryRenderCacheManager cacheManager, CarryFirstPersonRenderer firstPersonRenderer, CarriedLabelRenderer labelRenderer, bool renderAttachedBlocks = true)
+        public CarryRenderDispatcher(ICoreClientAPI api, ICarryManager carryManager, CarryRenderCacheManager cacheManager, CarryFirstPersonRenderer firstPersonRenderer, CarriedLabelRenderer labelRenderer, bool renderAttachedBlocks = true)
         {
             this.api = api ?? throw new ArgumentNullException(nameof(api));
             this.carryManager = carryManager ?? throw new ArgumentNullException(nameof(carryManager));
-            this.config = config ?? throw new ArgumentNullException(nameof(config));
+            this.configProvider = (IConfigProvider)carryManager ?? throw new ArgumentException("carryManager must implement IConfigProvider", nameof(carryManager));
             this.cacheManager = cacheManager ?? throw new ArgumentNullException(nameof(cacheManager));
             this.firstPersonRenderer = firstPersonRenderer ?? throw new ArgumentNullException(nameof(firstPersonRenderer));
             this.labelRenderer = labelRenderer ?? throw new ArgumentNullException(nameof(labelRenderer));
             this.renderAttachedBlocks = renderAttachedBlocks;
             this.RenderAttachedBlocks = renderAttachedBlocks;
-        }
-
-        public void UpdateConfig(CarryOnConfig newConfig)
-        {
-            this.config = newConfig;
         }
 
         private const float FirstPersonVerticalOffset = -0.05F;
@@ -156,7 +152,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
             }
             var viewMat = cachedViewMat;
 
-            string transformGroupName = entity.ResolveCarryTransformGroupBase(config, carried.Slot);
+            string transformGroupName = entity.ResolveCarryTransformGroupBase(configProvider.Config, carried.Slot);
 
             var renderSettings = RenderSettings?[carried.Slot]?[transformGroupName];
             if (renderSettings == null) return;

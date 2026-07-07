@@ -6,6 +6,7 @@ using CarryOn.Common.Models;
 using CarryOn.Common.Behaviors;
 using CarryOn.Common.Logic;
 using CarryOn.Common.Entities;
+using CarryOn.Common.Interfaces;
 using CarryOn.Utility;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
@@ -18,68 +19,36 @@ namespace CarryOn.Client.Logic.Interaction
     {
         private readonly ICoreClientAPI api;
         private readonly ICarryManager carryManager;
-        private CarryOnConfig config;
+        private readonly IConfigProvider configProvider;
         private readonly TransferLogic transferLogic;
         private readonly ICarryInteractionController controller;
 
-        private Type[] preventSwapFromBackOnBehaviors;
-        private string[] preventSwapFromBackOnClasses;
-        private string[] preventSwapFromBackOnCodes;
+        private Type[] preventSwapFromBackOnBehaviors = [];
+        private string[] preventSwapFromBackOnClasses = [];
+        private string[] preventSwapFromBackOnCodes = [];
 
-        public bool RemoveInteractDelayWhileCarrying => this.config?.CarryOptions?.RemoveInteractDelayWhileCarrying ?? false;
-        public bool BackSlotEnabled => this.config?.CarryOptions?.BackSlotEnabled ?? false;
-        public float InteractSpeedMultiplier => this.config?.CarryOptions?.InteractSpeedMultiplier ?? 1.0f;
+        public bool RemoveInteractDelayWhileCarrying => configProvider.Config.CarryOptions?.RemoveInteractDelayWhileCarrying ?? false;
+        public bool BackSlotEnabled => configProvider.Config.CarryOptions?.BackSlotEnabled ?? false;
+        public float InteractSpeedMultiplier => configProvider.Config.CarryOptions?.InteractSpeedMultiplier ?? 1.0f;
 
         public CarryInteractionValidator(
             ICoreClientAPI api,
             ICarryManager carryManager,
-            CarryOnConfig config,
             TransferLogic transferLogic,
             ICarryInteractionController controller)
         {
             this.api = api ?? throw new ArgumentNullException(nameof(api));
             this.carryManager = carryManager ?? throw new ArgumentNullException(nameof(carryManager));
-            this.config = config ?? throw new ArgumentNullException(nameof(config));
+            this.configProvider = (IConfigProvider)carryManager ?? throw new ArgumentException("carryManager must implement IConfigProvider", nameof(carryManager));
             this.transferLogic = transferLogic ?? throw new ArgumentNullException(nameof(transferLogic));
             this.controller = controller ?? throw new ArgumentNullException(nameof(controller));
 
-            const string behaviorPrefix = "behavior::";
-            const string classPrefix = "class::";
-            const string codePrefix = "code::";
-
-            if (config != null)
-            {
-                var entries = config?.CarryOptions?.PreventSwapFromBackOnTarget ?? Array.Empty<string>();
-
-                preventSwapFromBackOnBehaviors = entries
-                    .Where(x => x.StartsWith(behaviorPrefix))
-                    .Select(x => api.ClassRegistry.GetBlockBehaviorClass(x.Substring(behaviorPrefix.Length)))
-                    .Where(x => x != null)
-                    .ToArray();
-
-                preventSwapFromBackOnClasses = entries
-                    .Where(x => x.StartsWith(classPrefix))
-                    .Select(x => x.Substring(classPrefix.Length))
-                    .Where(x => !string.IsNullOrWhiteSpace(x))
-                    .ToArray();
-
-                preventSwapFromBackOnCodes = entries
-                    .Where(x => x.StartsWith(codePrefix))
-                    .Select(x => x.Substring(codePrefix.Length))
-                    .Where(x => !string.IsNullOrWhiteSpace(x))
-                    .ToArray();
-            }
-            else
-            {
-                preventSwapFromBackOnBehaviors = [];
-                preventSwapFromBackOnClasses = [];
-                preventSwapFromBackOnCodes = [];
-            }
+            RefreshConfigCache();
         }
 
-        public void InvalidateConfigCache()
+        public void RefreshConfigCache()
         {
-            var entries = config?.CarryOptions?.PreventSwapFromBackOnTarget ?? Array.Empty<string>();
+            var entries = configProvider.Config?.CarryOptions?.PreventSwapFromBackOnTarget ?? Array.Empty<string>();
             const string behaviorPrefix = "behavior::";
             const string classPrefix = "class::";
             const string codePrefix = "code::";
@@ -101,12 +70,6 @@ namespace CarryOn.Client.Logic.Interaction
                 .Select(x => x.Substring(codePrefix.Length))
                 .Where(x => !string.IsNullOrWhiteSpace(x))
                 .ToArray();
-        }
-
-        public void UpdateConfig(CarryOnConfig newConfig)
-        {
-            this.config = newConfig;
-            InvalidateConfigCache();
         }
 
         public void TryBeginInteraction(bool isInteracting, ref EnumHandling handled)
@@ -225,7 +188,7 @@ namespace CarryOn.Client.Logic.Interaction
             var entitySelection = this.api.World.Player.CurrentEntitySelection;
             if (entitySelection?.Entity is not EntityCarriedBlock carriedBlockEntity) return false;
 
-            var cfg = this.config.CarriedBlockEntity;
+            var cfg = configProvider.Config.CarriedBlockEntity;
             if (cfg != null)
             {
                 var canPickup = CarriedBlockAccessPolicy.CanPickup(
@@ -257,7 +220,7 @@ namespace CarryOn.Client.Logic.Interaction
             var carriedHands = carryManager.GetCarried(player.Entity, CarrySlot.Hands);
             var carriedBack = carryManager.GetCarried(player.Entity, CarrySlot.Back);
 
-            var backSlotEnabled = this.config?.CarryOptions?.BackSlotEnabled ?? false;
+            var backSlotEnabled = configProvider.Config.CarryOptions?.BackSlotEnabled ?? false;
             if (carriedHands != null && !backSlotEnabled) return false;
 
             if (!player.Entity.CanInteract(requireEmptyHanded: true))
