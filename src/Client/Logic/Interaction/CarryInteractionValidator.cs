@@ -39,7 +39,7 @@ namespace CarryOn.Client.Logic.Interaction
         {
             this.api = api ?? throw new ArgumentNullException(nameof(api));
             this.carryManager = carryManager ?? throw new ArgumentNullException(nameof(carryManager));
-            this.configProvider = (IConfigProvider)carryManager ?? throw new ArgumentException("carryManager must implement IConfigProvider", nameof(carryManager));
+            this.configProvider = carryManager as IConfigProvider ?? throw new ArgumentException("carryManager must implement IConfigProvider", nameof(carryManager));
             this.transferLogic = transferLogic ?? throw new ArgumentNullException(nameof(transferLogic));
             this.controller = controller ?? throw new ArgumentNullException(nameof(controller));
 

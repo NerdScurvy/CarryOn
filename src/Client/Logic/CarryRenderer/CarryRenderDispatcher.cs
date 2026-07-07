@@ -29,7 +29,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
         {
             this.api = api ?? throw new ArgumentNullException(nameof(api));
             this.carryManager = carryManager ?? throw new ArgumentNullException(nameof(carryManager));
-            this.configProvider = (IConfigProvider)carryManager ?? throw new ArgumentException("carryManager must implement IConfigProvider", nameof(carryManager));
+            this.configProvider = carryManager as IConfigProvider ?? throw new ArgumentException("carryManager must implement IConfigProvider", nameof(carryManager));
             this.cacheManager = cacheManager ?? throw new ArgumentNullException(nameof(cacheManager));
             this.firstPersonRenderer = firstPersonRenderer ?? throw new ArgumentNullException(nameof(firstPersonRenderer));
             this.labelRenderer = labelRenderer ?? throw new ArgumentNullException(nameof(labelRenderer));

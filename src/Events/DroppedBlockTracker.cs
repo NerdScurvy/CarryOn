@@ -22,7 +22,7 @@ namespace CarryOn.Events
         {
             ArgumentNullException.ThrowIfNull(carryManager);
             this.carryManager = carryManager;
-            this.configProvider = (IConfigProvider)carryManager ?? throw new ArgumentException("carryManager must implement IConfigProvider", nameof(carryManager));
+            this.configProvider = carryManager as IConfigProvider ?? throw new ArgumentException("carryManager must implement IConfigProvider", nameof(carryManager));
 
             if (configProvider.Config.CarryOptions?.TrackDroppedBlocks != true)
                 return;

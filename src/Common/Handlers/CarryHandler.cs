@@ -119,7 +119,7 @@ namespace CarryOn.Common.Handlers
             ArgumentNullException.ThrowIfNull(isCarryOnEnabled);
             
             this.carryManager = carryManager;
-            this.configProvider = (IConfigProvider)carryManager ?? throw new ArgumentException("carryManager must implement IConfigProvider", nameof(carryManager));
+            this.configProvider = carryManager as IConfigProvider ?? throw new ArgumentException("carryManager must implement IConfigProvider", nameof(carryManager));
             this.getIsCarryOnEnabled = isCarryOnEnabled;
         }
 

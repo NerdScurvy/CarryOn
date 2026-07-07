@@ -19,7 +19,7 @@ namespace CarryOn.Common.Logic
         public static void Init(ICarryManager manager)
         {
             carryManager = manager ?? throw new ArgumentNullException(nameof(manager));
-            configProvider = (IConfigProvider)manager ?? throw new ArgumentException("manager must implement IConfigProvider", nameof(manager));
+            configProvider = manager as IConfigProvider ?? throw new ArgumentException("manager must implement IConfigProvider", nameof(manager));
         }
 
         private static ItemStack[]? handsfreeStacks;

@@ -135,7 +135,7 @@ namespace CarryOn.Common.Services
                 return;
             }
 
-            // Cluster placement failed -drop parent plus all children as items
+            // Cluster placement failed - drop parent plus all children as items
             var world = api.World;
             var dropVec3d = new Vec3d(centerBlock.X + 0.5, centerBlock.Y + 0.5, centerBlock.Z + 0.5);
 

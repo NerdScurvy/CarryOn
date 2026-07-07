@@ -31,7 +31,7 @@ config hold `ICarryManager` and cast to `IConfigProvider` once in their
 constructor:
 
 ```csharp
-this.configProvider = (IConfigProvider)carryManager
+this.configProvider = carryManager as IConfigProvider
     ?? throw new ArgumentException("carryManager must implement IConfigProvider", ...);
 ```
 
@@ -39,11 +39,14 @@ This cast is safe: `CarryManager` is the only `ICarryManager` implementation
 and always implements both interfaces. The cast fires once per instance and
 has zero hot-path cost.
 
-**4 consumers use this pattern:**
+**7 consumers use this pattern:**
 - `CarryHandler` (`src/Common/Handlers/CarryHandler.cs`)
 - `CarryInteractionValidator` (`src/Client/Logic/Interaction/`)
 - `CarryRenderCacheManager` (`src/Client/Logic/CarryRenderer/`)
 - `CarryRenderDispatcher` (`src/Client/Logic/CarryRenderer/`)
+- `TooHotToPickup` (`src/Events/TooHotToPickup.cs`)
+- `DroppedBlockTracker` (`src/Events/DroppedBlockTracker.cs`)
+- `CarryableInteractionHelpBuilder` (`src/Common/Logic/CarryableInteractionHelpBuilder.cs`)
 
 ---
 
@@ -54,7 +57,7 @@ has zero hot-path cost.
 ```mermaid
 flowchart TD
     disk["CarryOnConfig.json<br>&lt;VintagestoryData&gt;/ModConfig"]
-    load["ModConfig.Load(ICoreServerAPI)"]
+    load["ModConfig.Load(ICoreAPI)"]
     upgrade["UpgradeVersion()"]
     worldTree["World Config Tree<br>api.World.Config['carryon']"]
     store["api.StoreModConfig()"]
@@ -69,11 +72,11 @@ flowchart TD
     worldTree --> clientSync
 ```
 
-**`ModConfig.Load(ICoreServerAPI)`** returns `CarryOnConfig?`:
+**`ModConfig.Load(ICoreAPI)`** returns `CarryOnConfig?`:
 
 ```csharp
 // src/Server/Logic/ModConfig.cs
-public CarryOnConfig? Load(ICoreServerAPI api)
+public CarryOnConfig? Load(ICoreAPI api)
 {
     var config = api.LoadModConfig<CarryOnConfig>(ConfigFile)
                  ?? new CarryOnConfig(CurrentConfigVersion);

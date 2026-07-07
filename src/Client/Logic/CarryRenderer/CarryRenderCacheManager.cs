@@ -26,7 +26,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
         {
             this.api = api ?? throw new ArgumentNullException(nameof(api));
             this.carryManager = carryManager ?? throw new ArgumentNullException(nameof(carryManager));
-            this.configProvider = (IConfigProvider)carryManager ?? throw new ArgumentException("carryManager must implement IConfigProvider", nameof(carryManager));
+            this.configProvider = carryManager as IConfigProvider ?? throw new ArgumentException("carryManager must implement IConfigProvider", nameof(carryManager));
             this.planBuilder = planBuilder ?? throw new ArgumentNullException(nameof(planBuilder));
             this.infoBuilder = infoBuilder ?? throw new ArgumentNullException(nameof(infoBuilder));
             this.cache = cache ?? throw new ArgumentNullException(nameof(cache));
