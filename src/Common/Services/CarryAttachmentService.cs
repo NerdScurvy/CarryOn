@@ -10,7 +10,7 @@ using Vintagestory.API.Common.Entities;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.Server;
 using Vintagestory.GameContent;
-using static CarryOn.Common.Models.CarryCode;
+using static CarryOn.Common.Models.CarryCodes;
 
 namespace CarryOn.Common.Services
 {
@@ -28,7 +28,7 @@ namespace CarryOn.Common.Services
         /// <returns>True when attach succeeds; otherwise false.</returns>
         public bool TryAttach(IServerPlayer player, long targetEntityId, int slotIndex, bool playSound = true)
         {
-            string failureCode = FailureCode.Ignore;
+            string failureCode = FailureCodes.Ignore;
             return TryAttach(player, targetEntityId, slotIndex, ref failureCode, playSound);
         }
 
@@ -45,7 +45,7 @@ namespace CarryOn.Common.Services
         {
             if (slotIndex < 0)
             {
-                failureCode = FailureCode.SlotNotFound;
+                failureCode = FailureCodes.SlotNotFound;
                 return false;
             }
 
@@ -62,7 +62,7 @@ namespace CarryOn.Common.Services
             var blockEntityData = carriedBlock.BlockEntityData;
             if (blockEntityData == null)
             {
-                failureCode = FailureCode.SlotDataMissing;
+                failureCode = FailureCodes.SlotDataMissing;
                 return false;
             }
 
@@ -79,7 +79,7 @@ namespace CarryOn.Common.Services
 
             if (targetSlot == null || !targetSlot.Empty || isOccupied)
             {
-                failureCode = FailureCode.SlotNotEmpty;
+                failureCode = FailureCodes.SlotNotEmpty;
                 return false;
             }
 
@@ -87,7 +87,7 @@ namespace CarryOn.Common.Services
             sourceItemSlot.Itemstack = carriedBlock.ItemStack.Clone();
             if (sourceItemSlot.Itemstack?.Attributes is not TreeAttribute attr)
             {
-                failureCode = FailureCode.SlotDataMissing;
+                failureCode = FailureCodes.SlotDataMissing;
                 return false;
             }
 
@@ -101,34 +101,34 @@ namespace CarryOn.Common.Services
 
             if (!targetSlot.CanTakeFrom(sourceItemSlot))
             {
-                failureCode = FailureCode.SlotIncompatibleBlock;
+                failureCode = FailureCodes.SlotIncompatibleBlock;
                 return false;
             }
 
             if (carriedBlock.HasAttachedBlocks)
             {
-                failureCode = FailureCode.BlockHasAttachedBlocks;
+                failureCode = FailureCodes.BlockHasAttachedBlocks;
                 return false;
             }
 
             var carryableBehavior = sourceItemSlot.Itemstack.Block.GetBehavior<BlockBehaviorCarryable>();
             if (carryableBehavior?.PreventAttaching ?? false)
             {
-                failureCode = FailureCode.SlotPreventAttaching;
+                failureCode = FailureCodes.SlotPreventAttaching;
                 return false;
             }
 
             var iai = sourceItemSlot.Itemstack.Collectible.GetCollectibleInterface<IAttachedInteractions>();
             if (iai?.OnTryAttach(sourceItemSlot, slotIndex, targetEntity) == false)
             {
-                failureCode = FailureCode.AttachUnavailable;
+                failureCode = FailureCodes.AttachUnavailable;
                 return false;
             }
 
             var moved = sourceItemSlot.TryPutInto(targetEntity.World, targetSlot) > 0;
             if (!moved)
             {
-                failureCode = FailureCode.AttachFailed;
+                failureCode = FailureCodes.AttachFailed;
                 return false;
             }
 
@@ -157,7 +157,7 @@ namespace CarryOn.Common.Services
         /// <returns>True when detach succeeds; otherwise false.</returns>
         public bool TryDetach(IServerPlayer player, long targetEntityId, int slotIndex, bool playSound = true)
         {
-            string failureCode = FailureCode.Ignore;
+            string failureCode = FailureCodes.Ignore;
             return TryDetach(player, targetEntityId, slotIndex, ref failureCode, playSound);
         }
 
@@ -179,13 +179,13 @@ namespace CarryOn.Common.Services
             var sourceSlot = attachableBehavior.GetSlotFromSelectionBoxIndex(slotIndex);
             if (sourceSlot == null || sourceSlot.Empty)
             {
-                failureCode = FailureCode.SlotEmpty;
+                failureCode = FailureCodes.SlotEmpty;
                 return false;
             }
 
             if (!sourceSlot.CanTake())
             {
-                failureCode = FailureCode.DetachUnavailable;
+                failureCode = FailureCodes.DetachUnavailable;
                 return false;
             }
 
@@ -197,7 +197,7 @@ namespace CarryOn.Common.Services
 
             if (!block.HasBehavior<BlockBehaviorCarryable>())
             {
-                failureCode = FailureCode.SlotNotCarryable;
+                failureCode = FailureCodes.SlotNotCarryable;
                 return false;
             }
 
@@ -210,7 +210,7 @@ namespace CarryOn.Common.Services
 
             if (hasOpenBoatStorage)
             {
-                failureCode = FailureCode.SlotInventoryOpen;
+                failureCode = FailureCodes.SlotInventoryOpen;
                 return false;
             }
 
@@ -276,7 +276,7 @@ namespace CarryOn.Common.Services
         {
             ArgumentNullException.ThrowIfNull(player);
 
-            failureCode ??= FailureCode.Ignore;
+            failureCode ??= FailureCodes.Ignore;
 
             var validation = ValidateAttachDetachTarget(player, targetEntityId);
             if (!validation.IsValid)
@@ -327,12 +327,12 @@ namespace CarryOn.Common.Services
             var targetEntity = world.GetEntityById(targetEntityId);
             if (targetEntity == null)
             {
-                return AttachTargetValidationResult.Fail(FailureCode.EntityNotFound);
+                return AttachTargetValidationResult.Fail(FailureCodes.EntityNotFound);
             }
 
             if (targetEntity.Pos?.DistanceTo(player.Entity.Pos) > GetMaxInteractionDistance())
             {
-                return AttachTargetValidationResult.Fail(FailureCode.EntityOutOfReach);
+                return AttachTargetValidationResult.Fail(FailureCodes.EntityOutOfReach);
             }
 
             var attachableBehavior = targetEntity.GetBehavior<EntityBehaviorAttachable>();
@@ -345,7 +345,7 @@ namespace CarryOn.Common.Services
             var ownableBehavior = targetEntity.GetBehavior<EntityBehaviorOwnable>();
             if (ownableBehavior != null && !ownableBehavior.IsOwner(player.Entity))
             {
-                return AttachTargetValidationResult.Fail(FailureCode.RequiresOwnership);
+                return AttachTargetValidationResult.Fail(FailureCodes.RequiresOwnership);
             }
 
             return AttachTargetValidationResult.Success(targetEntity, attachableBehavior);
@@ -358,6 +358,6 @@ namespace CarryOn.Common.Services
         }
 
         private int GetMaxInteractionDistance()
-            => configProvider.Config.CarryOptions?.MaxInteractionDistance ?? Default.MaxInteractionDistance;
+            => configProvider.Config.CarryOptions?.MaxInteractionDistance ?? Defaults.MaxInteractionDistance;
     }
 }

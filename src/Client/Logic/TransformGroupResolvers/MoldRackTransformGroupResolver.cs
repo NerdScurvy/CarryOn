@@ -23,16 +23,16 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
             var containerSlots = BlockUtils.GetContainerSlots(carried);
             if (containerSlots == null || containerSlots.Count == 0) return false;
 
-            var resolveResult = new AttachmentResolveResult();
-            AddSlotCandidates(api, containerSlots, "moldrack", resolveResult);
+            var candidates = new List<CarriedGroupCandidateSet>();
+            AddSlotCandidates(api, containerSlots, "moldrack", candidates);
 
-            if (resolveResult.Candidates.Count == 0) return false;
+            if (candidates.Count == 0) return false;
 
-            result = resolveResult;
+            result = new AttachmentResolveResult(candidates);
             return true;
         }
 
-        protected override void AddSlotCandidates(ICoreAPI api, TreeAttribute containerSlots, string baseGroup, AttachmentResolveResult result)
+        protected override void AddSlotCandidates(ICoreAPI api, TreeAttribute containerSlots, string baseGroup, List<CarriedGroupCandidateSet> candidates)
         {
             foreach (var cSlot in containerSlots)
             {
@@ -40,15 +40,17 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
                 if (itemStack == null) continue;
 
                 var slotBase = baseGroup + "-slot" + cSlot.Key;
-                var candidate = new CarriedGroupCandidateSet { SourceSlotKey = cSlot.Key };
+                var groups = new List<string>();
 
                 if (TryGetShieldConstruction(api, itemStack, out var shieldConstruction))
                 {
-                    candidate.Groups.Add(slotBase + "-" + shieldConstruction);
-                    candidate.Groups.Add(slotBase + "-shield");
+                    groups.Add(slotBase + "-" + shieldConstruction);
+                    groups.Add(slotBase + "-shield");
                 }
 
-                candidate.Groups.Add(slotBase);
+                groups.Add(slotBase);
+
+                var candidate = new CarriedGroupCandidateSet(groups) { SourceSlotKey = cSlot.Key };
 
                 if (AssetResolutionHelper.TryResolveFallbackAsset(api, itemStack, out var assetType, out var assetName))
                 {
@@ -56,7 +58,7 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
                     candidate.AssetNameIfUnset = assetName;
                 }
 
-                result.Candidates.Add(candidate);
+                candidates.Add(candidate);
             }
         }
 

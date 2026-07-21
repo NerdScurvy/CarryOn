@@ -7,7 +7,7 @@ using CarryOn.Common.Behaviors;
 using CarryOn.Utility;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
-using static CarryOn.Common.Models.CarryCode;
+using static CarryOn.Common.Models.CarryCodes;
 
 namespace CarryOn.Common.Logic
 {
@@ -34,7 +34,7 @@ namespace CarryOn.Common.Logic
             if (behavior.Slots == null || behavior.Slots.Count == 0)
                 return [];
 
-            ItemStack? itemStack = selection?.Block?.OnPickBlock(world, selection.Position);
+            ItemStack? itemStack = selection?.Block.SafeOnPickBlock(world, selection.Position);
             if (selection?.Block?.CanCarryInSlot(CarrySlot.Hands, itemStack) == false)
                 return [];
 
@@ -100,8 +100,8 @@ namespace CarryOn.Common.Logic
         {
             return new WorldInteraction
             {
-                ActionLangCode = CarryOnCode("blockhelp-pickup"),
-                HotKeyCode = HotKeyCode.Pickup,
+                ActionLangCode = GetCarryCode("blockhelp-pickup"),
+                HotKeyCode = HotKeyCodes.Pickup,
                 MouseButton = EnumMouseButton.Right,
                 RequireFreeHand = true,
                 Itemstacks = itemStacks
@@ -112,8 +112,8 @@ namespace CarryOn.Common.Logic
         {
             return new WorldInteraction
             {
-                ActionLangCode = CarryOnCode("blockhelp-pickup"),
-                HotKeyCodes = [HotKeyCode.SwapBackModifier, HotKeyCode.Pickup],
+                ActionLangCode = GetCarryCode("blockhelp-pickup"),
+                HotKeyCodes = [HotKeyCodes.SwapBackModifier, HotKeyCodes.Pickup],
                 MouseButton = EnumMouseButton.Right,
                 RequireFreeHand = true,
                 Itemstacks = itemStacks
@@ -122,7 +122,7 @@ namespace CarryOn.Common.Logic
 
         private static CarryHintType ResolveAllowedHints(BlockBehaviorCarryable behavior, CarryHintContext context, CarryHintType defaultHints)
         {
-            if (behavior.TransferHandlerBehavior is not ICarryableHintPolicy hintPolicy)
+            if (behavior.TransferHandler is not ICarryableHintPolicy hintPolicy)
                 return defaultHints;
 
             var allowedHints = hintPolicy.GetAllowedHints(context, defaultHints);

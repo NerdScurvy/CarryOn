@@ -5,17 +5,26 @@ using Vintagestory.API.MathTools;
 
 namespace CarryOn.Common.Network
 {
+    /// <summary>
+    /// Sent from client to server when a player places a carried block in the world.
+    /// </summary>
     [ProtoContract(ImplicitFields = ImplicitFields.AllFields)]
     public record PlaceDownMessage
     {
+        /// <summary>The carry slot containing the block to place.</summary>
         public CarrySlot Slot { get; init; }
 
         // These fields are needed for reconstructing BlockSelection
+        /// <summary>The target block position for the block selection.</summary>
         public BlockPos Position { get; init; } = null!;
 
+        /// <summary>The exact hit position within the targeted block.</summary>
         public Vec3d HitPosition { get; init; } = null!;
+
+        /// <summary>The block face index that was hit.</summary>
         public byte Face { get; init; }
 
+        /// <summary>The position where the block was actually placed.</summary>
         public BlockPos PlacedAt { get; init; } = null!;
 
         private PlaceDownMessage() { }

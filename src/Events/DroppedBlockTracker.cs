@@ -13,7 +13,7 @@ namespace CarryOn.Events
     /// <summary>
     /// Tracks dropped blocks and player permissions to retrieve them.
     /// </summary>
-    public class DroppedBlockTracker : ICarryEvent
+    public class DroppedBlockTracker : ICarryEventHandler
     {
         private ICarryManager? carryManager;
         private IConfigProvider configProvider = null!;

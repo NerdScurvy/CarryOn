@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using CarryOn.API.Common.Models;
 using CarryOn.Utility;
 using Vintagestory.API.Common;
@@ -15,8 +14,7 @@ namespace CarryOn.Server.Logic
 
         public ICoreAPI Api { get; }
 
-        private static readonly ThreadLocal<Random> ThreadLocalRandom = new ThreadLocal<Random>(() => new Random());
-        public static Random Rand => ThreadLocalRandom.Value ?? throw new InvalidOperationException("ThreadLocal Random not initialized");
+        public Random Rand => Api.World.Rand;
 
         public IBlockAccessor BlockAccessor => Api.World?.BlockAccessor ?? throw new InvalidOperationException("BlockAccessor not available before world init");
 
@@ -172,7 +170,7 @@ namespace CarryOn.Server.Logic
         private bool IsPassable(Block block , BlockPos pos)
         {
 
-            var multiblockOrigin = BlockUtils.GetMultiblockOriginSelection(BlockAccessor, new BlockSelection() { Position = pos, Block = block });
+            var multiblockOrigin = MultiblockUtils.GetMultiblockOriginSelection(BlockAccessor, new BlockSelection() { Position = pos, Block = block });
 
             // Shouldn't be null since we are passing in the block and position, but just in case
             if (multiblockOrigin == null || multiblockOrigin.Position == null)
@@ -318,7 +316,7 @@ namespace CarryOn.Server.Logic
             }
         }
 
-        bool HasSupport(Block droppedBlock, BlockPos pos)
+        private bool HasSupport(Block droppedBlock, BlockPos pos)
         {
             var targetBlock = BlockAccessor.GetBlock(pos);
 

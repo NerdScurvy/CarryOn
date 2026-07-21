@@ -2,6 +2,9 @@ using ProtoBuf;
 
 namespace CarryOn.Common.Network
 {
+    /// <summary>
+    /// Sent from server to client to synchronize the CarryOn configuration.
+    /// </summary>
     [ProtoContract(ImplicitFields = ImplicitFields.AllFields)]
     public record ConfigSyncMessage
     {

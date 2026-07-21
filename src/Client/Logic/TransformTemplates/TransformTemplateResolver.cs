@@ -8,11 +8,9 @@ using Vintagestory.API.Client;
 namespace CarryOn.Client.Logic.TransformTemplates
 {
     /// <summary>
-    /// Handles parsing of transform template JSON content into structured TransformGroup and TransformGroupSettings objects. 
-    /// It reads the JSON definitions of transform groups, including their base settings, overrides, and appends, and constructs the 
-    /// corresponding C# objects that can be used for resolving and applying transforms to carryable blocks. 
-    /// This class is responsible for interpreting the JSON structure of transform templates and converting it into a format that can 
-    /// be easily utilized by the TransformTemplateManager and other parts of the CarryOn mod's client-side logic.
+    /// Resolves and flattens transform group definitions by processing inheritance chains,
+    /// applying pre-resolve adjustments, overrides, and relative adjustments to produce
+    /// a final dictionary of transform group names to resolved TransformSettings arrays.
     /// </summary>
     public sealed class TransformTemplateResolver
     {
@@ -83,7 +81,7 @@ namespace CarryOn.Client.Logic.TransformTemplates
 
                     foreach (var kv in groups)
                     {
-                        merged[kv.Key] = kv.Value?.DeepClone()!;
+                        if (kv.Value != null) merged[kv.Key] = kv.Value.DeepClone();
                     }
                 }
             }
@@ -92,7 +90,7 @@ namespace CarryOn.Client.Logic.TransformTemplates
             {
                 foreach (var kv in localTransformGroups)
                 {
-                    merged[kv.Key] = kv.Value?.DeepClone()!;
+                    if (kv.Value != null) merged[kv.Key] = kv.Value.DeepClone();
                 }
             }
 
@@ -441,7 +439,7 @@ namespace CarryOn.Client.Logic.TransformTemplates
                 var list = new List<TransformSettings>();
                 foreach (var s in kv.Value)
                 {
-                    list.Add(s?.ToTransformSettings(BlockBehaviorCarryable.DefaultBlockTransform)!);
+                    if (s != null) list.Add(s.ToTransformSettings(BlockBehaviorCarryable.DefaultBlockTransform));
                 }
                 flattened[kv.Key] = list.ToArray();
             }

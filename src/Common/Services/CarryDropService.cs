@@ -13,7 +13,7 @@ using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Server;
 using Vintagestory.GameContent;
-using static CarryOn.Common.Models.CarryCode;
+using static CarryOn.Common.Models.CarryCodes;
 
 namespace CarryOn.Common.Services
 {
@@ -94,7 +94,7 @@ namespace CarryOn.Common.Services
                 return;
             }
 
-            var failureCode = FailureCode.Ignore;
+            var failureCode = FailureCodes.Ignore;
             if (carryManager.TryPlaceDown(entity, carriedBlock, blockSelection, ref failureCode, dropped: true))
                 return;
 
@@ -119,7 +119,7 @@ namespace CarryOn.Common.Services
 
             if (blockSelection != null)
             {
-                var failureCode = FailureCode.Ignore;
+                var failureCode = FailureCodes.Ignore;
                 if (carryManager.TryPlaceDown(entity, carriedBlock, blockSelection, ref failureCode, dropped: true))
                     return;
 
@@ -243,7 +243,7 @@ namespace CarryOn.Common.Services
                 }
             }
 
-            var breakSound = carriedBlock.Block.Sounds.GetBreakSound(player).Location ?? new AssetLocation(CarryCode.SoundPath.DefaultBreak);
+            var breakSound = carriedBlock.Block.Sounds.GetBreakSound(player).Location ?? new AssetLocation(CarryCodes.SoundPaths.DefaultBreak);
             world.PlaySoundAt(breakSound, (double)centerBlock.X, (double)centerBlock.Y, (double)centerBlock.Z);
             carryManager.RemoveCarried(entity, carriedBlock.Slot);
 

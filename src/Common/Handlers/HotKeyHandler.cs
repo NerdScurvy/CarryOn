@@ -1,12 +1,12 @@
 using System;
-using CarryOn.Client.Models;
+using CarryOn.Client.Logic;
 using CarryOn.Common.Network;
 using Vintagestory.API.Client;
 using Vintagestory.API.Server;
 using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
 using CarryOn.Common.Logic;
-using static CarryOn.Common.Models.CarryCode;
+using static CarryOn.Common.Models.CarryCodes;
 
 namespace CarryOn.Common.Handlers
 {
@@ -33,15 +33,15 @@ namespace CarryOn.Common.Handlers
 
             var input = api.Input;
 
-            input.RegisterHotKey(HotKeyCode.Toggle, LocalizationHelper.GetLang("toggle-hotkey"), Default.FunctionKeybind, altPressed: true);
-            input.RegisterHotKey(HotKeyCode.QuickDrop, LocalizationHelper.GetLang("quickdrop-hotkey"), Default.FunctionKeybind);
-            input.RegisterHotKey(HotKeyCode.QuickDropAll, LocalizationHelper.GetLang("quickdropall-hotkey"), Default.FunctionKeybind, altPressed: true, ctrlPressed: true);
-            input.RegisterHotKey(HotKeyCode.ToggleDoubleTapDismount, LocalizationHelper.GetLang("toggle-double-tap-dismount-hotkey"), Default.FunctionKeybind, ctrlPressed: true);
+            input.RegisterHotKey(HotKeyCodes.Toggle, LocalizationHelper.GetLang("toggle-hotkey"), Defaults.FunctionKeybind, altPressed: true);
+            input.RegisterHotKey(HotKeyCodes.QuickDrop, LocalizationHelper.GetLang("quickdrop-hotkey"), Defaults.FunctionKeybind);
+            input.RegisterHotKey(HotKeyCodes.QuickDropAll, LocalizationHelper.GetLang("quickdropall-hotkey"), Defaults.FunctionKeybind, altPressed: true, ctrlPressed: true);
+            input.RegisterHotKey(HotKeyCodes.ToggleDoubleTapDismount, LocalizationHelper.GetLang("toggle-double-tap-dismount-hotkey"), Defaults.FunctionKeybind, ctrlPressed: true);
 
-            input.SetHotKeyHandler(HotKeyCode.Toggle, TriggerToggleKeyPressed);
-            input.SetHotKeyHandler(HotKeyCode.QuickDrop, TriggerQuickDropKeyPressed);
-            input.SetHotKeyHandler(HotKeyCode.QuickDropAll, TriggerQuickDropAllKeyPressed);
-            input.SetHotKeyHandler(HotKeyCode.ToggleDoubleTapDismount, TriggerToggleDoubleTapDismountKeyPressed);
+            input.SetHotKeyHandler(HotKeyCodes.Toggle, TriggerToggleKeyPressed);
+            input.SetHotKeyHandler(HotKeyCodes.QuickDrop, TriggerQuickDropKeyPressed);
+            input.SetHotKeyHandler(HotKeyCodes.QuickDropAll, TriggerQuickDropAllKeyPressed);
+            input.SetHotKeyHandler(HotKeyCodes.ToggleDoubleTapDismount, TriggerToggleDoubleTapDismountKeyPressed);
 
         }
 
@@ -130,12 +130,12 @@ namespace CarryOn.Common.Handlers
             if (clientChannel == null) return false;
             if (api.World?.Player?.Entity == null) return false;
             var playerEntity = api.World.Player.Entity;
-            var isEnabled = playerEntity.WatchedAttributes.GetBool(AttributeKey.Watched.EntityDoubleTapDismountEnabled, false);
+            var isEnabled = playerEntity.WatchedAttributes.GetBool(AttributeKeys.Watched.EntityDoubleTapDismountEnabled, false);
 
             // Toggle the opposite state 
-            playerEntity.WatchedAttributes.SetBool(AttributeKey.Watched.EntityDoubleTapDismountEnabled, !isEnabled);
+            playerEntity.WatchedAttributes.SetBool(AttributeKeys.Watched.EntityDoubleTapDismountEnabled, !isEnabled);
 
-            clientChannel.SendPacket(new PlayerAttributeUpdateMessage(AttributeKey.Watched.EntityDoubleTapDismountEnabled, !isEnabled, true));
+            clientChannel.SendPacket(new PlayerAttributeUpdateMessage(AttributeKeys.Watched.EntityDoubleTapDismountEnabled, !isEnabled, true));
 
             api.ShowChatMessage(LocalizationHelper.GetLang("double-tap-dismount-" + (!isEnabled ? "enabled" : "disabled")));
             return true;
@@ -170,7 +170,7 @@ namespace CarryOn.Common.Handlers
                 return;
             }
 
-            if (message.AttributeKey == AttributeKey.Watched.EntityDoubleTapDismountEnabled && message.IsWatchedAttribute)
+            if (message.AttributeKey == AttributeKeys.Watched.EntityDoubleTapDismountEnabled && message.IsWatchedAttribute)
             {
                 if (message.BoolValue.HasValue)
                 {

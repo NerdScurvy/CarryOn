@@ -9,23 +9,23 @@ namespace CarryOn.Common.Models
     public class CarryInteraction
     {
         public CarryAction CarryAction { get; set; }
-        // Time in milliseconds the interaction has been held
-        public float TimeHeld { get; set; } = 0.0F;
 
-        // Index of slot on target entity
+        /// <summary> Time in milliseconds the interaction has been held. </summary>
+        public float TimeHeld { get; set; } = 0.0f;
+
+        /// <summary> Index of slot on target entity. </summary>
         public int? TargetSlotIndex { get; set; }
 
-        // Carry slot being interacted with (e.g., Hands, Back)
+        /// <summary> Carry slot being interacted with (e.g., Hands, Back). </summary>
         public CarrySlot? CarrySlot { get; set; }
 
-        // Selected block position for the interaction
-        // This is used for interactions like placing down blocks
+        /// <summary> Selected block position for the interaction. </summary>
         public BlockPos? TargetBlockPos { get; set; }
 
-        // Selected slot on target entity
+        /// <summary> Selected slot on target entity. </summary>
         public ItemSlot? Slot { get; set; }
 
-        // Entity performing the interaction (might be redundant if this interaction is client-side only)
+        /// <summary> Entity performing the interaction. </summary>
         public Entity? TargetEntity { get; set; }
         public float? TransferDelay { get; internal set; }
 
@@ -47,7 +47,7 @@ namespace CarryOn.Common.Models
 
             if (resetTimeHeld)
             {
-                TimeHeld = 0.0F;
+                TimeHeld = 0.0f;
             }
 
         }

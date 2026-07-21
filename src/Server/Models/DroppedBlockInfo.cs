@@ -4,7 +4,7 @@ using System.IO;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
-using static CarryOn.Common.Models.CarryCode;
+using static CarryOn.Common.Models.CarryCodes;
 
 namespace CarryOn.Server.Models
 {
@@ -72,7 +72,7 @@ namespace CarryOn.Server.Models
 
             var droppedBlockInfo = new DroppedBlockInfo()
             {
-                DroppedDateTime = DateTime.Now,
+                DroppedDateTime = DateTime.UtcNow,
                 OwnerUID = player.PlayerUID,
                 OwnerName = player.PlayerName,
                 BlockCode = block.Code.ToString(),

@@ -38,6 +38,23 @@ namespace CarryOn.Common.Services
             Services = new CarryManagerServices(Api, ConfigProvider, this);
         }
 
+        private readonly HashSet<string> registeredTransferCodes
+            = new(StringComparer.OrdinalIgnoreCase);
+
+        /// <inheritdoc/>
+        public void RegisterTransferBehavior(string modId, string behaviorCode)
+        {
+            if (string.IsNullOrWhiteSpace(behaviorCode))
+                throw new ArgumentException("Behavior code cannot be null or empty.",
+                    nameof(behaviorCode));
+
+            registeredTransferCodes.Add(behaviorCode);
+        }
+
+        /// <inheritdoc/>
+        public IEnumerable<string> EnumerateTransferBehaviors()
+            => registeredTransferCodes;
+
         public CarryOnConfig Config => ConfigProvider.Config;
 
         /// <inheritdoc/>
@@ -214,6 +231,12 @@ namespace CarryOn.Common.Services
         public void InitEvents(ICoreAPI api)
         {
             Services.EventBootstrapper.InitEvents(api);
+        }
+
+        /// <inheritdoc/>
+        public void RegisterEventHandler<T>() where T : ICarryEventHandler, new()
+        {
+            Services.EventBootstrapper.RegisterEventHandler<T>();
         }
 
         /// <inheritdoc/>

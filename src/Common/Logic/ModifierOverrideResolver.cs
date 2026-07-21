@@ -134,7 +134,7 @@ namespace CarryOn.Common.Logic
             return false;
         }
 
-        public static bool TryGetSlotModifier(SlotModifierConfig? slotConfig, CarrySlot slot, out float value)
+        public static bool TryGetSlotModifier(SlotValueConfig? slotConfig, CarrySlot slot, out float value)
         {
             value = 0.0f;
 

@@ -10,7 +10,7 @@ using Vintagestory.API.Util;
 
 namespace CarryOn.Client.Logic.CarryRenderer
 {
-    internal class CarriedLabelManager : IDisposable
+    internal class CarryLabelManager : IDisposable
     {
         private readonly ICoreClientAPI api;
         private readonly Dictionary<string, LabelEntry> textCache = new();
@@ -31,6 +31,55 @@ namespace CarryOn.Client.Logic.CarryRenderer
         protected int TextWidth = 200;
         protected int TextHeight = 100;
 
+        internal static IconTextureMode IconTextureMode { get; set; } = IconTextureMode.Standalone;
+
+        private static bool glVersionQueried;
+        private static bool glSupportsTextureSubImage;
+
+        internal static bool GlSupportsTextureSubImage
+        {
+            get
+            {
+                if (!glVersionQueried)
+                {
+                    try
+                    {
+                        int major = GL.GetInteger(GetPName.MajorVersion);
+                        int minor = GL.GetInteger(GetPName.MinorVersion);
+                        glSupportsTextureSubImage = (major > 4) || (major == 4 && minor >= 3);
+                    }
+                    catch
+                    {
+                        glSupportsTextureSubImage = false;
+                    }
+                    glVersionQueried = true;
+                }
+                return glSupportsTextureSubImage;
+            }
+        }
+
+        private static bool ShouldUseStandaloneTexture()
+        {
+            return IconTextureMode == IconTextureMode.Standalone
+                || IconTextureMode == IconTextureMode.StandaloneFallback;
+        }
+
+        private static int[]? atlasScratchBuffer;
+
+        private static bool ShouldForceAtlasFallback()
+        {
+            return IconTextureMode == IconTextureMode.StandaloneFallback;
+        }
+
+        private static bool IsDisabled()
+        {
+            return IconTextureMode == IconTextureMode.Disabled;
+        }
+
+        internal static event Action? OnModeChanged;
+
+        private static void RaiseModeChanged() => OnModeChanged?.Invoke();
+
         private class LabelEntry
         {
             public LoadedTexture Texture = null!;
@@ -47,9 +96,17 @@ namespace CarryOn.Client.Logic.CarryRenderer
             public bool Pending;
         }
 
-        public CarriedLabelManager(ICoreClientAPI api)
+        public CarryLabelManager(ICoreClientAPI api)
         {
             this.api = api;
+
+            api.Logger.Debug(
+                "[CarryOn] Icon texture mode: {0} (GL: {1}, standalone: {2})",
+                IconTextureMode,
+                GL.GetString(StringName.Version),
+                ShouldUseStandaloneTexture());
+
+            OnModeChanged += InvalidateIconCache;
         }
 
         private static string MakeKey(string text, int color, float fontSize, int areaWidth, int areaHeight, string? fontName, bool boldFont, string? verticalAlign)
@@ -112,7 +169,8 @@ namespace CarryOn.Client.Logic.CarryRenderer
                 }
 
                 // Match vanilla sign renderer more closely.
-                try { font.LineHeightMultiplier = 0.9; } catch { }
+                try { font.LineHeightMultiplier = 0.9; }
+                catch (Exception) { api.Logger.Debug("CarryOn: Could not set LineHeightMultiplier on font"); }
                 font.Color = new double[]
                 {
                     ((color >> 16) & 0xFF) / 255.0,
@@ -170,7 +228,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
         /// <returns> A tuple containing the mesh, texture ID, and readiness status of the icon label. </returns>
         public (MeshRef? mesh, int textureId, bool ready) GetItemIconLabel(ItemStack itemStack, int color, LabelRenderSettings? settings = null)
         {
-            if (itemStack?.Collectible == null)
+            if (itemStack?.Collectible == null || IsDisabled())
             {
                 return (null, 0, false);
             }
@@ -220,31 +278,52 @@ namespace CarryOn.Client.Logic.CarryRenderer
                         return;
                     }
 
-                    var texture = CopyAtlasRegionToStandaloneTexture(texPos);
-                    if (texture == null)
-                    {
-                        current.Ready = false;
-                        return;
-                    }
-
                     var quad = QuadMeshUtil.GetQuad();
-                    // Vertex order for GetQuad: TL, TR, BR, BL
-                    // Horizontal flip keeps icon orientation correct after face rotation.
-                    quad.Uv =
-                    [
-                        1f, 0f,
-                        0f, 0f,
-                        0f, 1f,
-                        1f, 1f
-                    ];
                     quad.Rgba = new byte[16];
                     quad.Rgba.Fill(byte.MaxValue);
 
-                    current.Mesh?.Dispose();
-                    current.Texture?.Dispose();
-                    current.Mesh = api.Render.UploadMesh(quad);
-                    current.Texture = texture;
-                    current.TextureId = texture.TextureId;
+                    if (ShouldUseStandaloneTexture())
+                    {
+                        var texture = CopyAtlasRegionToStandaloneTexture(texPos);
+                        if (texture == null)
+                        {
+                            current.Ready = false;
+                            return;
+                        }
+
+                        // Vertex order for GetQuad: TL, TR, BR, BL
+                        // Horizontal flip keeps icon orientation correct after face rotation.
+                        quad.Uv =
+                        [
+                            1f, 0f,
+                            0f, 0f,
+                            0f, 1f,
+                            1f, 1f
+                        ];
+
+                        current.Mesh?.Dispose();
+                        current.Texture?.Dispose();
+                        current.Mesh = api.Render.UploadMesh(quad);
+                        current.Texture = texture;
+                        current.TextureId = texture.TextureId;
+                    }
+                    else
+                    {
+                        quad.Uv =
+                        [
+                            texPos.x2, texPos.y1,
+                            texPos.x1, texPos.y1,
+                            texPos.x1, texPos.y2,
+                            texPos.x2, texPos.y2
+                        ];
+
+                        current.Mesh?.Dispose();
+                        current.Texture?.Dispose();
+                        current.Mesh = api.Render.UploadMesh(quad);
+                        current.Texture = null;
+                        current.TextureId = texPos.atlasTextureId;
+                    }
+
                     current.Ready = true;
                 },
                 color,
@@ -293,31 +372,72 @@ namespace CarryOn.Client.Logic.CarryRenderer
 
             var pixels = new int[width * height];
 
+            if (GlSupportsTextureSubImage && !ShouldForceAtlasFallback())
+            {
+                try
+                {
+                    GL.GetTextureSubImage(
+                        texPos.atlasTextureId,
+                        0,
+                        x1,
+                        y1,
+                        0,
+                        width,
+                        height,
+                        1,
+                        PixelFormat.Bgra,
+                        PixelType.UnsignedByte,
+                        pixels.Length * sizeof(int),
+                        pixels
+                    );
+                }
+                catch (Exception ex)
+                {
+                    api.Logger.Debug("CarryOn: GL.GetTextureSubImage failed, falling back to GetTexImage: {0}", ex.Message);
+                    if (!ReadAtlasRegionViaGetTexImage(texPos.atlasTextureId, atlasWidth, atlasHeight, x1, y1, width, height, pixels))
+                        return null;
+                }
+            }
+            else
+            {
+                if (!ReadAtlasRegionViaGetTexImage(texPos.atlasTextureId, atlasWidth, atlasHeight, x1, y1, width, height, pixels))
+                    return null;
+            }
+
             try
             {
-                GL.GetTextureSubImage(
-                    texPos.atlasTextureId,
-                    0,
-                    x1,
-                    y1,
-                    0,
-                    width,
-                    height,
-                    1,
-                    PixelFormat.Bgra,
-                    PixelType.UnsignedByte,
-                    pixels.Length * sizeof(int),
-                    pixels
-                );
-
                 var texture = new LoadedTexture(api, 0, width, height);
                 api.Render.LoadOrUpdateTextureFromBgra(pixels, true, (int)TextureWrapMode.ClampToEdge, ref texture);
                 return texture.TextureId > 0 ? texture : null;
             }
             catch (Exception ex)
             {
-                api.Logger.Debug("CarryOn: Failed to copy atlas region to standalone texture: {0}", ex.Message);
+                api.Logger.Debug("CarryOn: Failed to create standalone texture: {0}", ex.Message);
                 return null;
+            }
+        }
+
+        private bool ReadAtlasRegionViaGetTexImage(int atlasTextureId, int atlasWidth, int atlasHeight, int x1, int y1, int width, int height, int[] pixels)
+        {
+            try
+            {
+                int needed = atlasWidth * atlasHeight;
+                if (atlasScratchBuffer == null || atlasScratchBuffer.Length < needed)
+                    atlasScratchBuffer = new int[needed];
+
+                GL.BindTexture(TextureTarget.Texture2D, atlasTextureId);
+                GL.GetTexImage(TextureTarget.Texture2D, 0, PixelFormat.Bgra, PixelType.UnsignedByte, atlasScratchBuffer);
+
+                for (int row = 0; row < height; row++)
+                {
+                    Array.Copy(atlasScratchBuffer, (y1 + row) * atlasWidth + x1, pixels, row * width, width);
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                api.Logger.Debug("CarryOn: GL.GetTexImage fallback failed: {0}", ex.Message);
+                return false;
             }
         }
 
@@ -374,8 +494,21 @@ namespace CarryOn.Client.Logic.CarryRenderer
             }
         }
 
+        internal void InvalidateIconCache()
+        {
+            foreach (var entry in iconCache.Values)
+            {
+                entry.Mesh?.Dispose();
+                entry.Texture?.Dispose();
+            }
+            iconCache.Clear();
+            iconLru.Clear();
+        }
+
         public void Dispose()
         {
+            OnModeChanged -= InvalidateIconCache;
+
             foreach (var kv in textCache)
             {
                 kv.Value.Texture?.Dispose();

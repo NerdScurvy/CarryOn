@@ -1,9 +1,11 @@
+using System;
 using CarryOn.API.Common.Models;
 using CarryOn.Common.Models;
 using CarryOn.API.Event;
 using CarryOn.Common.Behaviors;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
+using Vintagestory.API.MathTools;
 
 namespace CarryOn.Utility
 {
@@ -22,8 +24,7 @@ namespace CarryOn.Utility
         public static bool IsCarryableInteract(this Block block)
             => block.HasBehavior<BlockBehaviorCarryableInteract>();
 
-        /// <summary> 
-        /// Returns whether the specified block can be carried in the specified slot.
+        /// <summary> Returns whether the specified block can be carried in the specified slot.
         /// Checks if <see cref="BlockBehaviorCarryable"/> is present and has slot enabled. 
         /// </summary>
         public static bool CanCarryInSlot(this Block block, CarrySlot slot, ItemStack? itemStack)
@@ -31,6 +32,28 @@ namespace CarryOn.Utility
             if (block == null) return false;
             var behavior = block.GetBehavior<BlockBehaviorCarryable>();
             return behavior?.CanCarryInSlot(slot, itemStack) == true;
+        }
+
+        /// <summary>
+        /// Safely calls <see cref="Block.OnPickBlock"/> and returns null if the block throws.
+        /// Some modded blocks (e.g. multiblock pulverizers) throw exceptions from OnPickBlock
+        /// when the block entity is in an unexpected state or the multiblock structure is partially
+        /// loaded. Since this is called from interaction help builders and carry validators on the
+        /// client tick hot path, an unhandled exception here crashes the game. Returning null
+        /// causes the caller to treat the block as non-pickable, which is correct behavior for
+        /// a block that cannot be identified.
+        /// </summary>
+        public static ItemStack? SafeOnPickBlock(this Block? block, IWorldAccessor world, BlockPos pos)
+        {
+            if (block == null) return null;
+            try
+            {
+                return block.OnPickBlock(world, pos);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
         }
 
 
@@ -109,7 +132,7 @@ namespace CarryOn.Utility
 
             // Active slot must be main hotbar (This excludes the backpack slots)
             var activeHotbarSlot = entityPlayer.Player.InventoryManager.ActiveHotbarSlotNumber;
-            return (activeHotbarSlot >= 0) && (activeHotbarSlot < CarryCode.Default.HotbarSize);
+            return (activeHotbarSlot >= 0) && (activeHotbarSlot < CarryCodes.Defaults.HotbarSize);
         }
 
 

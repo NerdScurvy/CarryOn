@@ -90,7 +90,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
 
             var combinedCacheSig = rootCacheSig.Length > 0 ? rootCacheSig.ToString() : null;
 
-            var signature = CarryRenderHelpers.BuildTransformPlanSignature(
+            var signature = CarrySignatureBuilder.BuildTransformPlanSignature(
                 carried,
                 transformsGroupBase,
                 matchedResolverCode,
@@ -142,7 +142,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
             if (additionalSettingsList.Count > 0) allSettings.AddRange(additionalSettingsList);
 
             if (allSettings.Count == 0
-                && carryBehavior.ResolvedTransformGroups.TryGetValue(CarryCode.DefaultTransformGroup, out var defaultSettings)
+                && carryBehavior.ResolvedTransformGroups.TryGetValue(CarryCodes.DefaultTransformGroup, out var defaultSettings)
                 && defaultSettings != null)
             {
                 foreach (var setting in defaultSettings)

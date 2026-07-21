@@ -5,14 +5,14 @@ using CarryOn.API.Common.Models;
 using CarryOn.Common.Models;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
-using static CarryOn.Common.Models.CarryCode;
+using static CarryOn.Common.Models.CarryCodes;
 
 namespace CarryOn.Server.Behaviors
 {
     public class EntityBehaviorDropCarriedOnDamage : EntityBehavior
     {
         public static string Name { get; }
-            = CarryOnCode("dropondamage");
+            = GetCarryCode("dropondamage");
 
         private static ICarryManager? carryManager;
         private static DropCarriedOnDamageConfig? config;
@@ -33,6 +33,7 @@ namespace CarryOn.Server.Behaviors
         public override void OnEntityReceiveDamage(DamageSource damageSource, ref float damage)
         {
             if (config == null) return;
+            if (damageSource == null) return;
             if (damageSource.Type == EnumDamageType.Heal) return;
 
             var slotsToDrop = new List<CarrySlot>(2);

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using CarryOn.Common.Models;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
-using static CarryOn.Common.Models.CarryCode;
+using static CarryOn.Common.Models.CarryCodes;
 
 namespace CarryOn.Server.Logic
 {
@@ -32,7 +32,7 @@ namespace CarryOn.Server.Logic
             }
             catch (Exception ex)
             {
-                coreApi.Logger?.Error("CarryOn: Exception loading config: " + ex);
+                coreApi.Logger?.Error($"CarryOn: Exception loading config: {ex}");
                 config = new CarryOnConfig(CurrentConfigVersion);
             }
 
@@ -52,7 +52,7 @@ namespace CarryOn.Server.Logic
                 var keysToRemove = new List<string>();
                 foreach (var key in tree.Keys)
                 {
-                    if (key.StartsWith(CarryCode.WorldConfigPrefix, StringComparison.OrdinalIgnoreCase)
+                    if (key.StartsWith(CarryCodes.WorldConfigPrefix, StringComparison.OrdinalIgnoreCase)
                         || key == ModId)
                         keysToRemove.Add(key);
                 }

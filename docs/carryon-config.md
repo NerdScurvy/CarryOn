@@ -326,6 +326,23 @@ Debug and development toggles.
 | `DisableHarmonyPatch` | `false` | Disables Harmony patch application during startup. |
 | `EnablePackAdjustmentTool` | `false` | Enables the in-game pack adjustment tool (development/testing utility). |
 
+### CarryableReport
+
+Generates a markdown report of all carryable blocks with their walk speed and hunger rate modifiers on world load. Report files are written to `ModData/carryon/reports/`.
+
+| Key | Default | Description |
+| --- | :---: | --- |
+| `Enabled` | `false` | Generate the report on world load. |
+| `OutputToLog` | `false` | Write the report to the server log. |
+| `FileFormat` | `Markdown` | Output file format: `None` (no file), `Markdown` (`.md`), or `Html` (`.html`). |
+| `BlockFilters` | `[]` | Optional block code filters (wildcard patterns). If non-empty, only matching blocks are included. |
+| `ReportMode` | `Full` | Level of condensation: `Full` (every variant/type as a separate row), `CondensedSide` (collapses north/east/south/west variants), `CondensedType` (merges identical-modifier types within a block), `CondensedAll` (all condensations including wildcard patterns like `flowerpot-*`). |
+
+**Condensation details:**
+- `CondensedSide` — cardinal direction variants (north/east/south/west) with identical modifiers are collapsed to a single canonical row. Side detection uses `block.Variant`, not position heuristics, so it correctly handles blocks where the side variant isn't the last segment.
+- `CondensedType` — rows with the same BlockCode and Slot that share identical modifier values are merged; their type names are comma-delimited in the Type column.
+- `CondensedAll` — applies all of the above plus wildcard pattern detection. Block codes sharing a common prefix and identical modifiers are condensed to a single row with a `*` suffix (e.g. `game:chandelier-*`). Distinct type values are aggregated into the Type column. A dagger symbol `†` is appended when the wildcard also matches variants without a listed type. Report rows are sorted alphabetically by BlockCode, and only slots enabled in the corresponding `CarryWalkSpeed`/`CarryHungerRate` config are included per feature file.
+
 ## Legacy Keys And Upgrades
 
 CarryOn 2.0 upgrades several older keys automatically through version steps:

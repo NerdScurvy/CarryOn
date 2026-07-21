@@ -11,7 +11,7 @@ using CarryOn.Utility;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.GameContent;
-using static CarryOn.Common.Models.CarryCode;
+using static CarryOn.Common.Models.CarryCodes;
 
 namespace CarryOn.Client.Logic.Interaction
 {
@@ -97,7 +97,7 @@ namespace CarryOn.Client.Logic.Interaction
 
             var carriedHands = carryManager.GetCarried(player.Entity, CarrySlot.Hands);
 
-            if ((carriedHands != null) || (isInteracting && (controller.Interaction.TimeHeld > 0.0F)))
+            if ((carriedHands != null) || (isInteracting && (controller.Interaction.TimeHeld > 0.0f)))
                 handled = EnumHandling.PreventDefault;
         }
 
@@ -136,7 +136,7 @@ namespace CarryOn.Client.Logic.Interaction
                 if (behaviorAttachable == null)
                 {
                     this.api.Logger.Error("EntityBehaviorAttachable not found on entity {0}", entitySelection?.Entity?.Code);
-                    CarryErrorHelper.ShowError(this.api, FailureCode.AttachableNotFound, "attachable-behavior-not-found");
+                    CarryErrorHelper.ShowError(this.api, FailureCodes.AttachableNotFound, "attachable-behavior-not-found");
                     return true;
                 }
 
@@ -153,7 +153,7 @@ namespace CarryOn.Client.Logic.Interaction
                 {
                     if (!controller.Interaction.Slot.Empty)
                     {
-                        CarryErrorHelper.ShowError(this.api, FailureCode.SlotNotEmpty);
+                        CarryErrorHelper.ShowError(this.api, FailureCodes.SlotNotEmpty);
                         controller.CompleteInteraction();
                         handled = EnumHandling.PreventDefault;
                         return true;
@@ -164,7 +164,7 @@ namespace CarryOn.Client.Logic.Interaction
                 {
                     if (controller.Interaction.Slot.Empty)
                     {
-                        CarryErrorHelper.ShowError(this.api, FailureCode.SlotEmpty);
+                        CarryErrorHelper.ShowError(this.api, FailureCodes.SlotEmpty);
                         controller.CompleteInteraction();
                         return true;
                     }
@@ -201,7 +201,7 @@ namespace CarryOn.Client.Logic.Interaction
 
                 if (!canPickup)
                 {
-                    CarryErrorHelper.ShowError(this.api, FailureCode.NotOwner, "pickup-not-owner");
+                    CarryErrorHelper.ShowError(this.api, FailureCodes.NotOwner, "pickup-not-owner");
                     handled = EnumHandling.PreventDefault;
                     return true;
                 }
@@ -228,8 +228,8 @@ namespace CarryOn.Client.Logic.Interaction
                 return false;
             }
 
-            var selection = BlockUtils.GetMultiblockOriginSelection(world.BlockAccessor, player?.CurrentBlockSelection);
-            ItemStack? itemStack = selection?.Block?.OnPickBlock(world, selection.Position);
+            var selection = MultiblockUtils.GetMultiblockOriginSelection(world.BlockAccessor, player?.CurrentBlockSelection);
+            ItemStack? itemStack = selection?.Block.SafeOnPickBlock(world, selection.Position);
 
             bool canCarryTarget = selection?.Block?.CanCarryInSlot(CarrySlot.Hands, itemStack) == true;
 
@@ -255,7 +255,7 @@ namespace CarryOn.Client.Logic.Interaction
                 {
                     if (!carriedHands.GetCarryableBehavior().CanCarryInSlot(CarrySlot.Back, carriedHands.ItemStack))
                     {
-                        CarryErrorHelper.ShowError(this.api, FailureCode.CannotSwapBack);
+                        CarryErrorHelper.ShowError(this.api, FailureCodes.CannotSwapBack);
                         controller.CompleteInteraction();
                         return true;
                     }
@@ -263,7 +263,7 @@ namespace CarryOn.Client.Logic.Interaction
 
                 if (carriedHands == null && carriedBack == null)
                 {
-                    CarryErrorHelper.ShowError(this.api, FailureCode.NothingCarried);
+                    CarryErrorHelper.ShowError(this.api, FailureCodes.NothingCarried);
                     controller.CompleteInteraction();
                     return true;
                 }
@@ -293,7 +293,7 @@ namespace CarryOn.Client.Logic.Interaction
             if (!player.Entity.CanInteract(requireEmptyHanded: carriedHands == null))
             {
                 var selection = player.CurrentBlockSelection;
-                selection = BlockUtils.GetMultiblockOriginSelection(world.BlockAccessor, selection);
+                selection = MultiblockUtils.GetMultiblockOriginSelection(world.BlockAccessor, selection);
 
                 if (selection?.Block?.HasBehavior<BlockBehaviorCarryableInteract>() == true)
                 {
@@ -326,7 +326,7 @@ namespace CarryOn.Client.Logic.Interaction
 
             if (api.Input.IsCarrySwapBackKeyPressed() && selection != null)
             {
-                var swapCheckSelection = BlockUtils.GetMultiblockOriginSelection(world.BlockAccessor, selection);
+                var swapCheckSelection = MultiblockUtils.GetMultiblockOriginSelection(world.BlockAccessor, selection);
                 if (SelectionPreventsSwap(swapCheckSelection))
                 {
                     var carryable = swapCheckSelection?.Block?.GetBehavior<BlockBehaviorCarryable>();
@@ -353,7 +353,7 @@ namespace CarryOn.Client.Logic.Interaction
 
                     if (!carryManager.HasPermissionAt(player.Entity, blockPos))
                     {
-                        CarryErrorHelper.ShowError(this.api, FailureCode.PlaceDownNoPermission);
+                        CarryErrorHelper.ShowError(this.api, FailureCodes.PlaceDownNoPermission);
                         handled = EnumHandling.PreventDefault;
                         return false;
                     }
@@ -368,15 +368,15 @@ namespace CarryOn.Client.Logic.Interaction
             }
             else if (player.Entity.CanInteract(requireEmptyHanded: true))
             {
-                if (selection != null) selection = BlockUtils.GetMultiblockOriginSelection(world.BlockAccessor, selection);
+                if (selection != null) selection = MultiblockUtils.GetMultiblockOriginSelection(world.BlockAccessor, selection);
 
-                ItemStack? itemStack = selection?.Block?.OnPickBlock(world, selection.Position);
+                ItemStack? itemStack = selection?.Block.SafeOnPickBlock(world, selection.Position);
 
                 if (selection?.Block != null && selection.Block.CanCarryInSlot(CarrySlot.Hands, itemStack))
                 {
                     if (!carryManager.HasPermissionAt(player.Entity, selection.Position))
                     {
-                        CarryErrorHelper.ShowError(this.api, FailureCode.PickUpNoPermission);
+                        CarryErrorHelper.ShowError(this.api, FailureCodes.PickUpNoPermission);
                         handled = EnumHandling.PreventDefault;
                         return false;
                     }
@@ -472,13 +472,13 @@ namespace CarryOn.Client.Logic.Interaction
                 return true;
             }
 
-            if (failureCode == FailureCode.Default)
+            if (failureCode == FailureCodes.Default)
             {
                 controller.CompleteInteraction();
                 return true;
             }
 
-            if (failureCode == FailureCode.Stop)
+            if (failureCode == FailureCodes.Stop)
             {
                 handled = EnumHandling.PreventDefault;
                 controller.CompleteInteraction();

@@ -1,6 +1,6 @@
 using Vintagestory.API.Client;
 using CarryOn.Common.Logic;
-using static CarryOn.Common.Models.CarryCode;
+using static CarryOn.Common.Models.CarryCodes;
 
 namespace CarryOn.Utility
 {
@@ -18,7 +18,7 @@ namespace CarryOn.Utility
 
         internal static void ShowErrorWithFallback(ICoreClientAPI api, string failureCode, string defaultCode)
         {
-            if (failureCode != FailureCode.Ignore)
+            if (failureCode != FailureCodes.Ignore)
             {
                 api.TriggerIngameError(ModId, failureCode, LocalizationHelper.GetLang(defaultCode + "-" + failureCode));
             }

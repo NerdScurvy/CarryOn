@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using CarryOn.Common.Models;
 using Vintagestory.API.Common;
-using static CarryOn.Common.Models.CarryCode;
+using static CarryOn.Common.Models.CarryCodes;
 
 namespace CarryOn.Client.Logic.CarryRenderer
 {
@@ -17,15 +17,15 @@ namespace CarryOn.Client.Logic.CarryRenderer
         private static readonly IReadOnlyDictionary<string, DefaultAnimationSet> DefaultSets
             = new Dictionary<string, DefaultAnimationSet>(StringComparer.OrdinalIgnoreCase)
             {
-                [CarryOnCode("holdheavy")] = new DefaultAnimationSet
+                [GetCarryCode("holdheavy")] = new DefaultAnimationSet
                 {
-                    Sit = CarryOnCode("holdheavysit"),
-                    Crouch = CarryOnCode("holdheavycrouch")
+                    Sit = GetCarryCode("holdheavysit"),
+                    Crouch = GetCarryCode("holdheavycrouch")
                 },
-                [CarryOnCode("holdlight")] = new DefaultAnimationSet
+                [GetCarryCode("holdlight")] = new DefaultAnimationSet
                 {
-                    Sit = CarryOnCode("holdlightsit"),
-                    Crouch = CarryOnCode("holdlightcrouch")
+                    Sit = GetCarryCode("holdlightsit"),
+                    Crouch = GetCarryCode("holdlightcrouch")
                 }
             };
 

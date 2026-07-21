@@ -1,6 +1,11 @@
 {
+  "editor.detectIndentation": false,
   "[json]": {
     "editor.insertSpaces": true,
     "editor.tabSize": 2
+  },
+  "[csharp]": {
+    "editor.insertSpaces": true,
+    "editor.tabSize": 4
   }
 }
