@@ -391,4 +391,4 @@ public interface IAttachmentTransformGroupResolver
 - `../CarryOnLib/src/API/Common/Interfaces/IRootTransformGroupResolver.cs` — root resolver interface
 - `../CarryOnLib/src/API/Common/Interfaces/IAttachmentTransformGroupResolver.cs` — attachment resolver interface
 - `../CarryOnLib/src/API/Common/Models/AttachmentResolveResult.cs` — attachment resolver result model
-- `../CarryOnLib/src/API/Common/Models/CarriedGroupResolution.cs` — `CarriedGroupCandidateSet` model
+- `../CarryOnLib/src/API/Common/Models/CarriedGroupCandidateSet.cs` — `CarriedGroupCandidateSet` model
