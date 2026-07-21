@@ -43,7 +43,7 @@ Core responsibilities:
   - `CarryPlacementService` for pickup, placement, permission checks, and block entity restore.
   - `CarryAttachmentService` for attach/detach between player hands and entity slots.
   - `CarryDropService` for drop placement fallback and item spill/drop behavior.
-  - `CarryEventBootstrapper` for `ICarryEvent` discovery and initialization.
+  - `CarryEventBootstrapper` for `ICarryEventHandler` discovery and initialization.
 - Maintains transform group resolver registration for renderer-side transform group planning.
 
 ### 1A.1 Service Delegation Matrix
@@ -190,7 +190,7 @@ Carry event delegate integration points:
 - Permission override: `CheckPermissionToCarry`
 - Drop notification: `TriggerBlockDropped`
 
-`CarryEventBootstrapper.InitEvents` discovers and initializes `ICarryEvent` implementations from non-vanilla mod assemblies.
+`CarryEventBootstrapper.InitEvents` initializes registered `ICarryEventHandler` implementations from mod assemblies.
 
 ---
 
