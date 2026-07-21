@@ -33,7 +33,7 @@ namespace CarryOn.Patches
 
                 var hudHelp = loadedGuis?.FirstOrDefault(gui => gui is HudElementInteractionHelp) as HudElementInteractionHelp;
 
-                carrySystem.CarryHandler!.SetHudHelp(hudHelp);
+                carrySystem.CarryHandler?.SetHudHelp(hudHelp);
             }
             catch (System.Exception ex)
             {

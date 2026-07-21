@@ -5,7 +5,7 @@ using CarryOn.API.Common.Models;
 using CarryOn.Utility;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
-using static CarryOn.Common.Models.CarryCode;
+using static CarryOn.Common.Models.CarryCodes;
 
 namespace CarryOn.Common.Behaviors
 {
@@ -22,7 +22,7 @@ namespace CarryOn.Common.Behaviors
 
         public static string Name { get; } = "CarryableInteract";
 
-        public float InteractDelay { get; private set; } = Default.InteractSpeed;
+        public float InteractDelay { get; private set; } = Defaults.InteractSpeed;
 
         public string EnabledCondition { get; set; } = string.Empty;
 

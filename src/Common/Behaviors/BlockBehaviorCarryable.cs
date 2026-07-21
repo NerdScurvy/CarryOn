@@ -13,7 +13,7 @@ using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
-using static CarryOn.Common.Models.CarryCode;
+using static CarryOn.Common.Models.CarryCodes;
 
 namespace CarryOn.Common.Behaviors
 {
@@ -48,20 +48,20 @@ namespace CarryOn.Common.Behaviors
 
         public static ModelTransform DefaultBlockTransform => new()
         {
-            Translation = new Vec3f(0.0F, 0.0F, 0.0F),
-            Rotation = new Vec3f(0.0F, 0.0F, 0.0F),
-            Origin = new Vec3f(0.5F, 0.5F, 0.5F),
-            ScaleXYZ = new Vec3f(0.5F, 0.5F, 0.5F)
+            Translation = new Vec3f(0.0f, 0.0f, 0.0f),
+            Rotation = new Vec3f(0.0f, 0.0f, 0.0f),
+            Origin = new Vec3f(0.5f, 0.5f, 0.5f),
+            ScaleXYZ = new Vec3f(0.5f, 0.5f, 0.5f)
         };
 
         public static readonly IReadOnlyDictionary<CarrySlot, string> DefaultAnimation
             = new Dictionary<CarrySlot, string> {
-                { CarrySlot.Hands    , CarryOnCode("holdheavy") }
+                { CarrySlot.Hands    , GetCarryCode("holdheavy") }
             };
 
-        public float InteractDelay { get; private set; } = CarryCode.Default.PickUpSpeed;
+        public float InteractDelay { get; private set; } = CarryCodes.Defaults.PickUpSpeed;
 
-        public float TransferDelay { get; private set; } = CarryCode.Default.TransferSpeed;
+        public float TransferDelay { get; private set; } = CarryCodes.Defaults.TransferSpeed;
 
         public ModelTransform DefaultTransform { get; private set; } = DefaultBlockTransform.Clone();
 
@@ -86,8 +86,6 @@ namespace CarryOn.Common.Behaviors
         public Type? TransferHandlerType { get; set; }
 
         public string EnabledCondition { get; set; } = string.Empty;
-
-        public CollectibleBehavior? TransferHandlerBehavior { get; private set; }
 
         public ICarryableTransfer? TransferHandler { get; private set; }
 
@@ -214,19 +212,11 @@ namespace CarryOn.Common.Behaviors
             }
         }
 
-        public void ConfigureTransferBehavior(Type type, ICoreAPI api)
+        public void ConfigureTransferBehavior(ICarryableTransfer transferHandler, ICoreAPI api)
         {
-            TransferHandlerBehavior = block?.GetBehavior(type);
-            if (TransferHandlerBehavior != null && TransferHandlerBehavior is ICarryableTransfer transferHandler)
-            {
-                TransferEnabled = transferHandler.IsTransferEnabled(api);
-                TransferHandlerType = type;
-                TransferHandler = transferHandler;
-            }
-            else
-            {
-                TransferEnabled = false;
-            }
+            TransferEnabled = transferHandler.IsTransferEnabled(api);
+            TransferHandlerType = transferHandler.GetType();
+            TransferHandler = transferHandler;
         }
 
         public string GetTransformGroupName(CarriedBlock carried, string baseGroup, bool checkExists = true)

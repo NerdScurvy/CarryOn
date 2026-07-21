@@ -38,7 +38,7 @@ namespace CarryOn.Common.Handlers
         /// </para>
         /// </summary>
         /// <param name="player"> The player that died. </param>
-        /// <param name="source"> The source of the damage that caused the death. </param
+        /// <param name="source"> The source of the damage that caused the death. </param>
         private void OnPlayerDeath(IPlayer player, DamageSource source)
         {
             if (player.Entity.Properties.Server?.Attributes?.GetBool("keepContents", false) != true)

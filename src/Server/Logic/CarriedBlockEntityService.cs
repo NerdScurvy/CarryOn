@@ -6,7 +6,7 @@ using CarryOn.Utility;
 using Vintagestory.API.Common;
 
 using Vintagestory.API.MathTools;
-using static CarryOn.Common.Models.CarryCode;
+using static CarryOn.Common.Models.CarryCodes;
 
 namespace CarryOn.Server.Logic
 {
@@ -34,7 +34,7 @@ namespace CarryOn.Server.Logic
             var carriedTree = CarriedBlockTreeSerializer.Serialize(carriedBlock);
             if (carriedTree == null) return null;
 
-            var entityType = api.World.GetEntityType(new AssetLocation(CarryCode.ModId, "carriedblock"));
+            var entityType = api.World.GetEntityType(new AssetLocation(CarryCodes.ModId, "carriedblock"));
 
             var entity = api.World.ClassRegistry.CreateEntity(entityType) as EntityCarriedBlock;
             if (entity == null) return null;
@@ -54,7 +54,7 @@ namespace CarryOn.Server.Logic
             var block = carriedBlock.Block;
             if (block != null)
             {
-                var placeSound = block.Sounds?.Place.Location ?? new AssetLocation(SoundPath.DefaultPlace);
+                var placeSound = block.Sounds?.Place.Location ?? new AssetLocation(SoundPaths.DefaultPlace);
                 api.World.PlaySoundAt(placeSound, position.X, position.Y, position.Z);
             }
 
@@ -130,7 +130,7 @@ namespace CarryOn.Server.Logic
                     if (HasRoomAt(targetPos, blockAccessor, scale, pos))
                         return targetPos;
 
-                    return targetPos;
+                    // No room at this height — continue searching downward
                 }
 
                 // Passable block with a surface the entity can stand on
@@ -140,7 +140,7 @@ namespace CarryOn.Server.Logic
                     var targetPos = new Vec3d(x + 0.5, y + surfaceTop, z + 0.5);
                     if (HasRoomAt(targetPos, blockAccessor, scale, pos))
                         return targetPos;
-                    return targetPos;
+                    // No room at this height — continue searching downward
                 }
             }
 

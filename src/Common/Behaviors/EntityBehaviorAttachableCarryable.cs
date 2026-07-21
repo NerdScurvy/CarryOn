@@ -9,7 +9,7 @@ using Vintagestory.GameContent;
 using CarryOn.API.Common.Interfaces;
 using CarryOn.Utility;
 using CarryOn.API.Common.Models;
-using static CarryOn.Common.Models.CarryCode;
+using static CarryOn.Common.Models.CarryCodes;
 
 namespace CarryOn.Common.Behaviors
 {
@@ -63,7 +63,7 @@ namespace CarryOn.Common.Behaviors
 
 
         public static string Name { get; }
-            = CarryOnCode("attachablecarryable");
+            = GetCarryCode("attachablecarryable");
 
         public override string PropertyName() => Name;
 
@@ -101,7 +101,7 @@ namespace CarryOn.Common.Behaviors
             {
                 if (targetSlot.Itemstack.Block?.GetBehavior<BlockBehaviorCarryable>() != null)
                 {
-                    langCode = CarryOnCode("blockhelp-detach");
+                    langCode = GetCarryCode("blockhelp-detach");
                     if (player.Entity.CanDoCarryAction(requireEmptyHanded: true))
                     {
                         itemstacks = takeStacks;
@@ -114,7 +114,7 @@ namespace CarryOn.Common.Behaviors
             }
             else
             {
-                langCode = CarryOnCode("blockhelp-attach");
+                langCode = GetCarryCode("blockhelp-attach");
                 if (player?.Entity != null && carryManager?.GetCarried(player.Entity, CarrySlot.Hands) != null)
                 {
                     itemstacks = putStacks;

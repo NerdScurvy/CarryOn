@@ -17,6 +17,7 @@ namespace CarryOn.Server.Logic
                 .RequiresPrivilege(Privilege.controlserver)
                 .HandleWith(_ =>
                 {
+                    api.Logger.Notification("CarryOn: /carryon-reload command received, reloading config from disk");
                     configService.Reload();
                     return TextCommandResult.Success("CarryOn config reloaded from file.");
                 });

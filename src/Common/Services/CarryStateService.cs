@@ -13,7 +13,7 @@ using Vintagestory.API.Common.Entities;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.Server;
 using Vintagestory.GameContent;
-using static CarryOn.Common.Models.CarryCode;
+using static CarryOn.Common.Models.CarryCodes;
 
 namespace CarryOn.Common.Services
 {
@@ -48,7 +48,7 @@ namespace CarryOn.Common.Services
         {
             ArgumentNullException.ThrowIfNull(entity);
 
-            var entityCarriedKey = AttributeKey.Watched.EntityCarried;
+            var entityCarriedKey = AttributeKeys.Watched.EntityCarried;
             var slotAttribute = entity.WatchedAttributes
                 .TryGet<ITreeAttribute>(entityCarriedKey, slot.ToString());
             if (slotAttribute == null) return null;
@@ -75,33 +75,33 @@ namespace CarryOn.Common.Services
             var originalBlockCode = carriedBlock.OriginalBlockCode;
             var originalMeshAngle = carriedBlock.OriginalMeshAngle;
 
-            var entityCarriedKey = AttributeKey.Watched.EntityCarried;
-            entity.WatchedAttributes.Set(stack, entityCarriedKey, slot.ToString(), AttributeKey.CarriedBlock.Stack);
+            var entityCarriedKey = AttributeKeys.Watched.EntityCarried;
+            entity.WatchedAttributes.Set(stack, entityCarriedKey, slot.ToString(), AttributeKeys.CarriedBlockData.Stack);
 
             if (blockEntityData != null)
             {
-                entity.WatchedAttributes.Set(blockEntityData, entityCarriedKey, slot.ToString(), AttributeKey.CarriedBlock.Data);
+                entity.WatchedAttributes.Set(blockEntityData, entityCarriedKey, slot.ToString(), AttributeKeys.CarriedBlockData.Data);
             }
 
             var slotAttribute = entity.WatchedAttributes
                 .TryGet<ITreeAttribute>(entityCarriedKey, slot.ToString());
             if (slotAttribute != null)
             {
-                slotAttribute.RemoveAttribute(AttributeKey.CarriedBlock.Children);
+                slotAttribute.RemoveAttribute(AttributeKeys.CarriedBlockData.Children);
 
                 var childrenTree = CarriedBlockTreeSerializer.BuildAttachedBlocksTree(attachedBlocks);
                 if (childrenTree != null)
-                    slotAttribute[AttributeKey.CarriedBlock.Children] = childrenTree;
+                    slotAttribute[AttributeKeys.CarriedBlockData.Children] = childrenTree;
 
                 if (originalBlockCode != null)
-                    slotAttribute.SetString(AttributeKey.CarriedBlock.OriginalBlockCode, originalBlockCode.ToString());
+                    slotAttribute.SetString(AttributeKeys.CarriedBlockData.OriginalBlockCode, originalBlockCode.ToString());
                 else
-                    slotAttribute.RemoveAttribute(AttributeKey.CarriedBlock.OriginalBlockCode);
+                    slotAttribute.RemoveAttribute(AttributeKeys.CarriedBlockData.OriginalBlockCode);
 
                 if (originalMeshAngle.HasValue)
-                    slotAttribute.SetFloat(AttributeKey.CarriedBlock.OriginalMeshAngle, originalMeshAngle.Value);
+                    slotAttribute.SetFloat(AttributeKeys.CarriedBlockData.OriginalMeshAngle, originalMeshAngle.Value);
                 else
-                    slotAttribute.RemoveAttribute(AttributeKey.CarriedBlock.OriginalMeshAngle);
+                    slotAttribute.RemoveAttribute(AttributeKeys.CarriedBlockData.OriginalMeshAngle);
             }
 
             if (entity.Api.Side == EnumAppSide.Server)
@@ -127,8 +127,13 @@ namespace CarryOn.Common.Services
 
                 if (entity.Api.Side == EnumAppSide.Server)
                 {
-                    if (slot == CarrySlot.Hands) LockedItemSlot.Lock(agent.RightHandItemSlot);
-                    if (slot != CarrySlot.Back) LockedItemSlot.Lock(agent.LeftHandItemSlot);
+                    // Hotbar lock logic:
+                    // Hands slot locks both hands (player carries in front, collected items cannot go into those slots).
+                    if (slot == CarrySlot.Hands)
+                    {
+                        LockedItemSlot.Lock(agent.RightHandItemSlot);
+                        LockedItemSlot.Lock(agent.LeftHandItemSlot);
+                    }
                     SendLockSlotsMessage(agent as EntityPlayer);
                 }
             }
@@ -152,7 +157,7 @@ namespace CarryOn.Common.Services
             ArgumentNullException.ThrowIfNull(entity);
 
             var slotAttribute = entity.WatchedAttributes.TryGet<ITreeAttribute>(
-                AttributeKey.Watched.EntityCarried, slot.ToString());
+                AttributeKeys.Watched.EntityCarried, slot.ToString());
             var animation = slotAttribute?.GetString(AttrAnimation);
             if (animation != null && slotAttribute != null)
             {
@@ -162,18 +167,18 @@ namespace CarryOn.Common.Services
 
             if (entity is EntityAgent agent)
             {
-                agent.Stats.Remove("walkspeed", CarryOnCode(slot.ToString()));
-                agent.Stats.Remove("hungerrate", CarryOnCode(slot.ToString()));
+                agent.Stats.Remove("walkspeed", GetCarryCode(slot.ToString()));
+                agent.Stats.Remove("hungerrate", GetCarryCode(slot.ToString()));
                 SendLockSlotsMessage(agent as EntityPlayer);
             }
 
-            entity.WatchedAttributes.Remove(AttributeKey.Watched.EntityCarried, slot.ToString());
+            entity.WatchedAttributes.Remove(AttributeKeys.Watched.EntityCarried, slot.ToString());
             if (markDirty) TouchCarriedAttributes(entity);
-            entity.Attributes.Remove(AttributeKey.Watched.EntityCarried, slot.ToString());
+            entity.Attributes.Remove(AttributeKeys.Watched.EntityCarried, slot.ToString());
 
-            // Restore hand locks only when no carriable remains in the Hands slot.
-            // This handles stale locks from desync (Back remove with empty Hands)
-            // while preserving locks when both Hands and Back are occupied.
+            // Restore hand locks when no carried block remains in the Hands slot.
+            // Only Hands locks hotbar slots, so this covers all lock/unlock transitions
+            // including desync recovery when the client and server state diverge.
             if (entity is EntityAgent agentForLocks && GetCarried(entity, CarrySlot.Hands) == null)
             {
                 LockedItemSlot.Restore(agentForLocks.RightHandItemSlot);
@@ -248,12 +253,12 @@ namespace CarryOn.Common.Services
                 behavior,
                 slotSettings,
                 slot,
-                walkSpeedConfig.ModifierOverrides);
+                walkSpeedConfig);
 
-            if (speed != 0.0F)
+            if (speed != 0.0f)
             {
                 agent.Stats.Set("walkspeed",
-                    CarryOnCode(slot.ToString()), speed, false);
+                    GetCarryCode(slot.ToString()), speed, false);
             }
         }
 
@@ -276,7 +281,7 @@ namespace CarryOn.Common.Services
 
             if (modifier > 0f)
             {
-                agent.Stats.Set("hungerrate", CarryOnCode(slot.ToString()), modifier, true);
+                agent.Stats.Set("hungerrate", GetCarryCode(slot.ToString()), modifier, true);
             }
         }
 
@@ -289,14 +294,14 @@ namespace CarryOn.Common.Services
         {
             ArgumentNullException.ThrowIfNull(entity);
 
-            var carriedRoot = entity.WatchedAttributes.TryGet<ITreeAttribute>(AttributeKey.Watched.EntityCarried) ?? new TreeAttribute();
-            var revision = carriedRoot.GetInt(AttributeKey.CarriedRevision, 0);
+            var carriedRoot = entity.WatchedAttributes.TryGet<ITreeAttribute>(AttributeKeys.Watched.EntityCarried) ?? new TreeAttribute();
+            var revision = carriedRoot.GetInt(AttributeKeys.CarriedRevision, 0);
 
             if (entity.World.Side == EnumAppSide.Server)
             {
-                carriedRoot.SetInt(AttributeKey.CarriedRevision, ++revision);
-                entity.WatchedAttributes.Set(carriedRoot, AttributeKey.Watched.EntityCarried);
-                entity.WatchedAttributes.MarkPathDirty(AttributeKey.Watched.EntityCarried);
+                carriedRoot.SetInt(AttributeKeys.CarriedRevision, ++revision);
+                entity.WatchedAttributes.Set(carriedRoot, AttributeKeys.Watched.EntityCarried);
+                entity.WatchedAttributes.MarkPathDirty(AttributeKeys.Watched.EntityCarried);
             }
 
             return revision;
@@ -310,8 +315,8 @@ namespace CarryOn.Common.Services
         public int GetCarriedRevision(Entity entity)
         {
             ArgumentNullException.ThrowIfNull(entity);
-            var carriedRoot = entity.WatchedAttributes.TryGet<ITreeAttribute>(AttributeKey.Watched.EntityCarried);
-            return carriedRoot?.GetInt(AttributeKey.CarriedRevision, 0) ?? 0;
+            var carriedRoot = entity.WatchedAttributes.TryGet<ITreeAttribute>(AttributeKeys.Watched.EntityCarried);
+            return carriedRoot?.GetInt(AttributeKeys.CarriedRevision, 0) ?? 0;
         }
     }
 }

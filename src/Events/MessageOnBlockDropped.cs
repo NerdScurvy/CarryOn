@@ -4,14 +4,14 @@ using CarryOn.Common.Logic;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
 using Vintagestory.API.Server;
-using static CarryOn.Common.Models.CarryCode;
+using static CarryOn.Common.Models.CarryCodes;
 
 namespace CarryOn.Events
 {
     /// <summary>
     /// Sends a message to the player when a block is dropped.
     /// </summary>
-    public class MessageOnBlockDropped : ICarryEvent
+    public class MessageOnBlockDropped : ICarryEventHandler
     {
         public void Init(ICarryManager carryManager)
         {

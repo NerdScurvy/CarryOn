@@ -24,7 +24,7 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
             bool haveCenterPlacement = carried.BlockEntityData?.GetBool("haveCenterPlacement", false) == true;
 
             var carryBehavior = carried.GetCarryableBehavior();
-            var resolveResult = new AttachmentResolveResult();
+            var candidates = new List<CarriedGroupCandidateSet>();
 
             foreach (var cSlot in containerSlots)
             {
@@ -35,7 +35,18 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
                     itemStack.ResolveBlockOrItem(api.World);
 
                 var slotKey = haveCenterPlacement ? "-center" : cSlot.Key;
-                var candidate = new CarriedGroupCandidateSet
+                var groups = new List<string>();
+
+                if (IsCrystal(itemStack))
+                {
+                    var crystalGroup = "displaycase-slot" + slotKey + "-crystal";
+                    if (carryBehavior?.TransformGroupExists(carried, crystalGroup) == true)
+                        groups.Add(crystalGroup);
+                }
+
+                groups.Add("displaycase-slot" + slotKey);
+
+                var candidate = new CarriedGroupCandidateSet(groups)
                 {
                     SourceSlotKey = cSlot.Key,
                     ApplyDisplaySlotYaw = true,
@@ -43,29 +54,20 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
                     ApplyOnDisplayTransform = true
                 };
 
-                if (IsCrystal(itemStack))
-                {
-                    var crystalGroup = "displaycase-slot" + slotKey + "-crystal";
-                    if (carryBehavior?.TransformGroupExists(carried, crystalGroup) == true)
-                        candidate.Groups.Add(crystalGroup);
-                }
-
-                candidate.Groups.Add("displaycase-slot" + slotKey);
-
                 if (AssetResolutionHelper.TryResolveFallbackAsset(api, itemStack, out var assetType, out var assetName))
                 {
                     candidate.AssetTypeIfUnset = assetType;
                     candidate.AssetNameIfUnset = assetName;
                 }
 
-                resolveResult.Candidates.Add(candidate);
+                candidates.Add(candidate);
 
                 if (haveCenterPlacement) break;
             }
 
-            if (resolveResult.Candidates.Count == 0) return false;
+            if (candidates.Count == 0) return false;
 
-            result = resolveResult;
+            result = new AttachmentResolveResult(candidates);
             return true;
         }
 

@@ -66,7 +66,7 @@ namespace CarryOn.Utility
                 return entityPlayer.ResolveCarryTransformGroupBase(config, carrySlot);
             }
 
-            return CarryCode.DefaultTransformGroup;
+            return CarryCodes.DefaultTransformGroup;
         }
 
     }

@@ -8,7 +8,7 @@ namespace CarryOn.Common.Models
         public string? Animation { get; set; }
         public string? AnimationSit { get; set; }
         public string? AnimationCrouch { get; set; }
-        public float WalkSpeedModifier { get; set; } = 0.0F;
+        public float WalkSpeedModifier { get; set; } = 0.0f;
         public IDictionary<string, float> WalkSpeedModifierByType { get; set; }
             = new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase);
         public IDictionary<string, float> WalkSpeedModifierByGroup { get; set; }

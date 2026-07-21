@@ -8,11 +8,11 @@ namespace CarryOn.Client.Logic.CarryRenderer
 {
     public class EntityCarryRenderer : IRenderer
     {
-        private ICarryManager carryManager { get; }
-        private ICoreClientAPI api { get; }
+        private readonly ICarryManager carryManager;
+        private readonly ICoreClientAPI api;
         private long renderTick;
         private readonly CarryAnimationSync animationSync;
-        private readonly CarryFirstPersonRenderer firstPersonRenderer = new();
+        private readonly CarryFirstPersonTransform firstPersonRenderer = new();
         private readonly CarryRenderCacheManager cacheManager;
         private readonly CarryRenderDispatcher dispatcher;
         private readonly ClientModConfig clientModConfig;
@@ -33,7 +33,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
             var cache = new CarryRenderCache();
             var planBuilder = new CarryTransformPlanBuilder(api, carryManager, cache);
             infoBuilder = new CarryRenderInfoBuilder(api, renderAttached);
-            var labelRenderer = new CarriedLabelRenderer(api);
+            var labelRenderer = new CarryLabelRenderer(api);
 
             cacheManager = new CarryRenderCacheManager(api, carryManager, planBuilder, infoBuilder, cache);
             dispatcher = new CarryRenderDispatcher(api, carryManager, cacheManager, firstPersonRenderer, labelRenderer, renderAttached);

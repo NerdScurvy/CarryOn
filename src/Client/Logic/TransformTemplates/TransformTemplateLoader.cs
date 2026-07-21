@@ -38,7 +38,7 @@ namespace CarryOn.Client.Logic.TransformTemplates
             const string pathPrefix = "config/transformtemplates/";
             const string extension = ".json";
 
-            var domain = CarryCode.ModId;
+            var domain = CarryCodes.ModId;
             string assetPath;
             var parts = assetCode.Split(':');
 

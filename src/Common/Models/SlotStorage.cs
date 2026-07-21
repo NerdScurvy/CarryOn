@@ -42,7 +42,7 @@ namespace CarryOn.Common.Models
                     settings.AnimationSit = slotProperties["animationSit"].AsString(settings.AnimationSit);
                     settings.AnimationCrouch = slotProperties["animationCrouch"].AsString(settings.AnimationCrouch);
 
-                    if (!CarryCode.Default.WalkSpeedModifier.TryGetValue(slot, out var speed)) speed = 0.0F;
+                    CarryCodes.Defaults.WalkSpeedModifier.TryGetValue(slot, out var speed);
                     settings.WalkSpeedModifier = slotProperties["walkSpeedModifier"].AsFloat(speed);
 
                     settings.WalkSpeedModifierByType = JsonHelper.ParseFloatMap(slotProperties["walkSpeedModifierByBlockType"]);

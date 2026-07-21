@@ -25,13 +25,13 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
             if (containerSlots == null || containerSlots.Count == 0)
                 return false;
 
-            var resolveResult = new AttachmentResolveResult();
-            AddSlotCandidates(api, containerSlots, baseGroup, resolveResult);
+            var candidates = new List<CarriedGroupCandidateSet>();
+            AddSlotCandidates(api, containerSlots, baseGroup, candidates);
 
-            if (resolveResult.Candidates.Count == 0)
+            if (candidates.Count == 0)
                 return false;
 
-            result = resolveResult;
+            result = new AttachmentResolveResult(candidates);
             return true;
         }
 
@@ -63,7 +63,7 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
             return sb.ToString();
         }
 
-        protected virtual void AddSlotCandidates(ICoreAPI api, TreeAttribute containerSlots, string baseGroup, AttachmentResolveResult result)
+        protected virtual void AddSlotCandidates(ICoreAPI api, TreeAttribute containerSlots, string baseGroup, List<CarriedGroupCandidateSet> candidates)
         {
             foreach (var cSlot in containerSlots)
             {
@@ -71,8 +71,8 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
                 if (itemStack == null)
                     continue;
 
-                var candidate = new CarriedGroupCandidateSet { SourceSlotKey = cSlot.Key };
-                candidate.Groups.Add(baseGroup + "-slot" + cSlot.Key);
+                var groups = new List<string> { baseGroup + "-slot" + cSlot.Key };
+                var candidate = new CarriedGroupCandidateSet(groups) { SourceSlotKey = cSlot.Key };
 
                 if (AssetResolutionHelper.TryResolveFallbackAsset(api, itemStack, out var assetType, out var assetName))
                 {
@@ -80,7 +80,7 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
                     candidate.AssetNameIfUnset = assetName;
                 }
 
-                result.Candidates.Add(candidate);
+                candidates.Add(candidate);
             }
         }
     }

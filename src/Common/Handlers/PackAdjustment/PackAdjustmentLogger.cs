@@ -129,7 +129,8 @@ namespace CarryOn.Common.Handlers.PackAdjustment
                 list.Add(entry);
             }
 
-            var output = new Dictionary<string, object> { [handler.TransformsGroup!] = list };
+            var transformKey = handler.TransformsGroup ?? "unknown";
+            var output = new Dictionary<string, object> { [transformKey] = list };
             string json = JsonConvert.SerializeObject(output, Formatting.Indented);
             json = CompactJsonArrays(json);
 
@@ -174,13 +175,13 @@ namespace CarryOn.Common.Handlers.PackAdjustment
 
         private static bool IsOriginDefault(FastVec3f origin)
         {
-            const float epsilon = 0.0001F;
-            return Math.Abs(origin.X - 0.5F) < epsilon &&
-                   Math.Abs(origin.Y - 0.5F) < epsilon &&
-                   Math.Abs(origin.Z - 0.5F) < epsilon;
+            const float epsilon = 0.0001f;
+            return Math.Abs(origin.X - 0.5f) < epsilon &&
+                   Math.Abs(origin.Y - 0.5f) < epsilon &&
+                   Math.Abs(origin.Z - 0.5f) < epsilon;
         }
 
-        private static readonly string PackAdjustmentPath = Path.Combine("ModData", CarryCode.ModId, "pack-adjustment");
+        private static readonly string PackAdjustmentPath = Path.Combine("ModData", CarryCodes.ModId, "pack-adjustment");
 
         private static string CompactJsonArrayContent(string content)
         {

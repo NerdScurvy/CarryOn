@@ -8,14 +8,14 @@ using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
 using Vintagestory.API.MathTools;
 using Vintagestory.GameContent;
-using static CarryOn.Common.Models.CarryCode;
+using static CarryOn.Common.Models.CarryCodes;
 
 namespace CarryOn.Events
 {
     /// <summary>
     /// Prevents picking up blocks that are too hot to carry, such as ovens and forges.
     /// </summary>
-    public class TooHotToPickup : ICarryEvent
+    public class TooHotToPickup : ICarryEventHandler
     {
         private IConfigProvider configProvider = null!;
         private CarryEvents? carryEvents;
@@ -48,7 +48,7 @@ namespace CarryOn.Events
             if (blockEntity is ITemperatureSensitive tempSensitive && tempSensitive.IsHot)
             {
                 canPickUp = false;
-                failureCode = FailureCode.TooHot;
+                failureCode = FailureCodes.TooHot;
                 return;
             }
 
@@ -60,7 +60,7 @@ namespace CarryOn.Events
                     || (heatSource is BlockEntityForge forge && forge.IsBurning)))
                 {
                     canPickUp = false;
-                    failureCode = FailureCode.TooHot;
+                    failureCode = FailureCodes.TooHot;
                     return;
                 }
 
@@ -68,7 +68,7 @@ namespace CarryOn.Events
                 if (carryOptions != null && HasTooHotInventoryItems(blockEntity, world))
                 {
                     canPickUp = false;
-                    failureCode = FailureCode.TooHot;
+                    failureCode = FailureCodes.TooHot;
                 }
             }
         }

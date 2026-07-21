@@ -8,7 +8,7 @@ using Vintagestory.API.MathTools;
 
 namespace CarryOn.Client.Logic.CarryRenderer
 {
-    internal sealed class CarriedLabelRenderer : IDisposable
+    internal sealed class CarryLabelRenderer : IDisposable
     {
         private const int IconLabelColor = unchecked((int)0xFFFFFFFF);
         private const float IconLabelSize = 0.45f;
@@ -19,13 +19,13 @@ namespace CarryOn.Client.Logic.CarryRenderer
         private const float MarginFactor = 0.95f;
 
         private readonly ICoreClientAPI api;
-        private readonly CarriedLabelManager labelManager;
+        private readonly CarryLabelManager labelManager;
         private MeshRef? labelQuad;
 
-        internal CarriedLabelRenderer(ICoreClientAPI api)
+        internal CarryLabelRenderer(ICoreClientAPI api)
         {
             this.api = api;
-            this.labelManager = new CarriedLabelManager(api);
+            this.labelManager = new CarryLabelManager(api);
         }
 
         public void Dispose()
@@ -48,9 +48,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
             var labelRenderSettings = behavior?.LabelRenderSettings;
             if (labelRenderSettings == null) return;
 
-            var labelSettings = labelRenderSettings;
-
-            var labelTransform = labelSettings.Transform;
+            var labelTransform = labelRenderSettings.Transform;
             if (labelTransform == null) return; // No label transform => no label
 
             var render = this.api.Render;
@@ -91,7 +89,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
             float fontSize = beData?.GetFloat("fontSize", 20f) ?? 20f;
             EnsureLabelQuad();
 
-            var additionalTransforms = labelSettings.AdditionalTransforms ?? [];
+            var additionalTransforms = labelRenderSettings!.AdditionalTransforms ?? [];
             int transformCount = 1 + (additionalTransforms?.Count ?? 0);
 
             for (int ti = 0; ti < transformCount; ti++)
@@ -101,7 +99,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
                     var transform = labelTransform;
 
                     var modelMat = Mat4f.CloneIt(initialMatrix);
-                    CarryRenderHelpers.ApplyTransformInPlace(transform, modelMat);
+                    CarryTransformResolver.ApplyTransformInPlace(transform, modelMat);
 
                     if (labelStack?.Collectible != null)
                     {
