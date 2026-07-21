@@ -124,6 +124,7 @@ Per-slot walk speed penalty configuration, including per-block overrides and spr
 | `HandsAllowSprint` | `bool` | `false` | Allow sprinting while carrying in hands. |
 | `BackAllowSprint` | `bool` | `true` | Allow sprinting while carrying on back. |
 | `ModifierOverrides` | `object` | See below | Per-block walk speed modifier overrides. |
+| `Multipliers` | `object` | See below | Global and per-material walk speed multipliers. |
 
 When `HandsEnabled`/`BackEnabled` is `false`, the walk speed penalty for that slot is not applied regardless of per-block overrides.
 
@@ -165,6 +166,26 @@ Resolution order for effective slot walk speed:
 
 The penalty is applied as a non-additive stat replace (`agent.Stats.Set("walkspeed", ..., speed, false)`).
 
+`Multipliers` structure:
+
+```json
+{
+  "Global": { "Hands": 1.0, "Back": 1.0 },
+  "ByBlockMaterial": [
+    { "Material": "Wood", "Hands": 0.8, "Back": 0.9 }
+  ]
+}
+```
+
+`Multipliers` sub-fields:
+
+| Key | Type | Description |
+| --- | --- | --- |
+| `Global` | `object` | Global multiplier applied to all carried blocks. Has `Hands` and `Back` float fields (default `1.0`). |
+| `ByBlockMaterial` | `array` | Per-material multiplier entries. Each entry has `Material` (block material enum, e.g. `Wood`, `Stone`, `Ceramic`), `Hands` (float or null), `Back` (float or null). |
+
+Multipliers are applied after the walk speed modifier is resolved. The final effective penalty is `modifier * multiplier`.
+
 ## CarryHungerRate
 
 Per-slot hunger rate multiplier configuration. Increases hunger drain rate while carrying.
@@ -175,6 +196,7 @@ Per-slot hunger rate multiplier configuration. Increases hunger drain rate while
 | `BackEnabled` | `bool` | `true` | Apply hunger rate modifier when carrying on back. |
 | `MinSaturationThreshold` | `float` | `150.0` | Minimum saturation before hunger modifier takes effect. Set to `0` to disable. When the player's saturation drops below this threshold, the hunger rate penalty is suspended to prevent starvation. |
 | `ModifierOverrides` | `object` | See below | Per-block hunger rate modifier overrides. |
+| `Multipliers` | `object` | See below | Global and per-material hunger rate multipliers. |
 
 `ModifierOverrides` uses the same structure as `CarryWalkSpeed.ModifierOverrides`:
 
@@ -204,6 +226,8 @@ Resolution order for effective slot hunger rate (higher priority wins):
 7. Hardcoded defaults (`Hands=0.2`, `Back=0.3`)
 
 The modifier is clamped to `[0.0, 9.0]` and applied as a multiplier to the base hunger drain rate.
+
+`Multipliers` uses the same structure as `CarryWalkSpeed.Multipliers` (see above). Multipliers are applied after the hunger rate modifier is resolved.
 
 ## DropCarriedOnDamage
 
@@ -325,6 +349,7 @@ Debug and development toggles.
 | `LoggingEnabled` | `false` | Enables additional CarryOn debug logging in several systems. |
 | `DisableHarmonyPatch` | `false` | Disables Harmony patch application during startup. |
 | `EnablePackAdjustmentTool` | `false` | Enables the in-game pack adjustment tool (development/testing utility). |
+| `DisableConfigWatcher` | `false` | Disables the file system watcher that hot-reloads the config on change (requires restart). |
 
 ### CarryableReport
 
