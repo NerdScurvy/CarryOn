@@ -88,7 +88,8 @@ namespace CarryOn.Common.Handlers.PackAdjustment
                 }
                 else
                 {
-                    behavior.ResolvedTransformGroups[handler.TransformsGroup!] = handler.TransformSettings!;
+                    if (handler.TransformsGroup == null || handler.TransformSettings == null) return;
+                behavior.ResolvedTransformGroups[handler.TransformsGroup] = handler.TransformSettings;
                 }
 
                 handler.InvalidateCaches();
@@ -178,7 +179,7 @@ namespace CarryOn.Common.Handlers.PackAdjustment
                     Translation = new Vec3f(0, 0, 0),
                     Rotation = new Vec3f(0, 0, 0),
                     ScaleXYZ = new Vec3f(1, 1, 1),
-                    Origin = new Vec3f(0.5F, 0.5F, 0.5F)
+                    Origin = new Vec3f(0.5f, 0.5f, 0.5f)
                 };
 
                 transformSetting = new TransformSettings()
@@ -196,7 +197,12 @@ namespace CarryOn.Common.Handlers.PackAdjustment
             temp[temp.Length - 1] = transformSetting;
             handler.TransformSettings = temp;
 
-            var behavior = handler.GetCarryableBehavior(handler.CarrySlot)!;
+            var behavior = handler.GetCarryableBehavior(handler.CarrySlot);
+            if (behavior == null)
+            {
+                handler.ShowMessage("[PackAdjustmentEditor] AddTransform: no carryable behavior found, aborting.");
+                return;
+            }
             var carriedSlot = handler.GetCarriedSlotSettings(handler.CarrySlot);
             if (carriedSlot == null)
             {
@@ -204,7 +210,8 @@ namespace CarryOn.Common.Handlers.PackAdjustment
                 return;
             }
 
-            behavior.ResolvedTransformGroups[handler.TransformsGroup!] = handler.TransformSettings;
+            if (handler.TransformsGroup == null || handler.TransformSettings == null) return;
+            behavior.ResolvedTransformGroups[handler.TransformsGroup] = handler.TransformSettings;
             handler.InvalidateCaches();
             handler.ShowMessage($"Transform added as index {handler.TransformSettings.Length}");
         }

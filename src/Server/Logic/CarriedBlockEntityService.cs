@@ -1,13 +1,12 @@
 using System;
 using CarryOn.API.Common.Models;
+using CarryOn.Common.Models;
 using CarryOn.Common.Entities;
-using CarryOn.Common.Logic;
-using CarryOn.Common.Services;
+using CarryOn.Utility;
 using Vintagestory.API.Common;
-using Vintagestory.API.Common.Entities;
-using Vintagestory.API.Datastructures;
+
 using Vintagestory.API.MathTools;
-using static CarryOn.API.Common.Models.CarryCode;
+using static CarryOn.Common.Models.CarryCodes;
 
 namespace CarryOn.Server.Logic
 {
@@ -35,7 +34,7 @@ namespace CarryOn.Server.Logic
             var carriedTree = CarriedBlockTreeSerializer.Serialize(carriedBlock);
             if (carriedTree == null) return null;
 
-            var entityType = api.World.GetEntityType(new AssetLocation(CarryCode.ModId, "carriedblock"));
+            var entityType = api.World.GetEntityType(new AssetLocation(CarryCodes.ModId, "carriedblock"));
 
             var entity = api.World.ClassRegistry.CreateEntity(entityType) as EntityCarriedBlock;
             if (entity == null) return null;
@@ -55,7 +54,7 @@ namespace CarryOn.Server.Logic
             var block = carriedBlock.Block;
             if (block != null)
             {
-                var placeSound = block.Sounds?.Place.Location ?? new AssetLocation(SoundPath.DefaultPlace);
+                var placeSound = block.Sounds?.Place.Location ?? new AssetLocation(SoundPaths.DefaultPlace);
                 api.World.PlaySoundAt(placeSound, position.X, position.Y, position.Z);
             }
 
@@ -70,7 +69,7 @@ namespace CarryOn.Server.Logic
         }
 
         /// <summary>
-        /// Spawns a CarriedBlockEntity with gravity — resolves the spawn position
+        /// Spawns a CarriedBlockEntity with gravity - resolves the spawn position
         /// by iterating downward through passable blocks to find the floor.
         /// </summary>
         public EntityCarriedBlock? SpawnCarriedBlockEntityWithGravity(
@@ -86,7 +85,7 @@ namespace CarryOn.Server.Logic
         }
 
         /// <summary>
-        /// Resolves the spawn position by applying gravity — iterates downward
+        /// Resolves the spawn position by applying gravity - iterates downward
         /// through passable blocks from one below the candidate position to find
         /// the first solid surface or liquid to land on.
         /// </summary>
@@ -131,17 +130,17 @@ namespace CarryOn.Server.Logic
                     if (HasRoomAt(targetPos, blockAccessor, scale, pos))
                         return targetPos;
 
-                    return targetPos;
+                    // No room at this height — continue searching downward
                 }
 
                 // Passable block with a surface the entity can stand on
-                // (e.g. wooden paths — passable but walkable)
+                // (e.g. wooden paths - passable but walkable)
                 if (surfaceTop > 0f && block.Id != 0 && candidatePos.Y >= y + surfaceTop)
                 {
                     var targetPos = new Vec3d(x + 0.5, y + surfaceTop, z + 0.5);
                     if (HasRoomAt(targetPos, blockAccessor, scale, pos))
                         return targetPos;
-                    return targetPos;
+                    // No room at this height — continue searching downward
                 }
             }
 
@@ -186,7 +185,7 @@ namespace CarryOn.Server.Logic
         }
 
         /// <summary>
-        /// Determines whether a block is passable — entities can fall through it.
+        /// Determines whether a block is passable - entities can fall through it.
         /// </summary>
         private static bool IsPassable(Block block)
         {

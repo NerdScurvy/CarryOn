@@ -3,7 +3,6 @@ using CarryOn.Client.Models;
 using CarryOn.Utility;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
-using Vintagestory.API.MathTools;
 
 namespace CarryOn.Common.Logic
 {

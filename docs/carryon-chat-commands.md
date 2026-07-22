@@ -135,6 +135,27 @@ Examples:
 .carryon gui highlight alpha 0.6
 ```
 
+### `.carryon iconmode [mode]`
+
+Toggles or sets the icon texture mode used by carried label rendering.
+
+If called without an argument, cycles through modes: `standalone` → `atlas` → `standalone-fallback` → `disabled` → `standalone`.
+
+Valid modes:
+
+- `standalone` — extract icons to standalone textures
+- `atlas` — use atlas textures directly
+- `standalone-fallback` — standalone with atlas fallback
+- `disabled` — skip icon rendering
+
+Examples:
+
+```text
+.carryon iconmode atlas
+.carryon iconmode disabled
+.carryon iconmode
+```
+
 ## Notes
 
 - Hex color values accept `#RRGGBB`, `RRGGBB`, `#RGB`, or `RGB`.

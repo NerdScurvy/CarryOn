@@ -15,7 +15,7 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
     {
         public string ResolverCode => "codepath";
 
-        public bool TryResolve(ICoreAPI api, CarriedBlock carried, string baseGroup, out IList<string>? candidates)
+        public bool TryResolve(ICoreAPI api, CarriedBlock carried, string baseGroup, out IReadOnlyList<string>? candidates)
         {
             candidates = null;
 

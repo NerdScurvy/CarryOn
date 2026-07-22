@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using CarryOn.API.Common.Models;
+using CarryOn.Common.Models;
 using CarryOn.Common.Logic;
 using CarryOn.Utility;
 using Vintagestory.API.Client;
@@ -8,7 +8,7 @@ using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
-using static CarryOn.API.Common.Models.CarryCode;
+using static CarryOn.Common.Models.CarryCodes;
 
 namespace CarryOn.Common.Entities
 {
@@ -121,7 +121,7 @@ namespace CarryOn.Common.Entities
         {
             var tree = this.CarriedBlockTree;
             if (tree == null) return null;
-            var stack = tree.GetItemstack(AttributeKey.CarriedBlock.Stack);
+            var stack = tree.GetItemstack(AttributeKeys.CarriedBlockData.Stack);
             if (stack == null) return null;
             if (stack.Block == null)
                 stack.ResolveBlockOrItem(Api?.World);
@@ -157,12 +157,18 @@ namespace CarryOn.Common.Entities
             handsfreeStacks ??= [new ItemStack(world.GetItem(new AssetLocation("carryon:icon-handsfree")))];
             nohandsfreeStacks ??= [new ItemStack(world.GetItem(new AssetLocation("carryon:icon-nohandsfree")))];
 
+            // Resolve fresh if cached stacks reference items that may have been reloaded
+            if (handsfreeStacks[0].Item == null)
+                handsfreeStacks = [new ItemStack(world.GetItem(new AssetLocation("carryon:icon-handsfree")))];
+            if (nohandsfreeStacks[0].Item == null)
+                nohandsfreeStacks = [new ItemStack(world.GetItem(new AssetLocation("carryon:icon-nohandsfree")))];
+
             bool canDoCarryAction = player.Entity?.CanDoCarryAction(requireEmptyHanded: true) == true;
             var itemstacks = canDoCarryAction ? handsfreeStacks : nohandsfreeStacks;
 
             return [new WorldInteraction
             {
-                ActionLangCode = CarryOnCode("entityhelp-pickup-carriedblock"),
+                ActionLangCode = GetCarryCode("entityhelp-pickup-carriedblock"),
                 MouseButton = EnumMouseButton.Right,
                 RequireFreeHand = true,
                 Itemstacks = itemstacks
@@ -181,23 +187,23 @@ namespace CarryOn.Common.Entities
         // -- Data stored in WatchedAttributes for automatic server->client sync --
 
         public string? OwnerUid
-            => this.WatchedAttributes.GetString(AttributeKey.CarriedBlock.OwnerUid, null);
+            => this.WatchedAttributes.GetString(AttributeKeys.CarriedBlockData.OwnerUid, null);
 
         public double DropTimeDays
-            => this.WatchedAttributes.GetDouble(AttributeKey.CarriedBlock.DropTime, 0);
+            => this.WatchedAttributes.GetDouble(AttributeKeys.CarriedBlockData.DropTime, 0);
 
         public long DropTimeRealTicks
-            => this.WatchedAttributes.GetLong(AttributeKey.CarriedBlock.DropTimeRealTicks, 0);
+            => this.WatchedAttributes.GetLong(AttributeKeys.CarriedBlockData.DropTimeRealTicks, 0);
 
         public ITreeAttribute? CarriedBlockTree
-            => this.WatchedAttributes[AttributeKey.CarriedBlock.WatchedTree] as ITreeAttribute;
+            => this.WatchedAttributes[AttributeKeys.CarriedBlockData.WatchedTree] as ITreeAttribute;
 
         public void SetCarriedBlockData(ITreeAttribute carriedTree, string ownerUid, double dropTimeDays, long dropTimeRealTicks)
         {
-            this.WatchedAttributes[AttributeKey.CarriedBlock.WatchedTree] = carriedTree;
-            this.WatchedAttributes.SetString(AttributeKey.CarriedBlock.OwnerUid, ownerUid);
-            this.WatchedAttributes.SetDouble(AttributeKey.CarriedBlock.DropTime, dropTimeDays);
-            this.WatchedAttributes.SetLong(AttributeKey.CarriedBlock.DropTimeRealTicks, dropTimeRealTicks);
+            this.WatchedAttributes[AttributeKeys.CarriedBlockData.WatchedTree] = carriedTree;
+            this.WatchedAttributes.SetString(AttributeKeys.CarriedBlockData.OwnerUid, ownerUid);
+            this.WatchedAttributes.SetDouble(AttributeKeys.CarriedBlockData.DropTime, dropTimeDays);
+            this.WatchedAttributes.SetLong(AttributeKeys.CarriedBlockData.DropTimeRealTicks, dropTimeRealTicks);
             this.WatchedAttributes.MarkAllDirty();
         }
     }

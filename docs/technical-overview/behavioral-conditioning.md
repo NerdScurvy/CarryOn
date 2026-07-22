@@ -13,7 +13,7 @@ It reflects the current implementation:
 
 - `src/Server/Logic/BehavioralConditioning.cs`
 - `../CarryOnLib/src/API/Common/Interfaces/IConditionalBlockBehavior.cs`
-- `../CarryOnLib/src/API/Common/Models/CarryOnConfig.cs` (`CarryablesFiltersConfig`)
+- `src/Common/Models/CarryOnConfig.cs` (`CarryablesFiltersConfig`)
 - `src/Common/Behaviors/BlockBehaviorCarryable.cs` (`PatchPriority`, `OverrideExistingProperties`, `ForcePickupOnSwapBack`)
 
 ---
@@ -234,7 +234,7 @@ Produces the ordered candidate key list for a block. Returns only `["Class:<c>"]
 - `src/Common/Behaviors/BlockBehaviorCarryableInteract.cs`
 - `src/CarrySystem.cs`
 - `../CarryOnLib/src/API/Common/Interfaces/IConditionalBlockBehavior.cs`
-- `../CarryOnLib/src/API/Common/Models/CarryOnConfig.cs`
+- `src/Common/Models/CarryOnConfig.cs`
 
 ---
 

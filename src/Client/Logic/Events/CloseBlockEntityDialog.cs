@@ -12,7 +12,7 @@ namespace CarryOn.Client.Logic.Events
     /// <summary>
     /// Closes the block entity dialog when the block is removed.
     /// </summary>
-    public class CloseBlockEntityDialog : ICarryEvent
+    public class CloseBlockEntityDialog : ICarryEventHandler
     {
         private ICarryManager? carryManager;
 

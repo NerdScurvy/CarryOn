@@ -1,8 +1,7 @@
 using System;
 using System.Collections.Generic;
 using CarryOn.API.Common.Interfaces;
-using CarryOn.API.Common.Models;
-
+using CarryOn.Common.Models;
 namespace CarryOn.Common.Services
 {
     internal sealed class CarryResolverRegistry
@@ -112,23 +111,23 @@ namespace CarryOn.Common.Services
 
         private static string? ToCanonicalLookupCode(string resolverCode)
         {
-            var trimmed = resolverCode?.Trim();
-            if (string.IsNullOrWhiteSpace(trimmed))
-                return null;
-
-            return trimmed.IndexOf(':') >= 0
-                ? trimmed
-                : $"{CarryCode.ModId}:{trimmed}";
+            return ToCanonicalCode(resolverCode, CarryCodes.ModId);
         }
 
         private static string? ToCanonicalResolverCode(string modId, string resolverCode)
         {
-            var normalizedModId = modId?.Trim();
-            var normalizedCode = resolverCode?.Trim();
+            return ToCanonicalCode(resolverCode, modId);
+        }
 
-            return normalizedCode?.IndexOf(':') >= 0
+        private static string? ToCanonicalCode(string? resolverCode, string? defaultModId)
+        {
+            var normalizedCode = resolverCode?.Trim();
+            if (string.IsNullOrWhiteSpace(normalizedCode))
+                return null;
+
+            return normalizedCode.IndexOf(':') >= 0
                 ? normalizedCode
-                : $"{normalizedModId}:{normalizedCode}";
+                : $"{defaultModId?.Trim()}:{normalizedCode}";
         }
     }
 }

@@ -25,12 +25,7 @@ namespace CarryOn.Common.Models
         public void Initialize(JsonObject properties)
         {
             SlotSettingsDict.Clear();
-            if (properties?.Exists != true)
-            {
-                if (!BlockBehaviorCarryable.DefaultAnimation.TryGetValue(CarrySlot.Hands, out string? anim)) anim = null;
-                SlotSettingsDict.Add(CarrySlot.Hands, new SlotSettings { Animation = anim });
-            }
-            else
+            if (properties?.Exists == true)
             {
                 foreach (var slot in Enum.GetValues(typeof(CarrySlot)).Cast<CarrySlot>())
                 {
@@ -47,7 +42,7 @@ namespace CarryOn.Common.Models
                     settings.AnimationSit = slotProperties["animationSit"].AsString(settings.AnimationSit);
                     settings.AnimationCrouch = slotProperties["animationCrouch"].AsString(settings.AnimationCrouch);
 
-                    if (!CarryCode.Default.WalkSpeedModifier.TryGetValue(slot, out var speed)) speed = 0.0F;
+                    CarryCodes.Defaults.WalkSpeedModifier.TryGetValue(slot, out var speed);
                     settings.WalkSpeedModifier = slotProperties["walkSpeedModifier"].AsFloat(speed);
 
                     settings.WalkSpeedModifierByType = JsonHelper.ParseFloatMap(slotProperties["walkSpeedModifierByBlockType"]);

@@ -1,19 +1,20 @@
 using System;
 using System.IO;
-using System.Threading;
-using CarryOn.API.Common.Models;
+using CarryOn.Common.Models;
 using Vintagestory.API.Config;
 using Vintagestory.API.Server;
-using static CarryOn.API.Common.Models.CarryCode;
+using static CarryOn.Common.Models.CarryCodes;
 
 namespace CarryOn.Common.Logic
 {
+    /// <summary>Manages CarryOn configuration loading, hot-reload via file watcher, and change notifications.</summary>
     public sealed class CarryOnConfigService
     {
         private FileSystemWatcher? configWatcher;
         private DateTime lastConfigFileChange = DateTime.MinValue;
         private readonly object configWatcherLock = new();
         private ICoreServerAPI? serverApi;
+        private volatile bool suppressWatcher;
 
         public CarryOnConfig Config { get; private set; }
 
@@ -29,7 +30,16 @@ namespace CarryOn.Common.Logic
             ArgumentNullException.ThrowIfNull(newConfig);
 
             Config = newConfig;
-            OnConfigChanged?.Invoke(newConfig);
+            suppressWatcher = true;
+            try
+            {
+                serverApi?.Logger.Debug("CarryOn: Config replaced, firing OnConfigChanged");
+                OnConfigChanged?.Invoke(newConfig);
+            }
+            finally
+            {
+                suppressWatcher = false;
+            }
         }
 
         public void NotifyChanged()
@@ -87,15 +97,24 @@ namespace CarryOn.Common.Logic
 
         private void OnConfigFileChanged(object sender, FileSystemEventArgs e)
         {
+            if (suppressWatcher)
+            {
+                serverApi?.Logger.Debug("CarryOn: Config file change suppressed (originated from Replace)");
+                return;
+            }
+
             lock (configWatcherLock)
             {
                 var now = DateTime.UtcNow;
-                if ((now - lastConfigFileChange).TotalMilliseconds < 500) return;
+                if ((now - lastConfigFileChange).TotalMilliseconds < 500)
+                {
+                    serverApi?.Logger.Debug("CarryOn: Config file change debounced");
+                    return;
+                }
                 lastConfigFileChange = now;
             }
 
-            Thread.Sleep(100);
-
+            serverApi?.Logger.Debug("CarryOn: Config file change detected, enqueueing reload");
             serverApi?.Event.EnqueueMainThreadTask(ReloadFromFile, "carryon-config-reload");
         }
 
@@ -105,8 +124,13 @@ namespace CarryOn.Common.Logic
 
             try
             {
+                serverApi.Logger.Debug("CarryOn: ReloadFromFile — reading config from disk");
                 var reloaded = serverApi.LoadModConfig<CarryOnConfig>(ConfigFile);
-                if (reloaded == null) return;
+                if (reloaded == null)
+                {
+                    serverApi.Logger.Warning("CarryOn: ReloadFromFile — LoadModConfig returned null");
+                    return;
+                }
 
                 reloaded.UpgradeVersion();
                 Replace(reloaded);

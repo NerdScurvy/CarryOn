@@ -7,8 +7,8 @@ namespace CarryOn.Client.Logic
     public class HudOverlayRenderer : IRenderer
     {
         private const int CircleColor = 0xCCCCCC;
-        private const float CircleAlphaIn = 0.2F; // How quickly circle fades
-        private const float CircleAlphaOut = 0.4F; // in and out in seconds.
+        private const float CircleAlphaIn = 0.2f; // How quickly circle fades
+        private const float CircleAlphaOut = 0.4f; // in and out in seconds.
 
         private const int CircleMaxSteps = 16;
         private const float OuterRadius = 24;
@@ -18,8 +18,8 @@ namespace CarryOn.Client.Logic
 
         private readonly ICoreClientAPI api;
 
-        private float circleAlpha = 0.0F;
-        private float circleProgress = 0.0F;
+        private float circleAlpha = 0.0f;
+        private float circleProgress = 0.0f;
 
         public bool CircleVisible { get; set; }
         public float CircleProgress
@@ -27,7 +27,7 @@ namespace CarryOn.Client.Logic
             get => this.circleProgress;
             set
             {
-                this.circleProgress = GameMath.Clamp(value, 0.0F, 1.0F);
+                this.circleProgress = GameMath.Clamp(value, 0.0f, 1.0f);
                 CircleVisible = true;
             }
         }
@@ -42,7 +42,7 @@ namespace CarryOn.Client.Logic
         private void UpdateCircleMesh(float progress)
         {
             const float ringSize = InnerRadius / OuterRadius;
-            const float stepSize = 1.0F / CircleMaxSteps;
+            const float stepSize = 1.0f / CircleMaxSteps;
 
             var steps = 1 + (int)Math.Ceiling(CircleMaxSteps * progress);
             var data = new MeshData(steps * 2, steps * 6, false, false, true, false);
@@ -77,23 +77,23 @@ namespace CarryOn.Client.Logic
             var rend = this.api.Render;
             var shader = rend.CurrentActiveShader;
 
-            this.circleAlpha = Math.Max(0.0F, Math.Min(1.0F, this.circleAlpha
+            this.circleAlpha = Math.Max(0.0f, Math.Min(1.0f, this.circleAlpha
                 + (deltaTime / (this.CircleVisible ? CircleAlphaIn : -CircleAlphaOut))));
 
             // Circle progress is set externally; alpha fade provides the transition smoothing
-            if ((this.CircleProgress <= 0.0F) || (this.circleAlpha <= 0.0F)) return;
+            if ((this.CircleProgress <= 0.0f) || (this.circleAlpha <= 0.0f)) return;
             UpdateCircleMesh(this.CircleProgress);
 
-            const float r = ((CircleColor >> 16) & 0xFF) / 255.0F;
-            const float g = ((CircleColor >> 8) & 0xFF) / 255.0F;
-            const float b = (CircleColor & 0xFF) / 255.0F;
+            const float r = ((CircleColor >> 16) & 0xFF) / 255.0f;
+            const float g = ((CircleColor >> 8) & 0xFF) / 255.0f;
+            const float b = (CircleColor & 0xFF) / 255.0f;
             var color = new Vec4f(r, g, b, this.circleAlpha);
 
             shader.Uniform("rgbaIn", color);
             shader.Uniform("extraGlow", 0);
             shader.Uniform("applyColor", 0);
             shader.Uniform("tex2d", 0);
-            shader.Uniform("noTexture", 1.0F);
+            shader.Uniform("noTexture", 1.0f);
             shader.UniformMatrix("projectionMatrix", rend.CurrentProjectionMatrix);
 
             int x, y;
@@ -123,7 +123,7 @@ namespace CarryOn.Client.Logic
             // Reset shader state we modified so other renderers (e.g. itemstack GUI renders)
             // are not affected by the "noTexture" flag. Leaving it at 1.0 causes
             // subsequent GUI draw calls to render white/untextured icons.
-            shader.Uniform("noTexture", 0.0F);
+            shader.Uniform("noTexture", 0.0f);
         }
 
         public void Dispose()

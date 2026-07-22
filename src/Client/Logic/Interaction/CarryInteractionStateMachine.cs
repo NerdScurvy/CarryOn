@@ -2,16 +2,16 @@ using System;
 using System.Reflection;
 using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
+using CarryOn.Common.Models;
 using CarryOn.Client.Models;
 using CarryOn.Common.Behaviors;
-using CarryOn.Common.Models;
 using CarryOn.Common.Logic;
 using CarryOn.Common.Network;
 using CarryOn.Utility;
 using HarmonyLib;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
-using static CarryOn.API.Common.Models.CarryCode;
+using static CarryOn.Common.Models.CarryCodes;
 
 namespace CarryOn.Client.Logic.Interaction
 {
@@ -100,7 +100,7 @@ namespace CarryOn.Client.Logic.Interaction
                     if (Interaction.CarryAction == CarryAction.PickUp == (holdingAny != null))
                     { CancelInteraction(); return; }
 
-                    selection = (Interaction.CarryAction == CarryAction.PlaceDown) ? player.CurrentBlockSelection : BlockUtils.GetMultiblockOriginSelection(world.BlockAccessor, player.CurrentBlockSelection);
+                    selection = (Interaction.CarryAction == CarryAction.PlaceDown) ? player.CurrentBlockSelection : MultiblockUtils.GetMultiblockOriginSelection(world.BlockAccessor, player.CurrentBlockSelection);
 
                     var position = selection?.Position;
 
@@ -188,7 +188,7 @@ namespace CarryOn.Client.Logic.Interaction
             {
                 HudCarried.TriggerBackHighlight();
             }
-            if (progress <= 1.0F) return;
+            if (progress <= 1.0f) return;
 
             ExecuteAction(player, selection, carriedTarget, attachableCarryBehavior);
         }
@@ -207,7 +207,7 @@ namespace CarryOn.Client.Logic.Interaction
                 return;
             }
 
-            string failureCode = FailureCode.Ignore;
+            string failureCode = FailureCodes.Ignore;
 
             var hasPickedUp = carryManager.TryPickUp(
                 player.Entity,
@@ -228,7 +228,7 @@ namespace CarryOn.Client.Logic.Interaction
             }
             else
             {
-                CarryErrorHelper.ShowErrorWithFallback(this.api, failureCode, FailureCode.PickUpFailed);
+                CarryErrorHelper.ShowErrorWithFallback(this.api, failureCode, FailureCodes.PickUpFailed);
             }
         }
 
@@ -240,13 +240,13 @@ namespace CarryOn.Client.Logic.Interaction
                 return;
             }
 
-            string failureCode = FailureCode.Ignore;
+            string failureCode = FailureCodes.Ignore;
 
             if (carryManager.TryPlaceDownAt(player, carriedTarget.Slot, selection, out var placedAt, ref failureCode) && placedAt != null)
                 clientChannel.SendPacket(new PlaceDownMessage(Interaction.CarrySlot.Value, selection, placedAt));
             else
             {
-                CarryErrorHelper.ShowErrorWithFallback(this.api, failureCode, FailureCode.PlaceDownFailed);
+                CarryErrorHelper.ShowErrorWithFallback(this.api, failureCode, FailureCodes.PlaceDownFailed);
             }
         }
 
@@ -295,21 +295,21 @@ namespace CarryOn.Client.Logic.Interaction
                 return;
             }
 
-            string failureCode = FailureCode.Ignore;
+            string failureCode = FailureCodes.Ignore;
             string? onScreenErrorMessage = null;
 
             var putMessage = new PutMessage(blockPos: Interaction.TargetBlockPos, index: Interaction.TargetSlotIndex ?? -1);
 
             if (!this.transferLogic.TryPutCarryable(player, putMessage, out failureCode, out onScreenErrorMessage))
             {
-                if (failureCode != FailureCode.Continue)
+                if (failureCode != FailureCodes.Continue)
                 {
                     CarryErrorHelper.ShowErrorIfMessage(this.api, failureCode, onScreenErrorMessage);
                     this.api.Logger.Debug($"Failed client side: {failureCode} : {onScreenErrorMessage}");
                 }
             }
 
-            if (failureCode == FailureCode.Stop) return;
+            if (failureCode == FailureCodes.Stop) return;
             clientChannel.SendPacket(putMessage);
         }
 
@@ -321,21 +321,21 @@ namespace CarryOn.Client.Logic.Interaction
                 return;
             }
 
-            string failureCode = FailureCode.Ignore;
+            string failureCode = FailureCodes.Ignore;
             string? onScreenErrorMessage = null;
 
             var takeMessage = new TakeMessage(blockPos: Interaction.TargetBlockPos, index: Interaction.TargetSlotIndex ?? -1);
 
             if (!this.transferLogic.TryTakeCarryable(player, takeMessage, out failureCode, out onScreenErrorMessage))
             {
-                if (failureCode != FailureCode.Continue)
+                if (failureCode != FailureCodes.Continue)
                 {
                     CarryErrorHelper.ShowErrorIfMessage(this.api, failureCode, onScreenErrorMessage);
                     this.api.Logger.Debug($"Failed client side: {failureCode} : {onScreenErrorMessage}");
                 }
             }
 
-            if (failureCode == FailureCode.Stop) return;
+            if (failureCode == FailureCodes.Stop) return;
             clientChannel.SendPacket(takeMessage);
         }
 
@@ -349,21 +349,21 @@ namespace CarryOn.Client.Logic.Interaction
             }
             else if (Interaction.CarryAction is CarryAction.Put or CarryAction.Take)
             {
-                requiredTime = carryBehavior?.TransferDelay ?? Default.TransferSpeed;
+                requiredTime = carryBehavior?.TransferDelay ?? Defaults.TransferSpeed;
             }
             else if (Interaction.CarryAction == CarryAction.Interact)
             {
                 if (validator.RemoveInteractDelayWhileCarrying) requiredTime = 0;
-                else requiredTime = interactBehavior?.InteractDelay ?? Default.InteractSpeed;
+                else requiredTime = interactBehavior?.InteractDelay ?? Defaults.InteractSpeed;
             }
             else
             {
 
-                requiredTime = carryBehavior?.InteractDelay ?? Default.PickUpSpeed;
+                requiredTime = carryBehavior?.InteractDelay ?? Defaults.PickUpSpeed;
                 switch (Interaction.CarryAction)
                 {
-                    case CarryAction.PlaceDown: requiredTime *= Default.PlaceSpeed; break;
-                    case CarryAction.SwapBack: requiredTime *= Default.SwapSpeed; break;
+                    case CarryAction.PlaceDown: requiredTime *= Defaults.PlaceSpeed; break;
+                    case CarryAction.SwapBack: requiredTime *= Defaults.SwapSpeed; break;
                 }
             }
 

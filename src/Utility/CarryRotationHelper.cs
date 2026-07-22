@@ -5,7 +5,7 @@ using Vintagestory.API.Common.Entities;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 
-namespace CarryOn.Common.Logic
+namespace CarryOn.Utility
 {
     public static class CarryRotationHelper
     {
@@ -20,11 +20,6 @@ namespace CarryOn.Common.Logic
         private static readonly BlockFacing[] NorthWestSouthEast = [BlockFacing.NORTH, BlockFacing.WEST, BlockFacing.SOUTH, BlockFacing.EAST];
         private static readonly BlockFacing[] NorthEastSouthWest = [BlockFacing.NORTH, BlockFacing.EAST, BlockFacing.SOUTH, BlockFacing.WEST];
 
-        // Mapping from normalized meshAngle step index to BlockFacing.
-        // VS stores meshAngle using Atan2(-dx, dz) convention where:
-        //   South=0, West=π/2, North=π, East=3π/2 (or -π/2)
-        // After NormalizeAngle and dividing by (π/2), the step index maps to:
-        //   0→South, 1→West, 2→North, 3→East
         private static readonly BlockFacing[] MeshAngleFacing = [BlockFacing.SOUTH, BlockFacing.WEST, BlockFacing.NORTH, BlockFacing.EAST];
 
         private const float CardinalEpsilon = 0.001f;
@@ -167,12 +162,6 @@ namespace CarryOn.Common.Logic
             return NormalizeSteps(steps);
         }
 
-        /// <summary>
-        /// Computes rotation steps from the parent block's original facing to its base (render-default) facing.
-        /// During carry, the parent block is rendered in its base orientation (the ItemStack from OnPickBlock,
-        /// which typically normalizes facing variants). Attached-block offsets were captured relative to the
-        /// original world-facing, so they must be rotated by this delta to align with the base-oriented render.
-        /// </summary>
         public static int GetBaseFacingRotationSteps(CarriedBlock carriedBlock)
         {
             var originalFacing = GetOriginalFacing(carriedBlock);
@@ -190,9 +179,6 @@ namespace CarryOn.Common.Logic
             return NormalizeSteps(toIdx - fromIdx);
         }
 
-        /// <summary>
-        /// Gets the original facing of a carried block, preferring meshAngle over block code.
-        /// </summary>
         public static BlockFacing? GetOriginalFacing(CarriedBlock carriedBlock)
         {
             if (carriedBlock.OriginalMeshAngle.HasValue)
@@ -211,25 +197,12 @@ namespace CarryOn.Common.Logic
             return GetBlockFacing(carriedBlock.Block);
         }
 
-        /// <summary>
-        /// Gets the base (render-default) facing of a carried block.
-        /// This is the facing of the ItemStack's block code, which is what OnPickBlock returns.
-        /// If the base item has no facing variant, the default is North (0 rotation steps).
-        /// </summary>
         public static BlockFacing? GetBaseFacing(CarriedBlock carriedBlock)
         {
             var baseFacing = GetBlockFacing(carriedBlock.Block);
             return baseFacing ?? BlockFacing.NORTH;
         }
 
-        /// <summary>
-        /// Computes rotation steps from the original world facing to the model's default render
-        /// orientation. Attached block offsets must be rotated by this amount to convert from world
-        /// block coordinates to the model's pre-rotation coordinate space.
-        /// Uses OriginalMeshAngle directly (which encodes rotation from model default in VS convention:
-        /// south = 0, east = π/2, north = π, west = 3π/2) for meshAngle-based blocks, and
-        /// OriginalBlockCode facing for variant-based blocks.
-        /// </summary>
         public static int GetOriginalToModelDefaultSteps(CarriedBlock carriedBlock, string? modelDefaultFacing = "east")
         {
             var defaultIdx = ModelDefaultFacingToSteps(modelDefaultFacing);
@@ -281,10 +254,6 @@ namespace CarryOn.Common.Logic
             };
         }
 
-        /// <summary>
-        /// Converts a BlockFacing to a Y-rotation in degrees for model transforms.
-        /// North = 0, East = 90, South = 180, West = 270.
-        /// </summary>
         public static float FacingToYRotationDegrees(BlockFacing facing)
         {
             return facing.Code switch
@@ -297,21 +266,6 @@ namespace CarryOn.Common.Logic
             };
         }
 
-        /// <summary>
-        /// Resolves the block variant to use for rendering a carried block, based on its
-        /// <see cref="RootRenderVariant"/> and <see cref="RootRenderFacing"/> configuration.
-        /// 
-        /// When a block is picked up, <c>OnPickBlock</c> may normalize the block code (e.g.
-        /// <c>sign-wall-north</c> becomes <c>sign-ground-north</c>). The render pipeline uses
-        /// the ItemStack's block, which always resolves to the normalized variant. This method
-        /// reconstructs the desired render variant by:
-        /// <list type="number">
-        ///   <item>Starting from <see cref="CarriedBlock.OriginalBlockCode"/> (preserves the original variant).</item>
-        ///   <item>Replacing the variant segment with <paramref name="rootRenderVariant"/> (e.g. "wall").</item>
-        ///   <item>Setting the facing to <paramref name="rootRenderFacing"/> (e.g. "north").</item>
-        /// </list>
-        /// Falls back to the carried block's base block if resolution fails.
-        /// </summary>
         public static Block? ResolveRenderBlock(IWorldAccessor world, CarriedBlock carriedBlock, string? rootRenderVariant, string? rootRenderFacing)
         {
             if (string.IsNullOrEmpty(rootRenderVariant))

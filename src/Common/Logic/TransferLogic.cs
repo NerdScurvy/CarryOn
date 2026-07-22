@@ -1,7 +1,7 @@
 using System;
+using System.Collections.Generic;
 using CarryOn.Common.Behaviors;
 using Vintagestory.API.Common;
-using static CarryOn.API.Common.Models.CarryCode;
 using CarryOn.Utility;
 using CarryOn.Common.Network;
 using Vintagestory.API.Datastructures;
@@ -9,6 +9,7 @@ using CarryOn.API.Common.Models;
 using System.Linq;
 using Vintagestory.API.MathTools;
 using CarryOn.API.Common.Interfaces;
+using static CarryOn.Common.Models.CarryCodes;
  
 namespace CarryOn.Common.Logic
 {
@@ -17,45 +18,44 @@ namespace CarryOn.Common.Logic
 
         /// <summary>
         /// Initializes the transfer behaviors for carryable blocks.
+        /// For each registered behavior code, resolves the Type and wires
+        /// matching carryable blocks.
         /// </summary>
         /// <param name="api"></param>
-        public static void InitTransferBehaviors(ICoreAPI api)
+        /// <param name="carryManager"></param>
+        public static void InitTransferBehaviors(ICoreAPI api, ICarryManager carryManager)
         {
+            var codes = carryManager.EnumerateTransferBehaviors().ToList();
+            api.Logger.Notification($"CarryOn: InitTransferBehaviors called. Registered transfer codes: [{string.Join(", ", codes)}]");
 
-            var ignoreMods = new[] { "game", "creative", "survival" };
-
-            var assemblies = api.ModLoader.Mods.Where(m => !ignoreMods.Contains(m.Info.ModID))
-                                               .Select(s => s.Systems)
-                                               .SelectMany(o => o.ToArray())
-                                               .Select(t => t.GetType().Assembly)
-                                               .Distinct();
-
-            foreach (var assembly in assemblies)
+            foreach (var code in codes)
             {
-                foreach (Type type in assembly.GetTypes().Where(t => t.GetInterfaces().Contains(typeof(ICarryableTransfer))))
+                var type = api.ClassRegistry.GetBlockBehaviorClass(code);
+                if (type == null)
                 {
-                    foreach (var block in api.World.Blocks.Where(b => b.IsCarryable()))
-                    {
-                        if (block.HasBehavior(type))
-                        {
-                            try
-                            {
-                                var carryableBehavior = block.GetBehavior<BlockBehaviorCarryable>();
-                                if (carryableBehavior != null)
-                                {
-                                    carryableBehavior.ConfigureTransferBehavior(type, api);
+                    api.Logger.Warning($"CarryOn: Transfer behavior '{code}' not registered with the API");
+                    continue;
+                }
 
-                                }
-                            }
-                            catch (Exception e)
-                            {
-                                api.Logger.Error($"CarryOn: Failed to set TransferHandlerType for block {block.Code}: {e.Message}");
-                            }
-                        }
-                    }
+                api.Logger.Notification($"CarryOn: Resolved transfer behavior '{code}' to type {type.Name}. Scanning carryable blocks...");
+
+                foreach (var block in api.World.Blocks.Where(b => b.IsCarryable()))
+                {
+                    if (!block.HasBehavior(type))
+                        continue;
+
+                    var carryableBehavior = block.GetBehavior<BlockBehaviorCarryable>();
+                    if (carryableBehavior == null)
+                        continue;
+
+                    var transferHandler = block.GetBehavior(type) as ICarryableTransfer;
+                    if (transferHandler == null)
+                        continue;
+
+                    api.Logger.Notification($"CarryOn: Wired transfer handler '{code}' to block {block.Code}");
+                    carryableBehavior.ConfigureTransferBehavior(transferHandler, api);
                 }
             }
-
         }
 
         /// <summary>
@@ -68,13 +68,17 @@ namespace CarryOn.Common.Logic
             onScreenErrorMessage = default!;
             transferDelay = null;
 
-            if (blockEntity == null) return false;
+            if (blockEntity == null) { api.Logger.Notification("CanTakeCarryable: blockEntity is null"); return false; }
 
             var carryableBehavior = blockEntity.Block?.GetBehavior<BlockBehaviorCarryable>();
-            if (carryableBehavior == null || !carryableBehavior.TransferEnabled) return false;
+            if (carryableBehavior == null || !carryableBehavior.TransferEnabled)
+            {
+                api.Logger.Notification($"CanTakeCarryable: carryableBehavior null={carryableBehavior == null}, TransferEnabled={carryableBehavior?.TransferEnabled}");
+                return false;
+            }
 
             var transferHandler = carryableBehavior.TransferHandler;
-            if (transferHandler == null) return false;
+            if (transferHandler == null) { api.Logger.Notification("CanTakeCarryable: TransferHandler is null"); return false; }
 
             try
             {
@@ -83,7 +87,7 @@ namespace CarryOn.Common.Logic
             }
             catch (Exception e)
             {
-                failureCode = FailureCode.Internal;
+                failureCode = FailureCodes.Internal;
                 onScreenErrorMessage = LocalizationHelper.GetLang("unknown-error");
                 api.Logger.Error($"CanTakeCarryable method failed: {e}", e);
             }
@@ -100,17 +104,21 @@ namespace CarryOn.Common.Logic
             onScreenErrorMessage = default!;
             transferDelay = null;
 
-            if (blockEntity == null) return false;
+            if (blockEntity == null) { api.Logger.Notification("CanPutCarryable: blockEntity is null"); return false; }
 
             var carryableBehavior = blockEntity.Block?.GetBehavior<BlockBehaviorCarryable>();
-            if (carryableBehavior == null || !carryableBehavior.TransferEnabled) return false;
+            if (carryableBehavior == null || !carryableBehavior.TransferEnabled)
+            {
+                api.Logger.Notification($"CanPutCarryable: carryableBehavior null={carryableBehavior == null}, TransferEnabled={carryableBehavior?.TransferEnabled}");
+                return false;
+            }
 
             var transferHandler = carryableBehavior.TransferHandler;
-            if (transferHandler == null) return false;
+            if (transferHandler == null) { api.Logger.Notification("CanPutCarryable: TransferHandler is null"); return false; }
 
 
             var carriedHands = player?.Entity != null ? carryManager.GetCarried(player.Entity, CarrySlot.Hands) : null;
-            if (carriedHands == null) return false;
+            if (carriedHands == null) { api.Logger.Notification("CanPutCarryable: carriedHands is null"); return false; }
 
             try
             {
@@ -119,7 +127,7 @@ namespace CarryOn.Common.Logic
             }
             catch (Exception e)
             {
-                failureCode = FailureCode.Internal;
+                failureCode = FailureCodes.Internal;
                 onScreenErrorMessage = LocalizationHelper.GetLang("unknown-error");
                 api.Logger.Error($"CanPutCarryable method failed: {e}");
             }
@@ -156,7 +164,7 @@ namespace CarryOn.Common.Logic
             if (carryableBehavior == null)
             {
                 api.Logger.Error($"{methodName}: No Carryable behavior found");
-                failureCode = FailureCode.Internal;
+                failureCode = FailureCodes.Internal;
                 return false;
             }
 
@@ -191,7 +199,7 @@ namespace CarryOn.Common.Logic
             if (message == null)
             {
                 api.Logger.Error($"{methodName}: Received null message");
-                failureCode = FailureCode.Internal;
+                failureCode = FailureCodes.Internal;
                 return false;
             }
 
@@ -205,7 +213,7 @@ namespace CarryOn.Common.Logic
             if (blockPos == null)
             {
                 api.Logger.Error($"{methodName}: No BlockPos in message");
-                failureCode = FailureCode.Internal;
+                failureCode = FailureCodes.Internal;
                 return false;
             }
 
@@ -251,7 +259,7 @@ namespace CarryOn.Common.Logic
             catch (Exception e)
             {
                 api.Logger.Error($"Call to {methodName} failed: {e}");
-                failureCode = FailureCode.Internal;
+                failureCode = FailureCodes.Internal;
             }
             return false;
         }
@@ -297,7 +305,7 @@ namespace CarryOn.Common.Logic
             catch (Exception e)
             {
                 api.Logger.Error($"Call to {methodName} failed: {e}");
-                failureCode = FailureCode.Internal;
+                failureCode = FailureCodes.Internal;
             }
             return false;
         }

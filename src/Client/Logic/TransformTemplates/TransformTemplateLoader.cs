@@ -3,7 +3,7 @@ using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
 using Newtonsoft.Json.Linq;
 using CarryOn.Utility;
-using CarryOn.API.Common.Models;
+using CarryOn.Common.Models;
 
 namespace CarryOn.Client.Logic.TransformTemplates
 {
@@ -38,7 +38,7 @@ namespace CarryOn.Client.Logic.TransformTemplates
             const string pathPrefix = "config/transformtemplates/";
             const string extension = ".json";
 
-            var domain = CarryCode.ModId;
+            var domain = CarryCodes.ModId;
             string assetPath;
             var parts = assetCode.Split(':');
 

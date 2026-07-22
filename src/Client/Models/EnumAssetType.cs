@@ -2,7 +2,7 @@ namespace CarryOn.Client.Models
 {
     public enum EnumAssetType
     {
-        None,
+        None = 0,
         Block,
         Item
     }

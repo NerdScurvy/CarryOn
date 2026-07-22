@@ -130,6 +130,7 @@ Additional project documentation:
 - [Vanilla Block Inventory](docs/vanilla-block-inventory.md)
 - [CarryOn Config Reference](docs/carryon-config.md)
 - [CarryOn Chat Commands](docs/carryon-chat-commands.md)
+- [Dropped Block Entity](docs/dropped-block-entity.md)
 - [Automatic Behavior Assignment](docs/automatic-behavior-assignment.md)
 - [Mod Support Inventory](docs/mod-support-inventory.md)
 - [Modding Guide](docs/modding-guide.md)

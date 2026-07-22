@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
+using CarryOn.Common.Models;
+using CarryOn.Common.Interfaces;
 using CarryOn.Client.Models;
 using CarryOn.Utility;
 using Vintagestory.API.Client;
@@ -15,25 +17,22 @@ namespace CarryOn.Client.Logic.CarryRenderer
     {
         private readonly ICoreClientAPI api;
         private readonly ICarryManager carryManager;
-        private CarryOnConfig config;
+        private readonly IConfigProvider configProvider;
         private readonly CarryTransformPlanBuilder planBuilder;
         private readonly CarryRenderInfoBuilder infoBuilder;
         private readonly CarryRenderCache cache;
 
-        public CarryRenderCacheManager(ICoreClientAPI api, ICarryManager carryManager, CarryOnConfig config, CarryTransformPlanBuilder planBuilder, CarryRenderInfoBuilder infoBuilder, CarryRenderCache cache)
+        public CarryRenderCacheManager(ICoreClientAPI api, ICarryManager carryManager, CarryTransformPlanBuilder planBuilder, CarryRenderInfoBuilder infoBuilder, CarryRenderCache cache)
         {
             this.api = api ?? throw new ArgumentNullException(nameof(api));
             this.carryManager = carryManager ?? throw new ArgumentNullException(nameof(carryManager));
-            this.config = config ?? throw new ArgumentNullException(nameof(config));
+            this.configProvider = carryManager as IConfigProvider ?? throw new ArgumentException("carryManager must implement IConfigProvider", nameof(carryManager));
             this.planBuilder = planBuilder ?? throw new ArgumentNullException(nameof(planBuilder));
             this.infoBuilder = infoBuilder ?? throw new ArgumentNullException(nameof(infoBuilder));
             this.cache = cache ?? throw new ArgumentNullException(nameof(cache));
         }
 
-        public void UpdateConfig(CarryOnConfig newConfig)
-        {
-            this.config = newConfig;
-        }
+        public CarryOnConfig Config => configProvider.Config;
 
         private readonly Dictionary<(long EntityId, CarrySlot Slot), SignatureSidecarState> signatureSidecars = new();
 
@@ -70,10 +69,9 @@ namespace CarryOn.Client.Logic.CarryRenderer
         public CarriedRenderInfo[] GetRenderInfoCached(EntityAgent entity, CarriedBlock carried, string transformsGroup)
         {
             if (carried == null) return Array.Empty<CarriedRenderInfo>();
-            var carriedBlock = carried;
 
-            var slotStateKey = CarryRenderHelpers.BuildSlotStateKey(entity, carriedBlock.Slot);
-            var sidecarKey = (entity.EntityId, carriedBlock.Slot);
+            var slotStateKey = CarryRenderHelpers.BuildSlotStateKey(entity, carried.Slot);
+            var sidecarKey = (entity.EntityId, carried.Slot);
             if (!signatureSidecars.TryGetValue(sidecarKey, out var sidecar))
             {
                 sidecar = new SignatureSidecarState();
@@ -81,13 +79,13 @@ namespace CarryOn.Client.Logic.CarryRenderer
             }
 
             var carriedRevision = carryManager?.GetCarriedRevision(entity) ?? 0;
-            var stackCode = carriedBlock.ItemStack?.Collectible?.Code?.ToString() ?? "none";
+            var stackCode = carried.ItemStack?.Collectible?.Code?.ToString() ?? "none";
 
             var signaturesDirty = sidecar.Plan == null
                 || sidecar.LastSeenCarriedRevision != carriedRevision
                 || !string.Equals(sidecar.LastTransformsGroup, transformsGroup, StringComparison.Ordinal)
                 || !string.Equals(sidecar.LastStackCode, stackCode, StringComparison.Ordinal)
-                || !ReferenceEquals(sidecar.LastBlockEntityDataRef, carriedBlock.BlockEntityData)
+                || !ReferenceEquals(sidecar.LastBlockEntityDataRef, carried.BlockEntityData)
                 || string.IsNullOrEmpty(sidecar.RenderVariantSignature);
 
             TreeAttribute? containerSlots = null;
@@ -100,19 +98,19 @@ namespace CarryOn.Client.Logic.CarryRenderer
                 planRecomputeCount++;
                 plan = planBuilder.GetOrBuild(carried, transformsGroup);
 
-                containerSlots = BlockUtils.GetContainerSlots(carriedBlock);
+                containerSlots = BlockUtils.GetContainerSlots(carried);
                 variantRecomputeCount++;
-                renderVariantSignature = CarryRenderHelpers.BuildRenderInfoVariantSignature(
-                    carriedBlock,
+                renderVariantSignature = CarrySignatureBuilder.BuildRenderInfoVariantSignature(
+                    carried,
                     containerSlots,
                     plan.EffectiveSettings,
                     api.World,
-                    carriedBlock.GetCarryableBehavior()?.RootRenderVariant);
+                    carried.GetCarryableBehavior()?.RootRenderVariant);
 
                 sidecar.LastSeenCarriedRevision = carriedRevision;
                 sidecar.LastTransformsGroup = transformsGroup;
                 sidecar.LastStackCode = stackCode;
-                sidecar.LastBlockEntityDataRef = carriedBlock.BlockEntityData;
+                sidecar.LastBlockEntityDataRef = carried.BlockEntityData;
                 sidecar.Plan = plan;
                 sidecar.RenderVariantSignature = renderVariantSignature;
             }
@@ -123,7 +121,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
                 renderVariantSignature = sidecar.RenderVariantSignature;
             }
 
-            var frameKey = CarryRenderHelpers.BuildFrameCacheKey(entity, carriedBlock, plan?.Signature, renderVariantSignature);
+            var frameKey = CarryRenderHelpers.BuildFrameCacheKey(entity, carried, plan?.Signature, renderVariantSignature);
             cache.InvalidateSlotState(slotStateKey, frameKey);
 
             if (cache.FrameRenderInfos.TryGetValue(frameKey, out var frameCached))
@@ -158,9 +156,9 @@ namespace CarryOn.Client.Logic.CarryRenderer
                 }
             }
 
-            containerSlots ??= BlockUtils.GetContainerSlots(carriedBlock);
+            containerSlots ??= BlockUtils.GetContainerSlots(carried);
             renderInfoBuildCount++;
-            var built = infoBuilder.BuildFromPlan(carriedBlock, plan, containerSlots);
+            var built = infoBuilder.BuildFromPlan(carried, plan, containerSlots);
             cache.RenderInfos[renderInfoKey] = new CachedRenderInfos
             {
                 Signature = renderInfoKey,
@@ -204,7 +202,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
 
         public void TryLogCounters(ICoreClientAPI api)
         {
-            var loggingEnabled = config?.DebuggingOptions?.LoggingEnabled ?? false;
+            var loggingEnabled = Config?.DebuggingOptions?.LoggingEnabled ?? false;
             if (!loggingEnabled) return;
 
             var now = DateTime.UtcNow;

@@ -1,9 +1,8 @@
 using System;
 using CarryOn.API.Common.Interfaces;
-using CarryOn.API.Common.Models;
+using CarryOn.Common.Models;
 using CarryOn.Client.Models;
 using CarryOn.Common.Logic;
-using CarryOn.Common.Models;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 
@@ -13,7 +12,6 @@ namespace CarryOn.Client.Logic.Interaction
     {
         private readonly CarryInteractionValidator validator;
         private readonly CarryInteractionStateMachine stateMachine;
-        private CarryOnConfig config;
 
         public CarryInteraction Interaction => stateMachine.Interaction;
         public Vintagestory.Client.NoObf.HudElementInteractionHelp? HudHelp
@@ -26,18 +24,16 @@ namespace CarryOn.Client.Logic.Interaction
         public bool BackSlotEnabled => validator.BackSlotEnabled;
         public float InteractSpeedMultiplier => validator.InteractSpeedMultiplier;
 
-        public CarryInteractionController(ICoreClientAPI api, ICarryManager carryManager, IClientNetworkChannel clientChannel, CarryOnConfig config, Action hideOverlay, Action<float> setOverlayProgress, ClientModConfig? clientModConfig = null)
+        public CarryInteractionController(ICoreClientAPI api, ICarryManager carryManager, IClientNetworkChannel clientChannel, Action hideOverlay, Action<float> setOverlayProgress, ClientModConfig? clientModConfig = null)
         {
             ArgumentNullException.ThrowIfNull(api);
             ArgumentNullException.ThrowIfNull(carryManager);
             ArgumentNullException.ThrowIfNull(clientChannel);
-            ArgumentNullException.ThrowIfNull(config);
             ArgumentNullException.ThrowIfNull(hideOverlay);
             ArgumentNullException.ThrowIfNull(setOverlayProgress);
 
             var transferLogic = new TransferLogic(api, carryManager);
-            this.config = config;
-            validator = new CarryInteractionValidator(api, carryManager, config, transferLogic, this);
+            validator = new CarryInteractionValidator(api, carryManager, transferLogic, this);
             stateMachine = new CarryInteractionStateMachine(api, carryManager, clientChannel, hideOverlay, setOverlayProgress, validator, transferLogic, clientModConfig);
         }
 
@@ -46,15 +42,9 @@ namespace CarryOn.Client.Logic.Interaction
             validator.TryBeginInteraction(isInteracting, ref handled);
         }
 
-        public void InvalidateConfigCache()
+        public void RefreshConfigCache()
         {
-            validator.InvalidateConfigCache();
-        }
-
-        public void UpdateConfig(CarryOnConfig newConfig)
-        {
-            this.config = newConfig;
-            validator.UpdateConfig(newConfig);
+            validator.RefreshConfigCache();
         }
 
         public void TryContinueInteraction(float deltaTime)

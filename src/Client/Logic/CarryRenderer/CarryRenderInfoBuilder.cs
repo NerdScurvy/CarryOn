@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using CarryOn.API.Common.Models;
-using CarryOn.Common.Logic;
 using CarryOn.Utility;
 using CarryOn.Client.Models;
 using CarryOn.Common.Behaviors;

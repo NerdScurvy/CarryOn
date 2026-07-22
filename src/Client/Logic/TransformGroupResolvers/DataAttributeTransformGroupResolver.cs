@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using CarryOn.API.Common.Interfaces;
@@ -33,7 +34,7 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
                 return false;
 
             var groupPrefix = carryBehavior.DataAttributesPrefix ?? baseGroup;
-            var resolveResult = new AttachmentResolveResult();
+            var candidates = new List<CarriedGroupCandidateSet>();
 
             foreach (var attrName in attrNames)
             {
@@ -48,12 +49,11 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
                 if (stack == null)
                     continue;
 
-                var candidate = new CarriedGroupCandidateSet
+                var groups = new List<string> { groupPrefix + "-" + attrName };
+                var candidate = new CarriedGroupCandidateSet(groups)
                 {
                     SourceSlotKey = attrName
                 };
-
-                candidate.Groups.Add(groupPrefix + "-" + attrName);
 
                 if (AssetResolutionHelper.TryResolveFallbackAsset(api, stack, out var assetType, out var assetName))
                 {
@@ -61,13 +61,13 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
                     candidate.AssetNameIfUnset = assetName;
                 }
 
-                resolveResult.Candidates.Add(candidate);
+                candidates.Add(candidate);
             }
 
-            if (resolveResult.Candidates.Count == 0)
+            if (candidates.Count == 0)
                 return false;
 
-            result = resolveResult;
+            result = new AttachmentResolveResult(candidates);
             return true;
         }
 

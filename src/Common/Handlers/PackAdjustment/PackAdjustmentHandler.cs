@@ -1,10 +1,10 @@
 using System;
 using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
+using CarryOn.Common.Models;
 using CarryOn.Client.Logic.CarryRenderer;
 using CarryOn.Client.Models;
 using CarryOn.Common.Behaviors;
-using CarryOn.Common.Models;
 using CarryOn.Utility;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
@@ -150,7 +150,8 @@ namespace CarryOn.Common.Handlers.PackAdjustment
                 includeLabelScope = PackAdjustmentTransformResolver.HasCarriedLabel(api, carried, carryBehavior);
 
             var entityPlayer = api.World.Player.Entity;
-            var baseTransformsGroup = entityPlayer?.ResolveCarryTransformGroupBase(config!, carrySlot);
+            if (entityPlayer == null || config == null) return;
+            var baseTransformsGroup = entityPlayer?.ResolveCarryTransformGroupBase(config, carrySlot);
 
             switch (currentTransformScope)
             {
@@ -206,7 +207,8 @@ namespace CarryOn.Common.Handlers.PackAdjustment
 
             bool hasChanged = false;
             var entityPlayer = api.World.Player.Entity;
-            var carried =             carryManager?.GetCarried(entityPlayer!, carrySlot);
+            if (entityPlayer == null || config == null) return;
+            var carried =             carryManager?.GetCarried(entityPlayer, carrySlot);
             if (carried == null) return;
 
             if (carried.Block != block)
@@ -231,12 +233,12 @@ namespace CarryOn.Common.Handlers.PackAdjustment
                 return;
             }
 
-            string resolvedGroup = resolver.ResolveTransformsGroup(carried, carryBehavior, baseTransformsGroup!, currentTransformScope);
+            string resolvedGroup = resolver.ResolveTransformsGroup(carried, carryBehavior, baseTransformsGroup ?? CarryCodes.DefaultTransformGroup, currentTransformScope);
 
             if (!carryBehavior.TransformGroupExists(carried, resolvedGroup))
-                resolvedGroup = baseTransformsGroup!;
+                resolvedGroup = baseTransformsGroup ?? CarryCodes.DefaultTransformGroup;
             if (!carryBehavior.TransformGroupExists(carried, resolvedGroup))
-                resolvedGroup = CarryCode.DefaultTransformGroup;
+                resolvedGroup = CarryCodes.DefaultTransformGroup;
 
             if (hasChanged || resolvedGroup != transformsGroup)
             {
@@ -323,7 +325,8 @@ namespace CarryOn.Common.Handlers.PackAdjustment
                 return;
             }
 
-            transformIndex = Math.Clamp(index, 0, transformSettings!.Length - 1);
+            if (transformSettings == null || transformSettings.Length == 0) return;
+            transformIndex = Math.Clamp(index, 0, transformSettings.Length - 1);
             ShowMessage($"Transform: {transformIndex + 1}/{transformSettings.Length} | {GetCurrentTransformInfo()}");
         }
 
@@ -359,7 +362,7 @@ namespace CarryOn.Common.Handlers.PackAdjustment
 
         internal AttachmentPoint? GetFrontCarryAttachPoint()
         {
-            var apPose = api.World.Player.Entity?.AnimManager?.Animator?.GetAttachmentPointPose(CarryCode.FrontCarryAttachmentPoint);
+            var apPose = api.World.Player.Entity?.AnimManager?.Animator?.GetAttachmentPointPose(CarryCodes.FrontCarryAttachmentPoint);
             return apPose?.AttachPoint;
         }
 

@@ -1,17 +1,17 @@
-using CarryOn.API.Common.Models;
+using CarryOn.Common.Models;
 using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
 
-namespace CarryOn.Common.Logic
+namespace CarryOn.Utility
 {
     internal static class SoundHelper
     {
         internal static void PlaySound(ICoreAPI api, Block block, BlockPos pos, EntityPlayer? entityPlayer = null, bool dualCall = true)
         {
-            const float SOUND_RANGE = 16.0F;
-            const float SOUND_VOLUME = 1.0F;
+            const float SOUND_RANGE = 16.0f;
+            const float SOUND_VOLUME = 1.0f;
 
-            var sound = block.Sounds?.Place.Location ?? new AssetLocation(CarryCode.SoundPath.DefaultPlace);
+            var sound = block.Sounds?.Place.Location ?? new AssetLocation(CarryCodes.SoundPaths.DefaultPlace);
             if (sound == null) return;
 
             var world = api.World;

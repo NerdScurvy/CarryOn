@@ -1,16 +1,33 @@
+using System;
 using CarryOn.API.Common.Interfaces;
+using CarryOn.Common.Interfaces;
 using Vintagestory.API.Common;
 
 namespace CarryOn.Common.Services
 {
-    internal sealed class CarryManagerServices(ICoreAPI api, IConfigProvider configProvider, ICarryManager carryManager)
+    internal sealed class CarryManagerServices
     {
-        public CarryStateService State { get; } = new(configProvider, null);
-        public CarryPermissionService Permission { get; } = new(carryManager);
-        public CarryPickupService Pickup { get; } = new(api, carryManager);
-        public CarryPlacementService Placement { get; } = new(api, carryManager);
-        public CarryAttachmentService Attachment { get; } = new(api, configProvider, carryManager);
-        public CarryDropService Drop { get; } = new(api, carryManager);
-        public CarryEventBootstrapper EventBootstrapper { get; } = new(carryManager);
+        public CarryStateService State { get; }
+        public CarryPermissionService Permission { get; }
+        public CarryPickupService Pickup { get; }
+        public CarryPlacementService Placement { get; }
+        public CarryAttachmentService Attachment { get; }
+        public CarryDropService Drop { get; }
+        public CarryEventBootstrapper EventBootstrapper { get; }
+
+        public CarryManagerServices(ICoreAPI api, IConfigProvider configProvider, ICarryManager carryManager)
+        {
+            ArgumentNullException.ThrowIfNull(api);
+            ArgumentNullException.ThrowIfNull(configProvider);
+            ArgumentNullException.ThrowIfNull(carryManager);
+
+            State = new CarryStateService(configProvider, null);
+            Permission = new CarryPermissionService(carryManager, configProvider);
+            Pickup = new CarryPickupService(api, carryManager, configProvider);
+            Placement = new CarryPlacementService(api, carryManager);
+            Attachment = new CarryAttachmentService(api, configProvider, carryManager);
+            Drop = new CarryDropService(api, carryManager, configProvider);
+            EventBootstrapper = new CarryEventBootstrapper(carryManager);
+        }
     }
 }

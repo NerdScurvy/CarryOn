@@ -2,15 +2,13 @@ using System;
 using System.Collections.Generic;
 using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
-using CarryOn.Common.Behaviors;
 using CarryOn.Common.Logic;
-using CarryOn.Common.Network;
 using CarryOn.Utility;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
-using static CarryOn.API.Common.Models.CarryCode;
+using static CarryOn.Common.Models.CarryCodes;
 
 namespace CarryOn.Common.Services
 {
@@ -18,7 +16,7 @@ namespace CarryOn.Common.Services
     {
         public bool TryPlaceDown(Entity entity, CarriedBlock carriedBlock, BlockSelection selection, bool dropped = false, bool playSound = true)
         {
-            string failureCode = FailureCode.Ignore;
+            string failureCode = FailureCodes.Ignore;
             return TryPlaceDown(entity, carriedBlock, selection, ref failureCode, dropped, playSound);
         }
 
@@ -27,17 +25,17 @@ namespace CarryOn.Common.Services
             ArgumentNullException.ThrowIfNull(entity);
             ArgumentNullException.ThrowIfNull(selection);
 
-            failureCode ??= FailureCode.Ignore;
+            failureCode ??= FailureCodes.Ignore;
 
             if (carriedBlock == null)
             {
-                failureCode = FailureCode.NotCarrying;
+                failureCode = FailureCodes.NotCarrying;
                 return false;
             }
 
             var world = api.World;
 
-            if (carriedBlock?.Block == null || carriedBlock.ItemStack == null) return false;
+            if (carriedBlock.Block == null || carriedBlock.ItemStack == null) return false;
             if (!world.BlockAccessor.IsValidPos(selection.Position)) return false;
 
             if (carriedBlock.HasAttachedBlocks)
@@ -58,7 +56,7 @@ namespace CarryOn.Common.Services
                 {
                     if (!carryManager.HasPermissionAt(entity, selection.Position, showErrorMessage: false))
                     {
-                        failureCode = FailureCode.NoPermission;
+                        failureCode = FailureCodes.NoPermission;
                     }
                     else
                     {
@@ -117,14 +115,14 @@ namespace CarryOn.Common.Services
 
                 if (!world.BlockAccessor.IsValidPos(childPos))
                 {
-                    failureCode = FailureCode.AttachedBlockNoClearance;
+                    failureCode = FailureCodes.AttachedBlockNoClearance;
                     return false;
                 }
 
                 var existingBlock = world.BlockAccessor.GetBlock(childPos);
                 if (!existingBlock.IsReplacableBy(child.Block))
                 {
-                    failureCode = FailureCode.AttachedBlockNoClearance;
+                    failureCode = FailureCodes.AttachedBlockNoClearance;
                     return false;
                 }
 
@@ -138,7 +136,7 @@ namespace CarryOn.Common.Services
                         var supportBlock = world.BlockAccessor.GetBlock(supportPos);
                         if (supportBlock.Id == 0 || supportBlock.IsReplacableBy(child.Block))
                         {
-                            failureCode = FailureCode.UnsupportedAttachment;
+                            failureCode = FailureCodes.UnsupportedAttachment;
                             return false;
                         }
                     }
@@ -219,7 +217,7 @@ namespace CarryOn.Common.Services
 
         private bool TryPlaceDownFallback(IWorldAccessor world, CarriedBlock carriedBlock, BlockSelection selection)
         {
-            if (carriedBlock?.Block == null || carriedBlock.ItemStack == null) return false;
+            if (carriedBlock.Block == null || carriedBlock.ItemStack == null) return false;
 
             world.BlockAccessor.SetBlock(carriedBlock.Block.Id, selection.Position, carriedBlock.ItemStack);
             return true;
@@ -306,7 +304,7 @@ namespace CarryOn.Common.Services
 
         public bool TryPlaceDownAt(IPlayer player, CarrySlot carrySlot, BlockSelection selection, out BlockPos? placedAt)
         {
-            string failureCode = FailureCode.Ignore;
+            string failureCode = FailureCodes.Ignore;
             return TryPlaceDownAt(player, carrySlot, selection, out placedAt, ref failureCode);
         }
 
@@ -324,7 +322,7 @@ namespace CarryOn.Common.Services
             var carried = carryManager.GetCarried(entity, carrySlot);
             if (carried == null)
             {
-                failureCode = FailureCode.NotCarrying;
+                failureCode = FailureCodes.NotCarrying;
                 return false;
             }
 

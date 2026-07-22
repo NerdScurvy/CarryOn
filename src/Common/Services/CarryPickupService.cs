@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using CarryOn.API.Common.Interfaces;
+using CarryOn.Common.Interfaces;
 using CarryOn.API.Common.Models;
 using CarryOn.Common.Behaviors;
 using CarryOn.Common.Logic;
@@ -10,11 +11,11 @@ using Vintagestory.API.Common.Entities;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using Vintagestory.GameContent;
-using static CarryOn.API.Common.Models.CarryCode;
+using static CarryOn.Common.Models.CarryCodes;
 
 namespace CarryOn.Common.Services
 {
-    internal sealed class CarryPickupService(ICoreAPI api, ICarryManager carryManager)
+    internal sealed class CarryPickupService(ICoreAPI api, ICarryManager carryManager, IConfigProvider configProvider)
     {
         private const int MultiblockScanRadius = 5;
 
@@ -25,12 +26,14 @@ namespace CarryOn.Common.Services
 
         public CarriedBlock? GetCarriedFromWorld(BlockPos pos, CarrySlot slot, bool checkIsCarryable = false)
         {
-            string failureCode = FailureCode.Ignore;
+            string failureCode = FailureCodes.Ignore;
             return GetCarriedFromWorld(null, pos, slot, ref failureCode, checkIsCarryable);
         }
 
         public CarriedBlock? GetCarriedFromWorld(Entity? entity, BlockPos pos, CarrySlot slot, ref string failureCode, bool checkIsCarryable = false, bool? captureAttachedSigns = null)
         {
+            failureCode ??= FailureCodes.Ignore;
+
             var world = api.World;
             var carried = BlockUtils.CreateCarriedFromBlockPos(world, pos, slot);
             if (carried == null) return null;
@@ -39,7 +42,7 @@ namespace CarryOn.Common.Services
 
             if (entity != null && !CanPickUp(entity, pos, slot, carried, ref failureCode)) return null;
 
-            bool canCapture = carryManager.Config?.CarryOptions?.CarryAttachedWallSigns == true;
+            bool canCapture = configProvider?.Config?.CarryOptions?.CarryAttachedWallSigns == true;
             bool shouldCapture = canCapture && (captureAttachedSigns ?? true);
             if (shouldCapture)
             {
@@ -79,28 +82,33 @@ namespace CarryOn.Common.Services
             ArgumentNullException.ThrowIfNull(entity);
             ArgumentNullException.ThrowIfNull(pos);
 
-            failureCode ??= FailureCode.Ignore;
+            failureCode ??= FailureCodes.Ignore;
 
             if (carryManager.GetCarried(entity, slot) != null)
             {
-                failureCode = FailureCode.AlreadyCarrying;
+                failureCode = FailureCodes.AlreadyCarrying;
                 return false;
             }
 
             if (entity.Api.Side == EnumAppSide.Server && !carryManager.HasPermissionAt(entity, pos))
             {
-                failureCode = FailureCode.NoPermission;
+                failureCode = FailureCodes.NoPermission;
                 return false;
             }
 
             var block = entity.World.BlockAccessor.GetBlock(pos);
             if (checkIsCarryable && !carryManager.IsCarryable(block, slot))
             {
-                failureCode = FailureCode.NotCarryable;
+                failureCode = FailureCodes.NotCarryable;
                 return false;
             }
 
             var carryBehavior = block.GetBehavior<BlockBehaviorCarryable>();
+
+            // Optimistic pickup: on the client side, when OptimisticPickup is disabled,
+            // skip the actual pickup and return true immediately. The server will handle
+            // the real pickup and sync the result. This avoids client-side desync when
+            // claims or permissions prevent the pickup.
             if (entity.Api.Side == EnumAppSide.Client && carryBehavior != null && !carryBehavior.OptimisticPickup)
                 return true;
 
@@ -124,10 +132,18 @@ namespace CarryOn.Common.Services
 
         public bool TryPickUp(Entity entity, BlockPos pos, CarrySlot slot, bool checkIsCarryable = true, bool playSound = true, bool? captureAttachedSigns = null)
         {
-            string failureCode = FailureCode.Ignore;
+            string failureCode = FailureCodes.Ignore;
             return TryPickUp(entity, pos, slot, ref failureCode, checkIsCarryable, playSound, captureAttachedSigns);
         }
 
+        /// <summary>
+        /// Scans adjacent blocks for wall signs attached to the parent block's footprint and returns them
+        /// as attached carried blocks to be picked up alongside the parent.
+        /// </summary>
+        /// <param name="world">The world accessor.</param>
+        /// <param name="pos">The position of the parent block being picked up.</param>
+        /// <param name="parentBlock">The parent block being picked up.</param>
+        /// <returns>A list of attached wall signs, or null if none were found.</returns>
         private List<AttachedCarriedBlock>? CaptureAttachedSigns(IWorldAccessor world, BlockPos pos, Block parentBlock)
         {
             var footprint = GetBlockFootprint(world, pos, parentBlock);
@@ -159,7 +175,7 @@ namespace CarryOn.Common.Services
                     if (!footprint.Contains(attachedToPos)) continue;
 
                     var originalCode = candidateBlock.Code;
-                    var childStack = candidateBlock.OnPickBlock(world, candidatePos) ?? new ItemStack(candidateBlock);
+                    var childStack = candidateBlock.SafeOnPickBlock(world, candidatePos) ?? new ItemStack(candidateBlock);
 
                     ITreeAttribute? childData = null;
                     var childEntity = world.BlockAccessor.GetBlockEntity(candidatePos);

@@ -1,5 +1,5 @@
 using CarryOn.API.Common.Interfaces;
-using CarryOn.API.Event;
+using CarryOn.Common.Interfaces;
 using CarryOn.Utility;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
@@ -11,10 +11,12 @@ namespace CarryOn.Common.Services
     internal sealed class CarryPermissionService
     {
         private readonly ICarryManager carryManager;
+        private readonly IConfigProvider configProvider;
 
-        public CarryPermissionService(ICarryManager carryManager)
+        public CarryPermissionService(ICarryManager carryManager, IConfigProvider configProvider)
         {
             this.carryManager = carryManager;
+            this.configProvider = configProvider;
         }
 
         public bool HasPermissionAt(Entity entity, BlockPos pos, bool showErrorMessage = true)
@@ -48,7 +50,7 @@ namespace CarryOn.Common.Services
 
         private bool HasPermissionAtClient(IPlayer player, BlockPos pos)
         {
-            if (carryManager.Config?.CarryOptions?.ClientSidePermissionCheck != true)
+            if (configProvider?.Config?.CarryOptions?.ClientSidePermissionCheck != true)
                 return true;
 
             var claims = player.Entity?.World?.Claims?.All;

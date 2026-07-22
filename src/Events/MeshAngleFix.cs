@@ -9,7 +9,7 @@ namespace CarryOn.Events
     /// <summary>
     /// Fixes the mesh angle of certain block entities when they are placed.
     /// </summary>
-    public class MeshAngleFix : ICarryEvent
+    public class MeshAngleFix : ICarryEventHandler
     {
         public void Init(ICarryManager carryManager)
         {
