@@ -943,6 +943,19 @@ namespace CarryOn.Common
 
                 attr.SetAttribute("carryonbackup", backupAttributes);
 
+                var attachableToEntity = IAttachableToEntity.FromCollectible(sourceItemSlot.Itemstack.Collectible);
+                if (attachableToEntity == null || !attachableToEntity.IsAttachable(targetEntity, sourceItemSlot.Itemstack))
+                {
+                    CarrySystem.ServerAPI.SendIngameError(player, "slot-incompatible-block", Lang.Get(ModId + ":slot-incompatible-block"));
+                    return;
+                }
+
+                if (IsRetrieveOnlyStorage(sourceItemSlot.Itemstack))
+                {
+                    CarrySystem.ServerAPI.SendIngameError(player, "slot-incompatible-block", Lang.Get(ModId + ":slot-incompatible-block"));
+                    return;
+                }
+
                 if (!targetSlot.CanTakeFrom(sourceItemSlot))
                 {
                     CarrySystem.ServerAPI.SendIngameError(player, "slot-incompatible-block", Lang.Get(ModId + ":slot-incompatible-block"));
@@ -1310,6 +1323,16 @@ namespace CarryOn.Common
             }
 
             return false;
+        }
+
+        private static bool IsRetrieveOnlyStorage(ItemStack itemstack)
+        {
+            var block = itemstack.Block as BlockGenericTypedContainer;
+            if (block == null) return false;
+
+            var type = itemstack.Attributes?.GetString("type")
+                ?? block.Attributes?["defaultType"]?.AsString("normal-generic");
+            return block.Attributes?["retrieveOnly"]?[type]?.AsBool(false) == true;
         }
     }
 }
