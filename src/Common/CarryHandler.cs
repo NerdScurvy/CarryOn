@@ -907,10 +907,18 @@ namespace CarryOn.Common
 
                 var seatableBehavior = targetEntity.GetBehavior<EntityBehaviorSeatable>();
                 bool isOccupied = false;
-                if (seatableBehavior != null)
+                if (seatableBehavior != null && apname != null)
                 {
-                    var seatId = seatableBehavior.SeatConfigs.FirstOrDefault(s => s.APName == apname)?.SeatId;
-                    isOccupied = seatableBehavior.Seats.FirstOrDefault(s => s.SeatId == seatId)?.Passenger != null;
+                    foreach (var seat in seatableBehavior.Seats)
+                    {
+                        if (seat.Passenger == null) continue;
+                        var cfg = seat.Config;
+                        if (cfg.SelectionBox == apname || cfg.APName == apname)
+                        {
+                            isOccupied = true;
+                            break;
+                        }
+                    }
                 }
 
 
@@ -938,10 +946,29 @@ namespace CarryOn.Common
                 attr.SetString("type", type);
 
                 var backpack = ConvertBlockInventoryToBackpack(blockEntityData.GetTreeAttribute("inventory"));
-
-                attr.SetAttribute("backpack", backpack);
+                if (backpack != null)
+                {
+                    attr.SetAttribute("backpack", backpack);
+                }
+                else
+                {
+                    attr.RemoveAttribute("backpack"); // let vanilla lazily initialize
+                }
 
                 attr.SetAttribute("carryonbackup", backupAttributes);
+
+                var attachableToEntity = IAttachableToEntity.FromCollectible(sourceItemSlot.Itemstack.Collectible);
+                if (attachableToEntity == null || !attachableToEntity.IsAttachable(targetEntity, sourceItemSlot.Itemstack))
+                {
+                    CarrySystem.ServerAPI.SendIngameError(player, "slot-incompatible-block", Lang.Get(ModId + ":slot-incompatible-block"));
+                    return;
+                }
+
+                if (IsRetrieveOnlyStorage(sourceItemSlot.Itemstack))
+                {
+                    CarrySystem.ServerAPI.SendIngameError(player, "slot-incompatible-block", Lang.Get(ModId + ":slot-incompatible-block"));
+                    return;
+                }
 
                 if (!targetSlot.CanTakeFrom(sourceItemSlot))
                 {
@@ -989,10 +1016,12 @@ namespace CarryOn.Common
 
         public static ITreeAttribute ConvertBlockInventoryToBackpack(ITreeAttribute blockInventory)
         {
-            if (blockInventory == null) return new TreeAttribute(); // graceful fallback
+            if (blockInventory == null) return null; // preserve uninitialized state
+
+            var slotCount = blockInventory.GetAsInt("qslots");
+            if (slotCount <= 0) return null; // no slots → treat as uninitialized
 
             var backpack = new TreeAttribute();
-            var slotCount = blockInventory.GetAsInt("qslots");
             var slots = blockInventory.GetTreeAttribute("slots");
 
             // create backpack slots and copy items
@@ -1012,28 +1041,23 @@ namespace CarryOn.Common
 
         public static IAttribute ConvertBackpackToBlockInventory(ITreeAttribute backpack)
         {
+            if (backpack == null || backpack.Count == 0) return null; // preserve uninitialized state
+
+            var backpackSlots = backpack["slots"] as ITreeAttribute;
+            var count = backpackSlots.Count();
+
             var inventory = new TreeAttribute();
-            if (backpack != null)
+            inventory.SetInt("qslots", count);
+            var slotsAttribute = new TreeAttribute();
+
+            for (var i = 0; i < count; i++)
             {
-                // If no backpack slots, return empty TreeAttribute
-                if (backpack.Count == 0) return inventory;
-
-                var backpackSlots = backpack["slots"] as ITreeAttribute;
-                var count = backpackSlots.Count();
-
-                inventory.SetInt("qslots", count);
-                var slotsAttribute = new TreeAttribute();
-
-                for (var i = 0; i < count; i++)
-                {
-                    var value = backpackSlots.Values[i];
-                    if (value?.GetValue() == null) continue;
-                    slotsAttribute.SetAttribute(i.ToString(), value.Clone());
-                }
-
-                inventory.SetAttribute("slots", slotsAttribute);
+                var value = backpackSlots.Values[i];
+                if (value?.GetValue() == null) continue;
+                slotsAttribute.SetAttribute(i.ToString(), value.Clone());
             }
 
+            inventory.SetAttribute("slots", slotsAttribute);
             return inventory;
         }
 
@@ -1123,7 +1147,14 @@ namespace CarryOn.Common
                 }
 
                 blockEntityData.SetString("blockCode", block.Code.ToShortString());
-                blockEntityData.SetAttribute("inventory", destInventory);
+                if (destInventory != null)
+                {
+                    blockEntityData.SetAttribute("inventory", destInventory);
+                }
+                else
+                {
+                    blockEntityData.RemoveAttribute("inventory"); // preserve uninitialized state
+                }
                 blockEntityData.SetString("forBlockCode", block.Code.ToShortString());
                 blockEntityData.SetString("type", itemstack.Attributes.GetString("type"));
 
@@ -1310,6 +1341,16 @@ namespace CarryOn.Common
             }
 
             return false;
+        }
+
+        private static bool IsRetrieveOnlyStorage(ItemStack itemstack)
+        {
+            var block = itemstack.Block as BlockGenericTypedContainer;
+            if (block == null) return false;
+
+            var type = itemstack.Attributes?.GetString("type")
+                ?? block.Attributes?["defaultType"]?.AsString("normal-generic");
+            return block.Attributes?["retrieveOnly"]?[type]?.AsBool(false) == true;
         }
     }
 }

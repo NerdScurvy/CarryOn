@@ -1,5 +1,6 @@
 using System;
 using Vintagestory.API.Client;
+using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
 
 namespace CarryOn.Client
@@ -74,6 +75,8 @@ namespace CarryOn.Client
 
         public void OnRenderFrame(float deltaTime, EnumRenderStage stage)
         {
+            if (this.api.World.Player?.WorldData.CurrentGameMode == EnumGameMode.Spectator) return;
+
             var rend = this.api.Render;
             var shader = rend.CurrentActiveShader;
 

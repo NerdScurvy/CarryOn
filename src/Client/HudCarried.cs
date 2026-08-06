@@ -131,6 +131,7 @@ namespace CarryOn.Client
 
                 var player = this.api.World.Player;
                 if (player == null) return;
+                if (player.WorldData.CurrentGameMode == EnumGameMode.Spectator) return;
 
                 var rapi = this.api.Render;
 
