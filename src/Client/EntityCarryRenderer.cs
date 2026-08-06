@@ -66,6 +66,8 @@ namespace CarryOn.Client
                 // Player entity may be null in some circumstances..?
                 if (player.Entity == null) continue;
 
+                if (player.WorldData?.CurrentGameMode == EnumGameMode.Spectator) continue;
+
                 var isLocalPlayer = (player == Api.World.Player);
                 var isShadowPass = (stage != EnumRenderStage.Opaque);
 

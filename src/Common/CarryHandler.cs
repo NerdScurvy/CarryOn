@@ -907,10 +907,18 @@ namespace CarryOn.Common
 
                 var seatableBehavior = targetEntity.GetBehavior<EntityBehaviorSeatable>();
                 bool isOccupied = false;
-                if (seatableBehavior != null)
+                if (seatableBehavior != null && apname != null)
                 {
-                    var seatId = seatableBehavior.SeatConfigs.FirstOrDefault(s => s.APName == apname)?.SeatId;
-                    isOccupied = seatableBehavior.Seats.FirstOrDefault(s => s.SeatId == seatId)?.Passenger != null;
+                    foreach (var seat in seatableBehavior.Seats)
+                    {
+                        if (seat.Passenger == null) continue;
+                        var cfg = seat.Config;
+                        if (cfg.SelectionBox == apname || cfg.APName == apname)
+                        {
+                            isOccupied = true;
+                            break;
+                        }
+                    }
                 }
 
 
