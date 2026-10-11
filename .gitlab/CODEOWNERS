@@ -1,0 +1,5 @@
+# CarryOn (GitLab copy). Takes effect only when the project enables
+# Settings -> Merge requests -> "Require approval by code owners".
+*                   @Nerdscurvy
+/tests/             @Nerdscurvy
+/docs/              @Nerdscurvy

@@ -43,7 +43,7 @@ namespace CarryOn.Common.Models
     public class DebuggingOptionsConfig
     {
         [DisplayName("Logging Enabled")]
-        [Description("Enable debug logging (requires restart)")]
+        [Description("Enable debug logging")]
         [DefaultValue(false)]
         [TreeValue("LoggingEnabled")] public bool LoggingEnabled { get; set; } = false;
 
@@ -61,6 +61,16 @@ namespace CarryOn.Common.Models
         [Description("Disable the file system watcher that hot-reloads the config on change (requires restart)")]
         [DefaultValue(false)]
         [TreeValue("DisableConfigWatcher")] public bool DisableConfigWatcher { get; set; } = false;
+
+        [DisplayName("Recondition Carryables on Config Change")]
+        [Description("Re-apply behavioral conditioning and resync carryable state to clients when the config changes (requires restart); when off, Carryables/CarryablesOnBack/Interactables/... changes only take effect on the next server start. * when enabled at server start, the sections marked (requires restart*) apply on /carryon-reload or when the config watcher sees a change, instead of requiring a restart")]
+        [DefaultValue(false)]
+        [TreeValue("ReconditionOnConfigChange")] public bool ReconditionOnConfigChange { get; set; } = false;
+
+        [DisplayName("Recondition Full Restore")]
+        [Description("Treat every conditioning-baseline entry as dirty on each behavioral recondition, restoring the full boot surface instead of only what a previous run touched - a live-debugging fallback and convergence cross-check; leaves the normal dirty-gated restore when off")]
+        [DefaultValue(false)]
+        [TreeValue("ReconditionFullRestore")] public bool ReconditionFullRestore { get; set; } = false;
 
         [DisplayName("Carryable Report")]
         [Description("Generate a report of all carryable blocks with their speed and hunger modifiers")]

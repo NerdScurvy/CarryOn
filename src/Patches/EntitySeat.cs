@@ -18,55 +18,37 @@ namespace CarryOn.Patches
             if (entityAgent == null) return true;
 
             if (!entityAgent.WatchedAttributes.GetBool(AttributeKeys.Watched.EntityDoubleTapDismountEnabled, false))
-            {
-                return true; // return to normal behavior
-            }
+                return true;
 
-            if (action != EnumEntityAction.Sneak) return true; 
+            if (action != EnumEntityAction.Sneak) return true;
 
-            if (entityAgent.Api.Side == EnumAppSide.Client)
+            if (entityAgent.Api.Side == EnumAppSide.Client && on)
             {
-                if (action == EnumEntityAction.Sneak && on)
+                long nowMs = entityAgent.World.ElapsedMilliseconds;
+                long lastTapMs = entityAgent.Attributes.GetLong(AttributeKeys.EntityLastSneakTap, 0);
+
+                if (lastTapMs < nowMs
+                    && nowMs - lastTapMs < Defaults.DoubleTapThresholdMs
+                    && nowMs - lastTapMs > 50)
                 {
-                    long nowMs = entityAgent.World.ElapsedMilliseconds;
-                    long lastTapMs = entityAgent.Attributes.GetLong(AttributeKeys.EntityLastSneakTap, 0);
-
-                    // Check last tap was in the past. If in the future then the server time has been reset.
-                    if (lastTapMs < nowMs)
+                    var carrySystem = entityAgent.Api.ModLoader.GetModSystem<CarrySystem>();
+                    if (carrySystem?.ClientChannel == null)
                     {
-                        if (nowMs - lastTapMs < Defaults.DoubleTapThresholdMs && nowMs - lastTapMs > 50)
-                        {
-                            // Double tap detected
-                            var carrySystem = entityAgent.Api.ModLoader.GetModSystem<CarrySystem>();
-                            if (carrySystem?.ClientChannel == null)
-                            {
-                                entityAgent.Api.Logger.Error("CarrySystem ClientChannel is null");
-                                return false;
-                            }
-                            var entityId = __instance.Entity.EntityId;
-                            var seatId = __instance.SeatId;
-
-                            entityAgent.TryUnmount();
-                            __instance.controls.StopAllMovement();
-
-                            carrySystem.ClientChannel.SendPacket(new DismountMessage(entityId, seatId));
-
-                            // Log the dismount action
-                            entityAgent.Api.Logger.Debug($"Entity {entityAgent.GetName()} double-tapped to dismount from seat {seatId} on entity {entityId}.");
-                        }
-                        else
-                        {
-                            // Single tap, just update the last tap time
-                            entityAgent.Attributes.SetLong(AttributeKeys.EntityLastSneakTap, nowMs);
-
-                        }
+                        entityAgent.Api.Logger.Error("CarrySystem ClientChannel is null");
+                        return false;
                     }
 
-                    entityAgent.Attributes.SetLong(AttributeKeys.EntityLastSneakTap, nowMs);
+                    entityAgent.TryUnmount();
+                    __instance.controls.StopAllMovement();
+                    carrySystem.ClientChannel.SendPacket(new DismountMessage(__instance.Entity.EntityId, __instance.SeatId));
+
+                    entityAgent.Api.Logger.Debug($"Entity {entityAgent.GetName()} double-tapped to dismount from seat {__instance.SeatId} on entity {__instance.Entity.EntityId}.");
                 }
+
+                entityAgent.Attributes.SetLong(AttributeKeys.EntityLastSneakTap, nowMs);
             }
 
-            return false; // Skips original method execution
+            return false; // Suppress original sneak - double-tap dismount fully overrides single sneak
         }
     }
 }

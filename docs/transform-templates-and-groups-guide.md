@@ -13,6 +13,7 @@ Template code canonical form is `modid:code`. If a `transformTemplates` entry is
 - Referencing built-in template assets from CarryOn.
 - Defining your own templates in your mod.
 - Adding inline `transformGroups` in a `Carryable` patch.
+- Item-only carry poses (bag-item templates keyed by item code).
 - Group inheritance and merge behavior (`extends`, `base`, `overrides`, `appends`).
 - Advanced control groups (`^`, `@`, `~`).
 - Full property reference for transform group entries.
@@ -32,6 +33,7 @@ CarryOn built-in templates live in:
 Current built-in template codes include:
 
 - `carryon:carry-barrel`
+- `carryon:carry-bag`
 - `carryon:carry-chest`
 - `carryon:carry-chest-compact`
 - `carryon:carry-crate`
@@ -63,6 +65,102 @@ Notes:
 
 ---
 
+## Item-Code Templates (Bag Item Poses)
+
+Item-only carries — such as a ground-storage bag picked into the hands slot — have a
+**null** `Block` (the carry is stored as an item, not a block) and carry no
+`BlockBehaviorCarryable`, so they cannot reference templates through a `Carryable`
+patch. Their pose comes from an **item-code template**, which keys resolved
+`transformGroups` by the carried item's collectible code instead of by block.
+
+Built-in asset: `resources/assets/carryon/config/transformtemplates/carry-bag.json`,
+auto-discovered as `carryon:carry-bag` and applied to the common vanilla bags by default.
+
+```json
+{
+  "code": "carry-bag",
+  "matchesItemCodes": [
+    "game:backpack",
+    "game:hunterpack",
+    "game:handbasket",
+    "game:*basket",
+    "game:quiver*"
+  ],
+  "itemPoseGroups": {
+    "game:quiver*": "hands-quiver",
+    "game:hunterpack": "hands-hunterpack"
+  },
+  "transformGroups": {
+    "hands": [
+      {
+        "id": "root",
+        "translation": [ -0.06, 0.08, 0.0 ],
+        "rotation": [ -18.0, 0.0, 4.0 ],
+        "origin": [ 0.5, 0.5, 0.5 ],
+        "scale": [ 0.6, 0.6, 0.6 ]
+      }
+    ],
+    "hands-quiver": {
+      "extends": "hands",
+      "overrides": [
+        {
+          "id": "root",
+          "translation": [ -0.02, 0.12, 0.02 ],
+          "rotation": [ -14.0, 0.0, 2.0 ]
+        }
+      ]
+    }
+  }
+}
+```
+
+Key points:
+
+- `matchesItemCodes` lists the item codes this pose applies to (full `domain:code`,
+  e.g. everything after `Collectible.Code`). A trailing `*` matches any item whose code
+  starts with the prefix (`game:*basket` matches `game:handbasket`,
+  `game:storagebasket`, etc.; `game:quiver*` matches `game:quiver-north`).
+- `itemPoseGroups` lets you give **individual items their own pose**. Each entry maps an
+  item code (exact or `*`-suffixed) to a transform group name — or an array of names
+  tried most-specific-first, falling back down the list. Name your groups however you
+  like (this asset uses `hands-quiver`, `hands-hunterpack`); the base `hands` group is
+  the implicit fallback for any matched item without an explicit mapping. Because the
+  group syntax already supports inheritance, a variant group can be defined as simply
+  `"hands-quiver": { "extends": "hands", "overrides": [...] }` rather than restating the
+  full pose.
+- `transformGroups` uses the same group shape as block templates; the `hands` group is
+  what the hands slot renders with. Groups for other slots/backpack sizes can also be
+  declared if an item ever uses them.
+- Item-code templates are auto-discovered during the client `AssetsFinalize` and
+  registered on the shared `TransformTemplateManager`, then consulted by the plan
+  builder whenever `CarriedBlock.Block` is null. Blocks keep using block-keyed templates
+  exclusively.
+- To add/retune a bag pose, edit `carry-bag.json`, adjust the transform entry (keep the
+  `id`), and reload. Adding a new item code is a one-line `matchesItemCodes` change; no
+  code change is needed.
+- If an item code matches **no** item-code template, the item carry keeps rendering via
+  the default hand transform (no pose override).
+
+### Adding your own items (other mods)
+
+Any mod — CarryOn included — can add bag-item poses with **only a JSON asset**, no code:
+
+1. Ship a file at `assets/<yourmodid>/config/transformtemplates/<name>.json` with:
+   - `"code": "<name>"` (must match the file name),
+   - `"matchesItemCodes"` listing your item codes (full `domain:code`, `*` suffix for a
+     family), and/or `"itemPoseGroups"` to point specific items at named groups,
+   - `"transformGroups"` defining the base `hands` group (and any variant groups).
+2. CarryOn scans `config/transformtemplates/*.json` across every loaded mod during the
+   client `AssetsFinalize` and registers any asset that declares `matchesItemCodes` or
+   `itemPoseGroups`. When several files target the same item code, the asset that sorts
+   last alphabetically by path wins; exact item codes beat `*`-suffix entries — so a mod
+   can override a vanilla bag's pose by listing the exact code.
+
+Mod-added poses need no `Carryable` behavior on an item and no CarryOn dependency in
+your build: the asset convention alone is enough.
+
+---
+
 ## Quick Start: Use a Built-In Template
 
 Simple `Carryable` patch using only a built-in template:
@@ -74,7 +172,7 @@ Simple `Carryable` patch using only a built-in template:
     "op": "add",
     "path": "/behaviors/-",
     "value": {
-      "name": "Carryable",
+      "name": "carryon:carryable",
       "properties": {
         "enabledCondition": "carryon.Carryables.Crate",
         "transformTemplates": [

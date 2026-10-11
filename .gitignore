@@ -9,3 +9,8 @@
 /release
 *.lscache
 .open*
+/AGENTS.md
+tests/CarryOn.Scenarios*/bin/
+tests/CarryOn.Scenarios*/obj/
+tests/CarryOn.Scenarios*/TestResults/
+

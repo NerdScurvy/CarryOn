@@ -1,5 +1,6 @@
 using System;
 using CarryOn.API.Common.Models;
+using CarryOn.Common.Models;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
 using Vintagestory.API.Datastructures;
@@ -21,8 +22,6 @@ namespace CarryOn.Utility
         private static readonly BlockFacing[] NorthEastSouthWest = [BlockFacing.NORTH, BlockFacing.EAST, BlockFacing.SOUTH, BlockFacing.WEST];
 
         private static readonly BlockFacing[] MeshAngleFacing = [BlockFacing.SOUTH, BlockFacing.WEST, BlockFacing.NORTH, BlockFacing.EAST];
-
-        private const float CardinalEpsilon = 0.001f;
 
         public static float NormalizeAngle(float angle)
         {
@@ -83,11 +82,6 @@ namespace CarryOn.Utility
             return NorthWestSouthEast[(idx + steps) % 4];
         }
 
-        public static Block? GetWallSignForFacing(IWorldAccessor world, AssetLocation originalCode, BlockFacing newFacing)
-        {
-            return GetRotatedVariantBlock(world, originalCode, newFacing);
-        }
-
         public static Block? GetRotatedVariantBlock(IWorldAccessor world, AssetLocation originalCode, BlockFacing rotatedFacing)
         {
             var parts = originalCode.Path.Split('-');
@@ -107,9 +101,9 @@ namespace CarryOn.Utility
                 {
                     var tempAttr = new TreeAttribute();
                     placedBE.ToTreeAttributes(tempAttr);
-                    if (tempAttr.HasAttribute("meshAngle"))
+                    if (tempAttr.HasAttribute(CarryCodes.AttributeKeys.BlockEntityData.MeshAngle))
                     {
-                        var placedMeshAngle = tempAttr.GetFloat("meshAngle");
+                        var placedMeshAngle = tempAttr.GetFloat(CarryCodes.AttributeKeys.BlockEntityData.MeshAngle);
                         var delta = NormalizeAngle(placedMeshAngle - originalMeshAngle.Value);
                         var rawSteps = delta / HalfPi;
                         var steps = (int)Math.Round(rawSteps);
@@ -139,68 +133,32 @@ namespace CarryOn.Utility
             return 0;
         }
 
-        public static int EstimatePreflightRotation(CarriedBlock carriedBlock, Entity entity, BlockSelection selection, bool dropped)
+        /// <summary>
+        /// Rotation steps implied by placing a carried block at a given facing (drop path).
+        /// Entity-free: the dropped block searches for any fitting facing rather than placing
+        /// relative to the dropping entity's yaw, so this must not depend on a live entity.
+        /// </summary>
+        public static int EstimateMeshAngleRotation(float originalMeshAngle, BlockFacing? facing)
         {
-            if (!carriedBlock.OriginalMeshAngle.HasValue) return 0;
-
-            float placedMeshAngle;
-            if (dropped)
-            {
-                var meshFacing = selection.Face;
-                if (meshFacing == null || meshFacing.IsVertical) return 0;
-                placedMeshAngle = -GetMeshAngle(meshFacing);
-            }
-            else
-            {
-                var yaw = NormalizeAngle((float)entity.Pos.Yaw);
-                placedMeshAngle = (float)((yaw + Math.PI) % TwoPi);
-            }
-
-            var originalAngle = carriedBlock.OriginalMeshAngle.Value;
-            var delta = NormalizeAngle(placedMeshAngle - originalAngle);
+            if (facing == null || facing.IsVertical) return 0;
+            var placedMeshAngle = -GetMeshAngle(facing);
+            var delta = NormalizeAngle(placedMeshAngle - originalMeshAngle);
             var steps = (int)Math.Round(delta / HalfPi);
             return NormalizeSteps(steps);
         }
 
-        public static int GetBaseFacingRotationSteps(CarriedBlock carriedBlock)
+        public static int EstimatePreflightRotation(CarriedBlock carriedBlock, Entity entity, BlockSelection selection, bool dropped)
         {
-            var originalFacing = GetOriginalFacing(carriedBlock);
-            var baseFacing = GetBaseFacing(carriedBlock);
+            if (!carriedBlock.OriginalMeshAngle.HasValue) return 0;
 
-            if (originalFacing == null || baseFacing == null)
-                return 0;
+            if (dropped)
+                return EstimateMeshAngleRotation(carriedBlock.OriginalMeshAngle.Value, selection.Face);
 
-            int fromIdx = Array.IndexOf(NorthEastSouthWest, originalFacing);
-            int toIdx = Array.IndexOf(NorthEastSouthWest, baseFacing);
-
-            if (fromIdx < 0 || toIdx < 0)
-                return 0;
-
-            return NormalizeSteps(toIdx - fromIdx);
-        }
-
-        public static BlockFacing? GetOriginalFacing(CarriedBlock carriedBlock)
-        {
-            if (carriedBlock.OriginalMeshAngle.HasValue)
-            {
-                var angle = NormalizeAngle(carriedBlock.OriginalMeshAngle.Value);
-                foreach (var facing in NorthEastSouthWest)
-                {
-                    if (Math.Abs(angle - GetMeshAngle(facing)) < CardinalEpsilon)
-                        return facing;
-                }
-            }
-
-            if (carriedBlock.OriginalBlockCode != null)
-                return GetBlockFacing(carriedBlock.OriginalBlockCode);
-
-            return GetBlockFacing(carriedBlock.Block);
-        }
-
-        public static BlockFacing? GetBaseFacing(CarriedBlock carriedBlock)
-        {
-            var baseFacing = GetBlockFacing(carriedBlock.Block);
-            return baseFacing ?? BlockFacing.NORTH;
+            var yaw = NormalizeAngle((float)entity.Pos.Yaw);
+            var placedMeshAngle = (float)((yaw + Math.PI) % TwoPi);
+            var delta = NormalizeAngle(placedMeshAngle - carriedBlock.OriginalMeshAngle.Value);
+            var steps = (int)Math.Round(delta / HalfPi);
+            return NormalizeSteps(steps);
         }
 
         public static int GetOriginalToModelDefaultSteps(CarriedBlock carriedBlock, string? modelDefaultFacing = "east")

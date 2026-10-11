@@ -12,17 +12,25 @@ namespace CarryOn.Client.Logic.CarryRenderer
 {
     internal static class CarrySignatureBuilder
     {
+        internal const string MissingBlockCode = "noblock";
+        internal const string MissingStackCode = "nostack";
+
         internal static string BuildRenderInfoVariantSignature(CarriedBlock carried, TreeAttribute? containerSlots, IReadOnlyList<EffectiveTransformSetting> effectiveSettings, IWorldAccessor world, string? rootRenderVariant = null)
         {
             var sb = new StringBuilder(160);
             var be = carried?.BlockEntityData;
 
-            var center = be?.GetBool("haveCenterPlacement", false) == true ? "1" : "0";
+            var center = be?.GetBool(CarryCodes.AttributeKeys.BlockEntityData.HaveCenterPlacement, false) == true ? "1" : "0";
             sb.Append("center=").Append(center);
+
+            if (carried?.ItemStack != null)
+            {
+                sb.Append("|stack=").Append(BuildItemStackContentSignature(carried.ItemStack));
+            }
 
             for (int i = 0; i < 4; i++)
             {
-                var key = "rotation" + i;
+                var key = CarryCodes.AttributeKeys.BlockEntityData.RotationSlotKeyPrefix + i;
                 sb.Append("|r").Append(i).Append('=');
 
                 if (be?[key] == null)
@@ -35,7 +43,8 @@ namespace CarryOn.Client.Logic.CarryRenderer
                 }
             }
 
-            if (containerSlots != null)
+            var usesSlots = effectiveSettings?.Any(s => !string.IsNullOrEmpty(s?.SourceSlotKey)) == true;
+            if (containerSlots != null && usesSlots)
             {
                 sb.Append("|slots=");
                 var keys = containerSlots.Keys.OrderBy(k => k, StringComparer.Ordinal);
@@ -94,13 +103,13 @@ namespace CarryOn.Client.Logic.CarryRenderer
             string? resolverCacheSignature)
         {
             var sb = new StringBuilder(192);
-            sb.Append(carried?.Block?.Code?.ToString() ?? "noblock").Append('|');
+            sb.Append(carried?.Block?.Code?.ToString() ?? MissingBlockCode).Append('|');
 
-            var variantType = carried?.BlockEntityData?.GetString("type", "none") ?? "none";
+            var variantType = carried?.BlockEntityData?.GetString(CarryCodes.AttributeKeys.Type, "none") ?? "none";
             sb.Append(variantType).Append('|');
             sb.Append(transformsGroupBase ?? CarryCodes.DefaultTransformGroup).Append('|');
             sb.Append((int?)carried?.Slot ?? 0).Append('|');
-            sb.Append(carried?.ItemStack?.Collectible?.Code?.ToString() ?? "nostack").Append('|');
+            sb.Append(carried?.ItemStack?.Collectible?.Code?.ToString() ?? MissingStackCode).Append('|');
 
             if (!string.IsNullOrEmpty(matchedResolverCode))
             {
@@ -140,13 +149,13 @@ namespace CarryOn.Client.Logic.CarryRenderer
                 .Append(stack.StackSize).Append('|')
                 .Append(stack.Collectible?.Code?.ToString() ?? "nocode");
 
-            if (stack.Attributes != null)
+            if (stack.Attributes is TreeAttribute treeAttributes)
             {
-                if (stack.Attributes is TreeAttribute treeAttributes)
+                var serializedAttributes = SerializeTreeAttribute(treeAttributes);
+                if (serializedAttributes.Length > 2)
                 {
-                    raw.Append("|a:").Append(SerializeTreeAttribute(treeAttributes));
+                    raw.Append("|a:").Append(serializedAttributes);
                 }
- 
             }
 
             return ComputeFnv1a64Hex(raw.ToString());

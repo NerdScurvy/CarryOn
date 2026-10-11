@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="CarryOn.csproj" />
+  <Project Path="..\CarryOnLib\CarryOnLib.csproj" />
+</Solution>

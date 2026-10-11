@@ -5,7 +5,7 @@
 		"op": "add",
 		"path": "/behaviors/-",
 		"value": {
-			"name": "Carryable",
+			"name": "carryon:carryable",
 			"properties": {
 				"interactDelay": 1.7,
 				"transformGroups": {
@@ -36,7 +36,7 @@
 		"op": "add",
 		"path": "/behaviors/-",
 		"value": {
-			"name": "Carryable",
+			"name": "carryon:carryable",
 			"properties": {
 				"optimisticPickup": false,
 				"rootGroupResolver": "codepath",

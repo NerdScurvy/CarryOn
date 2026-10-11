@@ -1,0 +1,99 @@
+name: Bug Report
+description: Report a bug or crash with CarryOn
+title: "[Bug]: "
+labels: ["bug", "triage"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug! Please fill out the sections below so we can investigate.
+
+  - type: dropdown
+    id: carryon-version
+    attributes:
+      label: CarryOn Version
+      description: Which version of CarryOn are you using?
+      options:
+        - "2.0.0-pre.8 (latest pre-release)"
+        - "1.14.3 (latest stable)"
+        - "Other (specify in description)"
+    validations:
+      required: true
+
+  - type: input
+    id: vs-version
+    attributes:
+      label: Vintage Story Version
+      description: "e.g. 1.22.6"
+      placeholder: "1.22.x"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: Describe what happened and what you expected to happen.
+      placeholder: "When I try to open a wattle fence gate while carrying a chest, nothing happens..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: How can we reproduce this issue?
+      value: |
+        1. Pick up a chest with sneak + right-click
+        2. Walk to a wattle fence gate
+        3. Try to open it
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      options:
+        - Crash
+        - Data loss (items/blocks missing)
+        - Feature not working
+        - Keybind issue
+        - Mod conflict
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: other-mods
+    attributes:
+      label: Other Mods Installed
+      description: List any other mods you have installed, especially ones that affect storage, blocks, or player interaction.
+      placeholder: "Extra Chests, Primitive Survival, QP Chisel Tools..."
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log Files
+      description: |
+        Attach your log files (drag and drop):
+        - client-main.txt
+        - client-debug.txt
+        - server-main.txt (if multiplayer)
+        - server-debug.txt (if multiplayer)
+        
+        Enable `"LoggingEnabled": true` in CarryOnConfig.json for more detailed logs.
+      render: text
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      options:
+        - label: I have checked the [Known Issues](https://github.com/Nerdscurvy/CarryOn/blob/main/docs/known-issues.md) page
+          required: false
+        - label: I am using a version of CarryOn compatible with my VS version
+          required: false
+        - label: I have tried the default keybinds (no rebinding)
+          required: false

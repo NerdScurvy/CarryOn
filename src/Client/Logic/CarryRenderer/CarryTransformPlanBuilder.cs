@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
 using CarryOn.Common.Models;
 using CarryOn.Utility;
 using CarryOn.Client.Models;
 using CarryOn.Common.Behaviors;
+using CarryOn.Client.Logic.TransformTemplates;
 using Vintagestory.API.Client;
 
 namespace CarryOn.Client.Logic.CarryRenderer
@@ -22,6 +24,8 @@ namespace CarryOn.Client.Logic.CarryRenderer
 
     internal sealed class CarryTransformPlanBuilder(ICoreClientAPI api, ICarryManager carryManager, CarryRenderCache cache)
     {
+
+        internal TransformTemplateManager? TemplateManager { get; set; }
 
         internal CachedTransformPlan GetOrBuild(CarriedBlock carried, string transformsGroupBase)
         {
@@ -46,6 +50,17 @@ namespace CarryOn.Client.Logic.CarryRenderer
             var rootCacheSig = new System.Text.StringBuilder(128);
             var attachmentCandidates = new List<CarriedGroupCandidateSet>();
             bool enableVertexWarp = false;
+
+            // Item carries (null Block) can declare per-item pose groups (e.g. "hands-quiver")
+            // via the bag-item pose templates. Seed them as the most-specific primary candidates.
+            if (carried.Block == null
+                && TemplateManager?.GetItemPoseGroupCandidates(carried.ItemStack) is { Length: > 0 } itemPoseGroups)
+            {
+                var candidates = new List<string>(itemPoseGroups);
+                if (!candidates.Any(g => g.Equals(transformsGroup, StringComparison.OrdinalIgnoreCase)))
+                    candidates.Add(transformsGroup);
+                primaryGroupCandidates = candidates;
+            }
 
             // Determine resolver codes
             var rootGroupResolverCode = carryBehavior.RootGroupResolver ?? carryBehavior.TransformGroupResolver;
@@ -123,7 +138,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
 
             var primarySettingsList = new List<EffectiveTransformSetting>();
             if (!string.IsNullOrEmpty(resolvedPrimaryGroup)
-                && carryBehavior.ResolvedTransformGroups.TryGetValue(resolvedPrimaryGroup, out var primarySettings)
+                && TemplateManager?.TryGetSettings(carried, resolvedPrimaryGroup, out var primarySettings) == true
                 && primarySettings != null)
             {
                 foreach (var setting in primarySettings)
@@ -142,7 +157,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
             if (additionalSettingsList.Count > 0) allSettings.AddRange(additionalSettingsList);
 
             if (allSettings.Count == 0
-                && carryBehavior.ResolvedTransformGroups.TryGetValue(CarryCodes.DefaultTransformGroup, out var defaultSettings)
+                && TemplateManager?.TryGetSettings(carried, CarryCodes.DefaultTransformGroup, out var defaultSettings) == true
                 && defaultSettings != null)
             {
                 foreach (var setting in defaultSettings)
@@ -175,7 +190,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
             return plan;
         }
 
-        private static string ResolvePrimaryGroupFromCandidates(
+        private string ResolvePrimaryGroupFromCandidates(
             BlockBehaviorCarryable carryBehavior,
             CarriedBlock carried,
             IList<string> primaryGroupCandidates,
@@ -192,16 +207,16 @@ namespace CarryOn.Client.Logic.CarryRenderer
                 {
                     if (string.IsNullOrEmpty(candidate)) continue;
 
-                    var resolvedCandidate = carryBehavior.GetTransformGroupName(carried, candidate) ?? candidate;
-                    if (carryBehavior.TransformGroupExists(carried, resolvedCandidate))
+                    var resolvedCandidate = TemplateManager?.GetTransformGroupName(carried, candidate) ?? candidate;
+                    if (TemplateManager?.TransformGroupExists(carried, resolvedCandidate) == true)
                     {
                         return resolvedCandidate;
                     }
                 }
             }
 
-            var resolvedFallback = carryBehavior.GetTransformGroupName(carried, fallbackGroup) ?? fallbackGroup;
-            if (carryBehavior.TransformGroupExists(carried, resolvedFallback))
+            var resolvedFallback = TemplateManager?.GetTransformGroupName(carried, fallbackGroup) ?? fallbackGroup;
+            if (TemplateManager?.TransformGroupExists(carried, resolvedFallback) == true)
             {
                 return resolvedFallback;
             }
@@ -209,7 +224,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
             return fallbackGroup;
         }
 
-        private static IList<EffectiveTransformSetting> ResolveAdditionalSettings(
+        private IList<EffectiveTransformSetting> ResolveAdditionalSettings(
             CarriedBlock carried,
             BlockBehaviorCarryable carryBehavior,
             IList<CarriedGroupCandidateSet> candidateSets,
@@ -226,7 +241,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
                 foreach (var group in candidateSet.Groups)
                 {
                     if (string.IsNullOrEmpty(group)) continue;
-                    if (!carryBehavior.TransformGroupExists(carried, group)) continue;
+                    if (TemplateManager?.TransformGroupExists(carried, group) != true) continue;
 
                     groupsToApply.Add(group);
                     if (!candidateSet.AddAllMatches) break;
@@ -234,7 +249,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
 
                 foreach (var group in groupsToApply)
                 {
-                    if (!carryBehavior.ResolvedTransformGroups.TryGetValue(group, out var settings) || settings == null) continue;
+                    if (TemplateManager?.TryGetSettings(carried, group, out var settings) != true || settings == null) continue;
 
                     foreach (var setting in settings)
                     {

@@ -31,7 +31,7 @@ namespace CarryOn.Client.Models
         string? SeasonalTintMap = null,
         float? GlowIntensity = null,
         bool? AttachedRoot = null,
-        bool Enabled = true
+        bool? Enabled = null
     )
     {
 
@@ -79,7 +79,7 @@ namespace CarryOn.Client.Models
                 SeasonalTintMap: !string.IsNullOrEmpty(overlay.SeasonalTintMap) ? overlay.SeasonalTintMap : this.SeasonalTintMap,
                 GlowIntensity: overlay.GlowIntensity ?? this.GlowIntensity,
                 AttachedRoot: overlay.AttachedRoot ?? this.AttachedRoot,
-                Enabled: overlay.Enabled // always use overlay's value (non-nullable)
+                Enabled: overlay.Enabled ?? this.Enabled // overlay explicitly set wins; unset inherits base
             );
         }
 
@@ -129,6 +129,7 @@ namespace CarryOn.Client.Models
         /// <summary>
         /// Converts this TransformGroupSettings instance to a TransformSettings instance, applying default values from a provided ModelTransform if necessary.
         /// This is used to produce the final flattened transform settings that will be applied to the model.
+        /// Named arguments keep the mapping independent of the parameter order in either record.
         /// </summary>
         /// <param name="defaultTransform">An optional ModelTransform instance providing default values for any missing transform properties.</param>
         /// <returns>A TransformSettings instance with all properties populated.</returns>
@@ -172,11 +173,12 @@ namespace CarryOn.Client.Models
 
             // Construct the TransformSettings record at the end
             return new TransformSettings(
+                AssetName: AssetName,
                 Id: Id,
                 AssetType: AssetType,
-                AssetName: AssetName,
                 DisableIfItemStackPath: DisableIfItemStackPath,
                 BlockEntityDataItemStackPath: BlockEntityDataItemStackPath,
+                Transform: transform,
                 CullFaces: CullFaces,
                 AlphaTestOpaque: AlphaTestOpaque,
                 AlphaTestBlend: AlphaTestBlend,
@@ -185,10 +187,9 @@ namespace CarryOn.Client.Models
                 TintColor: TintColor,
                 ClimateTintMap: ClimateTintMap,
                 SeasonalTintMap: SeasonalTintMap,
-                Enabled: Enabled,
-                IsAttachedRoot: AttachedRoot ?? false,
                 RgbGlowIntensity: rgbGlow ?? new Vec4f(0, 0, 0, 0),
-                Transform: transform
+                Enabled: Enabled ?? true,
+                IsAttachedRoot: AttachedRoot ?? false
             );
         }
     }

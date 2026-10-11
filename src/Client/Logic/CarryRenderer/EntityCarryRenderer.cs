@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using CarryOn.API.Common.Interfaces;
-using CarryOn.Client.Models;
+using CarryOn.Common.Interfaces;
+using CarryOn.Client.Logic.TransformTemplates;
 using Vintagestory.API.Client;
+using Vintagestory.API.Common;
 
 namespace CarryOn.Client.Logic.CarryRenderer
 {
@@ -10,6 +12,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
     {
         private readonly ICarryManager carryManager;
         private readonly ICoreClientAPI api;
+        private readonly IConfigProvider configProvider;
         private long renderTick;
         private readonly CarryAnimationSync animationSync;
         private readonly CarryFirstPersonTransform firstPersonRenderer = new();
@@ -17,13 +20,16 @@ namespace CarryOn.Client.Logic.CarryRenderer
         private readonly CarryRenderDispatcher dispatcher;
         private readonly ClientModConfig clientModConfig;
         private readonly CarryRenderInfoBuilder infoBuilder;
+        private readonly CarryTransformPlanBuilder planBuilder;
+        private readonly HashSet<long> seenEntityIds = new();
 
-        public EntityCarryRenderer(ICoreClientAPI api, ICarryManager carryManager, ClientModConfig clientModConfig)
+        public EntityCarryRenderer(ICoreClientAPI api, ICarryManager carryManager, IConfigProvider configProvider, ClientModConfig clientModConfig)
         {
             ArgumentNullException.ThrowIfNull(api);
 
             this.carryManager = carryManager;
             this.api = api;
+            this.configProvider = configProvider;
             this.clientModConfig = clientModConfig;
 
             animationSync = new CarryAnimationSync(carryManager);
@@ -31,17 +37,22 @@ namespace CarryOn.Client.Logic.CarryRenderer
             bool renderAttached = this.clientModConfig.Config?.RenderAttachedBlocks ?? true;
 
             var cache = new CarryRenderCache();
-            var planBuilder = new CarryTransformPlanBuilder(api, carryManager, cache);
+            planBuilder = new CarryTransformPlanBuilder(api, carryManager, cache);
             infoBuilder = new CarryRenderInfoBuilder(api, renderAttached);
             var labelRenderer = new CarryLabelRenderer(api);
 
-            cacheManager = new CarryRenderCacheManager(api, carryManager, planBuilder, infoBuilder, cache);
-            dispatcher = new CarryRenderDispatcher(api, carryManager, cacheManager, firstPersonRenderer, labelRenderer, renderAttached);
+            cacheManager = new CarryRenderCacheManager(api, carryManager, configProvider, planBuilder, infoBuilder, cache);
+            dispatcher = new CarryRenderDispatcher(api, carryManager, configProvider, cacheManager, firstPersonRenderer, labelRenderer, renderAttached);
 
             this.api.Event.RegisterRenderer(this, EnumRenderStage.Opaque);
             this.api.Event.RegisterRenderer(this, EnumRenderStage.AfterOIT);
             this.api.Event.RegisterRenderer(this, EnumRenderStage.ShadowFar);
             this.api.Event.RegisterRenderer(this, EnumRenderStage.ShadowNear);
+        }
+
+        internal TransformTemplateManager? TemplateManager
+        {
+            set => planBuilder.TemplateManager = value;
         }
 
         public void Dispose()
@@ -82,12 +93,16 @@ namespace CarryOn.Client.Logic.CarryRenderer
                 cacheManager.PruneCaches();
             }
 
-            var seenEntityIds = new HashSet<long>();
+            this.seenEntityIds.Clear();
 
             foreach (var player in this.api.World.AllPlayers)
             {
                 if (player.Entity == null) continue;
-                seenEntityIds.Add(player.Entity.EntityId);
+
+                // Spectators are invisible observers - don't render their carried blocks
+                if (player.WorldData?.CurrentGameMode == EnumGameMode.Spectator) continue;
+
+                this.seenEntityIds.Add(player.Entity.EntityId);
 
                 var isShadowPass = stage == EnumRenderStage.ShadowFar || stage == EnumRenderStage.ShadowNear;
                 var isLocalPlayer = player == this.api.World.Player;
@@ -100,8 +115,8 @@ namespace CarryOn.Client.Logic.CarryRenderer
                 dispatcher.RenderAllCarried(player.Entity, deltaTime, stage, isShadowPass, this.renderTick);
             }
 
-            animationSync.CleanupStaleAnimations(seenEntityIds);
-            cacheManager.CleanupStaleSidecars(seenEntityIds);
+            animationSync.CleanupStaleAnimations(this.seenEntityIds);
+            cacheManager.CleanupStaleSidecars(this.seenEntityIds);
 
             if (stage == EnumRenderStage.Opaque)
                 cacheManager.TryLogCounters(this.api);

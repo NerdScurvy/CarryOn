@@ -4,7 +4,7 @@
 		"op": "add",
 		"path": "/behaviors/-",
 		"value": {
-			"name": "Carryable",
+			"name": "carryon:carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Crate",
 				"swapBackKeyPassthrough": true,
@@ -26,7 +26,7 @@
 						"hungerModifier": 0.3
 					},
 					"Back": {
-						"enabledCondition": "carryon.CarryablesOnBack.Crate",
+						"enabledCondition": "carryon.CarryablesOnBack.Crate&&carryon.CarryOptions.AllowHighCapacityStorageOnBack",
 						"walkSpeedModifier": -0.2,
 						"hungerModifier": 0.4
 					}
@@ -45,7 +45,7 @@
 		"op": "add",
 		"path": "/behaviors/-",
 		"value": {
-			"name": "Carryable",
+			"name": "carryon:carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Crate",
 				"swapBackKeyPassthrough": true,
@@ -76,7 +76,7 @@
 						"hungerModifier": 0.3
 					},
 					"Back": {
-						"enabledCondition": "carryon.CarryablesOnBack.Crate",
+						"enabledCondition": "carryon.CarryablesOnBack.Crate&&carryon.CarryOptions.AllowHighCapacityStorageOnBack",
 						"walkSpeedModifier": -0.3,
 						"hungerModifier": 0.4
 					}

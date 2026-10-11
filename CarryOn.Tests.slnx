@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="tests\CarryOn.Scenarios\CarryOn.Scenarios.csproj" />
+  <Project Path="../CarryOnLib/CarryOnLib.csproj" />
+  <Project Path="CarryOn.csproj" />
+  <Project Path="tests\CarryOn.Scenarios.ExampleMods\CarryOn.Scenarios.ExampleMods.csproj" />
+</Solution>

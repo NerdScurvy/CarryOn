@@ -13,6 +13,8 @@ namespace CarryOn.Common.Behaviors
     ///           said block to be picked up by players and carried around. </summary>
     public class BlockBehaviorCarryableInteract : BlockBehavior, IConditionalBlockBehavior
     {
+        public static string Name { get; } = GetCarryCode("carryableinteract");
+
         private static ICarryManager? carryManager;
 
         public static void Init(ICarryManager manager)
@@ -20,7 +22,16 @@ namespace CarryOn.Common.Behaviors
             carryManager = manager ?? throw new ArgumentNullException(nameof(manager));
         }
 
-        public static string Name { get; } = "CarryableInteract";
+        /// <summary>
+        /// Whether CarryOn's own factory constructed this instance (a baseline remount
+        /// or an automap clone), as opposed to the engine loading it from a blocktype
+        /// or patch, another mod registering it, or test code appending it. Internal
+        /// and not serialized: it is the un-create predicate of the conditioning
+        /// baseline's restore pass, invisible to the wire, to snapshots and to mod authors. Set only by the
+        /// factory - <see cref="Server.Logic.BehavioralConditions.ConditioningBaseline"/>
+        /// remounts and the automapper's appends.
+        /// </summary>
+        internal bool CreatedByConditioning;
 
         public float InteractDelay { get; private set; } = Defaults.InteractSpeed;
 
@@ -28,14 +39,32 @@ namespace CarryOn.Common.Behaviors
 
         public IList<AllowedCarryable> AllowedCarryables { get; } = new List<AllowedCarryable>();
 
+        /// <summary>
+        /// The behavior's property JSON as initialized (interact conditioning is a no-op, so
+        /// the initialized set is the effective set). Used by the carryability snapshot so
+        /// the client can re-mount a faithful instance. Falls back to the captured
+        /// <see cref="Properties"/> for instances CarryOn's own factory builds (automap
+        /// twins, baseline remounts), mirroring <c>BlockBehaviorCarryable</c>.
+        /// </summary>
+        internal string CurrentPropertiesJson
+            => propertiesAtString ?? Properties?.Token?.ToString() ?? string.Empty;
+
+        /// <summary>
+        /// The properties the engine, a patch or CarryOn's factory initialized this
+        /// instance with - the donor handle the interact automapper's twin-creation pass
+        /// reads (mirrors <c>BlockBehaviorCarryable.Properties</c>).
+        /// </summary>
+        public JsonObject? Properties { get; set; }
+
         public BlockBehaviorCarryableInteract(Block block)
             : base(block) { }
 
         public override void Initialize(JsonObject properties)
         {
+            Properties = properties;
             base.Initialize(properties);
             if (JsonHelper.TryGetFloat(properties, "interactDelay", out var d)) InteractDelay = d;
-            if (JsonHelper.TryGetString(properties, "enabledCondition", out var e)) EnabledCondition = e ?? string.Empty;
+            if (JsonHelper.TryGetString(properties, BehaviorJsonKeys.EnabledCondition, out var e)) EnabledCondition = e ?? string.Empty;
 
             // Whitelist of carryable blocks that can be used to interact with a block entity
             if (!properties.KeyExists("allowedCarryables")) return;

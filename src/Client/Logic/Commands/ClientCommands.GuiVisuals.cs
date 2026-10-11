@@ -52,9 +52,8 @@ namespace CarryOn.Client.Logic.Commands
 
         private TextCommandResult HandleGuiShow(GuiCategory cat, TextCommandCallingArgs _)
         {
-            var cfg = this.clientModConfig.Config;
-            if (cfg == null)
-                return TextCommandResult.Error("Client config not available.");
+            if (!TryGetConfig(out var cfg, out var configError))
+                return configError!;
 
             string name;
             bool enabled;

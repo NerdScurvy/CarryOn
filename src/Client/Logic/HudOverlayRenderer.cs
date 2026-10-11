@@ -1,5 +1,6 @@
 using System;
 using Vintagestory.API.Client;
+using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
 
 namespace CarryOn.Client.Logic
@@ -74,6 +75,14 @@ namespace CarryOn.Client.Logic
 
         public void OnRenderFrame(float deltaTime, EnumRenderStage stage)
         {
+            // Spectators are invisible observers - no progress circle for ghosts
+            var spectator = this.api.World.Player?.WorldData?.CurrentGameMode == EnumGameMode.Spectator;
+            if (spectator)
+            {
+                this.CircleVisible = false;
+                return;
+            }
+
             var rend = this.api.Render;
             var shader = rend.CurrentActiveShader;
 

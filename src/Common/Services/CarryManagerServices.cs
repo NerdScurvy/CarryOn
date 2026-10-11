@@ -2,6 +2,7 @@ using System;
 using CarryOn.API.Common.Interfaces;
 using CarryOn.Common.Interfaces;
 using Vintagestory.API.Common;
+using Vintagestory.API.Server;
 
 namespace CarryOn.Common.Services
 {
@@ -10,8 +11,8 @@ namespace CarryOn.Common.Services
         public CarryStateService State { get; }
         public CarryPermissionService Permission { get; }
         public CarryPickupService Pickup { get; }
+        public GroundStorageItemPlacement GroundStorage { get; }
         public CarryPlacementService Placement { get; }
-        public CarryAttachmentService Attachment { get; }
         public CarryDropService Drop { get; }
         public CarryEventBootstrapper EventBootstrapper { get; }
 
@@ -21,13 +22,19 @@ namespace CarryOn.Common.Services
             ArgumentNullException.ThrowIfNull(configProvider);
             ArgumentNullException.ThrowIfNull(carryManager);
 
-            State = new CarryStateService(configProvider, null);
+            State = new CarryStateService(api, configProvider, null);
             Permission = new CarryPermissionService(carryManager, configProvider);
-            Pickup = new CarryPickupService(api, carryManager, configProvider);
-            Placement = new CarryPlacementService(api, carryManager);
-            Attachment = new CarryAttachmentService(api, configProvider, carryManager);
-            Drop = new CarryDropService(api, carryManager, configProvider);
+            Pickup = new CarryPickupService(api, carryManager, Permission, configProvider);
+            GroundStorage = new GroundStorageItemPlacement(api, carryManager);
+            Placement = new CarryPlacementService(api, carryManager, Permission, configProvider, GroundStorage);
+            Drop = new CarryDropService(api, carryManager, configProvider, GroundStorage);
             EventBootstrapper = new CarryEventBootstrapper(carryManager);
+        }
+
+        internal void ConfigureServerChannel(IServerNetworkChannel serverChannel)
+        {
+            ArgumentNullException.ThrowIfNull(serverChannel);
+            State.ConfigureServerChannel(serverChannel);
         }
     }
 }

@@ -24,15 +24,17 @@ CarryOn exposes three behaviors that can be added via JSON patches:
 
 | Behavior | Target | Patch syntax | Purpose |
 |---|---|---|---|
-| `Carryable` | Block types | `"name": "Carryable"` on `/behaviors/-` | Allow players to pick up and carry the block |
-| `CarryableInteract` | Block types | `"name": "CarryableInteract"` on `/behaviors/-` | Allow players to interact with a carried block while holding it |
-| `attachablecarryable` | Entity types | `"code": "carryon:attachablecarryable"` on `/server/behaviors/-` and `/client/behaviors/-` | Allow players to attach to and carry an entity (carts, sleds, etc.) |
+| `carryon:carryable` | Block types | `"name": "carryon:carryable"` on `/behaviors/-` | Allow players to pick up and carry the block |
+| `carryon:carryableinteract` | Block types | `"name": "carryon:carryableinteract"` on `/behaviors/-` | Allow players to interact with a carried block while holding it |
+| `carryon:attachablecarryable` | Entity types | `"code": "carryon:attachablecarryable"` on `/server/behaviors/-` and `/client/behaviors/-` | Allow players to attach to and carry an entity (carts, sleds, etc.) |
+
+> **Note:** Legacy bare codes (`"Carryable"`, `"CarryableInteract"`) are still accepted via alias registrations, but modders should update to the namespaced forms. The aliases will remain in place for the foreseeable future to give modders time to update.
 
 ---
 
 ## Carryable — Block Carry Support
 
-`Carryable` is a block behavior that allows players to pick up and carry a block. It supports slot configuration, transform templates, label rendering, and world config conditions.
+`carryon:carryable` is a block behavior that allows players to pick up and carry a block. It supports slot configuration, transform templates, label rendering, and world config conditions.
 
 ### Quick Start
 
@@ -45,7 +47,7 @@ Minimal example for a mod author adding CarryOn support to their own block. The 
     "op": "add",
     "path": "/behaviors/-",
     "value": {
-      "name": "Carryable",
+      "name": "carryon:carryable",
       "properties": {
         "enabledCondition": "carryon.Carryables.Chest",
         "transformTemplates": [
@@ -78,7 +80,7 @@ This example adds label rendering, back carry support, and adjusts timing. This 
     "op": "add",
     "path": "/behaviors/-",
     "value": {
-      "name": "Carryable",
+      "name": "carryon:carryable",
       "properties": {
         "enabledCondition": "carryon.Carryables.Crate",
         "patchPriority": 1,
@@ -127,6 +129,7 @@ Top-level properties read by `BlockBehaviorCarryable`:
 | `optimisticPickup` | bool | Enables client-side prediction for the pickup action. |
 | `forcePickupOnSwapBack` | bool | Forces pickup when the swap-back modifier key is held. |
 | `swapBackKeyPassthrough` | bool | Yields block interaction to the underlying block when the swap-back modifier key is held. |
+| `transferCode` | string | Transfer handler mode. Unset means the block does not participate in transfer. `"auto"` (reserved) auto-detects a `BlockBehavior` on the block that implements `ICarryableBlockSlotHandler`. Any other value is the code of a handler registered via `RegisterTransferHandler` (canonical form `modid:code`; bare values are also tried with the `carryon:` prefix). See [Transfer Handler Registration](#transfer-handler-registration). |
 | `renderRootFirst` | bool | Rendering order hint for carried block compositing. |
 | `transformGroupResolver` | string | Resolver code used for dynamic transform group selection. Canonical form is `modid:code`; bare values default to `carryon:<code>`. If omitted, no resolver is used. |
 | `transformTemplates` | string[] | Transform template IDs loaded from asset files during finalization. Canonical form is `modid:code`; bare values default to `carryon:<code>`. |
@@ -172,7 +175,7 @@ When both are set, CarryOn reconstructs the original block code from `OriginalBl
 
 ```json
 {
-  "name": "Carryable",
+  "name": "carryon:carryable",
   "properties": {
     "enabledCondition": "carryon.Carryables.Sign",
     "labelRenderSettings": {
@@ -276,6 +279,52 @@ These per-slot type and group values can be overridden from the world config usi
 | `Hands` | `-0.25` | `carryon:holdheavy` |
 | `Back` | `-0.15` | _(none)_ |
 
+### Transfer Handler Registration
+
+Transfer handlers (`ICarryableBlockSlotHandler`) are resolved lazily by `BlockBehaviorCarryable` per block, based on the `transferCode` behavior property:
+
+| `transferCode` | Behavior |
+|---|---|
+| *(unset)* | The block does not participate in transfer. No handler resolution is attempted, so there is no per-interaction cost for blocks without transfer support. |
+| `"auto"` | CarryOn scans the block's behaviors for one that implements `ICarryableBlockSlotHandler` and uses it as the handler. `"auto"` is reserved and cannot name a registered handler. |
+| `"<code>"` | CarryOn looks up a handler registered with `RegisterTransferHandler`. Bare codes are also tried with the `carryon:` prefix (e.g. `"transferCode": "chest"` matches `carryon:chest`). |
+
+Example — attach an `ICarryableBlockSlotHandler` block behavior and opt in to auto-detection:
+
+```json
+{
+  "name": "carryon:carryable",
+  "properties": { "transferCode": "auto" }
+}
+```
+
+When the target block already carries a CarryOn-provided `Carryable` behavior (e.g. the mold rack), add `transferCode: "auto"` to your own `Carryable` patch as well — the merged or primary behavior must carry the opt-in for detection to work on both sides.
+
+**Register on both sides.** `RegisterTransferHandler` must be called on *both* the client and server (for example in `StartClientSide` and `StartServerSide`, or from a shared `Start`, of your `ModSystem`). Handler registration is per-side and is not synced between processes: a handler registered only on the server never resolves on the client, which silently disables client-side transfer pre-validation (`IsSlotCarryable`/`CanTake`/`CanPut`) and the associated interaction feedback for that block.
+
+```csharp
+var carrySystem = api.ModLoader.GetModSystem<CarrySystem>();
+carrySystem?.CarryManager?.RegisterTransferHandler("mymod:chest", new MyChestTransferHandler());
+```
+
+### Transfer Handler Interface
+
+A transfer handler implements `ICarryableBlockSlotHandler` (`CarryOn.API.Common.Interfaces`), typically on the same `BlockBehavior` referenced by the block's `Carryable` behavior. The member shape mirrors the entity slot handler:
+
+| Member | Side(s) | Purpose |
+|---|---|---|
+| `GetInteractDelay(blockEntity, api, slotIndex)` | Client | Hold duration in seconds for the progress circle, stored in the interaction's transfer delay. |
+| `GetSlotIndex(blockEntity, selection)` | Client | Maps `BlockSelection.SelectionBoxIndex` to the logical 0-based inventory slot index; `-1` when the selection is not a transfer slot. |
+| `IsValidSlot(blockEntity, slotIndex)` | Client + server | Cheap existence check; the server guards forged indices before `Try*`. |
+| `IsSlotEmpty(blockEntity, slotIndex)` | Client | Routing/hint support. |
+| `IsSlotCarryable(blockEntity, slotIndex)` | Client | Hint support; a take is only possible when the slot holds a carryable block. |
+| `CanPut` / `CanTake` | Client | Non-mutating pre-hold checks; the authoritative source of mod-specific errors. `CanTake`'s failure code also routes the empty/non-carryable-slot outcome (`null` = continue to the next interaction, `__default__` = vanilla, lang key = error). |
+| `TryPut` / `TryTake` | Server | Authoritative mutation; re-runs the `Can*` checks internally. The client never invokes these. |
+| `IsBlockCarryAllowed(player, selection)` | Client | Blocks whole-block pickup when a slot holds content. |
+| `OnClientTransferToggled(player, slotIndex, isPut)` | Client | Fired after the put/take packet is sent; optimistic state flip (empty↔filled) applied locally before the server replies (can be a no-op). |
+
+**Error contract.** A `false` return sets `failureCode` to the *full* lang key of a message in the implementing mod's own lang files (e.g. `rackemup:mold-rack-transfer-incompatible`), resolved verbatim via `Lang.GetL(player.LanguageCode, ...)` on the server and `Lang.Get` on the client — no `carryon:` prefix is applied and no format arguments are passed, so lang strings must not use `{0}` placeholders. Server-side resolution uses the reading player's language rather than the server's, so a `ServerLanguage = "en"` server still toasts in each player's language; a key that player's language lacks falls back to English. To display such an error from your own code, use the public helper `CarryOn.Utility.CarryErrorHelper` (`ShowError(api, failureCode)` on the client, `SendError(player, failureCode)` on the server). A `null`/empty `failureCode` with `false` means "not this handler / continue to the next interaction" (so with empty hands the whole-block pickup stage runs). The reserved sentinel codes from `CarryConstants.FailureCodes` are not lang keys: `__ignore__` silently completes the interaction, `__stop__` completes the interaction, `__default__` lets the vanilla interaction proceed. With empty hands, `CanTake` is the routing decision — the validator does not pre-gate on `IsSlotCarryable`.
+
 ### Multiple Patches and Priority
 
 When multiple `Carryable` behaviors exist on the same block (e.g. from auto-mapping and an explicit patch), CarryOn resolves them at server startup:
@@ -288,11 +337,11 @@ Use `patchPriority: 1` or higher when you need to take precedence over CarryOn's
 
 ---
 
-## CarryableInteract — Interact While Carrying
+## carryon:carryableinteract — Interact While Carrying
 
-`CarryableInteract` is a block behavior that allows a player to interact with a block (open it, toggle it, etc.) while carrying another block. It is independent of `Carryable` — a block can have one, both, or neither.
+`carryon:carryableinteract` is a block behavior that allows a player to interact with a block (open it, toggle it, etc.) while carrying another block. It is independent of `carryon:carryable` — a block can have one, both, or neither.
 
-`CarryableInteract` patches should set `"side": "Server"`.
+`carryon:carryableinteract` patches should set `"side": "Server"`.
 
 ### Example
 
@@ -304,7 +353,7 @@ Use `patchPriority: 1` or higher when you need to take precedence over CarryOn's
     "op": "add",
     "path": "/behaviors/-",
     "value": {
-      "name": "CarryableInteract",
+      "name": "carryon:carryableinteract",
       "properties": {
         "enabledCondition": "carryon.Interactables.Storage"
       }
@@ -320,7 +369,7 @@ For blocks that require a longer hold time to interact (e.g. heavy metal doors):
 
 ```json
 {
-  "name": "CarryableInteract",
+  "name": "carryon:carryableinteract",
   "properties": {
     "enabledCondition": "carryon.Interactables.Door",
     "interactDelay": 1.3
@@ -328,7 +377,7 @@ For blocks that require a longer hold time to interact (e.g. heavy metal doors):
 }
 ```
 
-### CarryableInteract Properties
+### carryon:carryableinteract Properties
 
 | Property | Type | Description |
 |---|---|---|
@@ -376,6 +425,75 @@ Entity behaviors use `code` rather than `name`.
 
 Both entries are required. The server-side entry controls logic; the client-side entry enables rendering.
 
+### Attributes
+
+| Attribute | Type | Default | Description |
+|---|---|---|---|
+| `carrySlots` | string[] | _(all slots)_ | Array of attachment-point codes that define which entity slots are carry-eligible. Supports `*` wildcards (e.g. `"LStore*"` matches `LStore1AP`, `LStore2AP`, etc.; `"*Store*"` matches any slot containing "Store"). Only matching slots show carry interaction help and trigger attach/detach. If omitted, all slots are eligible (backward-compatible). Non-matching slots pass through to vanilla interaction (e.g. mounting a seat). |
+
+Example with `carrySlots`:
+
+```json
+{
+  "code": "carryon:attachablecarryable",
+  "carrySlots": ["LStore*", "RStore*"]
+}
+```
+
+Use the attachment-point codes from the entity's `rideableaccessories` → `wearableSlots` → `attachmentPointCode` (or the `selectionBoxes` array). These are the same codes used in the entity's shape attachment points. Wildcard `*` matches any sequence of characters; entries without `*` must match exactly (case-sensitive).
+
+### Slot Handler Resolution (`slotHandlerCode`)
+
+`slotHandlerCode` is an attribute of the `Carryable` entity behavior (not `attachablecarryable`). It selects which slot handler governs per-slot attach/detach:
+
+| Value | Behavior |
+|---|---|
+| *(unset)* | Auto-detect: CarryOn scans the entity's behaviors (then the entity itself) for an implementation of `ICarryableEntitySlotHandler`. This is how the built-in `attachablecarryable` is found. |
+| `"auto"` | Explicitly requests the same auto-detection. `"auto"` is **reserved** — it is never treated as a registered handler code, so it can be used to override any `slotHandlerCode` inherited from a template or another mod's patch. |
+| `"<code>"` | CarryOn looks up a handler registered with `RegisterSlotHandler` (canonical form `modid:code`; bare values are also tried with the `carryon:` prefix). If the code is not registered, CarryOn logs a warning and **slot attach/detach is disabled** — it does not silently fall back to a different handler. Use `"auto"` if you want detection instead. |
+
+Example — opt in explicitly on a `Carryable` behavior:
+
+```json
+{
+  "code": "carryon:carryable",
+  "slotHandlerCode": "auto"
+}
+```
+
+### Coexistence with Whole-Entity Pickup
+
+A slot handler (auto-detected `attachablecarryable`, or a handler referenced by `slotHandlerCode`) can coexist with a whole-entity handler (referenced by `handlerCode`) on the same entity — they are not mutually exclusive:
+
+- **Looking at a storage slot** (a carry-eligible selection box): the slot handler takes precedence. Holding the carry key attaches/detaches the carried block into/from that slot; without the carry key the vanilla interaction (e.g. opening the cart's storage) proceeds.
+- **Looking at any other part of the entity** (body, seats, non-eligible slots): the entity handler governs — the pickup help is shown and right-clicking picks up the whole entity.
+
+Entities configured only for slot attach/detach (the common case, e.g. carts) show no pickup help and cannot be picked up as a whole.
+
+### Whole-Entity Pickup Mode (`pickupMode`)
+
+The `carryon:carryable` behavior supports an optional `pickupMode` attribute that controls which input combination triggers whole-entity pickup:
+
+| Value | Input | Hint |
+|---|---|---|
+| *(unset)* / `"interact"` | Right mouse only (default) | No key combo shown |
+| `"pickup-hotkey"` | Hold **Pick Up / Put Down** hotkey + Right mouse | Shows mapped key next to mouse icon |
+
+Example — require the pickup hotkey for a demo entity:
+
+```json
+{
+  "code": "carryon:carryable",
+  "handlerCode": "carrieddemo:demoentity",
+  "pickupMode": "pickup-hotkey",
+  "pickupHelpLangCode": "carrieddemo:entityhelp-pickup"
+}
+```
+
+When `pickupMode` is `"pickup-hotkey"`, the interaction help HUD automatically renders the mapped key name (e.g. "Shift + Right mouse") following the player's keybinding. The preset governs **whole-entity pickup only**; slot attach/detach always requires the carry key regardless of this setting.
+
+**Slot error contract.** When a `CanAttach`/`CanDetach`/`TryAttach`/`TryDetach` returns `false`, `failureCode` is resolved with a hybrid rule: a code containing a domain separator (`:`) is a *full* lang key owned by the implementing mod and resolves verbatim (e.g. `rackemup:shattered`); a code without one is a *bare* code that resolves as `carryon:<code>` (the standard CarryOn-scoped messages, e.g. `slot-not-empty`). The reserved sentinel codes from `CarryConstants.FailureCodes` are not lang keys (`__ignore__` = silent). The public helper `CarryOn.Utility.CarryErrorHelper` implements this rule: `ResolveLangKey(code)` returns the resolved key, `ShowError(api, errorCode[, langKey])` displays on the client, `SendError(player, errorCode[, langKey])` sends to a server player — the two-argument forms let the reported code differ from the message key (used by CarryOn's own handlers, e.g. `FailCarryAction`). Server-side display resolves in the receiving player's language, not the server's.
+
 ---
 
 ## Conditions and World Config
@@ -403,5 +521,5 @@ Conditions are evaluated against `CarryablesConfig`, `CarryablesOnBackConfig`, a
 - Use `patchPriority: 1` only when intentionally overriding auto-mapping or another patch.
 - Use `overrideExistingProperties` only when you need a partial property overlay rather than full replacement.
 - Prefer existing `transformTemplates` (e.g. `carryon:carry-chest`, `carryon:carry-crate`) over defining inline `transformGroups`.
-- `CarryableInteract` and `Carryable` are independent — add both if the block should be both carryable and interactable-while-carried.
+- `carryon:carryableinteract` and `carryon:carryable` are independent — add both if the block should be both carryable and interactable-while-carried.
 - `attachablecarryable` must be patched onto both `/server/behaviors/-` and `/client/behaviors/-` or carry behavior will not work correctly.

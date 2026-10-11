@@ -9,9 +9,8 @@ namespace CarryOn.Client.Logic.Commands
     {
         protected TextCommandResult CmdCarryOnIconMode(TextCommandCallingArgs args)
         {
-            var cfg = this.clientModConfig.Config;
-            if (cfg == null)
-                return TextCommandResult.Error("Client config not available.");
+            if (!TryGetConfig(out var cfg, out var configError))
+                return configError!;
 
             var currentMode = CarryLabelManager.IconTextureMode;
 

@@ -26,10 +26,10 @@ The pipeline in this document covers all classes in:
 - `src/Client/Logic/CarryRenderer/CarryRenderInfoBuilder.cs`
 - `src/Client/Logic/CarryRenderer/CarryRenderCache.cs`
 - `src/Client/Logic/CarryRenderer/CarryRenderCacheManager.cs`
-- `src/Client/Logic/CarryRenderer/CarryFirstPersonRenderer.cs`
+- `src/Client/Logic/CarryRenderer/CarryFirstPersonTransform.cs`
 - `src/Client/Logic/CarryRenderer/CarryRenderHelpers.cs`
-- `src/Client/Logic/CarryRenderer/CarriedLabelRenderer.cs`
-- `src/Client/Logic/CarryRenderer/CarriedLabelManager.cs`
+- `src/Client/Logic/CarryRenderer/CarryLabelRenderer.cs`
+- `src/Client/Logic/CarryRenderer/CarryLabelManager.cs`
 
 ---
 
@@ -305,6 +305,48 @@ Label data source fields in block entity data:
 
 ## 10. Cache Invalidation and Pruning
 
+Full invalidation:
+- `EntityCarryRenderer.InvalidateRenderCaches()` (`EntityCarryRenderer.cs:69`) calls
+  `CarryRenderCacheManager.InvalidateAll()` (`CarryRenderCacheManager.cs:158-162`), which
+  clears the four `CarryRenderCache` dictionaries — `TransformPlans`, `RenderInfos`,
+  `FrameRenderInfos`, `SlotStates` (`CarryRenderCache.cs:46-52`) — **and** the
+  per-slot `signatureSidecars` memo. Both layers, one call.
+- Call sites: the pack-adjustment save path (`PackAdjustmentState.cs:168-171`, every
+  pose save), the dispatcher's `SetDisposedDetected` self-heal
+  (`CarryRenderDispatcher.cs:97,149-151`), and the carryability-snapshot swap —
+  `CarrySystem.RebuildClientDerivedState` (`CarrySystem.Configuration.cs`) invalidates
+  right after it swaps the `TransformTemplateManager`, once the new manager is in place.
+- **Why the snapshot swap needs a *full* invalidation and not a better cache key.**
+  A carryability snapshot can change a *still-mounted* behavior's properties (a
+  slot-level `enabledCondition` strip or restore; the vanilla `game:barrel`'s
+  `slots.Back` is the shipped example). Both cache layers are blind to that:
+  (a) the plan-cache key, `CarrySignatureBuilder.BuildTransformPlanSignature`
+  (`CarrySignatureBuilder.cs:99-129`), is
+  `block code | BE variant type | transformsGroupBase | slot int | stack code |
+  resolver | resolversig` — no behavior property and no manager identity, so the key
+  is byte-identical across the swap; and (b) the per-slot sidecar memo in
+  `GetRenderInfoCached` (`CarryRenderCacheManager.cs:68-73`) only recomputes when one
+  of its own dirty inputs changed (plan null, `carriedRevision`, transforms group,
+  stack code, `BlockEntityData` reference, missing variant signature) — a remount
+  changes none of them, so the sidecar returns the pre-swap `CachedTransformPlan`
+  reference **without ever consulting the plan cache**. A signature fix alone would
+  leave (b) short-circuiting; the fix must clear both layers, which is what the full
+  invalidation does.
+- Two non-obvious consequences worth remembering before "optimizing" this:
+  - The staleness outlives the 5-minute `TransformPlans` TTL below: pruning evicts
+    the dictionary *entry*, but a live sidecar keeps holding the plan object and
+    never re-queries the cache, so from a player's point of view the stale pose
+    lasts until a carry mutation or the carrier leaves the render set — not 5 minutes.
+  - Restoring presence alone is not the defect: a behavior going fully absent takes
+    the live "nocarry" branch and never consults a cache. It is *property changes on
+    a behavior that stays present* that go stale.
+- If a second behavior-remount source ever appears (today the carryability snapshot
+  is the only client-side remount site), the alternative to reach for is a manager
+  generation counter threaded into the plan signature **and** the sidecar's dirty
+  test — both layers, again; a counter in one of them fixes only that layer.
+- Boot (`CarrySystem.Lifecycle.cs:174-181`) deliberately does not invalidate: the
+  caches are empty at that point, so there is nothing to clear.
+
 Slot-state invalidation:
 - If frame key changes for a slot, old frame cache, persistent render info cache entry, and plan cache entry for that slot are removed.
 
@@ -361,10 +403,10 @@ graph TD
 - `src/Client/Logic/CarryRenderer/CarryRenderInfoBuilder.cs`
 - `src/Client/Logic/CarryRenderer/CarryRenderCache.cs`
 - `src/Client/Logic/CarryRenderer/CarryRenderCacheManager.cs`
-- `src/Client/Logic/CarryRenderer/CarryFirstPersonRenderer.cs`
+- `src/Client/Logic/CarryRenderer/CarryFirstPersonTransform.cs`
 - `src/Client/Logic/CarryRenderer/CarryRenderHelpers.cs`
-- `src/Client/Logic/CarryRenderer/CarriedLabelRenderer.cs`
-- `src/Client/Logic/CarryRenderer/CarriedLabelManager.cs`
+- `src/Client/Logic/CarryRenderer/CarryLabelRenderer.cs`
+- `src/Client/Logic/CarryRenderer/CarryLabelManager.cs`
 - `src/Common/Behaviors/BlockBehaviorCarryable.cs`
 - `src/Client/Logic/TransformGroupResolvers/PlantContainerTransformGroupResolver.cs`
 

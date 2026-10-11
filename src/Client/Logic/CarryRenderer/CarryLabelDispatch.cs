@@ -35,9 +35,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
 
                 var offset = CarryRotationHelper.RotateOffset(attached.RelativeOffset, offsetSteps);
 
-                var rotatedFace = attached.OriginalLocalFace != null
-                    ? CarryRotationHelper.RotateFacing(attached.OriginalLocalFace, offsetSteps)
-                    : null;
+                var variantBlock = CarryRenderHelpers.ResolveAttachedVariantBlock(world, attached.OriginalBlockCode, attached.OriginalLocalFace, offsetSteps, out var rotatedFace);
 
                 var childMatrix = dispatcher.RentMatrix();
                 Array.Copy(initialMatrix, childMatrix, 16);
@@ -54,27 +52,18 @@ namespace CarryOn.Client.Logic.CarryRenderer
                 CarryTransformResolver.ApplyTransformInPlace(offsetTransform, childMatrix);
 
                 CarriedBlock labelCarriedBlock = attached.CarriedBlock;
-                var originalCode = attached.OriginalBlockCode;
-                if (originalCode != null)
+                if (variantBlock != null)
                 {
-                    Block? variantBlock = rotatedFace != null
-                        ? CarryRotationHelper.GetRotatedVariantBlock(world, originalCode, rotatedFace)
-                        : null;
-                    variantBlock ??= world.GetBlock(originalCode);
-
-                    if (variantBlock != null)
-                    {
-                        var variantStack = new ItemStack(variantBlock);
-                        variantStack.ResolveBlockOrItem(world);
-                        labelCarriedBlock = new CarriedBlock(
-                            CarrySlot.Attached,
-                            variantStack,
-                            attached.BlockEntityData,
-                            null,
-                            variantBlock.Code,
-                            attached.OriginalMeshAngle
-                        );
-                    }
+                    var variantStack = new ItemStack(variantBlock);
+                    variantStack.ResolveBlockOrItem(world);
+                    labelCarriedBlock = new CarriedBlock(
+                        CarrySlot.Attached,
+                        variantStack,
+                        attached.BlockEntityData,
+                        null,
+                        variantBlock.Code,
+                        attached.OriginalMeshAngle
+                    );
                 }
 
                 var behavior = labelCarriedBlock.GetCarryableBehavior();

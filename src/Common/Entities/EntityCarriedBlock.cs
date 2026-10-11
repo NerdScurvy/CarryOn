@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using CarryOn.Common.Models;
+using CarryOn.Common.Behaviors;
 using CarryOn.Common.Logic;
 using CarryOn.Utility;
 using Vintagestory.API.Client;
@@ -14,6 +15,8 @@ namespace CarryOn.Common.Entities
 {
     public class EntityCarriedBlock : Entity
     {
+        public static string Name { get; } = GetCarryCode("EntityCarriedBlock");
+
         internal static CarriedBlockEntityConfig? Config { private get; set; }
 
         private bool showParticles = true;
@@ -139,9 +142,6 @@ namespace CarryOn.Common.Entities
             return LocalizationHelper.GetLang("duration-days", (int)(totalSeconds / 86400));
         }
 
-        private static ItemStack[]? handsfreeStacks;
-        private static ItemStack[]? nohandsfreeStacks;
-
         public override WorldInteraction[] GetInteractionHelp(IClientWorldAccessor world, EntitySelection es, IClientPlayer player)
         {
             var canPickup = CarriedBlockAccessPolicy.CanPickup(
@@ -154,24 +154,19 @@ namespace CarryOn.Common.Entities
 
             if (!canPickup) return [];
 
-            handsfreeStacks ??= [new ItemStack(world.GetItem(new AssetLocation("carryon:icon-handsfree")))];
-            nohandsfreeStacks ??= [new ItemStack(world.GetItem(new AssetLocation("carryon:icon-nohandsfree")))];
-
-            // Resolve fresh if cached stacks reference items that may have been reloaded
-            if (handsfreeStacks[0].Item == null)
-                handsfreeStacks = [new ItemStack(world.GetItem(new AssetLocation("carryon:icon-handsfree")))];
-            if (nohandsfreeStacks[0].Item == null)
-                nohandsfreeStacks = [new ItemStack(world.GetItem(new AssetLocation("carryon:icon-nohandsfree")))];
-
             bool canDoCarryAction = player.Entity?.CanDoCarryAction(requireEmptyHanded: true) == true;
-            var itemstacks = canDoCarryAction ? handsfreeStacks : nohandsfreeStacks;
+            var iconStacks = HelpIconStacks.Get(world, canDoCarryAction ? "icon-handsfree" : "icon-nohandsfree");
+
+            var behavior = this.GetBehavior<EntityBehaviorCarryable>();
 
             return [new WorldInteraction
             {
                 ActionLangCode = GetCarryCode("entityhelp-pickup-carriedblock"),
                 MouseButton = EnumMouseButton.Right,
                 RequireFreeHand = true,
-                Itemstacks = itemstacks
+                Itemstacks = iconStacks,
+                HotKeyCode = behavior?.PickupMode == EntityPickupMode.PickupHotkey
+                    ? HotKeyCodes.Pickup : null
             }];
         }
 

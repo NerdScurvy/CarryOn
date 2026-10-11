@@ -24,7 +24,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
 
             foreach (var info in carriedRenderInfo)
             {
-                if (!info.RenderEnabled) continue;
+                if (info == null || !info.RenderEnabled) continue;
 
                 if (info.RenderInfo.ModelRef == null || info.RenderInfo.ModelRef.Disposed)
                 {
@@ -32,26 +32,8 @@ namespace CarryOn.Client.Logic.CarryRenderer
                     continue;
                 }
 
-                float[] matrix;
-                bool rentedMatrix = false;
-                if (info.SkipTransform)
-                {
-                    matrix = initialMatrix;
-                }
-                else
-                {
-                    matrix = dispatcher.RentMatrix();
-                    rentedMatrix = true;
-                    if (info.IsAttachedBlock && attachedRootMatrix != null)
-                        Array.Copy(attachedRootMatrix, matrix, 16);
-                    else
-                        Array.Copy(initialMatrix, matrix, 16);
-                    CarryTransformResolver.ApplyTransformInPlace(info.RenderInfo.Transform, matrix, zeroOffset);
-                    if (info.SecondaryTransform != null)
-                    {
-                        CarryTransformResolver.ApplyTransformInPlace(info.SecondaryTransform, matrix, zeroOffset);
-                    }
-                }
+                var matrix = CarryRenderHelpers.SetupDrawMatrix(dispatcher, info, initialMatrix, attachedRootMatrix, zeroOffset, alwaysRent: false);
+                var rentedMatrix = matrix != initialMatrix;
 
                 var shadowMatrix = dispatcher.RentMatrix();
                 Array.Copy(matrix, shadowMatrix, 16);

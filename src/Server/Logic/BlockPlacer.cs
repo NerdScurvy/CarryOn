@@ -87,13 +87,7 @@ namespace CarryOn.Server.Logic
 
             List<BlockPos> candidates = accessible.ToList();
 
-            candidates.Sort((a, b) =>
-                        {
-                            // sort by vertical distance first (favor down)
-                            int dy = (a.Y - centrePos.Y).CompareTo(b.Y - centrePos.Y);
-                            if (dy != 0) return dy;
-                            return centrePos.DistanceTo(a).CompareTo(centrePos.DistanceTo(b));
-                        });
+            candidates.Sort((a, b) => ComparePlacementDistance(a, b, centrePos));
 
             foreach(var candidate in candidates)
             {
@@ -111,19 +105,19 @@ namespace CarryOn.Server.Logic
 
         /// <summary>
         /// Finds a valid placement position for a cluster (parent + attached children).
-        /// Checks that all child positions in the accessible area are also replaceable.
+        /// Checks that all child positions are valid, applying the placement-facing rotation
+        /// exactly as the placement service does. This is entity-free: drop placement searches
+        /// for any fitting location + facing rather than placing relative to an entity's yaw.
         /// </summary>
-        public BlockSelection? FindClusterPlacement(Block parentBlock, IReadOnlyList<AttachedCarriedBlock>? children, BlockPos centrePos, int searchRadius)
+        public BlockSelection? FindClusterPlacement(CarriedBlock carriedBlock, BlockPos centrePos, int searchRadius)
         {
+            var parentBlock = carriedBlock.Block;
+            var children = carriedBlock.AttachedBlocks;
+
             var accessible = GetAccessibleArea(centrePos, searchRadius);
 
             var candidates = accessible.ToList();
-            candidates.Sort((a, b) =>
-            {
-                int dy = (a.Y - centrePos.Y).CompareTo(b.Y - centrePos.Y);
-                if (dy != 0) return dy;
-                return centrePos.DistanceTo(a).CompareTo(centrePos.DistanceTo(b));
-            });
+            candidates.Sort((a, b) => ComparePlacementDistance(a, b, centrePos));
 
             foreach (var candidate in candidates)
             {
@@ -136,12 +130,19 @@ namespace CarryOn.Server.Logic
                 // Check that all child positions are valid
                 if (children != null)
                 {
+                    // Match TryPlaceDown: validate under the rotation implied by the placement's
+                    // facing, using the entity-free rotation helper.
+                    var rotationSteps = CarryRotationHelper.EstimateMeshAngleRotation(
+                        carriedBlock.OriginalMeshAngle ?? 0f,
+                        placement.Face);
+
                     bool allChildrenValid = true;
                     foreach (var child in children)
                     {
+                        var rotatedOffset = CarryRotationHelper.RotateOffset(child.RelativeOffset, rotationSteps);
                         var childPos = parentPos.Copy();
-                        childPos.Add(child.RelativeOffset);
-                        if (!accessible.Contains(childPos))
+                        childPos.Add(rotatedOffset);
+                        if (!BlockAccessor.IsValidPos(childPos))
                         {
                             allChildrenValid = false;
                             break;
@@ -164,9 +165,15 @@ namespace CarryOn.Server.Logic
 
         /// <summary>
         /// Check if a block is passable (air, liquid, rain permeable or an open door/trapdoor).
+        /// This is a placement-validation concern: it resolves multiblock origins and
+        /// honors door/trapdoor open state. It is deliberately separate from the shared
+        /// <see cref="CarryOn.Utility.BlockCollisionUtils.IsPassable"/>, which answers a
+        /// different question - whether an entity can occupy/fall through a space during
+        /// gravity resolution.
         /// </summary>
-        /// <param name="block"></param>
-        /// <returns></returns>
+        /// <param name="block">The block to check.</param>
+        /// <param name="pos">The position of the block, used for multiblock resolution.</param>
+        /// <returns>Whether the block can be treated as passable when placing into it.</returns>
         private bool IsPassable(Block block , BlockPos pos)
         {
 
@@ -184,13 +191,13 @@ namespace CarryOn.Server.Logic
             if (testBlock.HasBehavior<BlockBehaviorDoor>())
             {
                 if (blockEntity == null) return false;
-                return blockEntity?.GetBehavior<BEBehaviorDoor>()?.Opened == true;
+                return blockEntity.GetBehavior<BEBehaviorDoor>()?.Opened == true;
             }
 
             if (testBlock.HasBehavior<BlockBehaviorTrapDoor>())
             {
                 if (blockEntity == null) return false;
-                return blockEntity?.GetBehavior<BEBehaviorTrapDoor>()?.Opened == true;
+                return blockEntity.GetBehavior<BEBehaviorTrapDoor>()?.Opened == true;
             }                
 
             // Check if the block is gas, liquid, or rain permeable with the assumption that rain permeable blocks are non-solid and the player can access beyond them;
@@ -202,6 +209,13 @@ namespace CarryOn.Server.Logic
         /// </summary>
         /// <param name="block"></param>
         /// <returns></returns>
+        private static int ComparePlacementDistance(BlockPos a, BlockPos b, BlockPos centrePos)
+        {
+            int dy = (a.Y - centrePos.Y).CompareTo(b.Y - centrePos.Y);
+            if (dy != 0) return dy;
+            return centrePos.DistanceTo(a).CompareTo(centrePos.DistanceTo(b));
+        }
+
         private bool IsGasOrLiquid(Block block)
         {
             return block.MatterState is EnumMatterState.Liquid or EnumMatterState.Gas;

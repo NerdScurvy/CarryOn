@@ -64,6 +64,23 @@ Blocks with `Carryable` behavior added by CarryOnMore patches.
 
 ---
 
+## CarryableInteract Blocks
+
+Blocks that receive a `CarryableInteract` behavior but are **not** carryable themselves (there is nothing to pick up — only the interaction is enabled while carrying). These are multiblock or single-block doors/gates that the player opens/toggles.
+
+| Mod | Target | Config Key | Interact Delay |
+| --- | --- | --- | :---: |
+| medievalarchitecture | confession:blocktypes/wood/gate/gate.json | carryon.Interactables.Door | 1.3 |
+| medievalarchitecture | confession:blocktypes/wood/gate/drawbridge.json | carryon.Interactables.Door | 1.3 |
+| medievalarchitecture | confession:blocktypes/wood/gate/portcullis.json | carryon.Interactables.Door | 1.3 |
+| medievalarchitecture | confession:blocktypes/wood/trapdoor/trapdoor.json | carryon.Interactables.Door | — |
+| medievalarchitecture | confession:blocktypes/wood/trapdoor/trapdoor_small.json | carryon.Interactables.Door | — |
+| medievalarchitecture | confession:blocktypes/wood/trapdoor/trapdoor_small_sloped.json | carryon.Interactables.Door | — |
+
+The Medieval Architecture mod's asset domain is `confession` (its `modid` is `medievalarchitecture`). The gate/drawbridge/portcullis multiblock structures use an increased `interactDelay: 1.3` (mirroring the vanilla metal-door precedent) because of their heavy open/close motion; trapdoors keep the default delay.
+
+---
+
 ## AttachableCarryable Entities
 
 Entities with the `attachablecarryable` entity behavior code added by CarryOnMore patches. These are entity types, not blocks. The behavior is added to both server and client behavior lists.

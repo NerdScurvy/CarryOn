@@ -6,7 +6,7 @@
 		"path": "/behaviors",
 		"value": [
 			{
-				"name": "Carryable",
+				"name": "carryon:carryable",
 				"properties": {
 					"enabledCondition": "carryon.Carryables.Crate",
 					"slots": {

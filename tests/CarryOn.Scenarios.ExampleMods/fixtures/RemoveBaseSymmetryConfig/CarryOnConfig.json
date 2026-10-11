@@ -1,0 +1,23 @@
+{
+  "ConfigVersion": 6,
+  "Carryables": {
+    "Chest": true
+  },
+  "CarryablesFilters": {
+    "AutoMapSimilar": true,
+    "RemoveBaseCarryableBehaviour": [
+      "carrieddemo:conditional-only-block",
+      "carrieddemo:multicarry-block",
+      "carrieddemo:zeropriority-multicarry-block",
+      "carrieddemo:overlaybase-block",
+      "carrieddemo:lonesharedbase-block",
+      "carrieddemo:unconditionalbase-block"
+    ]
+  },
+  "CarryOptions": {
+    "InteractSpeedMultiplier": 2.0
+  },
+  "DebuggingOptions": {
+    "ReconditionOnConfigChange": true
+  }
+}

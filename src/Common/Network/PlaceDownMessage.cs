@@ -1,3 +1,4 @@
+using System;
 using CarryOn.API.Common.Models;
 using ProtoBuf;
 using Vintagestory.API.Common;
@@ -27,15 +28,23 @@ namespace CarryOn.Common.Network
         /// <summary>The position where the block was actually placed.</summary>
         public BlockPos PlacedAt { get; init; } = null!;
 
+        /// <summary>
+        /// The cells the client's prediction wrote during placement (the placed cell plus any
+        /// part cells and attached-children cells). Empty when no prediction was performed
+        /// (e.g. optimistic client placement is disabled for the carried block).
+        /// </summary>
+        public BlockPos[] WrittenCells { get; init; } = Array.Empty<BlockPos>();
+
         private PlaceDownMessage() { }
 
-        public PlaceDownMessage(CarrySlot slot, BlockSelection selection, BlockPos placedAt)
+        public PlaceDownMessage(CarrySlot slot, BlockSelection selection, BlockPos placedAt, BlockPos[]? writtenCells = null)
         {
             Slot = slot;
             Position = selection.Position;
             Face = (byte)selection.Face.Index;
             HitPosition = selection.HitPosition.Clone();
             PlacedAt = placedAt;
+            WrittenCells = writtenCells ?? Array.Empty<BlockPos>();
         }
 
         public BlockSelection Selection => new()

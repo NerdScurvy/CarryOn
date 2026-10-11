@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
 using Vintagestory.API.Common;
@@ -42,7 +41,7 @@ namespace CarryOn.Common.Handlers
         private void OnPlayerDeath(IPlayer player, DamageSource source)
         {
             if (player.Entity.Properties.Server?.Attributes?.GetBool("keepContents", false) != true)
-                carryManager.DropCarried(player.Entity, Enum.GetValues(typeof(CarrySlot)).Cast<CarrySlot>());
+                carryManager.DropCarried(player.Entity, [CarrySlot.Hands, CarrySlot.Back]);
         }
     }
 }

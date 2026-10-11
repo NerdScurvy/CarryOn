@@ -5,7 +5,7 @@
 		"file": "extrachests:blocktypes/chests",
 		"side": "Server",
 		"value": {
-			"name": "Carryable",
+			"name": "carryon:carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Chest",
 				"override": true,
@@ -34,7 +34,7 @@
 		"file": "extrachests:blocktypes/labeledchests",
 		"side": "Server",
 		"value": {
-			"name": "Carryable",
+			"name": "carryon:carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Chest",
 				"labelRenderSettings": {
@@ -70,7 +70,7 @@
 		"op": "add",
 		"path": "/behaviors/-",
 		"value": {
-			"name": "CarryableInteract",
+			"name": "carryon:carryableinteract",
 			"properties": {
 				"enabledCondition": "carryon.Interactables.Storage"
 			}
@@ -87,7 +87,7 @@
 		"op": "add",
 		"path": "/behaviors/-",
 		"value": {
-			"name": "CarryableInteract",
+			"name": "carryon:carryableinteract",
 			"properties": {
 				"enabledCondition": "carryon.Interactables.Storage"
 			}

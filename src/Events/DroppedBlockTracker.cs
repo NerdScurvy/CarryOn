@@ -31,11 +31,11 @@ namespace CarryOn.Events
 
             if (carryManager.Api.Side == EnumAppSide.Client)
             {
-                events.CheckPermissionAt += OnCheckPermissionAtClient;
+                events.RegisterCheckPermissionAt(0, OnCheckPermissionAtClient);
                 return;
             }
 
-            events.CheckPermissionAt += OnCheckPermissionAt;
+            events.RegisterCheckPermissionAt(0, OnCheckPermissionAt);
             events.BlockDropped += OnCarriedBlockDropped;
 
             events.BlockRemoved += OnCarryableBlockRemoved;

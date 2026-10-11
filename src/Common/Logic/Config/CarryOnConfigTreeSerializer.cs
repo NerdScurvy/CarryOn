@@ -11,21 +11,49 @@ namespace CarryOn.Common.Logic
 {
     internal static class CarryOnConfigTreeSerializer
     {
+        private const string KeyConfigVersion = "ConfigVersion";
+        private const string KeyCarryables = "Carryables";
+        private const string KeyCarryablesOnBack = "CarryablesOnBack";
+        private const string KeyInteractables = "Interactables";
+        private const string KeyCarryHungerRate = "CarryHungerRate";
+        private const string KeyCarryWalkSpeed = "CarryWalkSpeed";
+        private const string KeyDropCarriedOnDamage = "DropCarriedOnDamage";
+        private const string KeyCarryOptions = "CarryOptions";
+        private const string KeyCarryableFilters = "CarryableFilters";
+        private const string KeyCarriedBlockEntity = "CarriedBlockEntity";
+        private const string KeyDebuggingOptions = "DebuggingOptions";
+        private const string KeyModifierOverrides = "ModifierOverrides";
+        private const string KeyMultipliers = "Multipliers";
+        private const string KeyGlobal = "Global";
+        private const string KeyByBlockMaterial = "ByBlockMaterial";
+        private const string KeyByBlockCode = "ByBlockCode";
+        private const string KeyByBlockClass = "ByBlockClass";
+        private const string KeySlotDefaults = "SlotDefaults";
+        private const string KeyCarryableReport = "CarryableReport";
+        private const string KeyEnabled = "Enabled";
+        private const string KeyOutputToLog = "OutputToLog";
+        private const string KeyFileFormat = "FileFormat";
+        private const string KeyBlockFilters = "BlockFilters";
+        private const string KeyReportMode = "ReportMode";
+        private const string KeyMaterial = "Material";
+        private const string KeyBackpackTypes = "BackpackTypes";
+
         public static ITreeAttribute ToTree(CarryOnConfig config)
         {
             var tree = new TreeAttribute();
-            tree.SetInt("ConfigVersion", config.ConfigVersion ?? CurrentConfigVersion);
+            tree.SetInt(KeyConfigVersion, config.ConfigVersion ?? CurrentConfigVersion);
 
-            tree["Carryables"] = TreeSerializer.ToTree(config.Carryables);
-            tree["CarryablesOnBack"] = TreeSerializer.ToTree(config.CarryablesOnBack);
-            tree["Interactables"] = TreeSerializer.ToTree(config.Interactables);
-            tree["CarryHungerRate"] = ToCarryHungerRateTree(config.CarryHungerRate);
-            tree["CarryWalkSpeed"] = ToCarryWalkSpeedTree(config.CarryWalkSpeed);
-            tree["DropCarriedOnDamage"] = ToDropCarriedOnDamageTree(config.DropCarriedOnDamage);
-            tree["CarryOptions"] = TreeSerializer.ToTree(config.CarryOptions);
-            tree["CarryableFilters"] = TreeSerializer.ToTree(config.CarryablesFilters);
-            tree["CarriedBlockEntity"] = TreeSerializer.ToTree(config.CarriedBlockEntity);
-            tree["DebuggingOptions"] = ToDebuggingOptionsTree(config.DebuggingOptions);
+            tree[KeyCarryables] = TreeSerializer.ToTree(config.Carryables);
+            tree[KeyCarryablesOnBack] = TreeSerializer.ToTree(config.CarryablesOnBack);
+            tree[KeyInteractables] = TreeSerializer.ToTree(config.Interactables);
+            tree[KeyCarryHungerRate] = ToCarryHungerRateTree(config.CarryHungerRate);
+            tree[KeyCarryWalkSpeed] = ToCarryWalkSpeedTree(config.CarryWalkSpeed);
+            tree[KeyDropCarriedOnDamage] = ToDropCarriedOnDamageTree(config.DropCarriedOnDamage);
+            tree[KeyCarryOptions] = TreeSerializer.ToTree(config.CarryOptions);
+            tree[KeyCarryableFilters] = TreeSerializer.ToTree(config.CarryablesFilters);
+            tree[KeyCarriedBlockEntity] = TreeSerializer.ToTree(config.CarriedBlockEntity);
+            tree[KeyDebuggingOptions] = ToDebuggingOptionsTree(config.DebuggingOptions);
+            tree[KeyBackpackTypes] = ToBackpackTypesTree(config.BackpackTypes);
 
             return tree;
         }
@@ -34,19 +62,31 @@ namespace CarryOn.Common.Logic
         {
             var config = new CarryOnConfig();
 
-            if (tree.HasAttribute("ConfigVersion"))
-                config.ConfigVersion = tree.GetInt("ConfigVersion");
+            if (tree.HasAttribute(KeyConfigVersion))
+                config.ConfigVersion = tree.GetInt(KeyConfigVersion);
 
-            TreeSerializer.FromTree(tree["Carryables"] as ITreeAttribute, config.Carryables);
-            TreeSerializer.FromTree(tree["CarryablesOnBack"] as ITreeAttribute, config.CarryablesOnBack);
-            TreeSerializer.FromTree(tree["Interactables"] as ITreeAttribute, config.Interactables);
-            config.CarryHungerRate = FromCarryHungerRateTree(tree["CarryHungerRate"] as ITreeAttribute);
-            config.CarryWalkSpeed = FromCarryWalkSpeedTree(tree["CarryWalkSpeed"] as ITreeAttribute);
-            config.DropCarriedOnDamage = FromDropCarriedOnDamageTree(tree["DropCarriedOnDamage"] as ITreeAttribute);
-            TreeSerializer.FromTree(tree["CarryOptions"] as ITreeAttribute, config.CarryOptions);
-            TreeSerializer.FromTree(tree["CarryableFilters"] as ITreeAttribute, config.CarryablesFilters);
-            TreeSerializer.FromTree(tree["CarriedBlockEntity"] as ITreeAttribute, config.CarriedBlockEntity);
-            FromDebuggingOptionsTree(tree["DebuggingOptions"] as ITreeAttribute, config.DebuggingOptions);
+            TreeSerializer.FromTree(tree[KeyCarryables] as ITreeAttribute, config.Carryables);
+            TreeSerializer.FromTree(tree[KeyCarryablesOnBack] as ITreeAttribute, config.CarryablesOnBack);
+            TreeSerializer.FromTree(tree[KeyInteractables] as ITreeAttribute, config.Interactables);
+            config.CarryHungerRate = FromCarryHungerRateTree(tree[KeyCarryHungerRate] as ITreeAttribute);
+            config.CarryWalkSpeed = FromCarryWalkSpeedTree(tree[KeyCarryWalkSpeed] as ITreeAttribute);
+            config.DropCarriedOnDamage = FromDropCarriedOnDamageTree(tree[KeyDropCarriedOnDamage] as ITreeAttribute);
+            TreeSerializer.FromTree(tree[KeyCarryOptions] as ITreeAttribute, config.CarryOptions);
+            TreeSerializer.FromTree(tree[KeyCarryableFilters] as ITreeAttribute, config.CarryablesFilters);
+            TreeSerializer.FromTree(tree[KeyCarriedBlockEntity] as ITreeAttribute, config.CarriedBlockEntity);
+            FromDebuggingOptionsTree(tree[KeyDebuggingOptions] as ITreeAttribute, config.DebuggingOptions);
+
+            // BackpackTypes has no [TreeValue] members, so it needs an explicit tree section. A missing
+            // key intentionally keeps the property-initializer default; a present-but-empty section is a
+            // user's explicit "no backpack compensation via mapping" and is preserved.
+            var backpackTypes = FromBackpackTypesTree(tree[KeyBackpackTypes] as ITreeAttribute);
+            if (backpackTypes != null)
+            {
+                config.BackpackTypes = backpackTypes;
+                config.InvalidateBackpackCache();
+            }
+
+            config.EnsureSlotDefaults();
 
             return config;
         }
@@ -54,8 +94,8 @@ namespace CarryOn.Common.Logic
         private static ITreeAttribute ToCarryHungerRateTree(CarryHungerRateConfig config)
         {
             var tree = (TreeAttribute)TreeSerializer.ToTree(config);
-            tree["ModifierOverrides"] = ToModifierOverridesTree(config.ModifierOverrides);
-            tree["Multipliers"] = ToMultipliersTree(config.Multipliers);
+            tree[KeyModifierOverrides] = ToModifierOverridesTree(config.ModifierOverrides);
+            tree[KeyMultipliers] = ToMultipliersTree(config.Multipliers);
             return tree;
         }
 
@@ -65,17 +105,16 @@ namespace CarryOn.Common.Logic
             if (tree == null) return config;
 
             TreeSerializer.FromTree(tree, config);
-            config.ModifierOverrides = FromModifierOverridesTree(tree["ModifierOverrides"] as ITreeAttribute);
-            config.Multipliers = FromMultipliersTree(tree["Multipliers"] as ITreeAttribute);
-            CarryOnConfig.PopulateSlotDefaults(config.ModifierOverrides?.SlotDefaults, CarryCodes.Defaults.HungerRateModifier);
+            config.ModifierOverrides = FromModifierOverridesTree(tree[KeyModifierOverrides] as ITreeAttribute);
+            config.Multipliers = FromMultipliersTree(tree[KeyMultipliers] as ITreeAttribute);
             return config;
         }
 
         private static ITreeAttribute ToCarryWalkSpeedTree(CarryWalkSpeedConfig config)
         {
             var tree = (TreeAttribute)TreeSerializer.ToTree(config);
-            tree["ModifierOverrides"] = ToModifierOverridesTree(config.ModifierOverrides);
-            tree["Multipliers"] = ToMultipliersTree(config.Multipliers);
+            tree[KeyModifierOverrides] = ToModifierOverridesTree(config.ModifierOverrides);
+            tree[KeyMultipliers] = ToMultipliersTree(config.Multipliers);
             return tree;
         }
 
@@ -85,9 +124,8 @@ namespace CarryOn.Common.Logic
             if (tree == null) return config;
 
             TreeSerializer.FromTree(tree, config);
-            config.ModifierOverrides = FromModifierOverridesTree(tree["ModifierOverrides"] as ITreeAttribute);
-            config.Multipliers = FromMultipliersTree(tree["Multipliers"] as ITreeAttribute);
-            CarryOnConfig.PopulateSlotDefaults(config.ModifierOverrides?.SlotDefaults, CarryCodes.Defaults.WalkSpeedModifier);
+            config.ModifierOverrides = FromModifierOverridesTree(tree[KeyModifierOverrides] as ITreeAttribute);
+            config.Multipliers = FromMultipliersTree(tree[KeyMultipliers] as ITreeAttribute);
             return config;
         }
 
@@ -96,8 +134,8 @@ namespace CarryOn.Common.Logic
             var tree = new TreeAttribute();
             multipliers ??= new ModifierMultipliersConfig();
 
-            tree["Global"] = ToSlotValueTree(multipliers.Global);
-            tree["ByBlockMaterial"] = ToMaterialMapTree(multipliers.ByBlockMaterial);
+            tree[KeyGlobal] = ToSlotValueTree(multipliers.Global);
+            tree[KeyByBlockMaterial] = ToMaterialMapTree(multipliers.ByBlockMaterial);
 
             return tree;
         }
@@ -108,8 +146,8 @@ namespace CarryOn.Common.Logic
 
             return new ModifierMultipliersConfig
             {
-                Global = FromSlotValueTree(tree["Global"] as ITreeAttribute),
-                ByBlockMaterial = FromMaterialMapTree(tree["ByBlockMaterial"] as ITreeAttribute)
+                Global = FromSlotValueTree(tree[KeyGlobal] as ITreeAttribute),
+                ByBlockMaterial = FromMaterialMapTree(tree[KeyByBlockMaterial] as ITreeAttribute)
             };
         }
 
@@ -118,17 +156,17 @@ namespace CarryOn.Common.Logic
             var tree = (TreeAttribute)TreeSerializer.ToTree(config);
 
             var reportTree = new TreeAttribute();
-            reportTree.SetBool("Enabled", config.CarryableReport.Enabled);
-            reportTree.SetBool("OutputToLog", config.CarryableReport.OutputToLog);
-            reportTree.SetString("FileFormat", config.CarryableReport.FileFormat.ToString());
+            reportTree.SetBool(KeyEnabled, config.CarryableReport.Enabled);
+            reportTree.SetBool(KeyOutputToLog, config.CarryableReport.OutputToLog);
+            reportTree.SetString(KeyFileFormat, config.CarryableReport.FileFormat.ToString());
 
             var filters = config.CarryableReport.BlockFilters;
             if (filters != null && filters.Length > 0)
-                reportTree.SetStringArray("BlockFilters", filters);
+                reportTree.SetStringArray(KeyBlockFilters, filters);
 
-            reportTree.SetString("ReportMode", config.CarryableReport.ReportMode.ToString());
+            reportTree.SetString(KeyReportMode, config.CarryableReport.ReportMode.ToString());
 
-            tree["CarryableReport"] = reportTree;
+            tree[KeyCarryableReport] = reportTree;
 
             return tree;
         }
@@ -139,23 +177,23 @@ namespace CarryOn.Common.Logic
 
             TreeSerializer.FromTree(tree, config);
 
-            if (tree["CarryableReport"] is ITreeAttribute reportTree)
+            if (tree[KeyCarryableReport] is ITreeAttribute reportTree)
             {
-                if (reportTree.HasAttribute("Enabled"))
-                    config.CarryableReport.Enabled = reportTree.GetBool("Enabled");
-                if (reportTree.HasAttribute("OutputToLog"))
-                    config.CarryableReport.OutputToLog = reportTree.GetBool("OutputToLog");
-                if (reportTree.HasAttribute("FileFormat"))
+                if (reportTree.HasAttribute(KeyEnabled))
+                    config.CarryableReport.Enabled = reportTree.GetBool(KeyEnabled);
+                if (reportTree.HasAttribute(KeyOutputToLog))
+                    config.CarryableReport.OutputToLog = reportTree.GetBool(KeyOutputToLog);
+                if (reportTree.HasAttribute(KeyFileFormat))
                 {
-                    var formatStr = reportTree.GetString("FileFormat");
+                    var formatStr = reportTree.GetString(KeyFileFormat);
                     if (Enum.TryParse<ReportFileFormat>(formatStr, out var format))
                         config.CarryableReport.FileFormat = format;
                 }
-                if (reportTree.HasAttribute("BlockFilters"))
-                    config.CarryableReport.BlockFilters = (reportTree as TreeAttribute)?.GetStringArray("BlockFilters") ?? [];
-                if (reportTree.HasAttribute("ReportMode"))
+                if (reportTree.HasAttribute(KeyBlockFilters))
+                    config.CarryableReport.BlockFilters = (reportTree as TreeAttribute)?.GetStringArray(KeyBlockFilters) ?? [];
+                if (reportTree.HasAttribute(KeyReportMode))
                 {
-                    var modeStr = reportTree.GetString("ReportMode");
+                    var modeStr = reportTree.GetString(KeyReportMode);
                     if (Enum.TryParse<ReportMode>(modeStr, out var mode))
                         config.CarryableReport.ReportMode = mode;
                 }
@@ -167,9 +205,9 @@ namespace CarryOn.Common.Logic
             var tree = new TreeAttribute();
             overrides ??= new ModifierOverridesConfig();
 
-            tree["ByBlockCode"] = ToSpeedMapTree(overrides.ByBlockCode);
-            tree["ByBlockClass"] = ToSpeedMapTree(overrides.ByBlockClass);
-            tree["SlotDefaults"] = ToSlotValueTree(overrides.SlotDefaults);
+            tree[KeyByBlockCode] = ToSpeedMapTree(overrides.ByBlockCode);
+            tree[KeyByBlockClass] = ToSpeedMapTree(overrides.ByBlockClass);
+            tree[KeySlotDefaults] = ToSlotValueTree(overrides.SlotDefaults);
 
             return tree;
         }
@@ -183,9 +221,9 @@ namespace CarryOn.Common.Logic
 
             return new ModifierOverridesConfig
             {
-                ByBlockCode = FromSpeedMapTree(tree["ByBlockCode"] as ITreeAttribute),
-                ByBlockClass = FromSpeedMapTree(tree["ByBlockClass"] as ITreeAttribute),
-                SlotDefaults = FromSlotValueTree(tree["SlotDefaults"] as ITreeAttribute)
+                ByBlockCode = FromSpeedMapTree(tree[KeyByBlockCode] as ITreeAttribute),
+                ByBlockClass = FromSpeedMapTree(tree[KeyByBlockClass] as ITreeAttribute),
+                SlotDefaults = FromSlotValueTree(tree[KeySlotDefaults] as ITreeAttribute)
             };
         }
 
@@ -298,7 +336,7 @@ namespace CarryOn.Common.Logic
                 if (entry == null || entry.Material == null) continue;
 
                 var item = new TreeAttribute();
-                item.SetString("Material", entry.Material.Value.ToString());
+                item.SetString(KeyMaterial, entry.Material.Value.ToString());
                 if (entry.Hands.HasValue)
                     item.SetFloat(CarrySlot.Hands.ToString(), entry.Hands.Value);
                 if (entry.Back.HasValue)
@@ -323,7 +361,7 @@ namespace CarryOn.Common.Logic
                 var item = materialTree[key] as ITreeAttribute;
                 if (item == null) continue;
 
-                var materialStr = item.GetString("Material");
+                var materialStr = item.GetString(KeyMaterial);
                 if (string.IsNullOrWhiteSpace(materialStr)) continue;
 
                 if (!Enum.TryParse<EnumBlockMaterial>(materialStr, true, out var material)) continue;
@@ -342,6 +380,38 @@ namespace CarryOn.Common.Logic
             }
 
             return list;
+        }
+
+        private static ITreeAttribute ToBackpackTypesTree(IDictionary<string, string[]>? backpackTypes)
+        {
+            var tree = new TreeAttribute();
+            if (backpackTypes == null) return tree;
+
+            foreach (var entry in backpackTypes)
+            {
+                if (string.IsNullOrWhiteSpace(entry.Key)) continue;
+
+                tree.SetStringArray(entry.Key.Trim(), entry.Value ?? []);
+            }
+
+            return tree;
+        }
+
+        private static IDictionary<string, string[]>? FromBackpackTypesTree(ITreeAttribute? tree)
+        {
+            // Null (key absent) means "keep the default"; an empty dictionary means the user
+            // deliberately mapped no backpack codes.
+            if (tree is not TreeAttribute backpackTree) return null;
+
+            var result = new Dictionary<string, string[]>();
+            foreach (var key in backpackTree.Keys)
+            {
+                if (string.IsNullOrWhiteSpace(key)) continue;
+
+                result[key.Trim()] = backpackTree.GetStringArray(key) ?? [];
+            }
+
+            return result;
         }
 
         private static ITreeAttribute ToDropCarriedOnDamageTree(DropCarriedOnDamageConfig config)

@@ -15,6 +15,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
         private readonly CarryRenderDispatcher dispatcher;
         private readonly ICoreClientAPI api;
         private readonly CarryLabelRenderer labelRenderer;
+        private readonly List<CarryRenderDispatcher.QueuedDraw> drawsScratch = new();
 
         public CarryMainRenderer(ICoreClientAPI api, CarryRenderDispatcher dispatcher, CarryLabelRenderer labelRenderer)
         {
@@ -39,24 +40,13 @@ namespace CarryOn.Client.Logic.CarryRenderer
 
             var prog = rapi.PreparedStandardShader((int)entity.Pos.X, (int)entity.Pos.Y, (int)entity.Pos.Z);
 
-            var draws = new List<CarryRenderDispatcher.QueuedDraw>(carriedRenderInfo.Length);
+            var draws = drawsScratch;
+            draws.Clear();
             foreach (var info in carriedRenderInfo)
             {
-                if (!info.RenderEnabled) continue;
+                if (info == null || !info.RenderEnabled) continue;
 
-                var drawMatrix = dispatcher.RentMatrix();
-                if (info.IsAttachedBlock && attachedRootMatrix != null)
-                    Array.Copy(attachedRootMatrix, drawMatrix, 16);
-                else
-                    Array.Copy(initialMatrix, drawMatrix, 16);
-                if (!info.SkipTransform)
-                {
-                    CarryTransformResolver.ApplyTransformInPlace(info.RenderInfo.Transform, drawMatrix, zeroOffset);
-                    if (info.SecondaryTransform != null)
-                    {
-                        CarryTransformResolver.ApplyTransformInPlace(info.SecondaryTransform, drawMatrix, zeroOffset);
-                    }
-                }
+                var drawMatrix = CarryRenderHelpers.SetupDrawMatrix(dispatcher, info, initialMatrix, attachedRootMatrix, zeroOffset, alwaysRent: true);
 
                 draws.Add(new CarryRenderDispatcher.QueuedDraw
                 (
@@ -70,25 +60,15 @@ namespace CarryOn.Client.Logic.CarryRenderer
             }
 
             var renderRootFirst = carried.GetCarryableBehavior()?.RenderRootFirst ?? false;
-            var roots = new List<CarryRenderDispatcher.QueuedDraw>();
-            var nonRoots = new List<CarryRenderDispatcher.QueuedDraw>();
-            foreach (var d in draws)
-            {
-                if (d.IsRoot) roots.Add(d);
-                else nonRoots.Add(d);
-            }
-            draws = renderRootFirst
-                ? [.. roots, .. nonRoots]
-                : [.. nonRoots, .. roots];
 
             if (renderOpaquePhase)
             {
-                RenderQueuedPhase(draws, translucentPhase: false, prog, viewMat, renderer);
+                RenderQueuedPhase(draws, translucentPhase: false, prog, viewMat, renderer, renderRootFirst);
             }
 
             if (renderTranslucentPhase)
             {
-                RenderQueuedPhase(draws, translucentPhase: true, prog, viewMat, renderer);
+                RenderQueuedPhase(draws, translucentPhase: true, prog, viewMat, renderer, renderRootFirst);
             }
 
             if (renderOpaquePhase && initialMatrix != null)
@@ -115,7 +95,8 @@ namespace CarryOn.Client.Logic.CarryRenderer
             bool translucentPhase,
             IStandardShaderProgram prog,
             float[] viewMat,
-            EntityShapeRenderer renderer)
+            EntityShapeRenderer renderer,
+            bool renderRootFirst)
         {
             var rapi = api.Render;
 
@@ -132,51 +113,66 @@ namespace CarryOn.Client.Logic.CarryRenderer
 
             try
             {
-                foreach (var d in draws)
-                {
-                    if (!CarryRenderHelpers.ShouldDrawInPhase(d.Phases, translucentPhase)) continue;
-
-                    var info = d.Info;
-
-                    if (info.RenderInfo.ModelRef == null || info.RenderInfo.ModelRef.Disposed)
-                    {
-                        dispatcher.SetDisposedDetected();
-                        continue;
-                    }
-
-                    bool disabledCull = false;
-
-                    try
-                    {
-                        if (!info.RenderInfo.CullFaces)
-                        {
-                            rapi.GlDisableCullFace();
-                            disabledCull = true;
-                        }
-
-                        prog.Tex2D = info.RenderInfo.TextureId;
-                        prog.ViewMatrix = viewMat;
-                        prog.ModelMatrix = d.Matrix;
-                        prog.DontWarpVertices = info.EnableVertexWarp ? 2 : 1;
-                        prog.RgbaTint = dispatcher.GetRenderTint(info);
-
-                        prog.AlphaTest = translucentPhase ? d.AlphaTestBlend : d.AlphaTestOpaque;
-
-                        prog.NormalShaded = info.NormalShaded.HasValue ? (info.NormalShaded.Value ? 1 : 0) : 1;
-                        prog.RgbaGlowIn = info.RgbGlowIntensity ?? new Vec4f(0f, 0f, 0f, 0f);
-
-                        rapi.RenderMultiTextureMesh(info.RenderInfo.ModelRef, "tex");
-                    }
-                    finally
-                    {
-                        if (disabledCull) rapi.GlEnableCullFace();
-                    }
-                }
+                DrawQueuedPass(draws, translucentPhase, drawRoots: renderRootFirst, prog, viewMat, renderer);
+                DrawQueuedPass(draws, translucentPhase, drawRoots: !renderRootFirst, prog, viewMat, renderer);
             }
             finally
             {
                 rapi.GLDepthMask(true);
                 rapi.GlToggleBlend(false, 0);
+            }
+        }
+
+        private void DrawQueuedPass(
+            List<CarryRenderDispatcher.QueuedDraw> draws,
+            bool translucentPhase,
+            bool drawRoots,
+            IStandardShaderProgram prog,
+            float[] viewMat,
+            EntityShapeRenderer renderer)
+        {
+            var rapi = api.Render;
+
+            foreach (var d in draws)
+            {
+                if (!CarryRenderHelpers.ShouldDrawInPhase(d.Phases, translucentPhase)) continue;
+                if (d.IsRoot != drawRoots) continue;
+
+                var info = d.Info;
+
+                if (info.RenderInfo.ModelRef == null || info.RenderInfo.ModelRef.Disposed)
+                {
+                    dispatcher.SetDisposedDetected();
+                    continue;
+                }
+
+                bool disabledCull = false;
+
+                try
+                {
+                    if (!info.RenderInfo.CullFaces)
+                    {
+                        rapi.GlDisableCullFace();
+                        disabledCull = true;
+                    }
+
+                    prog.Tex2D = info.RenderInfo.TextureId;
+                    prog.ViewMatrix = viewMat;
+                    prog.ModelMatrix = d.Matrix;
+                    prog.DontWarpVertices = info.EnableVertexWarp ? 2 : 1;
+                    prog.RgbaTint = dispatcher.GetRenderTint(info);
+
+                    prog.AlphaTest = translucentPhase ? d.AlphaTestBlend : d.AlphaTestOpaque;
+
+                    prog.NormalShaded = info.NormalShaded.HasValue ? (info.NormalShaded.Value ? 1 : 0) : 1;
+                    prog.RgbaGlowIn = info.RgbGlowIntensity ?? new Vec4f(0f, 0f, 0f, 0f);
+
+                    rapi.RenderMultiTextureMesh(info.RenderInfo.ModelRef, "tex");
+                }
+                finally
+                {
+                    if (disabledCull) rapi.GlEnableCullFace();
+                }
             }
         }
     }

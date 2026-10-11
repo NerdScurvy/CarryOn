@@ -157,7 +157,7 @@ This directly supports the UX goal:
 ## 6. Non-Breaking Behavior Summary
 
 The hint policy feature is additive:
-- No changes to `ICarryableTransfer` are required.
+- No changes to `ICarryableBlockSlotHandler` are required.
 - Existing mods continue to work without implementing any new interface.
 - Hint filtering is opt-in and per-behavior.
 - Core carry/transfer mechanics are unaffected; only hint visibility is controlled.

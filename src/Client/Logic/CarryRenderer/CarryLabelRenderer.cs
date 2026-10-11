@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using CarryOn.API.Common.Models;
+using CarryOn.Common.Models;
 using CarryOn.Utility;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
@@ -51,9 +53,6 @@ namespace CarryOn.Client.Logic.CarryRenderer
             var labelTransform = labelRenderSettings.Transform;
             if (labelTransform == null) return; // No label transform => no label
 
-            var render = this.api.Render;
-            if (render == null) return;
-
             var text = beData.GetString("text", null);
 
             ItemStack? labelStack = null;
@@ -89,86 +88,44 @@ namespace CarryOn.Client.Logic.CarryRenderer
             float fontSize = beData?.GetFloat("fontSize", 20f) ?? 20f;
             EnsureLabelQuad();
 
-            var additionalTransforms = labelRenderSettings!.AdditionalTransforms ?? [];
-            int transformCount = 1 + (additionalTransforms?.Count ?? 0);
-
-            for (int ti = 0; ti < transformCount; ti++)
+            var additional = labelRenderSettings?.AdditionalTransforms;
+            var transforms = new List<ModelTransform?>(1 + (additional?.Count ?? 0))
             {
-                if (ti == 0)
+                labelTransform
+            };
+            if (additional != null)
+                transforms.AddRange(additional);
+
+            foreach (var transform in transforms)
+            {
+                if (transform == null) continue;
+                RenderLabelAtTransform(transform, initialMatrix, viewMat, prog, lightPos,
+                    labelRenderSettings, text, labelStack, color, fontSize);
+            }
+        }
+
+        private void RenderLabelAtTransform(
+            ModelTransform transform, float[] initialMatrix, float[] viewMat,
+            IStandardShaderProgram prog, BlockPos lightPos,
+            LabelRenderSettings? labelRenderSettings, string? text, ItemStack? labelStack,
+            int color, float fontSize)
+        {
+            var render = this.api.Render;
+            if (render == null) return;
+
+            var modelMat = Mat4f.CloneIt(initialMatrix);
+            CarryTransformResolver.ApplyTransformInPlace(transform, modelMat);
+
+            if (labelStack?.Collectible != null)
+            {
+                var iconLabel = this.labelManager.GetItemIconLabel(labelStack, IconLabelColor, labelRenderSettings);
+                if (iconLabel.ready && iconLabel.mesh != null)
                 {
-                    var transform = labelTransform;
-
-                    var modelMat = Mat4f.CloneIt(initialMatrix);
-                    CarryTransformResolver.ApplyTransformInPlace(transform, modelMat);
-
-                    if (labelStack?.Collectible != null)
-                    {
-                        var iconLabel = this.labelManager.GetItemIconLabel(labelStack, IconLabelColor, labelRenderSettings);
-                        if (iconLabel.ready && iconLabel.mesh != null)
-                        {
-                            Mat4f.Translate(modelMat, modelMat, -0.5f, -0.5f, 0f);
-                            Mat4f.Scale(modelMat, modelMat, IconLabelSize, IconLabelSize, 1f);
-
-                            prog.Tex2D = iconLabel.textureId;
-                            prog.AlphaTest = 0.0f;
-                            prog.ViewMatrix = viewMat;
-                            prog.ModelMatrix = modelMat;
-                            prog.DontWarpVertices = 1;
-                            prog.RgbaTint = CarryRenderHelpers.DefaultTint;
-                            prog.NormalShaded = 0;
-                            prog.ExtraGodray = 0f;
-                            prog.SsaoAttn = 0f;
-                            prog.OverlayOpacity = 0f;
-                            prog.AddRenderFlags = 0;
-
-                            if (this.api?.World?.BlockAccessor != null && lightPos != null)
-                            {
-                                prog.RgbaLightIn = this.api.World.BlockAccessor.GetLightRGBs(lightPos);
-                            }
-
-                            render.GlToggleBlend(true, EnumBlendMode.PremultipliedAlpha);
-                            render.GlEnableCullFace();
-                            render.GLEnableDepthTest();
-                            render.GLDepthMask(false);
-                            render.RenderMesh(iconLabel.mesh);
-                            render.GLDepthMask(true);
-                            render.GlToggleBlend(false);
-                            continue;
-                        }
-                    }
-
-                    if (string.IsNullOrWhiteSpace(text)) continue;
-
-                    // Decide wrap width in pixels relative to max world width mapped to 1024 texture width
-                    // Use narrower wrap width similar to sign text area
-                    var wrapWidthPx = labelRenderSettings?.MaxWidth ?? 200;
-                    var label = this.labelManager.GetLabel(text, color, fontSize, labelRenderSettings, wrapWidthPx);
-                    if (label == null) continue; // silent fail
-                    var (tex, w, h) = label.Value;
-                    float aspect = (h == 0) ? 1f : (float)w / h;
-                    float targetHeight = Math.Min(MaxLabelHeight, FontHeightOffset + (fontSize / 64f));
-                    float targetWidth = targetHeight * aspect;
-                    if (targetWidth > MaxLabelWidth)
-                    {
-                        float scaleDown = MaxLabelWidth / targetWidth;
-                        targetWidth = MaxLabelWidth;
-                        targetHeight *= scaleDown;
-                    }
-                    // Additional clamp to keep from visually exceeding chest face too much
-                    if (targetWidth > VisualClampWidth)
-                    {
-                        float scaleDown = VisualClampWidth / targetWidth;
-                        targetWidth = VisualClampWidth;
-                        targetHeight *= scaleDown;
-                    }
-                    // Add internal margins (shrink a bit more after fit)
-                    targetWidth *= MarginFactor;
-                    targetHeight *= MarginFactor;
                     Mat4f.Translate(modelMat, modelMat, -0.5f, -0.5f, 0f);
-                    Mat4f.Scale(modelMat, modelMat, targetWidth, targetHeight, 1f);
+                    Mat4f.Scale(modelMat, modelMat, IconLabelSize, IconLabelSize, 1f);
 
-                    prog.Tex2D = tex.TextureId;
-                    prog.AlphaTest = 0.05f;
+                    prog.Tex2D = iconLabel.textureId;
+                    prog.AlphaTest = 0.0f;
                     prog.ViewMatrix = viewMat;
                     prog.ModelMatrix = modelMat;
                     prog.DontWarpVertices = 1;
@@ -184,17 +141,71 @@ namespace CarryOn.Client.Logic.CarryRenderer
                         prog.RgbaLightIn = this.api.World.BlockAccessor.GetLightRGBs(lightPos);
                     }
 
-                    render.GLDepthMask(false);
                     render.GlToggleBlend(true, EnumBlendMode.PremultipliedAlpha);
-                    render.GlDisableCullFace();
-                    render.RenderMesh(this.labelQuad);
                     render.GlEnableCullFace();
+                    render.GLEnableDepthTest();
+                    render.GLDepthMask(false);
+                    render.RenderMesh(iconLabel.mesh);
                     render.GLDepthMask(true);
-                    render.GlToggleBlend(false, 0);
-                    continue;
+                    render.GlToggleBlend(false);
+                    return;
                 }
-
             }
+
+            if (string.IsNullOrWhiteSpace(text)) return;
+
+            // Decide wrap width in pixels relative to max world width mapped to 1024 texture width
+            // Use narrower wrap width similar to sign text area
+            var wrapWidthPx = labelRenderSettings?.MaxWidth ?? 200;
+            var label = this.labelManager.GetLabel(text, color, fontSize, labelRenderSettings, wrapWidthPx);
+            if (label == null) return; // silent fail
+            var (tex, w, h) = label.Value;
+            float aspect = (h == 0) ? 1f : (float)w / h;
+            float targetHeight = Math.Min(MaxLabelHeight, FontHeightOffset + (fontSize / 64f));
+            float targetWidth = targetHeight * aspect;
+            if (targetWidth > MaxLabelWidth)
+            {
+                float scaleDown = MaxLabelWidth / targetWidth;
+                targetWidth = MaxLabelWidth;
+                targetHeight *= scaleDown;
+            }
+            // Additional clamp to keep from visually exceeding chest face too much
+            if (targetWidth > VisualClampWidth)
+            {
+                float scaleDown = VisualClampWidth / targetWidth;
+                targetWidth = VisualClampWidth;
+                targetHeight *= scaleDown;
+            }
+            // Add internal margins (shrink a bit more after fit)
+            targetWidth *= MarginFactor;
+            targetHeight *= MarginFactor;
+            Mat4f.Translate(modelMat, modelMat, -0.5f, -0.5f, 0f);
+            Mat4f.Scale(modelMat, modelMat, targetWidth, targetHeight, 1f);
+
+            prog.Tex2D = tex.TextureId;
+            prog.AlphaTest = 0.05f;
+            prog.ViewMatrix = viewMat;
+            prog.ModelMatrix = modelMat;
+            prog.DontWarpVertices = 1;
+            prog.RgbaTint = CarryRenderHelpers.DefaultTint;
+            prog.NormalShaded = 0;
+            prog.ExtraGodray = 0f;
+            prog.SsaoAttn = 0f;
+            prog.OverlayOpacity = 0f;
+            prog.AddRenderFlags = 0;
+
+            if (this.api?.World?.BlockAccessor != null && lightPos != null)
+            {
+                prog.RgbaLightIn = this.api.World.BlockAccessor.GetLightRGBs(lightPos);
+            }
+
+            render.GLDepthMask(false);
+            render.GlToggleBlend(true, EnumBlendMode.PremultipliedAlpha);
+            render.GlDisableCullFace();
+            render.RenderMesh(this.labelQuad);
+            render.GlEnableCullFace();
+            render.GLDepthMask(true);
+            render.GlToggleBlend(false, 0);
         }
 
         private void EnsureLabelQuad()

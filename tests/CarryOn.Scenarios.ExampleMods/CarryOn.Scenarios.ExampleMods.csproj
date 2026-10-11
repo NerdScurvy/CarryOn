@@ -1,0 +1,88 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<LangVersion>latest</LangVersion>
+		<Nullable>enable</Nullable>
+		<IsPackable>false</IsPackable>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+		<PackageReference Include="xunit" Version="2.9.*" />
+		<PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+		<PackageReference Include="Pixnop.Atlas.XUnit" Version="0.13.1" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Reference Include="VintagestoryAPI">
+			<HintPath>$(VINTAGE_STORY)/VintagestoryAPI.dll</HintPath>
+			<Private>false</Private>
+		</Reference>
+		<Reference Include="VintagestoryLib">
+			<HintPath>$(VINTAGE_STORY)/VintagestoryLib.dll</HintPath>
+			<Private>false</Private>
+		</Reference>
+		<Reference Include="VSEssentials">
+			<HintPath>$(VINTAGE_STORY)/Mods/VSEssentials.dll</HintPath>
+			<Private>false</Private>
+		</Reference>
+		<!-- BlockEntityMoldRack (the vanilla mold rack the RackEmUp rows drive). -->
+		<Reference Include="VSSurvivalMod">
+			<HintPath>$(VINTAGE_STORY)/Mods/VSSurvivalMod.dll</HintPath>
+			<Private>false</Private>
+		</Reference>
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- Same references as the main suite: compiled for API access (message
+		     records, ICarryManager) and transitive asset resolution; mod staging is
+		     driven by [assembly: AtlasMods] in AssemblyInfo.cs. -->
+		<ProjectReference Include="..\..\CarryOn.csproj" Private="false" />
+		<ProjectReference Include="..\..\..\CarryOnLib\CarryOnLib.csproj" Private="false" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- Shared drivers from the main scenario suite. This project is separate
+		     only because [AtlasMods] is assembly-level: staging the example mods into
+		     the main suite would add their carryable content to every class-world and
+		     perturb the content-pinning rows. -->
+		<Compile Include="..\CarryOn.Scenarios\HandlerInvoke.cs" Link="Shared\HandlerInvoke.cs" />
+		<Compile Include="..\CarryOn.Scenarios\CarryOnScenarioBase.cs" Link="Shared\CarryOnScenarioBase.cs" />
+		<Compile Include="..\CarryOn.Scenarios\CarryActions.cs" Link="Shared\CarryActions.cs" />
+		<Compile Include="..\CarryOn.Scenarios\VanillaClientWire.cs" Link="Shared\VanillaClientWire.cs" />
+		<Compile Include="..\CarryOn.Scenarios\Scenarios\BoatFixture.cs" Link="Shared\BoatFixture.cs" />
+		<!-- One parity helper for both suites: the per-array mirror contract
+		     (RemoveBase*/RemoveExcluded* rows) must be asserted the same way in
+		     either suite, and a second copy could drift from the first. -->
+		<Compile Include="..\CarryOn.Scenarios\CarryOnParityAssert.cs" Link="Shared\CarryOnParityAssert.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- AtlasDataFiles("fixtures/...", ...) resolves relative to the test
+		     assembly's output directory, so fixtures are copied to the output dir. -->
+		<Content Include="fixtures\**\*" CopyToOutputDirectory="PreserveNewest" />
+	</ItemGroup>
+
+	<!-- foodshelves (BarrelRackDemo's third-party dependency, ModDependency 2.7.0) is
+	     not a sibling checkout: the dev install's mod folder provides the zip, copied
+	     into this output under a stable name so [AtlasMods] can stage it. Enforced
+	     preconditions instead of documented ones: readable errors when missing or
+	     ambiguous. -->
+	<Target Name="StageFoodShelves" AfterTargets="Build">
+		<PropertyGroup>
+			<FoodShelvesDir>$(VINTAGE_STORY_DATA)\CarryOnDev\Mods\</FoodShelvesDir>
+		</PropertyGroup>
+		<ItemGroup>
+			<FoodShelvesZip Include="$(FoodShelvesDir)foodshelves*.zip" />
+		</ItemGroup>
+		<Error Condition="'$(VINTAGE_STORY_DATA)' == ''"
+			Text="VINTAGE_STORY_DATA is not set. The foodshelves dependency zip is resolved from %24VINTAGE_STORY_DATA\CarryOnDev\Mods - point the variable at the dev data install and re-run." />
+		<Error Condition="'@(FoodShelvesZip)' == ''"
+			Text="No foodshelves zip found under '$(FoodShelvesDir)'. BarrelRackDemo declares ModDependency foodshelves 2.7.0 - install the mod into the dev mods folder and re-run." />
+		<Error Condition="'@(FoodShelvesZip->Count())' != '1'"
+			Text="Multiple foodshelves zips found under '$(FoodShelvesDir)': @(FoodShelvesZip). Remove the stale versions so exactly one remains (deterministic staging)." />
+		<Copy SourceFiles="@(FoodShelvesZip)" DestinationFiles="$(TargetDir)foodshelves.zip" SkipUnchangedFiles="true" />
+	</Target>
+
+</Project>

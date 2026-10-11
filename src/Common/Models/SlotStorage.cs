@@ -38,24 +38,24 @@ namespace CarryOn.Common.Models
                         SlotSettingsDict.Add(slot, settings = new SlotSettings { Animation = anim });
                     }
 
-                    settings.Animation = slotProperties["animation"].AsString(settings.Animation);
-                    settings.AnimationSit = slotProperties["animationSit"].AsString(settings.AnimationSit);
-                    settings.AnimationCrouch = slotProperties["animationCrouch"].AsString(settings.AnimationCrouch);
+                    settings.Animation = slotProperties[CarryCodes.BehaviorJsonKeys.Animation].AsString(settings.Animation);
+                    settings.AnimationSit = slotProperties[CarryCodes.BehaviorJsonKeys.AnimationSit].AsString(settings.AnimationSit);
+                    settings.AnimationCrouch = slotProperties[CarryCodes.BehaviorJsonKeys.AnimationCrouch].AsString(settings.AnimationCrouch);
 
                     CarryCodes.Defaults.WalkSpeedModifier.TryGetValue(slot, out var speed);
-                    settings.WalkSpeedModifier = slotProperties["walkSpeedModifier"].AsFloat(speed);
+                    settings.WalkSpeedModifier = slotProperties[CarryCodes.BehaviorJsonKeys.WalkSpeedModifier].AsFloat(speed);
 
-                    settings.WalkSpeedModifierByType = JsonHelper.ParseFloatMap(slotProperties["walkSpeedModifierByBlockType"]);
-                    settings.WalkSpeedModifierByGroup = JsonHelper.ParseFloatMap(slotProperties["walkSpeedModifierByGroup"]);
+                    settings.WalkSpeedModifierByType = JsonHelper.ParseFloatMap(slotProperties[CarryCodes.BehaviorJsonKeys.WalkSpeedModifierByBlockType]);
+                    settings.WalkSpeedModifierByGroup = JsonHelper.ParseFloatMap(slotProperties[CarryCodes.BehaviorJsonKeys.WalkSpeedModifierByGroup]);
 
-                    settings.HungerModifierByType = JsonHelper.ParseFloatMap(slotProperties["hungerModifierByBlockType"]);
-                    settings.HungerModifierByGroup = JsonHelper.ParseFloatMap(slotProperties["hungerModifierByGroup"]);
+                    settings.HungerModifierByType = JsonHelper.ParseFloatMap(slotProperties[CarryCodes.BehaviorJsonKeys.HungerModifierByBlockType]);
+                    settings.HungerModifierByGroup = JsonHelper.ParseFloatMap(slotProperties[CarryCodes.BehaviorJsonKeys.HungerModifierByGroup]);
 
-                    if (JsonHelper.TryGetFloat(slotProperties, "hungerModifier", out var hungerModifier))
+                    if (JsonHelper.TryGetFloat(slotProperties, CarryCodes.BehaviorJsonKeys.HungerModifier, out var hungerModifier))
                         settings.HungerModifier = hungerModifier;
 
-                    if (JsonHelper.TryGetString(slotProperties, "enabledCondition", out var e)) settings.EnabledCondition = e;
-                    if (JsonHelper.TryGetStringArray(slotProperties, "excludedTypes", out var x)) settings.ExcludedTypes = x;
+                    if (JsonHelper.TryGetString(slotProperties, CarryCodes.BehaviorJsonKeys.EnabledCondition, out var e)) settings.EnabledCondition = e;
+                    if (JsonHelper.TryGetStringArray(slotProperties, CarryCodes.BehaviorJsonKeys.ExcludedTypes, out var x)) settings.ExcludedTypes = x;
                 }
             }
         }

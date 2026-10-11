@@ -15,6 +15,7 @@
 			"command": "dotnet",
 			"args": [
 				"build",
+				"${workspaceFolder}\\CarryOn.slnx",
 				"-c",
 				"Debug"
 			]
@@ -30,6 +31,7 @@
 			"command": "dotnet",
 			"args": [
 				"build",
+				"${workspaceFolder}\\CarryOn.slnx",
 				"-c",
 				"Release"
 			]

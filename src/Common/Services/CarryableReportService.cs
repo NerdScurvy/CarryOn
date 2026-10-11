@@ -9,7 +9,7 @@ using CarryOn.Common.Behaviors;
 using CarryOn.Common.Interfaces;
 using CarryOn.Common.Logic;
 using CarryOn.Common.Models;
-using Newtonsoft.Json.Linq;
+using CarryOn.Utility;
 using Vintagestory.API.Common;
 using static CarryOn.Common.Models.CarryCodes;
 
@@ -17,6 +17,12 @@ namespace CarryOn.Common.Services
 {
     internal sealed class CarryableReportService
     {
+        private sealed class CarryTypeEntry
+        {
+            public string? Type;
+            public required ItemStack Stack;
+        }
+
         private readonly ICoreAPI api;
         private readonly IConfigProvider configProvider;
         private readonly WalkSpeedModifierResolver walkSpeedResolver = new();
@@ -58,9 +64,9 @@ namespace CarryOn.Common.Services
                 WriteToLog(rows, config);
 
             if (reportConfig.FileFormat == ReportFileFormat.Markdown)
-                WriteMarkdownFile(rows, config);
+                WriteReportFile(rows, config, ReportFileFormat.Markdown);
             else if (reportConfig.FileFormat == ReportFileFormat.Html)
-                WriteHtmlFile(rows, config);
+                WriteReportFile(rows, config, ReportFileFormat.Html);
         }
 
         private List<ReportRow> CollectRows()
@@ -68,37 +74,35 @@ namespace CarryOn.Common.Services
             var rows = new List<ReportRow>();
             var walkConfig = configProvider.Config.CarryWalkSpeed ?? new CarryWalkSpeedConfig();
             var hungerConfig = configProvider.Config.CarryHungerRate ?? new CarryHungerRateConfig();
-            var filters = configProvider.Config.DebuggingOptions?.CarryableReport?.BlockFilters;
+            var compiledFilters = CompileFilters(configProvider.Config.DebuggingOptions?.CarryableReport?.BlockFilters);
 
             foreach (var block in api.World.Blocks)
             {
                 if (block?.Code == null) continue;
-                if (!block.HasBehavior<BlockBehaviorCarryable>()) continue;
-
-                var blockCode = block.Code.ToString();
-                if (filters != null && filters.Length > 0 && !MatchesAnyFilter(blockCode, filters))
-                    continue;
-
                 var behavior = block.GetBehavior<BlockBehaviorCarryable>();
                 if (behavior == null) continue;
+
+                var blockCode = block.Code.ToString();
+                if (compiledFilters != null && !MatchesAnyFilter(blockCode, compiledFilters))
+                    continue;
 
                 var stack = new ItemStack(block);
                 var types = GetCarryTypesForReport(stack, behavior);
 
-                foreach (var (type, typeStack) in types)
+                foreach (var entry in types)
                 {
-                    var group = ResolveGroup(behavior, type);
+                    var group = ResolveGroup(behavior, entry.Type);
 
                     foreach (var slot in new[] { CarrySlot.Hands, CarrySlot.Back })
                     {
                         var slotSettings = behavior.Slots?[slot];
                         if (slotSettings == null) continue;
 
-                        var baseWalk = ResolveWalkBase(typeStack, behavior, slotSettings, slot, walkConfig);
-                        var finalWalk = walkSpeedResolver.Resolve(typeStack, behavior, slotSettings, slot, walkConfig);
+                        var baseWalk = ResolveWalkBase(entry.Stack, behavior, slotSettings, slot, walkConfig);
+                        var finalWalk = walkSpeedResolver.Resolve(entry.Stack, behavior, slotSettings, slot, walkConfig);
 
-                        var baseHunger = ResolveHungerBase(typeStack, behavior, slotSettings, slot, hungerConfig);
-                        var finalHunger = hungerRateResolver.Resolve(typeStack, behavior, slotSettings, slot, hungerConfig);
+                        var baseHunger = ResolveHungerBase(entry.Stack, behavior, slotSettings, slot, hungerConfig);
+                        var finalHunger = hungerRateResolver.Resolve(entry.Stack, behavior, slotSettings, slot, hungerConfig);
 
                         var walkMultiplier = ModifierMultiplierResolver.ResolveMultiplier(block, walkConfig.Multipliers, slot);
                         var hungerMultiplier = ModifierMultiplierResolver.ResolveMultiplier(block, hungerConfig.Multipliers, slot);
@@ -107,7 +111,7 @@ namespace CarryOn.Common.Services
                         {
                             BlockCode = block.Code.ToString(),
                             Slot = slot,
-                            CarryType = type ?? "",
+                            CarryType = entry.Type ?? "",
                             Group = group ?? "",
                             WalkMultiplier = walkMultiplier,
                             HungerMultiplier = hungerMultiplier,
@@ -124,50 +128,26 @@ namespace CarryOn.Common.Services
             return rows;
         }
 
-        private List<(string?, ItemStack)> GetCarryTypesForReport(ItemStack stack, BlockBehaviorCarryable behavior)
+        private List<CarryTypeEntry> GetCarryTypesForReport(ItemStack stack, BlockBehaviorCarryable behavior)
         {
             var resolved = CarryTypeResolver.ResolveCarryType(stack);
             if (!string.IsNullOrWhiteSpace(resolved))
-                return [(resolved, stack)];
+                return [new CarryTypeEntry { Type = resolved, Stack = stack }];
 
-            // Fallback 1: types from behavior TypeGroup (populated from patch's "groups" property)
-            if (behavior.TypeGroup?.Count > 0)
+            var fallbackTypes = CarryTypeResolver.EnumerateFallbackCarryTypes(stack, behavior);
+            if (fallbackTypes != null)
             {
-                var results = new List<(string?, ItemStack)>();
-                foreach (var type in behavior.TypeGroup.Keys)
+                var results = new List<CarryTypeEntry>(fallbackTypes.Count);
+                foreach (var type in fallbackTypes)
                 {
-                    if (string.IsNullOrWhiteSpace(type)) continue;
                     var typedStack = stack.Clone();
-                    typedStack.Attributes?.SetString("type", type);
-                    results.Add((type, typedStack));
+                    typedStack.Attributes?.SetString(CarryCodes.AttributeKeys.Type, type);
+                    results.Add(new CarryTypeEntry { Type = type, Stack = typedStack });
                 }
                 return results;
             }
 
-            // Fallback 2: types from block's JSON attributes (e.g. "types" array on chests).
-            // May be an array of strings or an array of objects with a "code" property.
-            var typesArray = stack.Block?.Attributes?["types"]?.AsArray();
-            if (typesArray?.Length > 0)
-            {
-                var results = new List<(string?, ItemStack)>();
-                foreach (var entry in typesArray)
-                {
-                    var tokenType = entry.Token?.Type;
-                    string? type = tokenType switch
-                    {
-                        JTokenType.String => entry.AsString(),
-                        JTokenType.Object => entry["code"]?.AsString(),
-                        _ => null
-                    };
-                    if (string.IsNullOrWhiteSpace(type)) continue;
-                    var typedStack = stack.Clone();
-                    typedStack.Attributes?.SetString("type", type);
-                    results.Add((type, typedStack));
-                }
-                return results;
-            }
-
-            return [(null, stack)];
+            return [new CarryTypeEntry { Type = null, Stack = stack }];
         }
 
         private static string? ResolveGroup(BlockBehaviorCarryable behavior, string? carryType)
@@ -177,31 +157,14 @@ namespace CarryOn.Common.Services
             return behavior.TypeGroup.TryGetValue(carryType!, out var group) ? group : null;
         }
 
-        private static float ResolveWalkBase(ItemStack stack, BlockBehaviorCarryable behavior, SlotSettings slotSettings, CarrySlot slot, CarryWalkSpeedConfig config)
+        private float ResolveWalkBase(ItemStack stack, BlockBehaviorCarryable behavior, SlotSettings slotSettings, CarrySlot slot, CarryWalkSpeedConfig config)
         {
-            var baseConfig = new CarryWalkSpeedConfig
-            {
-                HandsEnabled = config.HandsEnabled,
-                BackEnabled = config.BackEnabled,
-                HandsAllowSprint = config.HandsAllowSprint,
-                BackAllowSprint = config.BackAllowSprint,
-                ModifierOverrides = config.ModifierOverrides,
-                Multipliers = null
-            };
-            return new WalkSpeedModifierResolver().Resolve(stack, behavior, slotSettings, slot, baseConfig);
+            return walkSpeedResolver.ResolveBase(stack, behavior, slotSettings, slot, config);
         }
 
-        private static float ResolveHungerBase(ItemStack stack, BlockBehaviorCarryable behavior, SlotSettings slotSettings, CarrySlot slot, CarryHungerRateConfig config)
+        private float ResolveHungerBase(ItemStack stack, BlockBehaviorCarryable behavior, SlotSettings slotSettings, CarrySlot slot, CarryHungerRateConfig config)
         {
-            var baseConfig = new CarryHungerRateConfig
-            {
-                HandsEnabled = config.HandsEnabled,
-                BackEnabled = config.BackEnabled,
-                MinSaturationThreshold = config.MinSaturationThreshold,
-                ModifierOverrides = config.ModifierOverrides,
-                Multipliers = null
-            };
-            return new HungerRateModifierResolver().Resolve(stack, behavior, slotSettings, slot, baseConfig);
+            return hungerRateResolver.ResolveBase(stack, behavior, slotSettings, slot, config);
         }
 
         private void WriteToLog(List<ReportRow> rows, CarryOnConfig config)
@@ -213,19 +176,7 @@ namespace CarryOn.Common.Services
             api.World.Logger.Notification("=== Carryable Block Report ===");
 
             // Group rows by (BlockCode, CarryType): one line per type per block with Hands and Back side by side
-            var grouped = new Dictionary<(string BlockCode, string CarryType), (string Group, ReportRow? Hands, ReportRow? Back)>();
-            foreach (var row in rows)
-            {
-                var key = (row.BlockCode, row.CarryType);
-                if (!grouped.ContainsKey(key))
-                    grouped[key] = (row.Group, null, null);
-                var entry = grouped[key];
-                if (row.Slot == CarrySlot.Hands)
-                    entry.Hands = row;
-                else
-                    entry.Back = row;
-                grouped[key] = entry;
-            }
+            var grouped = GroupRowsForReport(rows);
 
             if (walkEnabled)
             {
@@ -237,13 +188,7 @@ namespace CarryOn.Common.Services
                 {
                     var ((blockCode, carryType), (group, hands, back)) = kv;
                     api.World.Logger.Notification("  {0,-45} {1,-12} {2,-8} {3,-10} {4,-10} {5,-10} {6,-10}",
-                        blockCode,
-                        carryType,
-                        group,
-                        hands != null ? FormatMultiplier(hands.WalkMultiplier) : "",
-                        hands != null ? FormatModifierPair(hands.BaseWalkSpeed, hands.FinalWalkSpeed) : "",
-                        back != null ? FormatMultiplier(back.WalkMultiplier) : "",
-                        back != null ? FormatModifierPair(back.BaseWalkSpeed, back.FinalWalkSpeed) : "");
+                        FormatRow(blockCode, carryType, group, hands, back, walkFieldSelector: true));
                 }
             }
 
@@ -257,27 +202,57 @@ namespace CarryOn.Common.Services
                 {
                     var ((blockCode, carryType), (group, hands, back)) = kv;
                     api.World.Logger.Notification("  {0,-45} {1,-12} {2,-8} {3,-10} {4,-10} {5,-10} {6,-10}",
-                        blockCode,
-                        carryType,
-                        group,
-                        hands != null ? FormatMultiplier(hands.HungerMultiplier) : "",
-                        hands != null ? FormatModifierPair(hands.BaseHungerRate, hands.FinalHungerRate) : "",
-                        back != null ? FormatMultiplier(back.HungerMultiplier) : "",
-                        back != null ? FormatModifierPair(back.BaseHungerRate, back.FinalHungerRate) : "");
+                        FormatRow(blockCode, carryType, group, hands, back, walkFieldSelector: false));
                 }
             }
 
             api.World.Logger.Notification("=== End Carryable Block Report ===");
         }
 
-        private void WriteMarkdownFile(List<ReportRow> rows, CarryOnConfig config)
+        private void WriteReportFile(List<ReportRow> rows, CarryOnConfig config, ReportFileFormat format)
         {
-            WriteReportFile(rows, config, "md");
-        }
+            try
+            {
+                var reportDir = api.GetOrCreateDataPath(Path.Combine("ModData", ModId, "reports"));
+                var isHtml = format == ReportFileFormat.Html;
+                var extension = isHtml ? "html" : "md";
 
-        private void WriteHtmlFile(List<ReportRow> rows, CarryOnConfig config)
-        {
-            WriteReportFile(rows, config, "html");
+                var walkEnabled = config.CarryWalkSpeed?.HandsEnabled == true || config.CarryWalkSpeed?.BackEnabled == true;
+                var hungerEnabled = config.CarryHungerRate?.HandsEnabled == true || config.CarryHungerRate?.BackEnabled == true;
+                if (!walkEnabled && !hungerEnabled) return;
+
+                if (walkEnabled)
+                {
+                    var walkRows = rows.Where(r =>
+                        (r.Slot == CarrySlot.Hands && config.CarryWalkSpeed?.HandsEnabled == true) ||
+                        (r.Slot == CarrySlot.Back && config.CarryWalkSpeed?.BackEnabled == true)).ToList();
+                    var walkGrouped = GroupRowsForReport(walkRows);
+                    var walkPath = Path.Combine(reportDir, $"CarryableReport-WalkSpeed.{extension}");
+                    var sb = isHtml
+                        ? BuildHtmlSection("Carryable Block Report \u2014 WalkSpeed Modifiers", "walk speed modifier", walkGrouped, walkFieldSelector: true)
+                        : BuildMarkdownSection("Carryable Block Report \u2014 WalkSpeed Modifiers", "walk speed modifier", walkGrouped, walkFieldSelector: true);
+                    File.WriteAllText(walkPath, sb.ToString());
+                    api.World.Logger.Notification($"CarryOn: Walk speed report written to {walkPath}");
+                }
+
+                if (hungerEnabled)
+                {
+                    var hungerRows = rows.Where(r =>
+                        (r.Slot == CarrySlot.Hands && config.CarryHungerRate?.HandsEnabled == true) ||
+                        (r.Slot == CarrySlot.Back && config.CarryHungerRate?.BackEnabled == true)).ToList();
+                    var hungerGrouped = GroupRowsForReport(hungerRows);
+                    var hungerPath = Path.Combine(reportDir, $"CarryableReport-HungerRate.{extension}");
+                    var sb = isHtml
+                        ? BuildHtmlSection("Carryable Block Report \u2014 HungerRate Modifiers", "hunger rate modifier", hungerGrouped, walkFieldSelector: false)
+                        : BuildMarkdownSection("Carryable Block Report \u2014 HungerRate Modifiers", "hunger rate modifier", hungerGrouped, walkFieldSelector: false);
+                    File.WriteAllText(hungerPath, sb.ToString());
+                    api.World.Logger.Notification($"CarryOn: Hunger rate report written to {hungerPath}");
+                }
+            }
+            catch (Exception ex)
+            {
+                api.World.Logger.Error($"CarryOn: Failed to write report file: {ex}");
+            }
         }
 
         private static Dictionary<(string BlockCode, string CarryType), (string Group, ReportRow? Hands, ReportRow? Back)> GroupRowsForReport(List<ReportRow> rows)
@@ -317,11 +292,7 @@ namespace CarryOn.Common.Services
             {
                 var ((blockCode, carryType), (group, hands, back)) = kv;
                 if (carryType.Contains("\u2020")) hasFootnote = true;
-                sb.AppendLine($"| {blockCode} | {carryType} | {group} | " +
-                    $"{(hands != null ? FormatMultiplier(walkFieldSelector ? hands.WalkMultiplier : hands.HungerMultiplier) : "")} | " +
-                    $"{(hands != null ? FormatModifierPair(walkFieldSelector ? hands.BaseWalkSpeed : hands.BaseHungerRate, walkFieldSelector ? hands.FinalWalkSpeed : hands.FinalHungerRate) : "")} | " +
-                    $"{(back != null ? FormatMultiplier(walkFieldSelector ? back.WalkMultiplier : back.HungerMultiplier) : "")} | " +
-                    $"{(back != null ? FormatModifierPair(walkFieldSelector ? back.BaseWalkSpeed : back.BaseHungerRate, walkFieldSelector ? back.FinalWalkSpeed : back.FinalHungerRate) : "")} |");
+                sb.AppendLine($"| {string.Join(" | ", FormatRow(blockCode, carryType, group, hands, back, walkFieldSelector))} |");
             }
 
             if (hasFootnote)
@@ -331,51 +302,6 @@ namespace CarryOn.Common.Services
             }
 
             return sb;
-        }
-
-        private void WriteReportFile(List<ReportRow> rows, CarryOnConfig config, string extension)
-        {
-            try
-            {
-                var reportDir = api.GetOrCreateDataPath(Path.Combine("ModData", ModId, "reports"));
-                var isHtml = extension == "html";
-
-                var walkEnabled = config.CarryWalkSpeed?.HandsEnabled == true || config.CarryWalkSpeed?.BackEnabled == true;
-                var hungerEnabled = config.CarryHungerRate?.HandsEnabled == true || config.CarryHungerRate?.BackEnabled == true;
-                if (!walkEnabled && !hungerEnabled) return;
-
-                if (walkEnabled)
-                {
-                    var walkRows = rows.Where(r =>
-                        (r.Slot == CarrySlot.Hands && config.CarryWalkSpeed?.HandsEnabled == true) ||
-                        (r.Slot == CarrySlot.Back && config.CarryWalkSpeed?.BackEnabled == true)).ToList();
-                    var walkGrouped = GroupRowsForReport(walkRows);
-                    var walkPath = Path.Combine(reportDir, $"CarryableReport-WalkSpeed.{extension}");
-                    var sb = isHtml
-                        ? BuildHtmlSection("Carryable Block Report \u2014 WalkSpeed Modifiers", "walk speed modifier", walkGrouped, walkFieldSelector: true)
-                        : BuildMarkdownSection("Carryable Block Report \u2014 WalkSpeed Modifiers", "walk speed modifier", walkGrouped, walkFieldSelector: true);
-                    File.WriteAllText(walkPath, sb.ToString());
-                    api.World.Logger.Notification($"CarryOn: Walk speed report written to {walkPath}");
-                }
-
-                if (hungerEnabled)
-                {
-                    var hungerRows = rows.Where(r =>
-                        (r.Slot == CarrySlot.Hands && config.CarryHungerRate?.HandsEnabled == true) ||
-                        (r.Slot == CarrySlot.Back && config.CarryHungerRate?.BackEnabled == true)).ToList();
-                    var hungerGrouped = GroupRowsForReport(hungerRows);
-                    var hungerPath = Path.Combine(reportDir, $"CarryableReport-HungerRate.{extension}");
-                    var sb = isHtml
-                        ? BuildHtmlSection("Carryable Block Report \u2014 HungerRate Modifiers", "hunger rate modifier", hungerGrouped, walkFieldSelector: false)
-                        : BuildMarkdownSection("Carryable Block Report \u2014 HungerRate Modifiers", "hunger rate modifier", hungerGrouped, walkFieldSelector: false);
-                    File.WriteAllText(hungerPath, sb.ToString());
-                    api.World.Logger.Notification($"CarryOn: Hunger rate report written to {hungerPath}");
-                }
-            }
-            catch (Exception ex)
-            {
-                api.World.Logger.Error($"CarryOn: Failed to write report file: {ex.Message}");
-            }
         }
 
         private static StringBuilder BuildHtmlSection(
@@ -417,11 +343,8 @@ namespace CarryOn.Common.Services
                 var ((blockCode, carryType), (group, hands, back)) = kv;
                 if (carryType.Contains("\u2020")) hasFootnote = true;
                 sb.AppendLine("<tr>");
-                sb.AppendLine($"<td>{HtmlEncode(blockCode)}</td><td>{HtmlEncode(carryType)}</td><td>{HtmlEncode(group)}</td>");
-                sb.AppendLine($"<td>{(hands != null ? FormatMultiplier(walkFieldSelector ? hands.WalkMultiplier : hands.HungerMultiplier) : "")}</td>");
-                sb.AppendLine($"<td>{(hands != null ? FormatModifierPair(walkFieldSelector ? hands.BaseWalkSpeed : hands.BaseHungerRate, walkFieldSelector ? hands.FinalWalkSpeed : hands.FinalHungerRate) : "")}</td>");
-                sb.AppendLine($"<td>{(back != null ? FormatMultiplier(walkFieldSelector ? back.WalkMultiplier : back.HungerMultiplier) : "")}</td>");
-                sb.AppendLine($"<td>{(back != null ? FormatModifierPair(walkFieldSelector ? back.BaseWalkSpeed : back.BaseHungerRate, walkFieldSelector ? back.FinalWalkSpeed : back.FinalHungerRate) : "")}</td>");
+                foreach (var column in FormatRow(blockCode, carryType, group, hands, back, walkFieldSelector))
+                    sb.Append("<td>").Append(HtmlEncode(column)).Append("</td>");
                 sb.AppendLine("</tr>");
             }
 
@@ -439,21 +362,28 @@ namespace CarryOn.Common.Services
             return value.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\"", "&quot;");
         }
 
-        private static bool MatchesAnyFilter(string blockCode, string[] filters)
+        private static Regex[]? CompileFilters(string[]? filters)
         {
+            if (filters == null || filters.Length == 0) return null;
+
+            var compiled = new List<Regex>(filters.Length);
             foreach (var filter in filters)
             {
                 if (string.IsNullOrWhiteSpace(filter)) continue;
-                var pattern = WildcardToRegex(filter.Trim());
-                if (Regex.IsMatch(blockCode, pattern, RegexOptions.IgnoreCase))
+                compiled.Add(new Regex(WildcardMatcher.WildcardToRegex(filter.Trim()), RegexOptions.IgnoreCase));
+            }
+
+            return compiled.Count > 0 ? compiled.ToArray() : null;
+        }
+
+        private static bool MatchesAnyFilter(string blockCode, Regex[] compiledFilters)
+        {
+            foreach (var regex in compiledFilters)
+            {
+                if (regex.IsMatch(blockCode))
                     return true;
             }
             return false;
-        }
-
-        private static string WildcardToRegex(string pattern)
-        {
-            return "^" + Regex.Escape(pattern).Replace("\\*", ".*") + "$";
         }
 
         private static string FormatModifierPair(float baseVal, float finalVal)
@@ -464,6 +394,20 @@ namespace CarryOn.Common.Services
         private static string FormatMultiplier(float mult)
         {
             return $"{mult:F3}×";
+        }
+
+        private static string[] FormatRow(string blockCode, string carryType, string group, ReportRow? hands, ReportRow? back, bool walkFieldSelector)
+        {
+            return
+            [
+                blockCode,
+                carryType,
+                group,
+                hands != null ? FormatMultiplier(walkFieldSelector ? hands.WalkMultiplier : hands.HungerMultiplier) : "",
+                hands != null ? FormatModifierPair(walkFieldSelector ? hands.BaseWalkSpeed : hands.BaseHungerRate, walkFieldSelector ? hands.FinalWalkSpeed : hands.FinalHungerRate) : "",
+                back != null ? FormatMultiplier(walkFieldSelector ? back.WalkMultiplier : back.HungerMultiplier) : "",
+                back != null ? FormatModifierPair(walkFieldSelector ? back.BaseWalkSpeed : back.BaseHungerRate, walkFieldSelector ? back.FinalWalkSpeed : back.FinalHungerRate) : ""
+            ];
         }
 
     }

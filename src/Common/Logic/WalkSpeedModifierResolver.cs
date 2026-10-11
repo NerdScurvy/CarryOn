@@ -1,11 +1,11 @@
+using System.Collections.Generic;
 using CarryOn.API.Common.Models;
 using CarryOn.Common.Models;
 using CarryOn.Common.Behaviors;
-using Vintagestory.API.Common;
 
 namespace CarryOn.Common.Logic
 {
-    internal sealed class WalkSpeedModifierResolver
+    internal sealed class WalkSpeedModifierResolver : ModifierResolver<CarryWalkSpeedConfig>
     {
         public bool IsEnabled(CarrySlot slot, CarryWalkSpeedConfig config)
         {
@@ -17,49 +17,25 @@ namespace CarryOn.Common.Logic
             };
         }
 
-        public float Resolve(
-            ItemStack? stack,
-            BlockBehaviorCarryable? behavior,
-            SlotSettings? slotSettings,
-            CarrySlot slot,
-            CarryWalkSpeedConfig? config)
+        protected override bool TryResolveSlotValue(SlotSettings? slotSettings, out float value)
         {
-            var block = stack?.Block;
-            var carryType = CarryTypeResolver.ResolveCarryType(stack);
-            var overrides = config?.ModifierOverrides;
-
-            if (overrides != null)
+            if (slotSettings == null)
             {
-                if (ModifierOverrideResolver.TryResolveByBlockCode(overrides, block, carryType, slot, out var byCode))
-                    return ApplyMultiplier(byCode, block, config, slot);
-
-                if (ModifierOverrideResolver.TryResolveByBlockClass(overrides, block, slot, out var byClass))
-                    return ApplyMultiplier(byClass, block, config, slot);
+                value = 0.0f;
+                return false;
             }
 
-            if (CarryTypeResolver.TryResolveByTypeOverride(stack, slotSettings?.WalkSpeedModifierByType, out var byType))
-                return ApplyMultiplier(byType, block, config, slot);
-
-            if (CarryTypeResolver.TryResolveByGroupOverride(behavior, stack, slotSettings?.WalkSpeedModifierByGroup, out var byGroup))
-                return ApplyMultiplier(byGroup, block, config, slot);
-
-            if (slotSettings != null)
-                return ApplyMultiplier(slotSettings.WalkSpeedModifier, block, config, slot);
-
-            if (ModifierOverrideResolver.TryGetSlotModifier(overrides?.SlotDefaults, slot, out var slotDefault))
-                return ApplyMultiplier(slotDefault, block, config, slot);
-
-            var hardcoded = CarryCodes.Defaults.WalkSpeedModifier.TryGetValue(slot, out var val)
-                ? val
-                : 0.0f;
-
-            return ApplyMultiplier(hardcoded, block, config, slot);
+            value = slotSettings.WalkSpeedModifier;
+            return true;
         }
 
-        private static float ApplyMultiplier(float modifier, Block? block, CarryWalkSpeedConfig? config, CarrySlot slot)
-        {
-            var multiplier = ModifierMultiplierResolver.ResolveMultiplier(block, config?.Multipliers, slot);
-            return modifier * multiplier;
-        }
+        protected override IDictionary<string, float>? TryResolveSlotMapByType(SlotSettings? slotSettings)
+            => slotSettings?.WalkSpeedModifierByType;
+
+        protected override IDictionary<string, float>? TryResolveSlotMapByGroup(SlotSettings? slotSettings)
+            => slotSettings?.WalkSpeedModifierByGroup;
+
+        protected override float TryResolveHardcodedDefault(CarrySlot slot)
+            => CarryCodes.Defaults.WalkSpeedModifier.TryGetValue(slot, out var hardcoded) ? hardcoded : 0.0f;
     }
 }

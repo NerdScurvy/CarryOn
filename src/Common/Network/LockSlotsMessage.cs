@@ -10,11 +10,11 @@ namespace CarryOn.Common.Network
     public record LockSlotsMessage
     {
         /// <summary>The hotbar slot indices to lock, or an empty list to unlock all.</summary>
-        public IReadOnlyList<int> HotbarSlots { get; init; } = [];
+        public List<int> HotbarSlots { get; init; } = [];
 
         private LockSlotsMessage() { }
 
-        public LockSlotsMessage(IReadOnlyList<int> hotbarSlots)
+        public LockSlotsMessage(List<int> hotbarSlots)
             => HotbarSlots = hotbarSlots ?? [];
     }
 }

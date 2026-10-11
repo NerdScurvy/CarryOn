@@ -5,7 +5,7 @@ namespace CarryOn.Common.Models
     {
         /// <summary>Include all details in the report.</summary>
         Full = 0,
-        /// <summary>Condense entries by side (client/server).</summary>
+        /// <summary>Condense entries removing cardinal side/facing variants (only includes east).</summary>
         CondensedSide,
         /// <summary>Condense entries by type.</summary>
         CondensedType,

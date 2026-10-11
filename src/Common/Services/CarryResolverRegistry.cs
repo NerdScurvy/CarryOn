@@ -6,45 +6,42 @@ namespace CarryOn.Common.Services
 {
     internal sealed class CarryResolverRegistry
     {
-        private readonly Dictionary<string, IRootTransformGroupResolver> rootResolversByCode = new(StringComparer.OrdinalIgnoreCase);
-        private readonly Dictionary<string, IAttachmentTransformGroupResolver> attachmentResolversByCode = new(StringComparer.OrdinalIgnoreCase);
+        private readonly CodeRegistry<IRootTransformGroupResolver> rootResolvers = new(CarryCodes.ModId);
+        private readonly CodeRegistry<IAttachmentTransformGroupResolver> attachmentResolvers = new(CarryCodes.ModId);
+        private readonly CodeRegistry<IEntityTransformGroupResolver> entityResolvers = new(CarryCodes.ModId);
+
+        // CodeRegistry is keyed lookup only and does not guarantee iteration order, so the
+        // entity resolvers keep a parallel list in registration order for the override helper.
+        private readonly List<IEntityTransformGroupResolver> entityResolverOrder = new();
 
         public void RegisterRoot(string modId, IRootTransformGroupResolver resolver)
-        {
-            if (string.IsNullOrWhiteSpace(modId))
-                throw new ArgumentException("Mod id cannot be null or empty.", nameof(modId));
-            ArgumentNullException.ThrowIfNull(resolver);
-            if (string.IsNullOrWhiteSpace(resolver.ResolverCode))
-                throw new ArgumentException("Resolver code cannot be null or empty.", nameof(resolver));
-
-            var canonicalCode = ToCanonicalResolverCode(modId, resolver.ResolverCode);
-            if (canonicalCode == null)
-                throw new ArgumentException("Resolver code cannot be null or empty after trimming.", nameof(resolver));
-
-            if (rootResolversByCode.TryGetValue(canonicalCode, out var existing) && !ReferenceEquals(existing, resolver))
-                throw new InvalidOperationException($"A root resolver is already registered for code '{canonicalCode}'.");
-
-            // TryAdd is a no-op if already present (same-instance re-registration)
-            rootResolversByCode.TryAdd(canonicalCode, resolver);
-        }
+            => RegisterIn(rootResolvers, modId, resolver, resolver.ResolverCode, "A root resolver is already registered for code '{0}'.");
 
         public void RegisterAttachment(string modId, IAttachmentTransformGroupResolver resolver)
+            => RegisterIn(attachmentResolvers, modId, resolver, resolver.ResolverCode, "An attachment resolver is already registered for code '{0}'.");
+
+        public void RegisterEntity(string modId, IEntityTransformGroupResolver resolver)
+        {
+            RegisterIn(entityResolvers, modId, resolver, resolver.ResolverCode, "An entity resolver is already registered for code '{0}'.");
+            if (!entityResolverOrder.Contains(resolver))
+            {
+                entityResolverOrder.Add(resolver);
+            }
+        }
+
+        private static void RegisterIn<T>(CodeRegistry<T> registry, string modId, T resolver, string resolverCode, string duplicateMessage) where T : class
         {
             if (string.IsNullOrWhiteSpace(modId))
                 throw new ArgumentException("Mod id cannot be null or empty.", nameof(modId));
             ArgumentNullException.ThrowIfNull(resolver);
-            if (string.IsNullOrWhiteSpace(resolver.ResolverCode))
+            if (string.IsNullOrWhiteSpace(resolverCode))
                 throw new ArgumentException("Resolver code cannot be null or empty.", nameof(resolver));
 
-            var canonicalCode = ToCanonicalResolverCode(modId, resolver.ResolverCode);
+            var canonicalCode = ToCanonicalResolverCode(modId, resolverCode);
             if (canonicalCode == null)
                 throw new ArgumentException("Resolver code cannot be null or empty after trimming.", nameof(resolver));
 
-            if (attachmentResolversByCode.TryGetValue(canonicalCode, out var existing) && !ReferenceEquals(existing, resolver))
-                throw new InvalidOperationException($"An attachment resolver is already registered for code '{canonicalCode}'.");
-
-            // TryAdd is a no-op if already present (same-instance re-registration)
-            attachmentResolversByCode.TryAdd(canonicalCode, resolver);
+            registry.TryAddCanonical(canonicalCode, resolver, duplicateMessage);
         }
 
         public bool TryGetRootResolver(string resolverCode, out IRootTransformGroupResolver? resolver)
@@ -57,7 +54,7 @@ namespace CarryOn.Common.Services
             if (canonicalCode == null)
                 return false;
 
-            return rootResolversByCode.TryGetValue(canonicalCode, out resolver);
+            return rootResolvers.TryGet(canonicalCode, out resolver);
         }
 
         public bool TryGetAttachmentResolver(string resolverCode, out IAttachmentTransformGroupResolver? resolver)
@@ -70,8 +67,24 @@ namespace CarryOn.Common.Services
             if (canonicalCode == null)
                 return false;
 
-            return attachmentResolversByCode.TryGetValue(canonicalCode, out resolver);
+            return attachmentResolvers.TryGet(canonicalCode, out resolver);
         }
+
+        public bool TryGetEntityResolver(string resolverCode, out IEntityTransformGroupResolver? resolver)
+        {
+            resolver = null;
+            if (string.IsNullOrWhiteSpace(resolverCode))
+                return false;
+
+            var canonicalCode = ToCanonicalLookupCode(resolverCode);
+            if (canonicalCode == null)
+                return false;
+
+            return entityResolvers.TryGet(canonicalCode, out resolver);
+        }
+
+        public IReadOnlyList<IEntityTransformGroupResolver> EnumerateEntityResolvers()
+            => entityResolverOrder;
 
         public bool UnregisterRoot(IRootTransformGroupResolver resolver)
         {
@@ -82,13 +95,7 @@ namespace CarryOn.Common.Services
             if (canonicalCode == null)
                 return false;
 
-            if (rootResolversByCode.TryGetValue(canonicalCode, out var existing)
-                && ReferenceEquals(existing, resolver))
-            {
-                return rootResolversByCode.Remove(canonicalCode);
-            }
-
-            return false;
+            return rootResolvers.Unregister(canonicalCode, resolver);
         }
 
         public bool UnregisterAttachment(IAttachmentTransformGroupResolver resolver)
@@ -100,13 +107,24 @@ namespace CarryOn.Common.Services
             if (canonicalCode == null)
                 return false;
 
-            if (attachmentResolversByCode.TryGetValue(canonicalCode, out var existing)
-                && ReferenceEquals(existing, resolver))
-            {
-                return attachmentResolversByCode.Remove(canonicalCode);
-            }
+            return attachmentResolvers.Unregister(canonicalCode, resolver);
+        }
 
-            return false;
+        public bool UnregisterEntity(IEntityTransformGroupResolver resolver)
+        {
+            if (resolver == null || string.IsNullOrWhiteSpace(resolver.ResolverCode))
+                return false;
+
+            var canonicalCode = ToCanonicalLookupCode(resolver.ResolverCode);
+            if (canonicalCode == null)
+                return false;
+
+            var removed = entityResolvers.Unregister(canonicalCode, resolver);
+            if (removed)
+            {
+                entityResolverOrder.Remove(resolver);
+            }
+            return removed;
         }
 
         private static string? ToCanonicalLookupCode(string resolverCode)

@@ -6,18 +6,23 @@ using Vintagestory.API.Common;
 
 namespace CarryOn.Common.Models
 {
-    /// <summary>Per-slot modifier value pair (hands/back).</summary>
-    public class SlotValueConfig
+    /// <summary>A per-slot pair of nullable values (hands/back).</summary>
+    public class SlotPair<T> where T : struct
     {
-        [DisplayName("Hands Modifier")]
-        [Description("Modifier value for the hands slot (leave empty for no override)")]
+        [DisplayName("Hands")]
+        [Description("Value for the hands slot (leave empty for no override)")]
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public float? Hands { get; set; }
+        public T? Hands { get; set; }
 
-        [DisplayName("Back Modifier")]
-        [Description("Modifier value for the back slot (leave empty for no override)")]
+        [DisplayName("Back")]
+        [Description("Value for the back slot (leave empty for no override)")]
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public float? Back { get; set; }
+        public T? Back { get; set; }
+    }
+
+    /// <summary>Per-slot modifier value pair (hands/back).</summary>
+    public class SlotValueConfig : SlotPair<float>
+    {
     }
 
     /// <summary>A per-block-code or per-block-class slot modifier override entry.</summary>
@@ -52,7 +57,7 @@ namespace CarryOn.Common.Models
     }
 
     /// <summary>A per-material slot multiplier entry.</summary>
-    public class SlotMaterialMultiplierConfig
+    public class SlotMaterialMultiplierConfig : SlotPair<float>
     {
         [DisplayName("Material")]
         [Description("Block material this entry applies to")]
@@ -60,16 +65,6 @@ namespace CarryOn.Common.Models
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         [JsonConverter(typeof(StringEnumConverter))]
         public EnumBlockMaterial? Material { get; set; }
-
-        [DisplayName("Hands Multiplier")]
-        [Description("Multiplier for the hands slot (leave empty for no override)")]
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public float? Hands { get; set; }
-
-        [DisplayName("Back Multiplier")]
-        [Description("Multiplier for the back slot (leave empty for no override)")]
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public float? Back { get; set; }
     }
 
     /// <summary>Global and per-material multiplier configuration for walk speed or hunger rate.</summary>

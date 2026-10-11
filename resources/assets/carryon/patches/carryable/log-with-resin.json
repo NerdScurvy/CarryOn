@@ -5,7 +5,7 @@
 		"op": "add",
 		"path": "/behaviorsByType/*/-",
 		"value": {
-			"name": "Carryable",
+			"name": "carryon:carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.LogWithResin",
 				"transformTemplates": [
@@ -75,7 +75,7 @@
 		"op": "add",
 		"path": "/behaviorsByType/log-resinharvested-*/-",
 		"value": {
-			"name": "Carryable",
+			"name": "carryon:carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.LogWithResin",
 				"transformTemplates": [

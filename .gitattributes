@@ -1,0 +1,9 @@
+# Line endings: normalize text files to LF in the repo and on checkout,
+# except Windows script types that must stay CRLF.
+* text=auto eol=lf
+*.ps1 text eol=crlf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# Generated test-coverage indexes: collapse their diffs on GitHub.
+tests/**/INVENTORY.md linguist-generated=true
