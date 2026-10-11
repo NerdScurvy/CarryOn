@@ -1,0 +1,9 @@
+{
+  "ConfigVersion": 6,
+  "Carryables": {
+    "ChestTrunk": true
+  },
+  "CarryOptions": {
+    "CarryAttachedWallSigns": true
+  }
+}

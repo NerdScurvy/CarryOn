@@ -1,0 +1,15 @@
+{
+  "ConfigVersion": 6,
+  "Carryables": {
+    "Chest": true
+  },
+  "CarryablesFilters": {
+    "AutoMapSimilar": true
+  },
+  "Interactables": {
+    "Storage": false
+  },
+  "DebuggingOptions": {
+    "ReconditionOnConfigChange": true
+  }
+}

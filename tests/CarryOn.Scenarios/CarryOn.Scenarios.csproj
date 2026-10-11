@@ -1,0 +1,57 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<LangVersion>latest</LangVersion>
+		<Nullable>enable</Nullable>
+		<IsPackable>false</IsPackable>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+		<PackageReference Include="xunit" Version="2.9.*" />
+		<PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+		<PackageReference Include="Pixnop.Atlas.XUnit" Version="0.13.1" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Reference Include="VintagestoryAPI">
+			<HintPath>$(VINTAGE_STORY)/VintagestoryAPI.dll</HintPath>
+			<Private>false</Private>
+		</Reference>
+		<Reference Include="VintagestoryLib">
+			<HintPath>$(VINTAGE_STORY)/VintagestoryLib.dll</HintPath>
+			<Private>false</Private>
+		</Reference>
+		<Reference Include="VSEssentials">
+			<HintPath>$(VINTAGE_STORY)/Mods/VSEssentials.dll</HintPath>
+			<Private>false</Private>
+		</Reference>
+		<!-- Ground-storage bag flows assert against BlockEntityGroundStorage/BlockGroundStorage
+		     (VSSurvivalMod hosts the game content; its block/item types are resolved by the
+		     host at runtime, so Private=false keeps it out of the test output). -->
+		<Reference Include="VSSurvivalMod">
+			<HintPath>$(VINTAGE_STORY)/Mods/VSSurvivalMod.dll</HintPath>
+			<Private>false</Private>
+		</Reference>
+		<Reference Include="Newtonsoft.Json">
+			<HintPath>$(VINTAGE_STORY)/Lib/Newtonsoft.Json.dll</HintPath>
+			<Private>false</Private>
+		</Reference>
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- AtlasDataFiles("fixtures/ModConfig", ...) resolves relative to the test
+		     assembly's directory, so fixtures are copied to the output dir. -->
+		<Content Include="fixtures\**\*" CopyToOutputDirectory="PreserveNewest" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- Compiled for API access and transitive asset resolution. Mod staging is driven
+		     explicitly by [assembly: AtlasMods] in AssemblyInfo.cs pointing at the Release
+		     output folders, since resources/modinfo.json only land in Release builds. -->
+		<ProjectReference Include="..\..\CarryOn.csproj" Private="false" />
+		<ProjectReference Include="..\..\..\CarryOnLib\CarryOnLib.csproj" Private="false" />
+	</ItemGroup>
+
+</Project>

@@ -1,0 +1,12 @@
+{
+  "ConfigVersion": 6,
+  "CarryablesFilters": {
+    "AutoMapSimilar": true
+  },
+  "CarryOptions": {
+    "InteractSpeedMultiplier": 2.0
+  },
+  "DebuggingOptions": {
+    "ReconditionOnConfigChange": true
+  }
+}

@@ -8,6 +8,9 @@ namespace CarryOn.Common.Models
         /// <summary>Use the first matching item found when scanning slots.</summary>
         FirstFound,
         /// <summary>Only use an item if it is in the very first slot of the backpack.</summary>
-        FirstOnly
+        FirstOnly,
+        /// <summary>Never compensate for a worn backpack: always resolve the no-backpack transform
+        /// group. Use when backpacks are hidden by another mod or should never shift the carried block.</summary>
+        None
     }
 }

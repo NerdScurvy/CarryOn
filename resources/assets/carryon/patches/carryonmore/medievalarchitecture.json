@@ -1,0 +1,107 @@
+[
+	{
+		"file": "confession:blocktypes/wood/gate/gate.json",
+		"side": "Server",
+		"op": "add",
+		"path": "/behaviors/-",
+		"value": {
+			"name": "carryon:carryableinteract",
+			"properties": {
+				"enabledCondition": "carryon.Interactables.Door",
+				"interactDelay": 1.3
+			}
+		},
+		"dependsOn": [
+			{
+				"modid": "medievalarchitecture"
+			}
+		]
+	},
+	{
+		"file": "confession:blocktypes/wood/gate/drawbridge.json",
+		"side": "Server",
+		"op": "add",
+		"path": "/behaviors/-",
+		"value": {
+			"name": "carryon:carryableinteract",
+			"properties": {
+				"enabledCondition": "carryon.Interactables.Door",
+				"interactDelay": 1.3
+			}
+		},
+		"dependsOn": [
+			{
+				"modid": "medievalarchitecture"
+			}
+		]
+	},
+	{
+		"file": "confession:blocktypes/wood/gate/portcullis.json",
+		"side": "Server",
+		"op": "add",
+		"path": "/behaviors/-",
+		"value": {
+			"name": "carryon:carryableinteract",
+			"properties": {
+				"enabledCondition": "carryon.Interactables.Door",
+				"interactDelay": 1.3
+			}
+		},
+		"dependsOn": [
+			{
+				"modid": "medievalarchitecture"
+			}
+		]
+	},
+	{
+		"file": "confession:blocktypes/wood/trapdoor/trapdoor.json",
+		"side": "Server",
+		"op": "add",
+		"path": "/behaviors/-",
+		"value": {
+			"name": "carryon:carryableinteract",
+			"properties": {
+				"enabledCondition": "carryon.Interactables.Door"
+			}
+		},
+		"dependsOn": [
+			{
+				"modid": "medievalarchitecture"
+			}
+		]
+	},
+	{
+		"file": "confession:blocktypes/wood/trapdoor/trapdoor_small.json",
+		"side": "Server",
+		"op": "add",
+		"path": "/behaviors/-",
+		"value": {
+			"name": "carryon:carryableinteract",
+			"properties": {
+				"enabledCondition": "carryon.Interactables.Door"
+			}
+		},
+		"dependsOn": [
+			{
+				"modid": "medievalarchitecture"
+			}
+		]
+	},
+	{
+		"file": "confession:blocktypes/wood/trapdoor/trapdoor_small_sloped.json",
+		"side": "Server",
+		"op": "add",
+		"path": "/behaviors/-",
+		"value": {
+			"name": "carryon:carryableinteract",
+			"properties": {
+				"enabledCondition": "carryon.Interactables.Door"
+			}
+		},
+		"dependsOn": [
+			{
+				"modid": "medievalarchitecture"
+			}
+		]
+	}
+]

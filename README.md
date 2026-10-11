@@ -67,7 +67,9 @@ These are used together with **right click** for carry actions.
 | Carry action modifier (pick up / place / carry interactions) | `Shift` (Left Shift) |
 | Swap-back modifier (used with carry action modifier) | `Ctrl` (Left Ctrl) |
 
-Note that the game may show warnings of conflicting hotkeys since these are also the default sneak and sprint hotkeys. These conflicts can be safely ignored.
+The game may show warnings of conflicting hotkeys since these are also the default sneak and sprint hotkeys. These can be safely ignored.
+
+CarryOn only supports **single-key** bindings for these two modifiers (no multi-key combinations such as `Shift + Ctrl`). If you rebind them, each must be a single key. CarryOn detects and warns in chat if the carry and swap-back keys are bound to the same key, or if either is bound as a multi-key combination — fix the binding to dismiss the warning.
 
 ### Function Hotkeys
 
@@ -125,15 +127,34 @@ For a full compatibility list of supported mods, see [Mod Support Inventory](doc
 
 ## Documentation
 
-Additional project documentation:
+User-facing documentation:
 
 - [Vanilla Block Inventory](docs/vanilla-block-inventory.md)
 - [CarryOn Config Reference](docs/carryon-config.md)
-- [CarryOn Chat Commands](docs/carryon-chat-commands.md)
+- [CarryOn Chat Commands](docs/carryon-chat-commands.md) (client & server)
 - [Dropped Block Entity](docs/dropped-block-entity.md)
 - [Automatic Behavior Assignment](docs/automatic-behavior-assignment.md)
 - [Mod Support Inventory](docs/mod-support-inventory.md)
 - [Modding Guide](docs/modding-guide.md)
+- [Known Issues](docs/known-issues.md)
+
+Developer documentation — internals, invariants, and the reasoning behind them:
+
+- [Technical Overview](docs/technical-overview/README.md) — index of all twelve internals documents
+- [Design Decisions](docs/technical-overview/design-decisions.md) — start here for *why* something
+  works the way it does; each entry states the decision, the constraint behind it, and what is
+  deliberately not handled
+- [Behavioral Conditioning](docs/technical-overview/behavioral-conditioning.md)
+- [CarryManager and Handler Pipeline](docs/technical-overview/carry-manager-and-handlers.md)
+- [Carryability State Sync](docs/technical-overview/carryability-sync.md)
+- [Config Initialization and Flow](docs/technical-overview/config-initialization-and-flow.md)
+- [Entity Handler System](docs/technical-overview/entity-handler-system.md)
+- [Entity Carry Renderer Pipeline](docs/technical-overview/entity-carry-renderer-pipeline.md)
+- [Transform Template System](docs/technical-overview/transform-template-system.md)
+- [Transform Group Value Propagation](docs/technical-overview/transform-group-value-propagation.md)
+- [Hint Selection Policy](docs/technical-overview/hint-selection-policy.md)
+- [Carried Chest/Trunk Rendering](docs/technical-overview/carried-chest-trunk-rendering.md)
+- [Carried Plant/Container Rendering](docs/technical-overview/carried-plant-container-rendering.md)
 
 ## Modding
 

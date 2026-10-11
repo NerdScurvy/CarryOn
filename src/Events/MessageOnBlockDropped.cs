@@ -1,4 +1,5 @@
 using CarryOn.API.Common.Interfaces;
+using CarryOn.API.Common.Models;
 using CarryOn.API.Event.Data;
 using CarryOn.Common.Logic;
 using Vintagestory.API.Common;
@@ -29,13 +30,23 @@ namespace CarryOn.Events
                     );
 
             var player = (e.Entity as EntityPlayer)?.Player as IServerPlayer;
+            if (player == null) return;
 
             var name = e.CarriedBlock?.ItemStack?.GetName()?.ToLower();
             var slot = e.CarriedBlock != null
-                ? LocalizationHelper.GetLang($"slot-{e.CarriedBlock.Slot.ToString().ToLower()}")
+                ? LocalizationHelper.GetLang(player, SlotWord(e.CarriedBlock.Slot))
                 : "unknown";
 
-            player?.SendMessage(GlobalConstants.GeneralChatGroup, Lang.Get(messageKey, name, slot), EnumChatType.Notification);
+            player.SendMessage(GlobalConstants.GeneralChatGroup,
+                LocalizationHelper.GetLang(player, messageKey, name ?? string.Empty, slot),
+                EnumChatType.Notification);
         }
+
+        private static string SlotWord(CarrySlot slot) => slot switch
+        {
+            CarrySlot.Hands => "slot-hands",
+            CarrySlot.Back => "slot-back",
+            _ => "unknown"
+        };
     }
 }

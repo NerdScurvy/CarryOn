@@ -6,6 +6,7 @@ using CarryOn.Common.Behaviors;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
+using Vintagestory.GameContent;
 
 namespace CarryOn.Utility
 {
@@ -75,7 +76,11 @@ namespace CarryOn.Utility
         /// <param name="world"></param>
         /// <returns></returns>
         public static CarryEvents GetCarryEvents(this IWorldAccessor world)
-            => world.GetCarrySystem().CarryEvents;
+        {
+            CarrySystem? system = world.GetCarrySystem();
+            return system?.CarryEvents
+                ?? throw new InvalidOperationException("CarrySystem not loaded");
+        }
 
 
         /* ------------------------------ */
@@ -83,19 +88,35 @@ namespace CarryOn.Utility
         /* ------------------------------ */
 
         /// <summary>
-        /// Gets the carryable behavior of the block or default.
-        /// Uses the <see cref="CarriedBlock.CachedCarryableBehavior"/> to avoid
-        /// repeated linear scans of the block's behavior list on the render hot path.
+        /// Gets the carryable behavior the block currently mounts, or default.
         /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The block's behaviors are remounted as fresh instances by every
+        /// conditioning pass, so a behavior resolved earlier can be an instance no
+        /// pass mounted any more. This accessor therefore resolves on every call, and
+        /// no churn source (a recondition, the client's snapshot reconcile, a future
+        /// pass) can leave a stale read behind. Resolving here is the only place that
+        /// can be made correct: no invalidation site can reach the live carries,
+        /// because <c>CarriedBlockTreeSerializer.DeserializeSafe</c> builds a fresh
+        /// <see cref="CarriedBlock"/> on every read, so enumerating carried blocks
+        /// hands back objects nobody is holding.
+        /// </para>
+        /// <para>
+        /// This costs nothing measurable. A render-path cache used to sit here
+        /// (<c>CarriedBlock.CachedCarryableBehavior</c>, removed in the 2.0 release
+        /// candidate), but the read paths that matter - render, interaction - receive
+        /// a freshly deserialized <see cref="CarriedBlock"/> per call, so that cache
+        /// was never warm and the block's behavior list was already scanned per call.
+        /// The only sites that did hold a <see cref="CarriedBlock"/> across calls were
+        /// interaction-scoped (a drag's cached carry target, the pack-adjustment
+        /// state). Resolving per call also keeps the render caches honest: the
+        /// render-variant signature is built from this behavior, so a churned
+        /// behavior re-keys the transform plans and render infos by itself.
+        /// </para>
+        /// </remarks>
         public static BlockBehaviorCarryable GetCarryableBehavior(this CarriedBlock carriedBlock)
-        {
-            if (carriedBlock.CachedCarryableBehavior is BlockBehaviorCarryable cached)
-                return cached;
-
-            var behavior = carriedBlock.Block.GetBehaviorOrDefault(BlockBehaviorCarryable.Default);
-            carriedBlock.CachedCarryableBehavior = behavior;
-            return behavior;
-        }
+            => carriedBlock.Block.GetBehaviorOrDefault(BlockBehaviorCarryable.Default);
 
 
         /// <summary>
@@ -133,6 +154,103 @@ namespace CarryOn.Utility
             // Active slot must be main hotbar (This excludes the backpack slots)
             var activeHotbarSlot = entityPlayer.Player.InventoryManager.ActiveHotbarSlotNumber;
             return (activeHotbarSlot >= 0) && (activeHotbarSlot < CarryCodes.Defaults.HotbarSize);
+        }
+
+
+        /* ------------------------------ */
+        /* ItemSlot Extensions            */
+        /* ------------------------------ */
+
+        /// <summary>
+        /// Returns whether the slot's item is a bag that <b>renders on the player</b> when
+        /// worn - the <c>attachableToEntity.categoryCode == "backpack"</c> attribute. Used
+        /// for the worn-bag render/transform scan only: a worn held-only bag (linen sack)
+        /// occupies the slot but never renders and is correctly skipped.
+        /// </summary>
+        public static bool IsBagItem(this ItemSlot? slot)
+        {
+            return slot?.Itemstack != null && slot.Itemstack.IsWearableBagStack();
+        }
+
+        /* ------------------------------ */
+        /* ItemStack Extensions           */
+        /* ------------------------------ */
+
+        /// <summary>
+        /// Returns whether the stack renders on the player when worn - the
+        /// <c>attachableToEntity.categoryCode == "backpack"</c> attribute. This is a
+        /// <b>render</b> marker, not a slot-fitment one: the linen sack and other held-only
+        /// bags occupy vanilla worn-bag slots without ever rendering.
+        /// </summary>
+        public static bool IsWearableBagStack(this ItemStack? stack)
+        {
+            return stack != null
+                && stack.ItemAttributes?["attachableToEntity"]?["categoryCode"]?.AsString() == "backpack";
+        }
+
+        /// <summary>
+        /// Returns whether the stack fits the vanilla worn-bag slots - the exact rule
+        /// <see cref="ItemSlotBackpack"/> applies:
+        /// <c>(Collectible.GetStorageFlags(stack) &amp; EnumItemStorageFlags.Backpack) != 0</c>.
+        /// In vanilla this is exclusive to the bag family and covers every bag, wearable or
+        /// held-only (the linen sack occupies a worn slot without rendering on the player).
+        /// </summary>
+        public static bool IsBackpackStowable(this ItemStack? stack)
+        {
+            return stack?.Collectible != null
+                && (stack.Collectible.GetStorageFlags(stack) & EnumItemStorageFlags.Backpack) > 0;
+        }
+
+        /// <summary>
+        /// Returns whether the stack carries vanilla's
+        /// <see cref="CollectibleBehaviorGroundStoredHeldBag"/> behavior - the marker that
+        /// makes Ctrl+right-click open a ground-stored bag's contents dialog. Every vanilla
+        /// bag, wearable or held-only, has it; non-bag ground-storable items do not.
+        /// </summary>
+        public static bool IsGroundStoredHeldBag(this ItemStack? stack)
+        {
+            return stack?.Collectible?.GetBehavior<CollectibleBehaviorGroundStoredHeldBag>() != null;
+        }
+
+        /// <summary>
+        /// Returns whether the stack is a bag eligible for CarryOn's ground-storage bag
+        /// features (pickup into hands): a ground-stored held bag (vanilla's marker) or any
+        /// stack the vanilla worn-bag slots accept (the bag-family storage flag).
+        /// </summary>
+        public static bool IsGroundStorageBagStack(this ItemStack? stack)
+        {
+            return stack.IsGroundStoredHeldBag() || stack.IsBackpackStowable();
+        }
+
+
+        /* ------------------------------ */
+        /* BlockEntityGroundStorage Ext.  */
+        /* ------------------------------ */
+
+        /// <summary>
+        /// Returns whether the ground storage slot targeted by the given <see cref="BlockSelection"/>
+        /// contains a bag eligible for the bag pickup (a ground-stored held bag or a wearable
+        /// backpack). Uses <see cref="BlockEntityGroundStorage.GetSlotAt"/> to resolve the slot
+        /// from the hit position, so only the targeted slot is checked - not all slots.
+        /// </summary>
+        public static bool IsGroundStorageBagTargeted(
+            this BlockEntityGroundStorage? beg, BlockSelection? selection)
+        {
+            if (beg == null || selection == null) return false;
+            return beg.GetSlotAt(selection)?.Itemstack.IsGroundStorageBagStack() == true;
+        }
+
+        /// <summary>
+        /// Returns whether the targeted ground storage slot contains a held bag - an item with
+        /// vanilla's <see cref="CollectibleBehaviorGroundStoredHeldBag"/> behavior, whose
+        /// Ctrl+right-click opens the contents dialog. This is the exact set vanilla opens bag
+        /// GUIs for, so the carried-bag GUI-open forwards to vanilla only for these.
+        /// </summary>
+        public static bool IsGroundStorageHeldBagTargeted(
+            this BlockEntityGroundStorage? beg, BlockSelection? selection)
+        {
+            if (beg == null || selection == null) return false;
+            return beg.GetSlotAt(selection)?.Itemstack.IsGroundStoredHeldBag() == true;
         }
 
 

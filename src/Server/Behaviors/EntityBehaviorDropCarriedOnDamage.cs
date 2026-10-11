@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
-using CarryOn.Common.Models;
+using CarryOn.Common.Interfaces;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
 using static CarryOn.Common.Models.CarryCodes;
@@ -11,16 +11,22 @@ namespace CarryOn.Server.Behaviors
 {
     public class EntityBehaviorDropCarriedOnDamage : EntityBehavior
     {
-        public static string Name { get; }
-            = GetCarryCode("dropondamage");
+        public static string Name { get; } = GetCarryCode("dropondamage");
 
         private static ICarryManager? carryManager;
-        private static DropCarriedOnDamageConfig? config;
+        private static IConfigProvider? configProvider;
 
-        public static void Init(ICarryManager manager, DropCarriedOnDamageConfig? dropConfig)
+        /// <summary>
+        /// Initializes static fields with the carry manager. Must be called once during
+        /// server startup (called from CarrySystem.StartServerSide). Calling again with a
+        /// different manager instance would silently keep the stale reference - the singleton
+        /// mod lifecycle means this should not happen in practice.
+        /// </summary>
+        public static void Init(ICarryManager manager)
         {
             carryManager = manager ?? throw new ArgumentNullException(nameof(manager));
-            config = dropConfig;
+            configProvider = manager as IConfigProvider
+                ?? throw new ArgumentException("manager must implement IConfigProvider", nameof(manager));
         }
 
         public override string PropertyName() => Name;
@@ -32,6 +38,7 @@ namespace CarryOn.Server.Behaviors
 
         public override void OnEntityReceiveDamage(DamageSource damageSource, ref float damage)
         {
+            var config = configProvider?.Config.DropCarriedOnDamage;
             if (config == null) return;
             if (damageSource == null) return;
             if (damageSource.Type == EnumDamageType.Heal) return;

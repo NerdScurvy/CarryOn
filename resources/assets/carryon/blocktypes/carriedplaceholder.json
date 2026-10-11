@@ -1,0 +1,29 @@
+{
+  "code": "carriedplaceholder",
+  "class": "Block",
+  "blockmaterial": "Wood",
+  "drawtype": "JSON",
+  "shape": { "base": "game:block/basic/cube" },
+  "textures": {
+    "all": { "base": "survival:block/wood-generic" }
+  },
+  "creativeinventory": {
+    "general": [],
+    "decorative": [],
+    "carryon": []
+  },
+  "attributes": {
+    "handbook": {
+      "hide": true
+    }
+  },
+  "replaceable": 0,
+  "resistance": 0,
+  "lightAbsorption": 0,
+  "sounds": {
+    "place": "game:tick",
+    "break": "game:tick",
+    "hit": "game:tick",
+    "walk": "game:tick"
+  }
+}

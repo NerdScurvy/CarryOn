@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using CarryOn.Common.Behaviors;
+using CarryOn.Common.Models;
 using CarryOn.Utility;
+using Newtonsoft.Json.Linq;
 using Vintagestory.API.Common;
 
 namespace CarryOn.Common.Logic
@@ -9,7 +11,7 @@ namespace CarryOn.Common.Logic
     {
         public static string? ResolveCarryType(ItemStack? stack)
         {
-            var fromAttributes = stack?.Attributes?.GetString("type");
+            var fromAttributes = stack?.Attributes?.GetString(CarryCodes.AttributeKeys.Type);
             if (!string.IsNullOrWhiteSpace(fromAttributes))
                 return fromAttributes;
 
@@ -20,6 +22,41 @@ namespace CarryOn.Common.Logic
             return stack?.Block?.Attributes?["type"]?.AsString();
         }
 
+        public static List<string>? EnumerateFallbackCarryTypes(ItemStack? stack, BlockBehaviorCarryable? behavior)
+        {
+            if (behavior?.TypeGroup?.Count > 0)
+            {
+                var results = new List<string>();
+                foreach (var type in behavior.TypeGroup.Keys)
+                {
+                    if (string.IsNullOrWhiteSpace(type)) continue;
+                    results.Add(type);
+                }
+                return results;
+            }
+
+            var typesArray = stack?.Block?.Attributes?["types"]?.AsArray();
+            if (typesArray?.Length > 0)
+            {
+                var results = new List<string>();
+                foreach (var entry in typesArray)
+                {
+                    var tokenType = entry.Token?.Type;
+                    string? type = tokenType switch
+                    {
+                        JTokenType.String => entry.AsString(),
+                        JTokenType.Object => entry["code"]?.AsString(),
+                        _ => null
+                    };
+                    if (string.IsNullOrWhiteSpace(type)) continue;
+                    results.Add(type);
+                }
+                return results;
+            }
+
+            return null;
+        }
+
         public static bool TryGetValue(IDictionary<string, float>? map, string key, out float value)
         {
             value = 0f;
@@ -27,10 +64,10 @@ namespace CarryOn.Common.Logic
             if (map == null || string.IsNullOrWhiteSpace(key))
                 return false;
 
-            if (JsonHelper.TryGetValueTrimmedIgnoreCase(map, key, out value))
+            if (WildcardMatcher.TryGetValueTrimmedIgnoreCase(map, key, out value))
                 return true;
 
-            return JsonHelper.TryGetTrailingWildcardValue(map, key, out value);
+            return WildcardMatcher.TryGetTrailingWildcardValue(map, key, out value);
         }
 
         public static bool TryResolveByTypeOverride(

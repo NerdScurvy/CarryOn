@@ -22,9 +22,6 @@ namespace CarryOn.Common.Logic
             configProvider = manager as IConfigProvider ?? throw new ArgumentException("manager must implement IConfigProvider", nameof(manager));
         }
 
-        private static ItemStack[]? handsfreeStacks;
-        private static ItemStack[]? nohandsfreeStacks;
-
         public static WorldInteraction[] BuildHelp(
             IWorldAccessor world,
             BlockSelection selection,
@@ -38,12 +35,9 @@ namespace CarryOn.Common.Logic
             if (selection?.Block?.CanCarryInSlot(CarrySlot.Hands, itemStack) == false)
                 return [];
 
-            handsfreeStacks ??= [new ItemStack(world.GetItem(new AssetLocation("carryon:icon-handsfree")))];
-            nohandsfreeStacks ??= [new ItemStack(world.GetItem(new AssetLocation("carryon:icon-nohandsfree")))];
-
             bool canDoCarryAction = forPlayer?.Entity?.CanDoCarryAction(requireEmptyHanded: true) == true;
             bool isCarryingInHands = forPlayer?.Entity != null && carryManager?.GetCarried(forPlayer.Entity, CarrySlot.Hands) != null;
-            var pickupStacks = canDoCarryAction ? handsfreeStacks : nohandsfreeStacks;
+            var iconPickupStacks = HelpIconStacks.Get(world, canDoCarryAction ? "icon-handsfree" : "icon-nohandsfree");
 
             bool isTargetCarryable = selection?.Block != null && itemStack != null;
 
@@ -88,15 +82,15 @@ namespace CarryOn.Common.Logic
             var interactions = new List<WorldInteraction>();
 
             if ((allowedHints & CarryHintType.BasePickup) != 0)
-                interactions.Add(CreateBasePickupInteraction(pickupStacks));
+                interactions.Add(CreateBasePickupInteraction(iconPickupStacks));
 
             if ((allowedHints & CarryHintType.ForcePickup) != 0)
-                interactions.Add(CreateForcePickupInteraction(pickupStacks));
+                interactions.Add(CreateForcePickupInteraction(iconPickupStacks));
 
             return interactions.Count > 0 ? [.. interactions] : [];
         }
 
-        private static WorldInteraction CreateBasePickupInteraction(ItemStack[] itemStacks)
+        private static WorldInteraction CreateBasePickupInteraction(ItemStack[]? iconStacks)
         {
             return new WorldInteraction
             {
@@ -104,11 +98,11 @@ namespace CarryOn.Common.Logic
                 HotKeyCode = HotKeyCodes.Pickup,
                 MouseButton = EnumMouseButton.Right,
                 RequireFreeHand = true,
-                Itemstacks = itemStacks
+                Itemstacks = iconStacks
             };
         }
 
-        private static WorldInteraction CreateForcePickupInteraction(ItemStack[] itemStacks)
+        private static WorldInteraction CreateForcePickupInteraction(ItemStack[]? iconStacks)
         {
             return new WorldInteraction
             {
@@ -116,7 +110,7 @@ namespace CarryOn.Common.Logic
                 HotKeyCodes = [HotKeyCodes.SwapBackModifier, HotKeyCodes.Pickup],
                 MouseButton = EnumMouseButton.Right,
                 RequireFreeHand = true,
-                Itemstacks = itemStacks
+                Itemstacks = iconStacks
             };
         }
 

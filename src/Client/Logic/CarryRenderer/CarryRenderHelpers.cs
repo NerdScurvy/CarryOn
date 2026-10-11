@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using CarryOn.API.Common.Models;
 using CarryOn.Client.Models;
+using CarryOn.Utility;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
@@ -73,6 +74,23 @@ namespace CarryOn.Client.Logic.CarryRenderer
             return false;
         }
 
+        internal static void CopyRenderInfo(CarriedRenderInfo target, CarriedRenderInfo source, bool deepCopy = false)
+        {
+            target.RenderInfo = source.RenderInfo;
+            target.RenderEnabled = source.RenderEnabled;
+            target.TintColor = source.TintColor;
+            target.RgbGlowIntensity = deepCopy ? source.RgbGlowIntensity?.Clone() : source.RgbGlowIntensity;
+            target.EnableVertexWarp = source.EnableVertexWarp;
+            target.AlphaTestOpaque = source.AlphaTestOpaque;
+            target.AlphaTestBlend = source.AlphaTestBlend;
+            target.NormalShaded = source.NormalShaded;
+            target.RenderPass = source.RenderPass;
+            target.SecondaryTransform = deepCopy ? source.SecondaryTransform?.Clone() : source.SecondaryTransform;
+            target.SkipTransform = source.SkipTransform;
+            target.IsAttachedRoot = source.IsAttachedRoot;
+            target.IsAttachedBlock = source.IsAttachedBlock;
+        }
+
         internal static CarriedRenderInfo[] CloneCarriedRenderInfos(CarriedRenderInfo[] source)
         {
             if (source == null) return Array.Empty<CarriedRenderInfo>();
@@ -83,22 +101,9 @@ namespace CarryOn.Client.Logic.CarryRenderer
                 var s = source[i];
                 if (s == null) continue;
 
-                clone[i] = new CarriedRenderInfo
-                {
-                    RenderInfo = s.RenderInfo,
-                    RenderEnabled = s.RenderEnabled,
-                    TintColor = s.TintColor,
-                    EnableVertexWarp = s.EnableVertexWarp,
-                    AlphaTestOpaque = s.AlphaTestOpaque,
-                    AlphaTestBlend = s.AlphaTestBlend,
-                    NormalShaded = s.NormalShaded,
-                    RgbGlowIntensity = s.RgbGlowIntensity?.Clone(),
-                    RenderPass = s.RenderPass,
-                    SecondaryTransform = s.SecondaryTransform?.Clone(),
-                    SkipTransform = false,
-                    IsAttachedRoot = s.IsAttachedRoot,
-                    IsAttachedBlock = s.IsAttachedBlock
-                };
+                clone[i] = new CarriedRenderInfo { RenderInfo = s.RenderInfo };
+                CopyRenderInfo(clone[i], s, deepCopy: true);
+                clone[i].SkipTransform = false;
             }
 
             return clone;
@@ -174,12 +179,12 @@ namespace CarryOn.Client.Logic.CarryRenderer
             return string.Concat(entity?.EntityId.ToString() ?? "0", "|", ((int)slot).ToString());
         }
 
-        internal static string BuildFrameCacheKey(EntityAgent entity, CarriedBlock carried, string? planSignature, string? renderVariantSignature)
+        internal static string BuildFrameCacheKey(EntityAgent? entity, CarriedBlock? carried, string? planSignature, string? renderVariantSignature)
         {
             return string.Concat(
                 entity?.EntityId.ToString() ?? "0", "|",
-                ((int)carried.Slot).ToString(), "|",
-                carried?.ItemStack?.Collectible?.Code?.ToString() ?? "none", "|",
+                ((int?)carried?.Slot ?? 0).ToString(), "|",
+                carried?.ItemStack?.Collectible?.Code?.ToString() ?? CarrySignatureBuilder.MissingStackCode, "|",
                 planSignature ?? "noplan", "|",
                 renderVariantSignature ?? "novariant");
         }
@@ -225,6 +230,45 @@ namespace CarryOn.Client.Logic.CarryRenderer
             return translucentPhase
                 ? (mask & RenderPhaseMask.Translucent) != 0
                 : (mask & RenderPhaseMask.Opaque) != 0;
+        }
+
+        internal static Block? ResolveAttachedVariantBlock(IWorldAccessor world, AssetLocation? originalCode, BlockFacing? originalLocalFace, int offsetSteps, out BlockFacing? rotatedFace)
+        {
+            rotatedFace = originalLocalFace != null
+                ? CarryRotationHelper.RotateFacing(originalLocalFace, offsetSteps)
+                : null;
+
+            Block? variantBlock = null;
+            if (originalCode != null)
+            {
+                if (rotatedFace != null)
+                    variantBlock = CarryRotationHelper.GetRotatedVariantBlock(world, originalCode, rotatedFace);
+                variantBlock ??= world.GetBlock(originalCode);
+            }
+            return variantBlock;
+        }
+
+        internal static float[] SetupDrawMatrix(CarryRenderDispatcher dispatcher, CarriedRenderInfo info, float[] initialMatrix, float[]? attachedRootMatrix, Vec3f zeroOffset, bool alwaysRent)
+        {
+            if (!alwaysRent && info.SkipTransform)
+                return initialMatrix;
+
+            var matrix = dispatcher.RentMatrix();
+            if (info.IsAttachedBlock && attachedRootMatrix != null)
+                Array.Copy(attachedRootMatrix, matrix, 16);
+            else
+                Array.Copy(initialMatrix, matrix, 16);
+
+            if (!info.SkipTransform)
+            {
+                CarryTransformResolver.ApplyTransformInPlace(info.RenderInfo.Transform, matrix, zeroOffset);
+                if (info.SecondaryTransform != null)
+                {
+                    CarryTransformResolver.ApplyTransformInPlace(info.SecondaryTransform, matrix, zeroOffset);
+                }
+            }
+
+            return matrix;
         }
 
         internal static Vec4f? SampleColorMapTint(string? climateTintMap, string? seasonalTintMap, BlockPos pos, ICoreClientAPI api)

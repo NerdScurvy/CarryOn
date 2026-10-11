@@ -142,7 +142,7 @@ namespace CarryOn.Client.Logic.TransformTemplates
             string? climateTintMap = null, seasonalTintMap = null;
             float? glowIntensity = null;
             bool? attachedRoot = null;
-            bool enabled = true;
+            bool? enabled = null;
 
             if (JsonHelper.TryGetString(settingsJson, "id", out var idVal)) id = idVal;
 

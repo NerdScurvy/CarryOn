@@ -23,7 +23,9 @@ namespace CarryOn.Common.Models
         Put,
         /// <summary>Taking a block from a block entity to carry.</summary>
         Take,
-        /// <summary>Picking up dropped block entity from the world to carry.</summary>
-        PickupEntity
+        /// <summary>Picking up a dropped block entity from the world to carry.</summary>
+        PickupEntity,
+        /// <summary>Picking a single bag item out of a ground storage slot to carry.</summary>
+        PickUpGroundStorageBag
     }
 }

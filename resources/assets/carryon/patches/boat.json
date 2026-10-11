@@ -5,7 +5,22 @@
 		"op": "add",
 		"path": "/client/behaviors/-",
 		"value": {
-			"code": "carryon:attachablecarryable"
+			"code": "carryon:carryable",
+			"showHelp": true,
+			"slotHandlerCode": "auto"
+		}
+	},
+	{
+		"file": "game:entities/nonliving/boat-raft",
+		"side": "Server",
+		"op": "add",
+		"path": "/client/behaviors/-",
+		"value": {
+			"code": "carryon:attachablecarryable",
+			"carrySlots": [
+				"FrontSeatAP",
+				"BackSeatAP"
+			]
 		}
 	},
 	{
@@ -14,7 +29,22 @@
 		"op": "add",
 		"path": "/server/behaviors/-",
 		"value": {
-			"code": "carryon:attachablecarryable"
+			"code": "carryon:carryable",
+			"showHelp": true,
+			"slotHandlerCode": "auto"
+		}
+	},
+	{
+		"file": "game:entities/nonliving/boat-raft",
+		"side": "Server",
+		"op": "add",
+		"path": "/server/behaviors/-",
+		"value": {
+			"code": "carryon:attachablecarryable",
+			"carrySlots": [
+				"FrontSeatAP",
+				"BackSeatAP"
+			]
 		}
 	},
 	{
@@ -23,7 +53,21 @@
 		"op": "add",
 		"path": "/client/behaviors/-",
 		"value": {
-			"code": "carryon:attachablecarryable"
+			"code": "carryon:carryable",
+			"showHelp": true,
+			"slotHandlerCode": "auto"
+		}
+	},
+	{
+		"file": "game:entities/nonliving/boat-sailed",
+		"side": "Server",
+		"op": "add",
+		"path": "/client/behaviors/-",
+		"value": {
+			"code": "carryon:attachablecarryable",
+			"carrySlots": [
+				"*Store*"
+			]
 		}
 	},
 	{
@@ -32,7 +76,21 @@
 		"op": "add",
 		"path": "/server/behaviors/-",
 		"value": {
-			"code": "carryon:attachablecarryable"
+			"code": "carryon:carryable",
+			"showHelp": true,
+			"slotHandlerCode": "auto"
+		}
+	},
+	{
+		"file": "game:entities/nonliving/boat-sailed",
+		"side": "Server",
+		"op": "add",
+		"path": "/server/behaviors/-",
+		"value": {
+			"code": "carryon:attachablecarryable",
+			"carrySlots": [
+				"*Store*"
+			]
 		}
 	}
 ]

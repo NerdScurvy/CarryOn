@@ -32,11 +32,19 @@ namespace CarryOn.Client.Logic.CarryRenderer
             var isSneaking = player.Controls?.Sneak ?? false;
             var isSitting = CarryAnimationResolver.IsSitting(player);
             var desiredAnimations = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            var handsCarried = carryManager.GetCarried(player, CarrySlot.Hands);
+            var handsCarried = carryManager.GetRenderableCarried(player, CarrySlot.Hands);
 
             if (handsCarried != null)
             {
                 var slotSettings = handsCarried.GetCarryableBehavior()?.Slots?[handsCarried.Slot];
+                if (slotSettings == null)
+                {
+                    // The render-only placeholder (an unreadable carry from a removed/disabled
+                    // mod) has no BlockBehaviorCarryable, so fall back to the default hands
+                    // carry animation; the vanilla idle pose would otherwise clip the block
+                    // into the body/head while idle animations play.
+                    slotSettings = CarryAnimationResolver.DefaultHandsSettings;
+                }
                 if (slotSettings != null)
                 {
                     knownAnimations.UnionWith(CarryAnimationResolver.GetHandAnimationCodes(slotSettings));

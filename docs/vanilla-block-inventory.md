@@ -40,7 +40,7 @@ Walk speed values shown are explicit overrides. A blank entry means the slot's c
 | game:blocktypes/metal/plaque | `carryon.Carryables.Sign` ¹ | Yes | — | -0.50 / — | 0.8 / 0.6 / 1.2 | — | — | — |
 | game:blocktypes/stone/quern | `carryon.Carryables.Quern` | Yes | — | -0.40 / — | 1.0 / 0.75 / 1.5 | — | — | — |
 | game:blocktypes/reed/reedchest | `carryon.Carryables.ReedChest` | Yes | Yes | -0.15 / 0.0 | 0.4 / 0.3 / 0.6 | `carryon.CarryablesOnBack.ReedChest` | Yes | carryon:carry-reedchest |
-| game:blocktypes/machine/resonator | `carryon.Carryables.Resonator` | Yes | — | -0.15 / — | 0.4 / 0.3 / 0.6 | — | — | — |
+| game:blocktypes/machine/resonator | `carryon.Carryables.Resonator` | Yes | Yes | -0.15 / — | 0.4 / 0.3 / 0.6 | `carryon.CarryablesOnBack.Resonator` | — | carryon:carry-resonator |
 | game:blocktypes/wood/shelf | `carryon.Carryables.Shelf` | Yes | — | — | 0.8 / 0.6 / 1.2 | — | — | — |
 | game:blocktypes/wood/sign | `carryon.Carryables.Sign` | Yes | — | — | 0.8 / 0.6 / 1.2 | — | — | — |
 | game:blocktypes/clay/fired/storagevessel | `carryon.Carryables.StorageVessel` | Yes | Yes | — | 0.8 / 0.6 / 1.2 | `carryon.CarryablesOnBack.StorageVessel` | Yes | carryon:carry-storagevessel |
@@ -76,6 +76,8 @@ Blocks that receive `CarryableInteract` behavior, allowing a player to interact 
 | game:blocktypes/clay/door-kiln | `carryon.Interactables.Door` | — |
 | game:blocktypes/wood/woodtyped/fencegate | `carryon.Interactables.Door` | — |
 | game:blocktypes/wood/woodtyped/roughhewnfencegate | `carryon.Interactables.Door` | — |
+| game:blocktypes/wood/wattlegate | `carryon.Interactables.Door` | — |
+| game:blocktypes/wood/fence-bamboogate | `carryon.Interactables.Door` | — |
 | game:blocktypes/reed/reedchest | `carryon.Interactables.Storage` | Yes |
 | game:blocktypes/clay/storagevessel* | `carryon.Interactables.Storage` | Yes ⁴ |
 | game:blocktypes/wood/woodtyped/trapdoor | `carryon.Interactables.Door` | — |

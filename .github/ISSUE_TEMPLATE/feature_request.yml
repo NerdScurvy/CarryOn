@@ -1,0 +1,47 @@
+name: Feature Request
+description: Suggest a new feature or improvement for CarryOn
+title: "[Feature]: "
+labels: ["enhancement"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have an idea to improve CarryOn? Describe it below.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Feature Description
+      description: What would you like CarryOn to do?
+      placeholder: "I'd like to be able to carry animals on my back..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use Case
+      description: Why is this feature useful? What problem does it solve?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      options:
+        - New carryable block type
+        - Carry behavior change
+        - Config option
+        - Mod compatibility
+        - UI/HUD improvement
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: mods
+    attributes:
+      label: Related Mods
+      description: If this involves compatibility with another mod, link it here.

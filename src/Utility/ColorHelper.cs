@@ -19,9 +19,9 @@ namespace CarryOn.Utility
             var h = NormalizeHexInput(hex);
             if (h == null) return false;
 
-            int r = int.Parse(h.Substring(0, 2), System.Globalization.NumberStyles.HexNumber);
-            int g = int.Parse(h.Substring(2, 2), System.Globalization.NumberStyles.HexNumber);
-            int b = int.Parse(h.Substring(4, 2), System.Globalization.NumberStyles.HexNumber);
+            if (!int.TryParse(h.Substring(0, 2), System.Globalization.NumberStyles.HexNumber, null, out int r)) return false;
+            if (!int.TryParse(h.Substring(2, 2), System.Globalization.NumberStyles.HexNumber, null, out int g)) return false;
+            if (!int.TryParse(h.Substring(4, 2), System.Globalization.NumberStyles.HexNumber, null, out int b)) return false;
             result = new Vec4f(r / 255f, g / 255f, b / 255f, alpha);
             return true;
         }

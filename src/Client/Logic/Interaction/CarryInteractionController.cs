@@ -1,7 +1,7 @@
 using System;
 using CarryOn.API.Common.Interfaces;
 using CarryOn.Common.Models;
-using CarryOn.Client.Models;
+using CarryOn.Common.Interfaces;
 using CarryOn.Common.Logic;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
@@ -14,32 +14,46 @@ namespace CarryOn.Client.Logic.Interaction
         private readonly CarryInteractionStateMachine stateMachine;
 
         public CarryInteraction Interaction => stateMachine.Interaction;
-        public Vintagestory.Client.NoObf.HudElementInteractionHelp? HudHelp
+        internal Vintagestory.Client.NoObf.HudElementInteractionHelp? HudHelp
         {
             get => stateMachine.HudHelp;
             set => stateMachine.HudHelp = value;
         }
 
-        public bool RemoveInteractDelayWhileCarrying => validator.RemoveInteractDelayWhileCarrying;
-        public bool BackSlotEnabled => validator.BackSlotEnabled;
-        public float InteractSpeedMultiplier => validator.InteractSpeedMultiplier;
-
-        public CarryInteractionController(ICoreClientAPI api, ICarryManager carryManager, IClientNetworkChannel clientChannel, Action hideOverlay, Action<float> setOverlayProgress, ClientModConfig? clientModConfig = null)
+        public CarryInteractionController(ICoreClientAPI api, ICarryManager carryManager, IConfigProvider configProvider, IClientNetworkChannel clientChannel, Action hideOverlay, Action<float> setOverlayProgress, Action triggerHandsHighlight, Action triggerBackHighlight, ClientModConfig? clientModConfig = null)
         {
             ArgumentNullException.ThrowIfNull(api);
             ArgumentNullException.ThrowIfNull(carryManager);
+            ArgumentNullException.ThrowIfNull(configProvider);
             ArgumentNullException.ThrowIfNull(clientChannel);
             ArgumentNullException.ThrowIfNull(hideOverlay);
             ArgumentNullException.ThrowIfNull(setOverlayProgress);
+            ArgumentNullException.ThrowIfNull(triggerHandsHighlight);
+            ArgumentNullException.ThrowIfNull(triggerBackHighlight);
 
             var transferLogic = new TransferLogic(api, carryManager);
-            validator = new CarryInteractionValidator(api, carryManager, transferLogic, this);
-            stateMachine = new CarryInteractionStateMachine(api, carryManager, clientChannel, hideOverlay, setOverlayProgress, validator, transferLogic, clientModConfig);
+            validator = new CarryInteractionValidator(api, carryManager, configProvider, transferLogic, this);
+            stateMachine = new CarryInteractionStateMachine(api, carryManager, clientChannel, hideOverlay, setOverlayProgress, triggerHandsHighlight, triggerBackHighlight, validator, clientModConfig);
         }
 
         public void TryBeginInteraction(bool isInteracting, ref EnumHandling handled)
         {
-            validator.TryBeginInteraction(isInteracting, ref handled);
+            var result = validator.TryBeginInteraction(isInteracting);
+
+            if (result.PreventDefault)
+            {
+                handled = EnumHandling.PreventDefault;
+            }
+
+            switch (result.Outcome)
+            {
+                case BeginOutcome.Begin:
+                    stateMachine.BeginInteraction(result.Interaction);
+                    break;
+                case BeginOutcome.Complete:
+                    stateMachine.CompleteInteraction();
+                    break;
+            }
         }
 
         public void RefreshConfigCache()

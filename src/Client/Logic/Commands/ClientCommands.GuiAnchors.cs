@@ -1,3 +1,4 @@
+using CarryOn.API.Common.Models;
 using Vintagestory.API.Common;
 
 namespace CarryOn.Client.Logic.Commands
@@ -15,29 +16,8 @@ namespace CarryOn.Client.Logic.Commands
             if (!System.Enum.TryParse<HudCarried.Anchor>(anchorStr, true, out var anchor))
                 return TextCommandResult.Error("Invalid anchor. Use L1,L2,L3,R1,R2,R3");
 
-            var cfg = this.clientModConfig.Config;
-            if (cfg == null)
-                return TextCommandResult.Error("Client config not available.");
-
-            if (slotStr == "hands")
-            {
-                return MoveAnchor(anchor,
-                    c => c.HandsAnchor,
-                    (c, v) => c.HandsAnchor = v,
-                    c => c.BackAnchor,
-                    (c, v) => c.BackAnchor = v,
-                    "Hands");
-            }
-
-            if (slotStr == "back")
-            {
-                return MoveAnchor(anchor,
-                    c => c.BackAnchor,
-                    (c, v) => c.BackAnchor = v,
-                    c => c.HandsAnchor,
-                    (c, v) => c.HandsAnchor = v,
-                    "Back");
-            }
+            if (!TryGetConfig(out var cfg, out var configError))
+                return configError!;
 
             if (slotStr == "clear")
             {
@@ -48,20 +28,29 @@ namespace CarryOn.Client.Logic.Commands
                 if (!cleared)
                     return TextCommandResult.Error($"Anchor {anchor} was already empty");
 
-                try
-                {
-                    this.clientModConfig.Save(this.api);
-                }
-                catch (System.Exception ex)
-                {
-                    this.api.Logger.Error("Error clearing anchor: " + ex);
-                    return TextCommandResult.Error("Failed to clear anchor due to an error.");
-                }
-
-                return TextCommandResult.Success($"Cleared anchor {anchor}");
+                return SaveWithErrorHandling("Error clearing anchor", "Failed to clear anchor due to an error.")
+                    ?? TextCommandResult.Success($"Cleared anchor {anchor}");
             }
 
-            return TextCommandResult.Error("Invalid slot. Use 'hands', 'back', or 'clear'");
+            if (!System.Enum.TryParse<CarrySlot>(slotStr, true, out var slot) || slot == CarrySlot.Attached)
+                return TextCommandResult.Error("Invalid slot. Use 'hands', 'back', or 'clear'");
+
+            if (slot == CarrySlot.Hands)
+            {
+                return MoveAnchor(anchor,
+                    c => c.HandsAnchor,
+                    (c, v) => c.HandsAnchor = v,
+                    c => c.BackAnchor,
+                    (c, v) => c.BackAnchor = v,
+                    "Hands");
+            }
+
+            return MoveAnchor(anchor,
+                c => c.BackAnchor,
+                (c, v) => c.BackAnchor = v,
+                c => c.HandsAnchor,
+                (c, v) => c.HandsAnchor = v,
+                "Back");
         }
 
         protected TextCommandResult CmdCarryOnGuiReset(TextCommandCallingArgs args)
@@ -70,15 +59,9 @@ namespace CarryOn.Client.Logic.Commands
             {
                 cfg.HandsAnchor = HudCarried.HandsAnchorDefault;
                 cfg.BackAnchor = HudCarried.BackAnchorDefault;
-                cfg.AnchorBackgroundEnabled = true;
-                cfg.AnchorBackgroundColor = HudCarried.AnchorBackgroundColorDefault;
-                cfg.AnchorBackgroundAlpha = HudCarried.AnchorBackgroundAlphaDefault;
-                cfg.AnchorBorderEnabled = true;
-                cfg.AnchorBorderColor = HudCarried.AnchorBorderColorDefault;
-                cfg.AnchorBorderAlpha = HudCarried.AnchorBorderAlphaDefault;
-                cfg.IconHighlightEnabled = true;
-                cfg.IconHighlightColor = HudCarried.IconHighlightColorDefault;
-                cfg.IconHighlightAlpha = HudCarried.IconHighlightAlphaDefault;
+                ResetCategory(cfg, GuiCategory.Background);
+                ResetCategory(cfg, GuiCategory.Border);
+                ResetCategory(cfg, GuiCategory.Highlight);
             }, "CarryOn GUI anchors and visuals");
         }
 

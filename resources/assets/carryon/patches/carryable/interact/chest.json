@@ -5,7 +5,7 @@
 		"op": "add",
 		"path": "/behaviors/-",
 		"value": {
-			"name": "CarryableInteract",
+			"name": "carryon:carryableinteract",
 			"properties": {
 				"enabledCondition": "carryon.Interactables.Storage"
 			}

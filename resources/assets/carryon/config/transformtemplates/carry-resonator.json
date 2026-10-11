@@ -1,0 +1,44 @@
+{
+	"code": "carry-resonator",
+	"transformGroups": {
+		"hands": [
+			{
+				"id": "root",
+        "cullFaces": false,
+				"translationY": 0.18,
+				"rotationY": -51.0
+			}
+		],
+		"backpack-none": [
+			{
+				"id": "root",
+        "cullFaces": false,
+				"translation": [ 0.05, 0.04, 0.0312 ],
+				"rotation": [ 5.0, 40.0, -86.0 ]
+			}
+		],
+		"backpack-small": {
+			"extends": "backpack-none",
+			"overrides": [
+				{
+					"id": "root",
+					"translationY": 0.13,
+					"translationZ": 0.03125,
+					"rotationZ": -70.0
+				}
+			]
+		},
+		"backpack-large": {
+			"extends": "backpack-none",
+			"overrides": [
+				{
+					"id": "root",
+					"translationY": 0.046,
+					"translationZ": -0.0152,
+					"rotationX": 1.7,
+					"rotationZ": -70.0
+				}
+			]
+		}
+	}
+}

@@ -5,7 +5,7 @@
 		"op": "add",
 		"path": "/behaviorsByType/*/-",
 		"value": {
-			"name": "Carryable",
+			"name": "carryon:carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Clutter",
 				"translation": [ 0, 0, 0 ],

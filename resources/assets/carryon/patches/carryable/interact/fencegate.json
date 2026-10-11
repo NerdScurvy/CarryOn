@@ -5,7 +5,7 @@
 		"op": "add",
 		"path": "/behaviors/-",
 		"value": {
-			"name": "CarryableInteract",
+			"name": "carryon:carryableinteract",
 			"properties": {
 				"enabledCondition": "carryon.Interactables.Door"
 			}
@@ -17,7 +17,31 @@
 		"op": "add",
 		"path": "/behaviors/-",
 		"value": {
-			"name": "CarryableInteract",
+			"name": "carryon:carryableinteract",
+			"properties": {
+				"enabledCondition": "carryon.Interactables.Door"
+			}
+		}
+	},
+	{
+		"file": "game:blocktypes/wood/wattlegate",
+		"side": "Server",
+		"op": "add",
+		"path": "/behaviors/-",
+		"value": {
+			"name": "carryon:carryableinteract",
+			"properties": {
+				"enabledCondition": "carryon.Interactables.Door"
+			}
+		}
+	},
+	{
+		"file": "game:blocktypes/wood/fence-bamboogate",
+		"side": "Server",
+		"op": "add",
+		"path": "/behaviors/-",
+		"value": {
+			"name": "carryon:carryableinteract",
 			"properties": {
 				"enabledCondition": "carryon.Interactables.Door"
 			}

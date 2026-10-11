@@ -29,6 +29,17 @@ namespace CarryOn.Client.Logic.CarryRenderer
                 }
             };
 
+        /// <summary>
+        /// The default hands carry animation, used as a fallback when a slot holds a
+        /// render-only placeholder (an unreadable carry from a removed/disabled mod), whose
+        /// block has no <c>BlockBehaviorCarryable</c> to supply slot settings. Without it the
+        /// vanilla idle pose would be used and clip the block into the body/head.
+        /// </summary>
+        internal static SlotSettings DefaultHandsSettings { get; } = new()
+        {
+            Animation = GetCarryCode("holdheavy")
+        };
+
         internal static bool IsSitting(EntityPlayer player)
         {
             return (player?.Controls?.FloorSitting ?? false) || player?.MountedOn != null;

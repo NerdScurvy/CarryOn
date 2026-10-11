@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
 using CarryOn.Common.Models;
@@ -10,7 +9,6 @@ using CarryOn.Utility;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
-using Vintagestory.API.Util;
 using Vintagestory.GameContent;
 
 namespace CarryOn.Client.Logic.CarryRenderer
@@ -28,11 +26,11 @@ namespace CarryOn.Client.Logic.CarryRenderer
         private readonly CarryLabelDispatch labelDispatch;
         private readonly bool renderAttachedBlocks;
 
-        public CarryRenderDispatcher(ICoreClientAPI api, ICarryManager carryManager, CarryRenderCacheManager cacheManager, CarryFirstPersonTransform firstPersonRenderer, CarryLabelRenderer labelRenderer, bool renderAttachedBlocks = true)
+        public CarryRenderDispatcher(ICoreClientAPI api, ICarryManager carryManager, IConfigProvider configProvider, CarryRenderCacheManager cacheManager, CarryFirstPersonTransform firstPersonRenderer, CarryLabelRenderer labelRenderer, bool renderAttachedBlocks = true)
         {
             this.api = api ?? throw new ArgumentNullException(nameof(api));
             this.carryManager = carryManager ?? throw new ArgumentNullException(nameof(carryManager));
-            this.configProvider = carryManager as IConfigProvider ?? throw new ArgumentException("carryManager must implement IConfigProvider", nameof(carryManager));
+            this.configProvider = configProvider ?? throw new ArgumentNullException(nameof(configProvider));
             this.cacheManager = cacheManager ?? throw new ArgumentNullException(nameof(cacheManager));
             this.firstPersonRenderer = firstPersonRenderer ?? throw new ArgumentNullException(nameof(firstPersonRenderer));
             this.labelRenderer = labelRenderer ?? throw new ArgumentNullException(nameof(labelRenderer));
@@ -51,9 +49,9 @@ namespace CarryOn.Client.Logic.CarryRenderer
                     { "hands", new SlotRenderSettings(CarryCodes.FrontCarryAttachmentPoint, -0.3f, -0.6f, -0.5f) } } },
 
             { CarrySlot.Back     , new Dictionary<string, SlotRenderSettings> {
-                    { "backpack-none", new SlotRenderSettings("Back", -0.3f, -0.6f, -0.5f) },
-                    { "backpack-small", new SlotRenderSettings("Back", -0.2f, -0.6f, -0.5f) },
-                    { "backpack-large", new SlotRenderSettings("Back", -0.025f, -0.6f, -0.5f) }
+                    { CarryCodes.BackpackGroupNone, new SlotRenderSettings("Back", -0.3f, -0.6f, -0.5f) },
+                    { CarryCodes.BackpackGroupSmall, new SlotRenderSettings("Back", -0.2f, -0.6f, -0.5f) },
+                    { CarryCodes.BackpackGroupLarge, new SlotRenderSettings("Back", -0.025f, -0.6f, -0.5f) }
                 }
             }
         };
@@ -66,7 +64,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
             { AttachmentPoint = attachmentPoint; Offset = new Vec3f(xOffset, yOffset, zOffset); }
         }
 
-        internal record QueuedDraw(
+        internal readonly record struct QueuedDraw(
             CarriedRenderInfo Info,
             float[] Matrix,
             bool IsRoot,
@@ -76,7 +74,6 @@ namespace CarryOn.Client.Logic.CarryRenderer
         );
 
         private const float PlantTintBrightnessBoost = 1.12f;
-        private readonly Vec4f plantTintScratch = new(1f, 1f, 1f, 1f);
 
         private readonly Stack<float[]> matrixPool = new();
         internal bool RenderAttachedBlocks { get; set; }
@@ -84,6 +81,9 @@ namespace CarryOn.Client.Logic.CarryRenderer
         private float[] cachedViewMat = new float[16];
         private static readonly Vec3f ZeroOffset = new(0, 0, 0);
         private bool disposedDetected;
+        private readonly List<CarriedBlock> allCarriedScratch = new();
+        private CarriedRenderInfo[]? drawOrderScratch;
+        private CarriedRenderInfo? rootScratch;
 
         public void ClearMatrixPool()
         {
@@ -104,16 +104,27 @@ namespace CarryOn.Client.Logic.CarryRenderer
                 return sourceTint;
             }
 
-            plantTintScratch.X = Math.Min(1f, sourceTint.X * PlantTintBrightnessBoost);
-            plantTintScratch.Y = Math.Min(1f, sourceTint.Y * PlantTintBrightnessBoost);
-            plantTintScratch.Z = Math.Min(1f, sourceTint.Z * PlantTintBrightnessBoost);
-            plantTintScratch.W = sourceTint.W;
-            return plantTintScratch;
+            return new Vec4f(
+                Math.Min(1f, sourceTint.X * PlantTintBrightnessBoost),
+                Math.Min(1f, sourceTint.Y * PlantTintBrightnessBoost),
+                Math.Min(1f, sourceTint.Z * PlantTintBrightnessBoost),
+                sourceTint.W);
         }
 
         public void RenderAllCarried(EntityAgent entity, float deltaTime, EnumRenderStage stage, bool isShadowPass, long renderTick)
         {
-            var allCarried = carryManager.GetAllCarried(entity).ToList();
+            var allCarried = allCarriedScratch;
+            allCarried.Clear();
+
+            // Per-slot enumeration so a present-but-unreadable carried tree (e.g. a block from a
+            // removed/disabled mod) still renders the render-only placeholder via
+            // GetRenderableCarried; GetAllCarried would silently skip it.
+            foreach (CarrySlot slot in Enum.GetValues(typeof(CarrySlot)))
+            {
+                var carried = carryManager.GetRenderableCarried(entity, slot);
+                if (carried != null) allCarried.Add(carried);
+            }
+
             if (allCarried.Count == 0) return;
 
             disposedDetected = false;
@@ -157,12 +168,14 @@ namespace CarryOn.Client.Logic.CarryRenderer
             var cam = api.Render.CameraMatrixOrigin;
             if (!ReferenceEquals(cam, lastCameraMatrixRef))
             {
+                Array.Clear(cachedViewMat, 0, 16);
                 for (int i = 0; i < 16 && i < cam.Length; i++) cachedViewMat[i] = (float)cam[i];
                 lastCameraMatrixRef = cam;
             }
             var viewMat = cachedViewMat;
 
             string transformGroupName = entity.ResolveCarryTransformGroupBase(configProvider.Config, carried.Slot);
+            transformGroupName = carryManager.ResolveEntityTransformGroupOverride(entity, carried.Slot, transformGroupName);
 
             var renderSettings = RenderSettings?[carried.Slot]?[transformGroupName];
             if (renderSettings == null) return;
@@ -178,7 +191,6 @@ namespace CarryOn.Client.Logic.CarryRenderer
             }
             else
             {
-                if (animator == null) return;
                 AttachmentPointAndPose? attachPointAndPose = animator.GetAttachmentPointPose(renderSettings.AttachmentPoint);
                 if (attachPointAndPose == null) return;
                 var attachmentPointMatrix = CarryTransformResolver.GetAttachmentPointMatrix(renderer, attachPointAndPose);
@@ -188,21 +200,55 @@ namespace CarryOn.Client.Logic.CarryRenderer
 
             float[] initialMatrix = RentMatrix();
 
-            var initial = carriedRenderInfo[0];
-            initial.SkipTransform = true;
-            Array.Copy(modelMat, initialMatrix, 16);
-            CarryTransformResolver.ApplyTransformInPlace(initial.RenderInfo.Transform, initialMatrix, renderSettings.Offset);
-
+            var count = carriedRenderInfo.Length;
             var renderRootFirst = carried.GetCarryableBehavior()?.RenderRootFirst ?? false;
-            if (carriedRenderInfo.Length > 1 && !renderRootFirst)
+
+            // The root entry (index 0) has its transform baked into initialMatrix below. Mark it
+            // SkipTransform via a scratch entry (never mutating the cached/cloned info), and order
+            // multi-part draws root-first/root-last through a reusable scratch array.
+            rootScratch ??= new CarriedRenderInfo { RenderInfo = carriedRenderInfo[0].RenderInfo };
+            CarryRenderHelpers.CopyRenderInfo(rootScratch, carriedRenderInfo[0]);
+            rootScratch.SkipTransform = true;
+
+            Array.Copy(modelMat, initialMatrix, 16);
+            CarryTransformResolver.ApplyTransformInPlace(rootScratch.RenderInfo.Transform, initialMatrix, renderSettings.Offset);
+
+            if (drawOrderScratch == null || drawOrderScratch.Length < count)
             {
-                carriedRenderInfo = carriedRenderInfo.Skip(1).Append(initial).ToArray();
+                drawOrderScratch = new CarriedRenderInfo[count];
             }
+
+            if (count > 1)
+            {
+                if (renderRootFirst)
+                {
+                    drawOrderScratch[0] = rootScratch;
+                    for (var i = 1; i < count; i++) drawOrderScratch[i] = carriedRenderInfo[i];
+                }
+                else
+                {
+                    for (var i = 1; i < count; i++) drawOrderScratch[i - 1] = carriedRenderInfo[i];
+                    drawOrderScratch[count - 1] = rootScratch;
+                }
+            }
+            else
+            {
+                drawOrderScratch[0] = rootScratch;
+            }
+
+            // The scratch array is reused across calls; null out any tail slots left over from a
+            // previous larger draw set so renderers never pick up stale entries from another slot.
+            if (count < drawOrderScratch.Length)
+            {
+                Array.Clear(drawOrderScratch, count, drawOrderScratch.Length - count);
+            }
+            carriedRenderInfo = drawOrderScratch;
 
             // Find attached root entry: its transform is the base for attached blocks/labels
             float[]? attachedRootMatrix = null;
             foreach (var info in carriedRenderInfo)
             {
+                if (info == null) continue;
                 if (info.IsAttachedRoot && info.RenderEnabled)
                 {
                     attachedRootMatrix = RentMatrix();

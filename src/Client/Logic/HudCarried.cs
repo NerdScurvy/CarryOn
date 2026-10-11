@@ -46,34 +46,26 @@ namespace CarryOn.Client.Logic
         public const float VerticalOffsetPixels = 36.0f;
         public const float BackgroundSizePixels = 64.0f;
 
-        // Toggle to show debug icons
-        public static bool ShowDebugIcons { get; set; } = false;
+        public void TriggerHandsHighlight(float seconds = DefaultHighlightDuration + HighlightFadeExtra)
+            => this.renderer?.TriggerHandsHighlight(seconds);
 
-        // Static reference for highlight triggers (called from CarryInteractionStateMachine)
-        internal static HudCarriedRenderer? Renderer { get; private set; }
-
-        public static void TriggerHandsHighlight(float seconds = DefaultHighlightDuration + HighlightFadeExtra)
-            => Renderer?.TriggerHandsHighlight(seconds);
-
-        public static void TriggerBackHighlight(float seconds = DefaultHighlightDuration + HighlightFadeExtra)
-            => Renderer?.TriggerBackHighlight(seconds);
+        public void TriggerBackHighlight(float seconds = DefaultHighlightDuration + HighlightFadeExtra)
+            => this.renderer?.TriggerBackHighlight(seconds);
 
         public HudCarried(ICoreClientAPI api, ICarryManager carryManager, CarryOnClientConfig config)
         {
             this.api = api ?? throw new ArgumentNullException(nameof(api));
-            renderer = new HudCarriedRenderer(api, carryManager, config);
-            Renderer = renderer;
-            api.Event.RegisterRenderer(renderer, EnumRenderStage.Ortho);
+            this.renderer = new HudCarriedRenderer(api, carryManager, config);
+            api.Event.RegisterRenderer(this.renderer, EnumRenderStage.Ortho);
         }
 
         public void Dispose()
         {
-            if (renderer != null)
+            if (this.renderer != null)
             {
-                api.Event.UnregisterRenderer(renderer, EnumRenderStage.Ortho);
-                renderer.Dispose();
-                renderer = null;
-                Renderer = null;
+                api.Event.UnregisterRenderer(this.renderer, EnumRenderStage.Ortho);
+                this.renderer.Dispose();
+                this.renderer = null;
             }
         }
     }

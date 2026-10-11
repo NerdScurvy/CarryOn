@@ -22,11 +22,11 @@ namespace CarryOn.Client.Logic.CarryRenderer
         private readonly CarryRenderInfoBuilder infoBuilder;
         private readonly CarryRenderCache cache;
 
-        public CarryRenderCacheManager(ICoreClientAPI api, ICarryManager carryManager, CarryTransformPlanBuilder planBuilder, CarryRenderInfoBuilder infoBuilder, CarryRenderCache cache)
+        public CarryRenderCacheManager(ICoreClientAPI api, ICarryManager carryManager, IConfigProvider configProvider, CarryTransformPlanBuilder planBuilder, CarryRenderInfoBuilder infoBuilder, CarryRenderCache cache)
         {
             this.api = api ?? throw new ArgumentNullException(nameof(api));
             this.carryManager = carryManager ?? throw new ArgumentNullException(nameof(carryManager));
-            this.configProvider = carryManager as IConfigProvider ?? throw new ArgumentException("carryManager must implement IConfigProvider", nameof(carryManager));
+            this.configProvider = configProvider ?? throw new ArgumentNullException(nameof(configProvider));
             this.planBuilder = planBuilder ?? throw new ArgumentNullException(nameof(planBuilder));
             this.infoBuilder = infoBuilder ?? throw new ArgumentNullException(nameof(infoBuilder));
             this.cache = cache ?? throw new ArgumentNullException(nameof(cache));
@@ -46,23 +46,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
             public string? RenderVariantSignature { get; set; }
         }
 
-        private long signatureRecomputeCount;
-        private long planRecomputeCount;
-        private long variantRecomputeCount;
-        private long signatureReuseCount;
-        private long frameRenderInfoHitCount;
-        private long persistentRenderInfoHitCount;
-        private long renderInfoBuildCount;
-
-        private long lastLoggedSignatureRecomputeCount;
-        private long lastLoggedPlanRecomputeCount;
-        private long lastLoggedVariantRecomputeCount;
-        private long lastLoggedSignatureReuseCount;
-        private long lastLoggedFrameRenderInfoHitCount;
-        private long lastLoggedPersistentRenderInfoHitCount;
-        private long lastLoggedRenderInfoBuildCount;
-        private DateTime nextDebugCounterLogAtUtc = DateTime.MinValue;
-        private static readonly TimeSpan DebugCounterLogInterval = TimeSpan.FromSeconds(5);
+        private readonly DebugCounters debugCounters = new();
         private DateTime nextPruneAtUtc = DateTime.MinValue;
         private static readonly TimeSpan PruneInterval = TimeSpan.FromSeconds(10);
 
@@ -94,12 +78,12 @@ namespace CarryOn.Client.Logic.CarryRenderer
 
             if (signaturesDirty)
             {
-                signatureRecomputeCount++;
-                planRecomputeCount++;
+                debugCounters.IncrementSignatureRecompute();
+                debugCounters.IncrementPlanRecompute();
                 plan = planBuilder.GetOrBuild(carried, transformsGroup);
 
                 containerSlots = BlockUtils.GetContainerSlots(carried);
-                variantRecomputeCount++;
+                debugCounters.IncrementVariantRecompute();
                 renderVariantSignature = CarrySignatureBuilder.BuildRenderInfoVariantSignature(
                     carried,
                     containerSlots,
@@ -116,7 +100,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
             }
             else
             {
-                signatureReuseCount++;
+                debugCounters.IncrementSignatureReuse();
                 plan = sidecar.Plan;
                 renderVariantSignature = sidecar.RenderVariantSignature;
             }
@@ -126,7 +110,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
 
             if (cache.FrameRenderInfos.TryGetValue(frameKey, out var frameCached))
             {
-                frameRenderInfoHitCount++;
+                debugCounters.IncrementFrameRenderInfoHit();
                 return CarryRenderHelpers.CloneCarriedRenderInfos(frameCached) ?? Array.Empty<CarriedRenderInfo>();
             }
 
@@ -136,7 +120,6 @@ namespace CarryOn.Client.Logic.CarryRenderer
             cache.SlotStates[slotStateKey] = new SlotCacheState
             {
                 FrameKey = frameKey,
-                PlanSignature = plan?.Signature,
                 RenderInfoKey = renderInfoKey
             };
 
@@ -148,16 +131,16 @@ namespace CarryOn.Client.Logic.CarryRenderer
                 }
                 else
                 {
-                    persistentRenderInfoHitCount++;
+                    debugCounters.IncrementPersistentRenderInfoHit();
                     cachedRenderInfos.LastUsedAtUtc = now;
                     var clonedFromPersistent = CarryRenderHelpers.CloneCarriedRenderInfos(cachedRenderInfos.RenderInfos);
-                    cache.FrameRenderInfos[frameKey] = CarryRenderHelpers.CloneCarriedRenderInfos(clonedFromPersistent);
+                    cache.FrameRenderInfos[frameKey] = clonedFromPersistent;
                     return clonedFromPersistent;
                 }
             }
 
             containerSlots ??= BlockUtils.GetContainerSlots(carried);
-            renderInfoBuildCount++;
+            debugCounters.IncrementRenderInfoBuild();
             var built = infoBuilder.BuildFromPlan(carried, plan, containerSlots);
             cache.RenderInfos[renderInfoKey] = new CachedRenderInfos
             {
@@ -167,8 +150,9 @@ namespace CarryOn.Client.Logic.CarryRenderer
                 CreatedAtUtc = now
             };
 
-            cache.FrameRenderInfos[frameKey] = built;
-            return built;
+            var cloned = CarryRenderHelpers.CloneCarriedRenderInfos(built);
+            cache.FrameRenderInfos[frameKey] = cloned;
+            return cloned;
         }
 
         public void InvalidateAll()
@@ -202,45 +186,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
 
         public void TryLogCounters(ICoreClientAPI api)
         {
-            var loggingEnabled = Config?.DebuggingOptions?.LoggingEnabled ?? false;
-            if (!loggingEnabled) return;
-
-            var now = DateTime.UtcNow;
-            if (now < nextDebugCounterLogAtUtc) return;
-
-            var deltaRecomputed = signatureRecomputeCount - lastLoggedSignatureRecomputeCount;
-            var deltaPlanRecomputed = planRecomputeCount - lastLoggedPlanRecomputeCount;
-            var deltaVariantRecomputed = variantRecomputeCount - lastLoggedVariantRecomputeCount;
-            var deltaReused = signatureReuseCount - lastLoggedSignatureReuseCount;
-            var deltaFrameHits = frameRenderInfoHitCount - lastLoggedFrameRenderInfoHitCount;
-            var deltaPersistentHits = persistentRenderInfoHitCount - lastLoggedPersistentRenderInfoHitCount;
-            var deltaBuilds = renderInfoBuildCount - lastLoggedRenderInfoBuildCount;
-
-            lastLoggedSignatureRecomputeCount = signatureRecomputeCount;
-            lastLoggedPlanRecomputeCount = planRecomputeCount;
-            lastLoggedVariantRecomputeCount = variantRecomputeCount;
-            lastLoggedSignatureReuseCount = signatureReuseCount;
-            lastLoggedFrameRenderInfoHitCount = frameRenderInfoHitCount;
-            lastLoggedPersistentRenderInfoHitCount = persistentRenderInfoHitCount;
-            lastLoggedRenderInfoBuildCount = renderInfoBuildCount;
-            nextDebugCounterLogAtUtc = now + DebugCounterLogInterval;
-
-            var totalDeltaRequests = deltaRecomputed + deltaReused;
-            var reuseRate = totalDeltaRequests > 0
-                ? (100.0 * deltaReused / totalDeltaRequests).ToString("F1")
-                : "n/a";
-
-            api.Logger.Debug(
-                "[CarryOn] Renderer sidecar counters (last {0}s): recomputed={1}, planRecomputed={2}, variantRecomputed={3}, reused={4}, reuseRate={5}%, frameHits={6}, persistentHits={7}, builds={8}",
-                (int)DebugCounterLogInterval.TotalSeconds,
-                deltaRecomputed,
-                deltaPlanRecomputed,
-                deltaVariantRecomputed,
-                deltaReused,
-                reuseRate,
-                deltaFrameHits,
-                deltaPersistentHits,
-                deltaBuilds);
+            debugCounters.LogIfDue(api, Config?.DebuggingOptions?.LoggingEnabled ?? false);
         }
     }
 }

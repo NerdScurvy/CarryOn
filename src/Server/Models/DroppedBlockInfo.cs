@@ -62,10 +62,15 @@ namespace CarryOn.Server.Models
             var slotItems = new List<string>();
             if (blockEntityData?["inventory"] is TreeAttribute inventory)
             {
-                foreach (var slot in inventory.GetTreeAttribute("slots"))
+                var slots = inventory.GetTreeAttribute("slots");
+                if (slots != null)
                 {
-                    if(slot.Value is ItemstackAttribute itemstack){
-                        slotItems.Add(itemstack.value.ToString());
+                    foreach (var slot in slots)
+                    {
+                        if (slot.Value is ItemstackAttribute itemstack)
+                        {
+                            slotItems.Add(itemstack.value.ToString());
+                        }
                     }
                 }
             }

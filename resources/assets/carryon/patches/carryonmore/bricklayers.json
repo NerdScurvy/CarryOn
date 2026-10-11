@@ -5,7 +5,7 @@
 		"op": "add",
 		"path": "/behaviorsByType/*/-",
 		"value": {
-			"name": "Carryable",
+			"name": "carryon:carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Planter",
 				"transformTemplates": [
@@ -34,7 +34,7 @@
 		"op": "add",
 		"path": "/behaviorsByType/*/-",
 		"value": {
-			"name": "Carryable",
+			"name": "carryon:carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Planter",
 				"transformTemplates": [
@@ -63,7 +63,7 @@
 		"op": "add",
 		"path": "/behaviors/-",
 		"value": {
-			"name": "Carryable",
+			"name": "carryon:carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Planter",
 				"transformTemplates": [
@@ -92,7 +92,7 @@
 		"op": "add",
 		"path": "/behaviorsByType/*/-",
 		"value": {
-			"name": "Carryable",
+			"name": "carryon:carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Flowerpot",
 				"transformTemplates": [

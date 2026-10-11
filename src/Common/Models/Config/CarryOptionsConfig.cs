@@ -29,6 +29,18 @@ namespace CarryOn.Common.Models
         [DefaultValue(6)]
         [TreeValue("MaxInteractionDistance")] public int MaxInteractionDistance { get; set; } = Defaults.MaxInteractionDistance;
 
+        [Category("Interaction")]
+        [DisplayName("Open Bag GUI in Ground Storage While Carrying")]
+        [Description("Allow opening contained bag inventories (backpacks, hand baskets, sacks, quivers) in ground storage while carrying an item")]
+        [DefaultValue(true)]
+        [TreeValue("OpenGroundStorageBagWhileCarrying")] public bool OpenGroundStorageBagWhileCarrying { get; set; } = true;
+
+        [Category("Interaction")]
+        [DisplayName("Pick Up Ground Storage Bags Into Hands")]
+        [Description("Allow picking up a bag item (backpack, hand basket, sack, quiver) from a ground storage slot into the hands carry slot with the pick-up key, and stowing it into a vanilla backpack slot with the pick-up + swap-back keys")]
+        [DefaultValue(true)]
+        [TreeValue("PickupGroundStorageBagWhileCarrying")] public bool PickupGroundStorageBagWhileCarrying { get; set; } = true;
+
         [Category("Back Slot")]
         [DisplayName("Back Slot Enabled")]
         [Description("Allow carrying items on the back slot")]
@@ -44,7 +56,7 @@ namespace CarryOn.Common.Models
         [Category("Back Slot")]
         [DisplayName("Prevent Swap From Back On Target")]
         [Description("List of targets where swapping from the back slot is prevented")]
-        [TreeValue("PreventSwapFromBackOnTarget")] public string[] PreventSwapFromBackOnTarget { get; set; } = ["behavior::Container", "behavior::Door", "class::portals.portal", "code::groundstorage", "class::BlockGroundStorage"];
+        [TreeValue("PreventSwapFromBackOnTarget")] public string[] PreventSwapFromBackOnTarget { get; set; } = ["behavior::Container", "behavior::Door", "behavior::BlockEntityInteract", "class::portals.portal", "class::BlockGroundStorage"];
 
         [Category("Temperature")]
         [DisplayName("Too Hot To Carry")]
@@ -74,7 +86,7 @@ namespace CarryOn.Common.Models
         [TreeValue("LegacyTrackDroppedBlocks")] public bool TrackDroppedBlocks { get; set; } = false;
 
         [DisplayName("Backpack Selection Mode")]
-        [Description("How to select which backpack to render")]
+        [Description("How to select which backpack to render. None disables backpack compensation (e.g. for hidden backpacks).")]
         [DefaultValue(BackpackSelectionMode.LastFound)]
         [TreeValue("BackpackSelectionMode")]
         [JsonProperty("BackpackSelectionMode")]

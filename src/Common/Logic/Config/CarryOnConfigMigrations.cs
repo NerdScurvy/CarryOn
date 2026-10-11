@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using CarryOn.Common.Models;
 using CarryOn.Utility;
 using Newtonsoft.Json.Linq;
@@ -10,35 +11,32 @@ namespace CarryOn.Common.Logic
     {
         private static readonly Action<CarryOnConfig>[] Migrations =
         [
-            MigrateV1ToV2,
-            MigrateV2ToV3,
-            MigrateV3ToV4,
-            MigrateV4ToV5,
+            MigrateV1ToV2,   // 0: v0/null -> v1 (legacy flat config)
+            MigrateV1ToV2,   // 1: v1 -> v2 (legacy mapping is a no-op on structured v1 configs)
+            MigrateV2ToV3,   // 2: v2 -> v3
+            MigrateV3ToV4,   // 3: v3 -> v4
+            MigrateV4ToV5,   // 4: v4 -> v5 (no-op)
+            MigrateV5ToV6,   // 5: v5 -> v6
         ];
 
         public static void Upgrade(CarryOnConfig config)
         {
-            var startVersion = config.ConfigVersion ?? 0;
+            var version = config.ConfigVersion ?? 0;
 
-            try
+            while (version < CurrentConfigVersion)
             {
-                for (int i = startVersion; i < Migrations.Length; i++)
-                {
-                    Migrations[i](config);
-                }
+                Migrations[version](config);
+                version++;
+                config.ConfigVersion = version;
+            }
 
-                config.ConfigVersion = CurrentConfigVersion;
-            }
-            catch
-            {
-                throw;
-            }
+            config.ConfigVersion = version;
         }
 
         /// <summary>Migrates from v1 (legacy flat config) to v2 (structured config).</summary>
         private static void MigrateV1ToV2(CarryOnConfig config)
         {
-            if (config.ConfigVersion != null) return;
+            if (config.ConfigVersion is > 0) return;
 
             if (config.Legacy != null)
             {
@@ -90,7 +88,7 @@ namespace CarryOn.Common.Logic
             }
         }
 
-        /// <summary>Migrates from v2 to v3 — back-slot fields moved from CarryOptions to CarryablesOnBack.</summary>
+        /// <summary>Migrates from v2 to v3 - back-slot fields moved from CarryOptions to CarryablesOnBack.</summary>
         private static void MigrateV2ToV3(CarryOnConfig config)
         {
             if (config.ConfigVersion != 2) return;
@@ -112,7 +110,7 @@ namespace CarryOn.Common.Logic
             }
         }
 
-        /// <summary>Migrates from v3 to v4 — walk-speed settings moved from CarryOptions to CarryWalkSpeed.</summary>
+        /// <summary>Migrates from v3 to v4 - walk-speed settings moved from CarryOptions to CarryWalkSpeed.</summary>
         private static void MigrateV3ToV4(CarryOnConfig config)
         {
             if (config.ConfigVersion != 3) return;
@@ -189,15 +187,41 @@ namespace CarryOn.Common.Logic
                     }
 
                     config.CarryWalkSpeed.ModifierOverrides = overrides;
-                    CarryOnConfig.PopulateSlotDefaults(config.CarryWalkSpeed.ModifierOverrides?.SlotDefaults, CarryCodes.Defaults.WalkSpeedModifier);
                 }
             }
         }
 
-        /// <summary>Migrates from v4 to v5 — no-op (multipliers and report defaults).</summary>
+        /// <summary>Migrates from v4 to v5 - no-op (multipliers and report defaults).</summary>
         private static void MigrateV4ToV5(CarryOnConfig config)
         {
             if (config.ConfigVersion != 4) return;
+        }
+
+        /// <summary>Migrates from v5 to v6 - merge any missing default PreventSwapFromBackOnTarget entries.</summary>
+        private static void MigrateV5ToV6(CarryOnConfig config)
+        {
+            if (config.ConfigVersion != 5) return;
+
+            var carryOptions = config.CarryOptions;
+            if (carryOptions == null) return;
+
+            var saved = carryOptions.PreventSwapFromBackOnTarget;
+            var defaults = new CarryOptionsConfig().PreventSwapFromBackOnTarget;
+
+            if (saved == null || saved.Length == 0)
+            {
+                carryOptions.PreventSwapFromBackOnTarget = defaults;
+                return;
+            }
+
+            var missing = defaults
+                .Where(d => !saved.Contains(d, StringComparer.OrdinalIgnoreCase))
+                .ToArray();
+
+            if (missing.Length > 0)
+            {
+                carryOptions.PreventSwapFromBackOnTarget = saved.Concat(missing).ToArray();
+            }
         }
     }
 }

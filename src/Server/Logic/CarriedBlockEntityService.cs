@@ -4,7 +4,7 @@ using CarryOn.Common.Models;
 using CarryOn.Common.Entities;
 using CarryOn.Utility;
 using Vintagestory.API.Common;
-
+using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using static CarryOn.Common.Models.CarryCodes;
 
@@ -12,10 +12,6 @@ namespace CarryOn.Server.Logic
 {
     public sealed class CarriedBlockEntityService
     {
-        // When floating in liquid: entity feet at blockY + 0.5
-        // (entity from blockY+0.5 to blockY+1.0 = top at liquid surface)
-        private const float LiquidSubmergeOffset = 0.5f;
-
         private readonly ICoreAPI api;
 
         public CarriedBlockEntityService(ICoreAPI api)
@@ -61,7 +57,7 @@ namespace CarryOn.Server.Logic
             api.World.Logger.Notification(
                 "[{0}] Spawned CarriedBlockEntity for {1} ({2}) at {3}",
                 ModId,
-                carriedBlock.Block?.Code ?? "unknown",
+                DisplayName(carriedBlock.Block?.Code),
                 ownerUid,
                 position);
 
@@ -85,137 +81,85 @@ namespace CarryOn.Server.Logic
         }
 
         /// <summary>
-        /// Resolves the spawn position by applying gravity - iterates downward
-        /// through passable blocks from one below the candidate position to find
-        /// the first solid surface or liquid to land on.
+        /// Spawns a CarriedBlockEntity directly from an untouched carried slot tree. Used when the
+        /// carried block's code is no longer registered (missing-block): the tree cannot be parsed
+        /// into a <see cref="CarriedBlock"/>, but its raw contents (stack, block entity data,
+        /// attached children) must still be preserved so the player can recover them after
+        /// re-enabling the source mod via the entity pickup path.
+        /// </summary>
+        public EntityCarriedBlock? SpawnCarriedBlockEntity(
+            ITreeAttribute rawCarriedTree,
+            string ownerUid,
+            Vec3d position)
+        {
+            if (rawCarriedTree == null) return null;
+
+            var entityType = api.World.GetEntityType(new AssetLocation(CarryCodes.ModId, "carriedblock"));
+
+            var entity = api.World.ClassRegistry.CreateEntity(entityType) as EntityCarriedBlock;
+            if (entity == null) return null;
+
+            var zFightOffset = (float)(api.World.Rand.NextDouble() * 0.005);
+            entity.Pos.SetPos(position.X, position.Y + zFightOffset, position.Z);
+            entity.Pos.Yaw = (float)(api.World.Rand.NextDouble() * GameMath.TWOPI);
+            entity.Pos.Pitch = 0f;
+            entity.Pos.Roll = 0f;
+
+            entity.SetCarriedBlockData(rawCarriedTree, ownerUid, api.World.Calendar.TotalDays, DateTime.UtcNow.Ticks);
+
+            entity.World = api.World;
+
+            api.World.SpawnEntity(entity);
+
+            var storedCode = rawCarriedTree.GetItemstack(AttributeKeys.CarriedBlockData.Stack)?.Collectible?.Code;
+            api.World.Logger.Notification(
+                "[{0}] Spawned CarriedBlockEntity from raw carried tree (block not registered / missing) for {1} ({2}) at {3}",
+                ModId,
+                DisplayName(storedCode?.ToString()),
+                ownerUid,
+                position);
+
+            return entity;
+        }
+
+        /// <summary>
+        /// Spawns a CarriedBlockEntity directly from an untouched carried slot tree with gravity;
+        /// see the <see cref="CarriedBlock"/> overload of
+        /// <see cref="SpawnCarriedBlockEntityWithGravity(CarriedBlock, string, Vec3d, Vec3d?, bool, float)"/>.
+        /// </summary>
+        public EntityCarriedBlock? SpawnCarriedBlockEntityWithGravity(
+            ITreeAttribute rawCarriedTree,
+            string ownerUid,
+            Vec3d candidatePos,
+            Vec3d? fallbackPos = null)
+        {
+            var resolvedPos = ResolveSpawnPosition(candidatePos, fallbackPos, scale: 1.0f);
+            return SpawnCarriedBlockEntity(rawCarriedTree, ownerUid, resolvedPos);
+        }
+
+        /// <summary>
+        /// Resolves the spawn position by applying gravity - delegates to
+        /// <see cref="GravitySpawnHelper.ResolveDropPosition"/> which scans
+        /// downward through passable blocks to find the first solid surface
+        /// or liquid to land on.
         /// </summary>
         public Vec3d ResolveSpawnPosition(Vec3d candidatePos, Vec3d? fallbackPos = null, float scale = 1.0f)
         {
-            var startPos = candidatePos.AsBlockPos;
-            var blockAccessor = api.World.BlockAccessor;
-
-            // If starting in a liquid, spawn at the candidate position directly
-            if (blockAccessor.GetBlock(startPos).IsLiquid())
-                return candidatePos;
-
-            var x = startPos.X;
-            var z = startPos.Z;
-
-            for (int y = startPos.Y; y >= 0; y--)
-            {
-                var pos = new BlockPos(x, y, z);
-                var block = blockAccessor.GetBlock(pos);
-
-                if (block.IsLiquid())
-                {
-                    var targetPos = new Vec3d(x + 0.5, y + LiquidSubmergeOffset, z + 0.5);
-                    if (HasRoomAt(targetPos, blockAccessor, scale))
-                        return targetPos;
-
-                    continue;
-                }
-
-                var surfaceTop = GetBlockSurfaceTop(block);
-                var hasCollisionBoxes = block.CollisionBoxes is { Length: > 0 };
-
-                // If the block has no collision boxes but the player's feet
-                // are inside it, the player's offset within the block gives
-                // the true surface height (handles partial blocks like paths).
-                if (!hasCollisionBoxes && candidatePos.Y > y && candidatePos.Y < y + surfaceTop)
-                    surfaceTop = Math.Max(0f, Math.Min((float)(candidatePos.Y - y), surfaceTop));
-
-                if (!IsPassable(block))
-                {
-                    var targetPos = new Vec3d(x + 0.5, y + surfaceTop, z + 0.5);
-                    if (HasRoomAt(targetPos, blockAccessor, scale, pos))
-                        return targetPos;
-
-                    // No room at this height — continue searching downward
-                }
-
-                // Passable block with a surface the entity can stand on
-                // (e.g. wooden paths - passable but walkable)
-                if (surfaceTop > 0f && block.Id != 0 && candidatePos.Y >= y + surfaceTop)
-                {
-                    var targetPos = new Vec3d(x + 0.5, y + surfaceTop, z + 0.5);
-                    if (HasRoomAt(targetPos, blockAccessor, scale, pos))
-                        return targetPos;
-                    // No room at this height — continue searching downward
-                }
-            }
-
-            return fallbackPos ?? candidatePos;
+            return GravitySpawnHelper.ResolveDropPosition(
+                api.World, api.World.BlockAccessor,
+                candidatePos, ScaleFootprint(scale), fallbackPos);
         }
 
         /// <summary>
-        /// Checks if the entity hitbox has clearance at the given position.
-        /// Returns false if any solid block intersects the AABB.
-        /// Optionally excludes a surface block (the block the entity sits on).
+        /// Builds the position-relative clearance footprint for a carried
+        /// block scaled by <paramref name="scale"/>: bottom-center origin,
+        /// square base of width <paramref name="scale"/>, height
+        /// <paramref name="scale"/>.
         /// </summary>
-        private static bool HasRoomAt(Vec3d pos, IBlockAccessor blockAccessor, float scale = 1.0f, BlockPos? surfaceBlockPos = null)
+        private static Cuboidf ScaleFootprint(float scale)
         {
             var half = 0.5f * scale;
-            var minX = (int)Math.Floor(pos.X - half);
-            var maxX = (int)Math.Floor(pos.X + half);
-            var minY = (int)Math.Floor(pos.Y - half);
-            var maxY = (int)Math.Floor(pos.Y + half);
-            var minZ = (int)Math.Floor(pos.Z - half);
-            var maxZ = (int)Math.Floor(pos.Z + half);
-
-            for (int bx = minX; bx <= maxX; bx++)
-            {
-                for (int by = minY; by <= maxY; by++)
-                {
-                    for (int bz = minZ; bz <= maxZ; bz++)
-                    {
-                        if (surfaceBlockPos != null && bx == surfaceBlockPos.X && by == surfaceBlockPos.Y && bz == surfaceBlockPos.Z)
-                            continue;
-
-                        var block = blockAccessor.GetBlock(new BlockPos(bx, by, bz));
-                        if (block == null) continue;
-                        if (block.IsLiquid()) continue;
-                        if (IsPassable(block)) continue;
-
-                        return false;
-                    }
-                }
-            }
-
-            return true;
-        }
-
-        /// <summary>
-        /// Determines whether a block is passable - entities can fall through it.
-        /// </summary>
-        private static bool IsPassable(Block block)
-        {
-            if (block.Id == 0) return true;
-            if (block.Replaceable >= 6000) return true;
-            if (block.MatterState == EnumMatterState.Gas) return true;
-
-            return false;
-        }
-
-        /// <summary>
-        /// Returns the top surface Y (block-local 0-1 range) for the given block's
-        /// collision shape. Falls back to selection boxes, then to 1.0 (full block
-        /// height) if the block has no boxes.
-        /// </summary>
-        private static float GetBlockSurfaceTop(Block block)
-        {
-            var boxes = block.CollisionBoxes;
-            if (boxes == null || boxes.Length == 0)
-                boxes = block.SelectionBoxes;
-            if (boxes == null || boxes.Length == 0)
-                return 1.0f;
-
-            float maxY = 0f;
-            foreach (var box in boxes)
-            {
-                if (box.Y2 > maxY)
-                    maxY = box.Y2;
-            }
-            return maxY;
+            return new Cuboidf(-half, 0f, -half, half, scale, half);
         }
     }
 }

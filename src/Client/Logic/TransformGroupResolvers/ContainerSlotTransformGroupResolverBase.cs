@@ -21,12 +21,15 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
             if (api?.World == null || carried?.Block == null || string.IsNullOrEmpty(baseGroup))
                 return false;
 
+            if (!CanResolve(carried))
+                return false;
+
             var containerSlots = BlockUtils.GetContainerSlots(carried);
             if (containerSlots == null || containerSlots.Count == 0)
                 return false;
 
             var candidates = new List<CarriedGroupCandidateSet>();
-            AddSlotCandidates(api, containerSlots, baseGroup, candidates);
+            AddSlotCandidates(api, carried, containerSlots, baseGroup, candidates);
 
             if (candidates.Count == 0)
                 return false;
@@ -38,13 +41,16 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
         public virtual string? GetCacheSignature(ICoreAPI api, CarriedBlock carried, string baseGroup)
         {
             var slots = BlockUtils.GetContainerSlots(carried);
+
             if (slots == null || slots.Count == 0)
-                return "slots=none";
+                return BuildSignaturePrefix(api, carried, hasSlots: false);
+
+            var sb = new StringBuilder(128);
+            sb.Append(BuildSignaturePrefix(api, carried, hasSlots: true));
 
             var keys = slots.Keys?.ToList() ?? new List<string>();
             keys.Sort(StringComparer.Ordinal);
 
-            var sb = new StringBuilder(128);
             foreach (var key in keys)
             {
                 var stack = slots.GetItemstack(key);
@@ -56,14 +62,30 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
 
                 sb.Append(key).Append(':')
                     .Append((int)stack.Class).Append(':')
-                    .Append(stack.Id).Append(':')
-                    .Append(stack.StackSize).Append(';');
+                    .Append(stack.Id);
+
+                AppendSlotSignatureDetail(api, stack, sb);
+                sb.Append(';');
             }
 
             return sb.ToString();
         }
 
-        protected virtual void AddSlotCandidates(ICoreAPI api, TreeAttribute containerSlots, string baseGroup, List<CarriedGroupCandidateSet> candidates)
+        protected virtual bool CanResolve(CarriedBlock carried)
+        {
+            return true;
+        }
+
+        protected virtual string BuildSignaturePrefix(ICoreAPI api, CarriedBlock carried, bool hasSlots)
+        {
+            return hasSlots ? string.Empty : "slots=none";
+        }
+
+        protected virtual void AppendSlotSignatureDetail(ICoreAPI api, ItemStack stack, StringBuilder sb)
+        {
+        }
+
+        protected virtual void AddSlotCandidates(ICoreAPI api, CarriedBlock carried, TreeAttribute containerSlots, string baseGroup, List<CarriedGroupCandidateSet> candidates)
         {
             foreach (var cSlot in containerSlots)
             {

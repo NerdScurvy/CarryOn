@@ -1,0 +1,44 @@
+{
+	"code": "carry-bag",
+	"matchesItemCodes": [
+		"game:backpack",
+		"game:hunterpack",
+		"game:handbasket",
+		"game:*basket",
+		"game:quiver*"
+	],
+	"itemPoseGroups": {
+		"game:quiver*": "hands-quiver",
+		"game:hunterpack": "hands-hunterpack"
+	},
+	"transformGroups": {
+		"hands": [
+			{
+				"id": "root",
+				"translation": [ -0.06, 0.08, 0.0 ],
+				"rotation": [ -18.0, 0.0, 4.0 ],
+				"origin": [ 0.5, 0.5, 0.5 ],
+				"scale": [ 0.6, 0.6, 0.6 ]
+			}
+		],
+		"hands-quiver": {
+			"extends": "hands",
+			"overrides": [
+				{
+					"id": "root",
+					"translation": [ -0.02, 0.12, 0.02 ],
+					"rotation": [ -14.0, 0.0, 2.0 ]
+				}
+			]
+		},
+		"hands-hunterpack": {
+			"extends": "hands",
+			"overrides": [
+				{
+					"id": "root",
+					"scale": [ 0.65, 0.65, 0.65 ]
+				}
+			]
+		}
+	}
+}

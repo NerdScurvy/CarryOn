@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using CarryOn.API.Common.Models;
 using CarryOn.Utility;
@@ -11,41 +10,34 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
 {
     public class MoldRackTransformGroupResolver : ContainerSlotTransformGroupResolverBase
     {
+        private const string GroupBase = "moldrack";
+
         public override string ResolverCode => "moldrack";
 
-        public override bool TryResolve(ICoreAPI api, CarriedBlock carried, string baseGroup, out AttachmentResolveResult? result)
+        protected override bool CanResolve(CarriedBlock carried)
         {
-            result = null;
-
-            if (api?.World == null || carried?.Block == null) return false;
-            if (carried.Block.Class is not "BlockMoldRack") return false;
-
-            var containerSlots = BlockUtils.GetContainerSlots(carried);
-            if (containerSlots == null || containerSlots.Count == 0) return false;
-
-            var candidates = new List<CarriedGroupCandidateSet>();
-            AddSlotCandidates(api, containerSlots, "moldrack", candidates);
-
-            if (candidates.Count == 0) return false;
-
-            result = new AttachmentResolveResult(candidates);
-            return true;
+            return carried.Block?.Class is "BlockMoldRack";
         }
 
-        protected override void AddSlotCandidates(ICoreAPI api, TreeAttribute containerSlots, string baseGroup, List<CarriedGroupCandidateSet> candidates)
+        protected override void AddSlotCandidates(ICoreAPI api, CarriedBlock carried, TreeAttribute containerSlots, string baseGroup, List<CarriedGroupCandidateSet> candidates)
         {
             foreach (var cSlot in containerSlots)
             {
                 var itemStack = containerSlots.GetItemstack(cSlot.Key);
                 if (itemStack == null) continue;
 
-                var slotBase = baseGroup + "-slot" + cSlot.Key;
+                var slotBase = GroupBase + "-slot" + cSlot.Key;
                 var groups = new List<string>();
 
                 if (TryGetShieldConstruction(api, itemStack, out var shieldConstruction))
                 {
                     groups.Add(slotBase + "-" + shieldConstruction);
                     groups.Add(slotBase + "-shield");
+                }
+
+                if (IsHoop(api, itemStack))
+                {
+                    groups.Add(slotBase + "-hoop");
                 }
 
                 groups.Add(slotBase);
@@ -78,48 +70,29 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
             return true;
         }
 
-        public override string? GetCacheSignature(ICoreAPI api, CarriedBlock carried, string baseGroup)
+        private bool IsHoop(ICoreAPI api, ItemStack itemStack)
         {
-            var slots = BlockUtils.GetContainerSlots(carried);
-            if (slots == null || slots.Count == 0)
-                return "slots=none";
+            if (api?.World == null || itemStack?.Class != EnumItemClass.Item) return false;
 
-            var keys = slots.Keys?.ToList() ?? new List<string>();
-            keys.Sort(StringComparer.Ordinal);
+            var item = api.World.GetItem(itemStack.Id);
+            var path = item?.Code?.Path;
+            return !string.IsNullOrEmpty(path) && path.StartsWith("hoop-", StringComparison.Ordinal);
+        }
 
-            var sb = new StringBuilder(128);
-            foreach (var key in keys)
+        protected override void AppendSlotSignatureDetail(ICoreAPI api, ItemStack stack, StringBuilder sb)
+        {
+            if (!TryGetShieldConstruction(api, stack, out var shieldConstruction)) return;
+
+            sb.Append(":").Append(shieldConstruction);
+
+            var attrs = stack.Attributes;
+            if (attrs != null)
             {
-                var stack = slots.GetItemstack(key);
-                if (stack == null)
-                {
-                    sb.Append(key).Append(":empty;");
-                    continue;
-                }
-
-                sb.Append(key).Append(':')
-                    .Append((int)stack.Class).Append(':')
-                    .Append(stack.Id).Append(':')
-                    .Append(stack.StackSize);
-
-                if (TryGetShieldConstruction(api, stack, out var shieldConstruction))
-                {
-                    sb.Append(":").Append(shieldConstruction);
-
-                    var attrs = stack.Attributes;
-                    if (attrs != null)
-                    {
-                        sb.Append(':').Append(attrs.GetString("wood", string.Empty));
-                        sb.Append(':').Append(attrs.GetString("metal", string.Empty));
-                        sb.Append(':').Append(attrs.GetString("color", string.Empty));
-                        sb.Append(':').Append(attrs.GetString("deco", string.Empty));
-                    }
-                }
-
-                sb.Append(';');
+                sb.Append(':').Append(attrs.GetString("wood", string.Empty));
+                sb.Append(':').Append(attrs.GetString("metal", string.Empty));
+                sb.Append(':').Append(attrs.GetString("color", string.Empty));
+                sb.Append(':').Append(attrs.GetString("deco", string.Empty));
             }
-
-            return sb.ToString();
         }
     }
 }

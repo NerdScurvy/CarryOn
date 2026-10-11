@@ -24,20 +24,21 @@ namespace CarryOn.Patches
 
             try
             {
-                // Find HudElementInteractionHelp from __instance.LoadedGuis
+                // Reflection on private field 'LoadedGuis' - verified against Vintage Story 1.22.
+                // Inherent fragility of Harmony patching private API; update if game internals change.
                 FieldInfo? internalField = typeof(ClientMain).GetField("LoadedGuis", BindingFlags.NonPublic | BindingFlags.Instance);
                 if (internalField == null) return;
 
                 var loadedGuis = internalField.GetValue(__instance) as List<GuiDialog>;
                 if (loadedGuis == null) return;
 
-                var hudHelp = loadedGuis?.FirstOrDefault(gui => gui is HudElementInteractionHelp) as HudElementInteractionHelp;
+                var hudHelp = loadedGuis.FirstOrDefault(gui => gui is HudElementInteractionHelp) as HudElementInteractionHelp;
 
-                carrySystem.CarryHandler?.SetHudHelp(hudHelp);
+                carrySystem.CarryClientHandlers?.SetHudHelp(hudHelp);
             }
             catch (System.Exception ex)
             {
-                __instance.Api.World.Logger.Error("CarryOn: Failed to initialize CarryHandler HudHelp: " + ex);
+                __instance.Api.World.Logger.Error("CarryOn: Failed to initialize CarryClientHandlers HudHelp: " + ex);
             }
 
         }

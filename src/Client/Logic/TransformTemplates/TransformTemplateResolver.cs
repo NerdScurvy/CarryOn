@@ -40,7 +40,7 @@ namespace CarryOn.Client.Logic.TransformTemplates
 
             ApplyCaretPrefixedPreResolveAdjustments(mergedDefinitions);
 
-            var resolved = new Dictionary<string, List<TransformGroupSettings>>(StringComparer.OrdinalIgnoreCase);
+            var resolved = new Dictionary<string, List<TransformGroupSettings>?>(StringComparer.OrdinalIgnoreCase);
             var resolving = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var groupName in mergedDefinitions.Keys.ToList())
@@ -108,7 +108,7 @@ namespace CarryOn.Client.Logic.TransformTemplates
         private List<TransformGroupSettings>? ResolveGroupRecursive(
             string groupName,
             IDictionary<string, TransformGroup?> definitions,
-            IDictionary<string, List<TransformGroupSettings>> resolved,
+            IDictionary<string, List<TransformGroupSettings>?> resolved,
             ISet<string> resolving)
         {
             if (resolved.TryGetValue(groupName, out var existing))
@@ -198,14 +198,14 @@ namespace CarryOn.Client.Logic.TransformTemplates
         }
 
         /// <summary>
-        /// Processes prefixed transform groups (with "@" or "~" prefix) against the resolved dictionary.
+        /// Processes prefixed transform groups (with "@", "~" or "^" prefix) against a dictionary.
         /// Handles the common pattern of: find prefixed keys, validate source, strip prefix, validate target, apply operation, remove prefix entry.
         /// </summary>
-        private void ProcessPrefixedGroups(
-            IDictionary<string, List<TransformGroupSettings>> groups,
+        private void ProcessPrefixedKeys<T>(
+            IDictionary<string, T?> groups,
             char prefix,
             string logLabel,
-            Action<string, List<TransformGroupSettings>, List<TransformGroupSettings>, string> apply)
+            Action<string, T, T, string> apply) where T : class
         {
             if (groups == null || groups.Count == 0) return;
 
@@ -244,18 +244,18 @@ namespace CarryOn.Client.Logic.TransformTemplates
         /// <summary>
         /// Applies overrides from groups with "@" prefix to the groups they target (e.g. "@groupA" overrides apply to "groupA"). 
         /// </summary>
-        private void ApplyAtPrefixedOverrides(IDictionary<string, List<TransformGroupSettings>> resolved)
+        private void ApplyAtPrefixedOverrides(IDictionary<string, List<TransformGroupSettings>?> resolved)
         {
-            ProcessPrefixedGroups(resolved, '@', "override",
+            ProcessPrefixedKeys(resolved, '@', "override",
                 (_, source, target, _) => ApplyUpsertById(target, source));
         }
 
         /// <summary> 
         /// Applies relative adjustments from groups with "~" prefix to the groups they target (e.g. "~groupA" adjustments apply to "groupA"). 
         /// </summary>
-        private void ApplyTildePrefixedAdjustments(IDictionary<string, List<TransformGroupSettings>> resolved)
+        private void ApplyTildePrefixedAdjustments(IDictionary<string, List<TransformGroupSettings>?> resolved)
         {
-            ProcessPrefixedGroups(resolved, '~', "relative adjustment",
+            ProcessPrefixedKeys(resolved, '~', "relative adjustment",
                 (prefixedName, source, target, targetGroupName) =>
                     ApplyRelativeAdjustments(target, source, prefixedName, targetGroupName));
         }
@@ -279,42 +279,10 @@ namespace CarryOn.Client.Logic.TransformTemplates
         /// <param name="definitions"> A dictionary mapping transform group names to their TransformGroup definitions. </param>
         private void ApplyCaretPrefixedPreResolveAdjustments(IDictionary<string, TransformGroup?> definitions)
         {
-            if (definitions == null || definitions.Count == 0) return;
-
-            var patchGroupNames = definitions.Keys
-                .Where(name => !string.IsNullOrWhiteSpace(name) && name.StartsWith("^", StringComparison.OrdinalIgnoreCase))
-                .ToList();
-
-            foreach (var patchGroupName in patchGroupNames)
-            {
-                if (!definitions.TryGetValue(patchGroupName, out var patchGroup) || patchGroup == null)
-                {
-                    definitions.Remove(patchGroupName);
-                    continue;
-                }
-
-                var targetGroupName = patchGroupName[1..];
-                if (string.IsNullOrWhiteSpace(targetGroupName))
-                {
-                    capi.Logger.Warning($"CarryOn: transform group pre-adjustment '{patchGroupName}' has no target group name.");
-                    definitions.Remove(patchGroupName);
-                    continue;
-                }
-
-                if (!definitions.TryGetValue(targetGroupName, out var targetGroup) || targetGroup == null)
-                {
-                    capi.Logger.Warning($"CarryOn: transform group pre-adjustment '{patchGroupName}' has no matching target group '{targetGroupName}'.");
-                    definitions.Remove(patchGroupName);
-                    continue;
-                }
-
-                // Incoming entries come from base/overrides/appends of the ^ group, in that order.
-                var incoming = EnumeratePatchEntries(patchGroup);
-                definitions[targetGroupName] = ApplyRelativeAdjustmentsToDefinition(targetGroup, incoming, patchGroupName, targetGroupName);
-
-                // ^ groups are control groups only; do not resolve/flatten them.
-                definitions.Remove(patchGroupName);
-            }
+            ProcessPrefixedKeys(definitions, '^', "pre-adjustment",
+                (patchGroupName, patchGroup, targetGroup, targetGroupName) =>
+                    definitions[targetGroupName] = ApplyRelativeAdjustmentsToDefinition(
+                        targetGroup, EnumeratePatchEntries(patchGroup), patchGroupName, targetGroupName));
         }
 
         /// <summary>
@@ -333,10 +301,11 @@ namespace CarryOn.Client.Logic.TransformTemplates
         {
             if (targetGroup == null || incoming == null) return targetGroup;
 
-            // Work on local copies of the lists
             List<TransformGroupSettings> baseList = targetGroup.Base?.ToList() ?? new List<TransformGroupSettings>();
             List<TransformGroupSettings> overridesList = targetGroup.Overrides?.ToList() ?? new List<TransformGroupSettings>();
             List<TransformGroupSettings> appendsList = targetGroup.Appends?.ToList() ?? new List<TransformGroupSettings>();
+
+            var targetLists = new[] { baseList, overridesList, appendsList };
 
             foreach (var patch in incoming)
             {
@@ -344,9 +313,7 @@ namespace CarryOn.Client.Logic.TransformTemplates
 
                 if (!string.IsNullOrWhiteSpace(patch.Id))
                 {
-                    if (TryMergeRelativeById(baseList, patch)) continue;
-                    if (TryMergeRelativeById(overridesList, patch)) continue;
-                    if (TryMergeRelativeById(appendsList, patch)) continue;
+                    if (TryMergeRelativeByIdAcross(targetLists, patch)) continue;
 
                     // If id not present in target group definition, append to overrides.
                     overridesList.Add(patch.DeepClone());
@@ -354,12 +321,10 @@ namespace CarryOn.Client.Logic.TransformTemplates
                 }
 
                 // No id: allow only if target definition has exactly one entry total.
-                var total = baseList.Count + overridesList.Count + appendsList.Count;
-                if (total == 1)
+                if (baseList.Count + overridesList.Count + appendsList.Count == 1
+                    && TryMergeRelativeFirstAcross(targetLists, patch))
                 {
-                    if (TryMergeRelativeFirst(baseList, patch)) continue;
-                    if (TryMergeRelativeFirst(overridesList, patch)) continue;
-                    if (TryMergeRelativeFirst(appendsList, patch)) continue;
+                    continue;
                 }
 
                 capi.Logger.Warning($"CarryOn: transform group pre-adjustment '{patchGroupName}' has entry without id, but target group '{targetGroupName}' cannot be uniquely matched.");
@@ -374,8 +339,6 @@ namespace CarryOn.Client.Logic.TransformTemplates
             };
         }
  
-
-
         /// <summary>
         /// Applies relative adjustments from groups with "~" prefix to the groups they target (e.g. "~groupA" adjustments apply to "groupA"). 
         /// The "~" groups themselves are not included in the final resolved output.
@@ -398,26 +361,13 @@ namespace CarryOn.Client.Logic.TransformTemplates
 
                 if (!string.IsNullOrWhiteSpace(s.Id))
                 {
-                    var idx = target.FindIndex(x =>
-                        !string.IsNullOrWhiteSpace(x?.Id) &&
-                        x.Id.Equals(s.Id, StringComparison.OrdinalIgnoreCase));
+                    if (TryMergeRelativeById(target, s)) continue;
 
-                    if (idx < 0)
-                    {
-                        capi.Logger.Warning($"CarryOn: transform group relative adjustment '{relativeGroupName}' could not find id '{s.Id}' in target group '{targetGroupName}'.");
-                        continue;
-                    }
-
-                    target[idx] = target[idx]?.MergeRelative(s) ?? s.DeepClone();
-
+                    capi.Logger.Warning($"CarryOn: transform group relative adjustment '{relativeGroupName}' could not find id '{s.Id}' in target group '{targetGroupName}'.");
                     continue;
                 }
 
-                if (target.Count == 1)
-                {
-                    target[0] = target[0]?.MergeRelative(s) ?? s.DeepClone();
-                    continue;
-                }
+                if (TryMergeRelativeFirst(target, s)) continue;
 
                 capi.Logger.Warning($"CarryOn: transform group relative adjustment '{relativeGroupName}' contains an entry without id, but target group '{targetGroupName}' has {target.Count} entries.");
             }
@@ -430,12 +380,14 @@ namespace CarryOn.Client.Logic.TransformTemplates
         /// <param name="resolved"> The dictionary of resolved transform groups. </param>
         /// <returns> A dictionary mapping group names to arrays of TransformSettings. </returns>
         private static Dictionary<string, TransformSettings[]> FlattenResolved(
-            IDictionary<string, List<TransformGroupSettings>> resolved)
+            IDictionary<string, List<TransformGroupSettings>?> resolved)
         {
             var flattened = new Dictionary<string, TransformSettings[]>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var kv in resolved)
             {
+                if (kv.Value == null) continue;
+
                 var list = new List<TransformSettings>();
                 foreach (var s in kv.Value)
                 {
@@ -497,6 +449,28 @@ namespace CarryOn.Client.Logic.TransformTemplates
 
             list[0] = (list[0]?.MergeRelative(patch)) ?? patch.DeepClone();
             return true;
-        }      
+        }
+
+        private static bool TryMergeRelativeByIdAcross(
+            IEnumerable<IList<TransformGroupSettings>> lists,
+            TransformGroupSettings patch)
+        {
+            foreach (var list in lists)
+            {
+                if (TryMergeRelativeById(list, patch)) return true;
+            }
+            return false;
+        }
+
+        private static bool TryMergeRelativeFirstAcross(
+            IEnumerable<IList<TransformGroupSettings>> lists,
+            TransformGroupSettings patch)
+        {
+            foreach (var list in lists)
+            {
+                if (TryMergeRelativeFirst(list, patch)) return true;
+            }
+            return false;
+        }
     }
 }
