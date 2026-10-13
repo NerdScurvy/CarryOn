@@ -15,7 +15,8 @@ body:
       label: CarryOn Version
       description: Which version of CarryOn are you using?
       options:
-        - "2.0.0-pre.8 (latest pre-release)"
+        - "2.0.0-rc.1 (latest release candidate)"
+        - "2.0.0-pre.8 (pre-release)"
         - "1.14.3 (latest stable)"
         - "Other (specify in description)"
     validations:

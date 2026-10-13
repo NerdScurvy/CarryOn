@@ -20,14 +20,17 @@ namespace CarryOn.Scenarios
     /// DENIES the placement for a stranger before any mode-specific fallback, so
     /// EntityOnFailedPlacement spawns the carried block as an entity and Items
     /// spawns a game:item, EntityAlways always spawns an entity, while the claim
-    /// owner's placement is permitted. The boundary rows (C5 feet INSIDE at the
+    /// owner's placement is permitted. The item-class carry twin (a bag picked
+    /// from ground storage outside the claim) pins that a claim-denied
+    /// Items-mode bag drop lands the carried-block entity rather than spilling
+    /// it as loose items. The boundary rows (C5 feet INSIDE at the
     /// claimed maximum x=7, C6 feet at the first unclaimed cell x=8) resolve
     /// deterministically to the player's own column and pin the invariant that
     /// no claim cell is ever written and the line between claimed-inside and
     /// unclaimed-outside is drawn by the claim end-corner.
     /// </summary>
     [Trait("area", "Drop")]
-    [Trait("summary", "Dropped carried blocks over player-owned land claims: a stranger's drop inside the claim falls back per mode, the owner's places, and the boundary rows pin that no claim cell is ever written.")]
+    [Trait("summary", "Dropped carried blocks over player-owned land claims: a stranger's drop inside the claim falls back per mode, the owner's places, and the boundary rows pin that no claim cell is ever written; the item-class bag twin pins that a denied Items-mode drop lands the carried-block entity instead of spilling items.")]
     public class DropOnClaimScenarios : DropModeScenarioBase
     {
         private BlockPos DropInside => World.Spawn.Offset(2, 0, 2);
@@ -74,6 +77,25 @@ namespace CarryOn.Scenarios
         private async Task<(ITestPlayer Player, CarriedBlock Carried)> ArmChestForDropperAsync(ITestPlayer player, BlockPos stand)
         {
             var carried = await AcquireChestAsync(player, FixtureOutside);
+            Assert.True(Carry.IsCarrySlotOccupied(player.Entity, CarrySlot.Hands));
+            await player.TeleportTo(stand);
+            return (player, carried);
+        }
+
+        /// <summary>
+        /// Acquires a bag from ground storage outside the claim (an item-class
+        /// carry with no world block), then stands the dropper at
+        /// <paramref name="stand"/> for the drop.
+        /// </summary>
+        private async Task<(ITestPlayer Player, CarriedBlock Carried)> ArmBagForDropperAsync(ITestPlayer player, BlockPos stand)
+        {
+            var bagSelection = GroundStorageFixture.PlaceBag(World.Api.World, FixtureOutside, GroundStorageFixture.BagCode);
+            // Stand two cells south of the storage - the bag-pickup reach
+            // geometry the bag-flow rows use, not the chest's stand-below stand.
+            await player.TeleportTo(FixtureOutside.DownCopy().Add(0, 0, 2));
+            var carried = Actions.PickUpBagFromGroundStorage(player.Entity, bagSelection, out var failure);
+            Assert.True(carried != null, $"Bag pickup failed: {failure}");
+            Assert.Null(carried!.Block);
             Assert.True(Carry.IsCarrySlotOccupied(player.Entity, CarrySlot.Hands));
             await player.TeleportTo(stand);
             return (player, carried);
@@ -305,6 +327,46 @@ namespace CarryOn.Scenarios
                 $"Chest must land within the boundary footprint x {DropBoundary.X}..{DropBoundary.X + 1} z {DropBoundary.Z}..{DropBoundary.Z + 1}, found {chests[0]}");
             Assert.Equal(0, CountChestsInClaimArea());
             Assert.Empty(CarriedBlockEntitiesAround(dropDst, 4));
+            Assert.Equal(0, CountItemEntitiesAround(dropDst, 4));
+        }
+
+        /// <summary>
+        /// C7 - the item-class twin of the Items-mode row: a bag (no world
+        /// block) picked from ground storage OUTSIDE the claim, then dropped
+        /// by a stranger standing inside it. The claim denies the stranger's
+        /// ground-storage placement, and the pinned outcome is the
+        /// carried-block entity: exactly one carryon:carriedblock at the drop
+        /// point, no game:item spill, no placement. Before the fix, after the
+        /// refused ground storage the Items mode skipped the entity spawn, so
+        /// the bag spilled as one game:item with no drop event and no
+        /// carriedblock entity.
+        /// </summary>
+        [Trait("summary", "A stranger's Items-mode drop of a carried bag inside a claim lands one carriedblock entity at the drop point, with no game:item spill and no placement.")]
+        [Trait("pins", "An item-class carry's claim-denied drop prefers the carried-block entity over the items spill once ground storage is refused.")]
+        [Trait("role", "regression")]
+        [Trait("redfirst", "true")]
+        [Trait("evidence", "Fails on the unfixed head, where the Items mode skips the post-storage entity spawn and the bag spills as one game:item with no drop event and no carriedblock entity.")]
+        [AtlasScenario(RollbackWorld = true)]
+        public async Task StrangerBagDropInsideClaim_ItemsMode_LandsCarriedBlockEntity()
+        {
+            AssertPremise();
+            var dropDst = DropInside;
+            ClearStaleClaims();
+
+            var (owner, stranger) = await JoinOwnerAndStrangerAsync("ClaimOwner7", "ClaimDropper7");
+            AddClaimAroundSpawn(owner.Player);
+            _ = await ArmBagForDropperAsync(stranger, dropDst);
+
+            using (SubscribeBlockDropped())
+            using (UseDropMode(DropMode.Items))
+            {
+                DropHands(stranger);
+            }
+
+            AssertCarryCleared(stranger);
+            Assert.Single(Drops);
+            Assert.False(Drops[0].BlockPlaced, "The claim-denied bag drop must land as an entity, not a placement");
+            Assert.Single(CarriedBlockEntitiesAround(dropDst, 4));
             Assert.Equal(0, CountItemEntitiesAround(dropDst, 4));
         }
     }

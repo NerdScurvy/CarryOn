@@ -21,6 +21,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
         private readonly ClientModConfig clientModConfig;
         private readonly CarryRenderInfoBuilder infoBuilder;
         private readonly CarryTransformPlanBuilder planBuilder;
+        private readonly CarryLabelRenderer labelRenderer;
         private readonly HashSet<long> seenEntityIds = new();
 
         public EntityCarryRenderer(ICoreClientAPI api, ICarryManager carryManager, IConfigProvider configProvider, ClientModConfig clientModConfig)
@@ -39,7 +40,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
             var cache = new CarryRenderCache();
             planBuilder = new CarryTransformPlanBuilder(api, carryManager, cache);
             infoBuilder = new CarryRenderInfoBuilder(api, renderAttached);
-            var labelRenderer = new CarryLabelRenderer(api);
+            labelRenderer = new CarryLabelRenderer(api);
 
             cacheManager = new CarryRenderCacheManager(api, carryManager, configProvider, planBuilder, infoBuilder, cache);
             dispatcher = new CarryRenderDispatcher(api, carryManager, configProvider, cacheManager, firstPersonRenderer, labelRenderer, renderAttached);
@@ -64,6 +65,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
             cacheManager.InvalidateAll();
             dispatcher.ClearMatrixPool();
             infoBuilder.Dispose();
+            labelRenderer.Dispose();
         }
 
         public void InvalidateRenderCaches() => cacheManager.InvalidateAll();
@@ -72,6 +74,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
         {
             infoBuilder.RenderAttachedBlocks = enabled;
             dispatcher.RenderAttachedBlocks = enabled;
+            cacheManager.InvalidateAll();
         }
 
         public double RenderOrder => 1.0;

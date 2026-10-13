@@ -86,40 +86,22 @@ namespace CarryOn.Common.Services
         public IReadOnlyList<IEntityTransformGroupResolver> EnumerateEntityResolvers()
             => entityResolverOrder;
 
+        // Removal matches the registered entry by resolver instance: registration
+        // canonically qualifies the resolver's code with the *caller's* mod id, so a
+        // code-keyed lookup recomputed from the resolver's own (possibly bare) code can
+        // target the wrong domain and miss. The instance is registered under exactly one
+        // canonical code and is the only identity the public unregister API has.
+
         public bool UnregisterRoot(IRootTransformGroupResolver resolver)
-        {
-            if (resolver == null || string.IsNullOrWhiteSpace(resolver.ResolverCode))
-                return false;
-
-            var canonicalCode = ToCanonicalLookupCode(resolver.ResolverCode);
-            if (canonicalCode == null)
-                return false;
-
-            return rootResolvers.Unregister(canonicalCode, resolver);
-        }
+            => resolver != null && rootResolvers.UnregisterByValue(resolver);
 
         public bool UnregisterAttachment(IAttachmentTransformGroupResolver resolver)
-        {
-            if (resolver == null || string.IsNullOrWhiteSpace(resolver.ResolverCode))
-                return false;
-
-            var canonicalCode = ToCanonicalLookupCode(resolver.ResolverCode);
-            if (canonicalCode == null)
-                return false;
-
-            return attachmentResolvers.Unregister(canonicalCode, resolver);
-        }
+            => resolver != null && attachmentResolvers.UnregisterByValue(resolver);
 
         public bool UnregisterEntity(IEntityTransformGroupResolver resolver)
         {
-            if (resolver == null || string.IsNullOrWhiteSpace(resolver.ResolverCode))
-                return false;
-
-            var canonicalCode = ToCanonicalLookupCode(resolver.ResolverCode);
-            if (canonicalCode == null)
-                return false;
-
-            var removed = entityResolvers.Unregister(canonicalCode, resolver);
+            if (resolver == null) return false;
+            var removed = entityResolvers.UnregisterByValue(resolver);
             if (removed)
             {
                 entityResolverOrder.Remove(resolver);

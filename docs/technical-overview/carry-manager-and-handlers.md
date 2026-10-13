@@ -28,7 +28,7 @@ This pipeline covers:
 - `src/Common/Logic/TransferLogic.cs`
 - `src/Common/Models/CarryInteraction.cs`
 - `src/CarrySystem.cs`
-- `../CarryOnLib/src/API/Common/Interfaces/ICarryManager.cs`
+- [src/API/Common/Interfaces/ICarryManager.cs](https://github.com/NerdScurvy/CarryOnLib/blob/main/src/API/Common/Interfaces/ICarryManager.cs)
 
 ---
 
@@ -456,7 +456,7 @@ graph TD
 - `src/Common/Logic/TransferLogic.cs`
 - `src/Common/Models/CarryInteraction.cs`
 - `src/CarrySystem.cs`
-- `../CarryOnLib/src/API/Common/Interfaces/ICarryManager.cs`
+- [src/API/Common/Interfaces/ICarryManager.cs](https://github.com/NerdScurvy/CarryOnLib/blob/main/src/API/Common/Interfaces/ICarryManager.cs)
 
 ---
 

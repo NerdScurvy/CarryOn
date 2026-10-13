@@ -507,7 +507,7 @@ Common condition keys used by built-in patches:
 | `carryon.Carryables.Chest` | enabled |
 | `carryon.Carryables.Crate` | enabled |
 | `carryon.Carryables.Planter` | enabled |
-| `carryon.CarryablesOnBack.Crate` | enabled |
+| `carryon.CarryablesOnBack.Crate` | disabled |
 | `carryon.Interactables.Storage` | enabled |
 | `carryon.Interactables.Door` | enabled |
 

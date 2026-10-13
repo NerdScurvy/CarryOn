@@ -1,0 +1,9 @@
+{
+  "ConfigVersion": 6,
+  "Carryables": {
+    "Chest": true
+  },
+  "CarryOptions": {
+    "TrackDroppedBlocks": false
+  }
+}

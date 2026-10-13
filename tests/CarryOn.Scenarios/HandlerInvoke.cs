@@ -19,6 +19,7 @@ namespace CarryOn.Scenarios
         private static FieldInfo? serverHandlerField;
         private static bool resolved;
         private static MethodInfo? pickUpMethod;
+        private static MethodInfo? pickUpGroundStorageBagMethod;
         private static MethodInfo? placeDownMethod;
         private static MethodInfo? interactMethod;
         private static MethodInfo? attachMethod;
@@ -35,6 +36,17 @@ namespace CarryOn.Scenarios
         {
             ResolveMethods(mod);
             pickUpMethod!.Invoke(ServerHandler(mod), new object[] { player, message });
+        }
+
+        /// <summary>
+        /// Drives CarryServerHandler.OnPickUpGroundStorageBagMessage - the path a real
+        /// client's PickUpGroundStorageBagMessage takes on the server (lifting a single
+        /// bag item out of a ground-storage slot into the hands carry slot).
+        /// </summary>
+        public static void PickUpGroundStorageBag(CarrySystem mod, IServerPlayer player, PickUpGroundStorageBagMessage message)
+        {
+            ResolveMethods(mod);
+            pickUpGroundStorageBagMethod!.Invoke(ServerHandler(mod), new object[] { player, message });
         }
 
         /// <summary>
@@ -150,6 +162,7 @@ namespace CarryOn.Scenarios
 
             var serverHandlerType = serverHandler.GetType();
             pickUpMethod = RequireMethod<PickUpMessage>(serverHandlerType, "OnPickUpMessage");
+            pickUpGroundStorageBagMethod = RequireMethod<PickUpGroundStorageBagMessage>(serverHandlerType, "OnPickUpGroundStorageBagMessage");
             placeDownMethod = RequireMethod<PlaceDownMessage>(serverHandlerType, "OnPlaceDownMessage");
             interactMethod = RequireMethod<InteractMessage>(serverHandlerType, "OnInteractMessage");
             attachMethod = RequireMethod<AttachMessage>(serverHandlerType, "OnAttachMessage");

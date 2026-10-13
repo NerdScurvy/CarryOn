@@ -10,11 +10,11 @@ It reflects the current implementation:
 
 ## 0. Scope
 
-- `../CarryOnLib/src/API/Common/Interfaces/ICarryableHintPolicy.cs`
-- `../CarryOnLib/src/API/Common/Models/CarryHintType.cs`
-- `../CarryOnLib/src/API/Common/Models/CarryHintContext.cs`
+- [src/API/Common/Interfaces/ICarryableHintPolicy.cs](https://github.com/NerdScurvy/CarryOnLib/blob/main/src/API/Common/Interfaces/ICarryableHintPolicy.cs)
+- [src/API/Common/Models/CarryHintType.cs](https://github.com/NerdScurvy/CarryOnLib/blob/main/src/API/Common/Models/CarryHintType.cs)
+- [src/API/Common/Models/CarryHintContext.cs](https://github.com/NerdScurvy/CarryOnLib/blob/main/src/API/Common/Models/CarryHintContext.cs)
 - `src/Common/Behaviors/BlockBehaviorCarryable.cs`
-- `../RackEmUp/src/BlockBehaviorMoldRackTransfer.cs`
+- [src/BlockBehaviorMoldRackTransfer.cs](https://github.com/NerdScurvy/RackEmUp/blob/main/src/BlockBehaviorMoldRackTransfer.cs)
 
 ---
 

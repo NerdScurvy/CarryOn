@@ -410,8 +410,8 @@ public interface IEntityTransformGroupResolver
 - `src/Client/Logic/TransformGroupResolvers/ContainerSlotTransformGroupResolverBase.cs`
 - `src/Client/Logic/TransformGroupResolvers/HiddenBackpack/HiddenBackpackEntityResolver.cs` — built-in per-wearer hidden-backpack entity resolver
 - `src/Client/Logic/CarryRenderer/CarryRenderDispatcher.cs` — consults the entity resolver override for each rendered carried block
-- `../CarryOnLib/src/API/Common/Interfaces/IRootTransformGroupResolver.cs` — root resolver interface
-- `../CarryOnLib/src/API/Common/Interfaces/IAttachmentTransformGroupResolver.cs` — attachment resolver interface
-- `../CarryOnLib/src/API/Common/Interfaces/IEntityTransformGroupResolver.cs` — entity resolver interface
-- `../CarryOnLib/src/API/Common/Models/AttachmentResolveResult.cs` — attachment resolver result model
-- `../CarryOnLib/src/API/Common/Models/CarriedGroupCandidateSet.cs` — `CarriedGroupCandidateSet` model
+- [src/API/Common/Interfaces/IRootTransformGroupResolver.cs](https://github.com/NerdScurvy/CarryOnLib/blob/main/src/API/Common/Interfaces/IRootTransformGroupResolver.cs) — root resolver interface
+- [src/API/Common/Interfaces/IAttachmentTransformGroupResolver.cs](https://github.com/NerdScurvy/CarryOnLib/blob/main/src/API/Common/Interfaces/IAttachmentTransformGroupResolver.cs) — attachment resolver interface
+- [src/API/Common/Interfaces/IEntityTransformGroupResolver.cs](https://github.com/NerdScurvy/CarryOnLib/blob/main/src/API/Common/Interfaces/IEntityTransformGroupResolver.cs) — entity resolver interface
+- [src/API/Common/Models/AttachmentResolveResult.cs](https://github.com/NerdScurvy/CarryOnLib/blob/main/src/API/Common/Models/AttachmentResolveResult.cs) — attachment resolver result model
+- [src/API/Common/Models/CarriedGroupCandidateSet.cs](https://github.com/NerdScurvy/CarryOnLib/blob/main/src/API/Common/Models/CarriedGroupCandidateSet.cs) — `CarriedGroupCandidateSet` model
