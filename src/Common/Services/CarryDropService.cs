@@ -81,9 +81,10 @@ namespace CarryOn.Common.Services
             var centerBlock = entity.Pos.AsBlockPos.UpCopy();
 
             // Item-class carry (e.g. a bag picked up from ground storage): there is no world
-            // block to place. Route through the dedicated item branch, which applies the
-            // DropMode gate (entity spawn or ground-storage placement) before falling back
-            // to item drops.
+            // block to place. Route through the dedicated item branch, which tries the
+            // carried-block entity spawn (the EntityAlways shortcut), ground-storage
+            // placement, then the entity spawn again regardless of mode, spilling item
+            // drops only when that spawn is refused.
             if (carriedBlock.Block == null)
             {
                 if (api.Side == EnumAppSide.Server)
@@ -149,10 +150,11 @@ namespace CarryOn.Common.Services
         }
 
         /// <summary>
-        /// Drops an item-class carried stack (e.g. a bag picked up from ground storage) through
-        /// the DropMode pipeline: optional carried-block entity spawn, ground-storage placement
-        /// (deposit into existing storage, then create new storage), then item drops with the
-        /// bag's "backpack" contents spilled alongside.
+        /// Drops an item-class carried stack (e.g. a bag picked up from ground storage):
+        /// carried-block entity spawn (the EntityAlways shortcut), ground-storage placement
+        /// (deposit into existing storage, then create new storage), then the entity spawn
+        /// again regardless of mode, with the bag's "backpack" contents spilled as item
+        /// drops only when that spawn is refused.
         /// </summary>
         private void DropCarriedItem(Entity entity, CarriedBlock carriedBlock, BlockPos centerBlock, int range, IServerPlayer? player)
         {
@@ -170,9 +172,11 @@ namespace CarryOn.Common.Services
             if (TryPlaceIntoGroundStorage(entity, carriedBlock, centerBlock, range))
                 return;
 
-            if (dropMode == DropMode.EntityOnFailedPlacement && TrySpawnAsEntity(carriedBlock, centerBlock, player, entity))
+            if (TrySpawnAsEntity(carriedBlock, centerBlock, player, entity))
                 return;
 
+            api.World.Logger.Audit(
+                $"[{ModId}] Failed to drop carried item {CarryCodes.DisplayName(carriedBlock.ItemStack?.Collectible?.Code)} as an entity at {centerBlock}; spilling it as item drops");
             DropCarriedBagContents(entity, carriedBlock, centerBlock);
         }
 
@@ -342,6 +346,26 @@ namespace CarryOn.Common.Services
         /// <param name="forceEntity">When true, spawns a block entity instead of item drops regardless of DropMode.</param>
         public void DropBlockAsEntityOrItem(CarriedBlock carriedBlock, BlockPos centerBlock, IServerPlayer? player, Entity entity, bool forceEntity = false)
         {
+            // Item-class carry (e.g. a bag picked from ground storage): there is no world
+            // block whose drops, sounds or code the branch below could read, so the
+            // break-into-drops tail does not apply. Drop the carried stack itself as a
+            // world entity - a landed carried-block entity stays in the world and is
+            // recoverable, where a loose item entity spawned on the dropping player is
+            // re-collected into their inventory within a tick. A refused spawn is rare:
+            // log it and keep the carry rather than lose or spill the stack. Client-side
+            // calls no-op; the drop is server-authoritative.
+            if (carriedBlock.Block == null)
+            {
+                if (api.Side == EnumAppSide.Server
+                    && !TrySpawnAsEntity(carriedBlock, centerBlock, player, entity))
+                {
+                    api.World.Logger.Error(
+                        $"[{ModId}] Failed to drop carried item {CarryCodes.DisplayName(carriedBlock.ItemStack?.Collectible?.Code)} as an entity at {centerBlock}; keeping it carried");
+                }
+
+                return;
+            }
+
             if (api.Side == EnumAppSide.Server
                 && (forceEntity || configProvider?.Config?.CarriedBlockEntity?.DropMode == DropMode.EntityAlways)
                 && TrySpawnAsEntity(carriedBlock, centerBlock, player, entity))

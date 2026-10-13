@@ -113,7 +113,7 @@ namespace CarryOn.Scenarios.Wiring
                 + "carry the call this pin is about");
 
             var calls = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var call in ResolveCalledMembers(reader, il!))
+            foreach (var call in StagedModProbe.CallList(reader, il!))
             {
                 calls.Add(call);
             }
@@ -274,34 +274,7 @@ namespace CarryOn.Scenarios.Wiring
         /// </summary>
         private static HashSet<string> CallsFrom(
             MetadataReader reader, PEReader peReader, string typeFullName, string methodName)
-        {
-            var method = FindMethod(reader, typeFullName, methodName);
-            Assert.True(
-                method.HasValue,
-                $"{typeFullName}.{methodName}() not found in the staged mod assembly - if it "
-                + "was renamed or inlined away, this pin must be re-derived against the new "
-                + "call site rather than deleted");
-
-            var body = peReader.GetMethodBody(method!.Value.RelativeVirtualAddress);
-            Assert.True(
-                body != null,
-                $"{typeFullName}.{methodName}() has no IL body - an abstract or extern method "
-                + "cannot carry the call this pin is about");
-
-            var il = body!.GetILBytes();
-            Assert.True(
-                il != null && il.Length > 0,
-                $"{typeFullName}.{methodName}() has no IL bytes - an empty body cannot carry "
-                + "the call this pin is about");
-
-            var calls = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var call in ResolveCalledMembers(reader, il!))
-            {
-                calls.Add(call);
-            }
-
-            return calls;
-        }
+            => StagedModProbe.CallsFrom(reader, peReader, typeFullName, methodName);
 
         // ---- Carryability-sync hardening pins ----
 
@@ -444,15 +417,7 @@ namespace CarryOn.Scenarios.Wiring
 
         private static MethodDefinition FindRequiredMethod(
             MetadataReader reader, string typeFullName, string methodName)
-        {
-            var method = FindMethod(reader, typeFullName, methodName);
-            Assert.True(
-                method.HasValue,
-                $"{typeFullName}.{methodName}() not found in the staged mod assembly - if it "
-                + "was renamed or inlined away, this pin must be re-derived against the new "
-                + "call site rather than deleted");
-            return method!.Value;
-        }
+            => StagedModProbe.RequireMethod(reader, typeFullName, methodName);
 
         /// <summary>
         /// The members called from the IL window [offset, offset+length), resolved from
@@ -462,267 +427,17 @@ namespace CarryOn.Scenarios.Wiring
         /// </summary>
         private static HashSet<string> CallsWithinRegion(
             MetadataReader reader, byte[] il, int offset, int length)
-        {
-            if (offset <= 0 || length <= 0 || offset >= il.Length) return new HashSet<string>(StringComparer.Ordinal);
-
-            var end = Math.Min(il.Length, offset + length);
-            var calls = new HashSet<string>(StringComparer.Ordinal);
-
-            // Resolve over the whole body but keep only the ones landing in the window. The
-            // decoder walks instructions rather than raw bytes, so an operand straddling the
-            // window edge cannot produce a phantom member name.
-            var decoder = new InstructionScanner(reader, il);
-            while (decoder.MoveNext())
-            {
-                if (decoder.Offset < offset || decoder.Offset >= end) continue;
-                if (decoder.Member != null) calls.Add(decoder.Member);
-            }
-
-            return calls;
-        }
-
-        /// <summary>
-        /// Walks IL instructions, exposing each one's offset and, for call/callvirt, the
-        /// resolved member name. Extracted so both the whole-body and windowed reads share
-        /// one decoder - the class summary records why metadata is read instead of loading
-        /// the assembly.
-        /// </summary>
-        private sealed class InstructionScanner
-        {
-            private readonly MetadataReader reader;
-            private readonly byte[] il;
-            private readonly OpCode[] oneByte = new OpCode[0x100];
-            private readonly OpCode[] twoByte = new OpCode[0x100];
-            private int position;
-
-            public int Offset { get; private set; }
-            public string? Member { get; private set; }
-
-            public InstructionScanner(MetadataReader reader, byte[] il)
-            {
-                this.reader = reader;
-                this.il = il;
-
-                foreach (var field in typeof(OpCodes).GetFields(BindingFlags.Public | BindingFlags.Static))
-                {
-                    if (field.GetValue(null) is not OpCode opcode) continue;
-                    if (opcode.Size == 1) oneByte[opcode.Value & 0xFF] = opcode;
-                    else twoByte[opcode.Value & 0xFF] = opcode;
-                }
-            }
-
-            public bool MoveNext()
-            {
-                Member = null;
-                if (position >= il.Length) return false;
-
-                Offset = position;
-                var first = il[position++];
-                var opcode = first == 0xFE
-                    ? (position < il.Length ? twoByte[il[position++]] : default)
-                    : oneByte[first];
-                if (opcode.Size == 0 && first != 0xFE) return true; // unknown opcode: skip the byte
-
-                if (opcode.OperandType == OperandType.InlineMethod)
-                {
-                    if (position + sizeof(int) > il.Length) return false;
-                    Member = ResolveMemberToken(reader, BitConverter.ToInt32(il, position));
-                    position += sizeof(int);
-                    return true;
-                }
-
-                position += OperandSize(il, position, opcode.OperandType);
-                return position <= il.Length;
-            }
-        }
+            => StagedModProbe.CallsWithinRegion(reader, il, offset, length);
 
         /// <summary>
         /// Finds a parameterless method by declaring type full name and method name.
-        /// Namespace and type name are matched separately so a nested or renamed type fails
-        /// loudly instead of silently matching nothing.
+        /// Delegates to the shared probe; see its summary for the metadata-only rationale.
         /// </summary>
         private static MethodDefinition? FindMethod(
             MetadataReader reader, string typeFullName, string methodName)
-        {
-            var dot = typeFullName.LastIndexOf('.');
-            var typeNamespace = dot < 0 ? "" : typeFullName[..dot];
-            var typeName = typeFullName[(dot + 1)..];
-
-            foreach (var typeHandle in reader.TypeDefinitions)
-            {
-                var type = reader.GetTypeDefinition(typeHandle);
-                if (!string.Equals(reader.GetString(type.Namespace), typeNamespace, StringComparison.Ordinal)
-                    || !string.Equals(reader.GetString(type.Name), typeName, StringComparison.Ordinal))
-                {
-                    continue;
-                }
-
-                foreach (var methodHandle in type.GetMethods())
-                {
-                    var method = reader.GetMethodDefinition(methodHandle);
-                    if (string.Equals(reader.GetString(method.Name), methodName, StringComparison.Ordinal))
-                    {
-                        return method;
-                    }
-                }
-            }
-
-            return null;
-        }
-
-        /// <summary>
-        /// Every member the IL calls, as <c>TypeName.MemberName</c>, resolved from metadata -
-        /// no assembly is loaded. Tokens that do not resolve to a plain member name (generic
-        /// instantiations on a <c>TypeSpec</c>) are recorded as such: the assertion is about
-        /// the presence of a known call, not about naming every one of them.
-        /// </summary>
-        private static IEnumerable<string> ResolveCalledMembers(MetadataReader reader, byte[] il)
-        {
-            var oneByteOpcodes = new OpCode[0x100];
-            var twoByteOpcodes = new OpCode[0x100];
-            foreach (var field in typeof(OpCodes).GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static))
-            {
-                if (field.GetValue(null) is not OpCode opcode) continue;
-                if (opcode.Size == 1) oneByteOpcodes[opcode.Value & 0xFF] = opcode;
-                else twoByteOpcodes[opcode.Value & 0xFF] = opcode;
-            }
-
-            for (var i = 0; i < il.Length;)
-            {
-                var first = il[i++];
-                var opcode = first == 0xFE
-                    ? twoByteOpcodes[il[i++]]
-                    : oneByteOpcodes[first];
-
-                if (opcode.OperandType == OperandType.InlineMethod)
-                {
-                    var token = BitConverter.ToInt32(il, i);
-                    i += sizeof(int);
-                    var member = ResolveMemberToken(reader, token);
-                    if (member != null) yield return member;
-                    continue;
-                }
-
-                i += OperandSize(il, i, opcode.OperandType);
-            }
-        }
-
-        /// <summary>
-        /// Resolves a metadata token to a member name. A <c>call</c>/<c>callvirt</c> operand
-        /// is always a <c>MethodDef</c> (same assembly) or a <c>MemberRef</c> (other
-        /// assembly) row; anything else is a malformed stream and is skipped.
-        /// </summary>
-        private static string? ResolveMemberToken(MetadataReader reader, int token)
-        {
-            var row = token & 0x00FFFFFF;
-            switch (token >> 24)
-            {
-                case 0x06: // MethodDef
-                {
-                    var method = reader.GetMethodDefinition(MetadataTokens.MethodDefinitionHandle(row));
-                    var declaring = TypeName(reader, method.GetDeclaringType());
-                    return declaring == null ? null : $"{declaring}.{reader.GetString(method.Name)}";
-                }
-                case 0x0A: // MemberRef
-                {
-                    var member = reader.GetMemberReference(MetadataTokens.MemberReferenceHandle(row));
-                    var declaring = TypeName(reader, member.Parent);
-                    return declaring == null ? null : $"{declaring}.{reader.GetString(member.Name)}";
-                }
-                default:
-                    return null;
-            }
-        }
-
-        /// <summary>The full name of a type handle, or null when it is not a named type
-        /// (a generic <c>TypeSpec</c> - the caller reports those as unresolvable rather
-        /// than guessing at a signature).</summary>
-        private static string? TypeName(MetadataReader reader, EntityHandle handle)
-        {
-            switch (handle.Kind)
-            {
-                case HandleKind.TypeDefinition:
-                {
-                    var type = reader.GetTypeDefinition((TypeDefinitionHandle)handle);
-                    var ns = reader.GetString(type.Namespace);
-                    var name = reader.GetString(type.Name);
-                    return string.IsNullOrEmpty(ns) ? name : $"{ns}.{name}";
-                }
-                case HandleKind.TypeReference:
-                {
-                    var type = reader.GetTypeReference((TypeReferenceHandle)handle);
-                    var ns = reader.GetString(type.Namespace);
-                    var name = reader.GetString(type.Name);
-                    return string.IsNullOrEmpty(ns) ? name : $"{ns}.{name}";
-                }
-                default:
-                    return null;
-            }
-        }
-
-        private static int OperandSize(byte[] il, int offset, OperandType operandType)
-            => operandType switch
-            {
-                OperandType.InlineNone => 0,
-                OperandType.ShortInlineBrTarget
-                    or OperandType.ShortInlineI
-                    or OperandType.ShortInlineVar => 1,
-                OperandType.InlineVar => 2,
-                OperandType.InlineI8
-                    or OperandType.InlineR => 8,
-                OperandType.InlineSwitch => sizeof(int) * BitConverter.ToInt32(il, offset),
-                _ => sizeof(int), // InlineBrTarget, InlineField, InlineI, InlineSig,
-                                  // InlineString, InlineTok, InlineType, ShortInlineR
-            };
+            => StagedModProbe.FindMethod(reader, typeFullName, methodName);
 
         private static string ProbeModAssemblyPath()
-        {
-            foreach (var directory in ProbeDirectories())
-            {
-                var candidate = Path.Combine(directory, "CarryOn.dll");
-                if (File.Exists(candidate)) return candidate;
-            }
-
-            throw new FileNotFoundException(
-                "CarryOn.dll not found. Build the mod in Release (run-tests.ps1 does this "
-                + $"first) and re-run. Probed: {string.Join("; ", ProbeDirectories())}.");
-        }
-
-        /// <summary>
-        /// Every directory that could hold the staged mod assembly, found by walking up from
-        /// this test assembly's own location - <b>not</b> from <c>AppContext.BaseDirectory</c>,
-        /// which the Atlas host points at the VintageStory install when it boots servers
-        /// (verified on the full-suite run: BaseDirectory was the install root while the
-        /// test assembly still lived in the repo's test output), so a base-directory walk
-        /// silently finds no repo ancestor in a full-suite run while finding all of them in
-        /// a filtered one. The assembly location is stable in both.
-        /// </summary>
-        private static IEnumerable<string> ProbeDirectories()
-        {
-            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-            foreach (var anchor in new[]
-            {
-                typeof(CarryabilitySyncWiringTests).Assembly.Location,
-                AppContext.BaseDirectory,
-            })
-            {
-                if (string.IsNullOrEmpty(anchor)) continue;
-
-                for (var dir = new DirectoryInfo(Path.GetDirectoryName(anchor)!); dir != null; dir = dir.Parent)
-                {
-                    foreach (var relative in new[]
-                    {
-                        Path.Combine("bin", "Release", "net10.0"),
-                        Path.Combine("CarryOn", "bin", "Release", "net10.0"),
-                        Path.Combine("CarryOnLib", "bin", "Release", "net10.0"),
-                    })
-                    {
-                        var candidate = Path.GetFullPath(Path.Combine(dir.FullName, relative));
-                        if (seen.Add(candidate) && Directory.Exists(candidate)) yield return candidate;
-                    }
-                }
-            }
-        }
+            => StagedModProbe.ModAssemblyPath();
     }
 }

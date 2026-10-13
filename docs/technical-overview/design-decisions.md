@@ -337,6 +337,37 @@ real noise is reported.
 
 ---
 
+## Entity transform overrides
+
+Why the framework leaves entity resolver caching to the resolvers themselves.
+See the [transformGroupResolver Guide](../transform-group-resolvers-guide.md)
+for the resolver contract.
+
+### DD-017 - The framework does not cache entity overrides; resolvers memoize internally
+
+**Decision.** `IEntityTransformGroupResolver` exposes only `ResolverCode` and
+`TryResolve`. Entity transform overrides are not cached at the framework level,
+and the interface carries no cache-signature contract: a resolver whose check
+is expensive memoizes inside its own implementation.
+
+**Why.** Root and attachment resolvers answer questions about block-authored
+inputs that are stable per block, so the framework resolves them per query at
+negligible cost. Entity resolvers answer per-wearer questions whose inputs —
+for example, whether a backpack-hiding mod currently hides the pack — can
+change without any signal the framework can observe. A framework-side cache
+for that would need an invalidation channel no caller can provide; the
+`GetCacheSignature` member that once sat on the interface existed for that
+hypothetical cache, had no framework consumer, and imposed an obligation on
+every implementer for a benefit the framework never collected.
+
+**Accepted trade.** Each implementer with an expensive check carries its own
+memoization (the built-in hidden-backpack resolver does exactly this, with an
+internal weak-table memo). If profiling ever shows per-wearer resolution is
+hot on real worlds, the seam to reopen is an explicit framework cache with an
+invalidation push — not a passive signature member.
+
+---
+
 ## Considered and rejected
 
 Investigated and closed. Recorded so they do not read as an implied to-do list.
@@ -360,6 +391,14 @@ that context or log the same failure twice.
 **Deny-closed claim checks for non-player actors.** Rejected under
 [DD-009](#dd-009--the-claim-gate-is-identity-keyed-so-non-player-actors-bypass-it): it breaks every
 legitimate non-player placement path with no security gain.
+
+**Localizing the config reload notices.** Rejected: the notices are
+admin-facing (`controlserver` holders and the invoking admin) and deliberately
+plain English, matching the server log lines they mirror; per-recipient
+localization would mean rebuilding the notice record around keys and format
+args for strings no translation has been requested for. Reopen only if a
+translated language pack covers admin-facing text or a non-English admin asks
+for it.
 
 ---
 

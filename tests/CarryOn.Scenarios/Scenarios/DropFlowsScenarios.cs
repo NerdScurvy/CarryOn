@@ -118,6 +118,54 @@ namespace CarryOn.Scenarios
         }
 
         /// <summary>
+        /// Driving the drop-as-entity-or-item branch for an item-class carry (a bag with
+        /// no world block) must land the item instead of throwing. Before the fix, the
+        /// branch dereferenced the carried block's world <c>Block</c>, which is null for
+        /// an item-class carry, so the call threw and the bag was lost.
+        /// </summary>
+        [Trait("summary", "Driving the drop-as-entity-or-item branch for an item-class carry lands the bag as a dropped entity, clears the hands slot and does not throw.")]
+        [Trait("pins", "The drop-as-entity-or-item branch handles an item-class carry (no world block) without dereferencing a null Block.")]
+        [Trait("role", "regression")]
+        [Trait("redfirst", "true")]
+        [Trait("evidence", "Failed on the unfixed head, where the branch read the null carried Block and threw, losing the bag.")]
+        [AtlasScenario(RollbackWorld = true)]
+        public async Task DropBlockAsEntityOrItem_ItemClassCarry_LandsItemWithoutThrowing()
+        {
+            BlockPos bagPos = World.Spawn.Offset(2, 1, 0);
+            BlockSelection bagSelection = GroundStorageFixture.PlaceBag(
+                World.Api.World, bagPos, GroundStorageFixture.BagCode);
+
+            ITestPlayer player = await JoinPlayer("Tester");
+            await player.TeleportTo(World.Spawn.Offset(2, 0, 2));
+
+            var carried = Actions.PickUpBagFromGroundStorage(player.Entity, bagSelection, out var pickupCode);
+            Assert.True(carried != null, $"Bag pickup failed: {pickupCode}");
+            Assert.Null(carried!.Block);
+
+            BlockPos centerBlock = player.Entity.Pos.AsBlockPos.UpCopy();
+
+            var thrown = Record.Exception(() =>
+                Carry.DropBlockAsEntityOrItem(carried, centerBlock, player.Player, player.Entity));
+
+            Assert.Null(thrown);
+            Assert.Null(Carry.GetCarried(player.Entity, CarrySlot.Hands));
+            await World.Ticks(2);
+
+            // Content must land as a dropped entity (item or carried-block), never be
+            // silently lost to the null-Block dereference.
+            bool landed = World.Api.World.LoadedEntities.Values.Any(entity =>
+            {
+                var pos = entity.Pos.AsBlockPos;
+                if (Math.Abs(pos.X - centerBlock.X) > 3
+                    || Math.Abs(pos.Y - centerBlock.Y) > 3
+                    || Math.Abs(pos.Z - centerBlock.Z) > 3) return false;
+                string? code = entity.Code?.ToString();
+                return code == "game:item" || code == "carryon:carriedblock";
+            });
+            Assert.True(landed, "The dropped bag must land as an item or carried-block entity, not be lost");
+        }
+
+        /// <summary>
         /// Dropping two occupied slots in one call clears both and emits one BlockDropped
         /// event per carried block, each placed in the open field.
         /// </summary>

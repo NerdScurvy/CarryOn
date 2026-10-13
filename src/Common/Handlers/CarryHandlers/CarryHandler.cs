@@ -68,7 +68,15 @@ namespace CarryOn.Common.Handlers.CarryHandlers
 
         public void Dispose()
         {
-            if (ServerApi != null && this.serverBeforeActiveSlotChangedDelegate != null)
+            if (ServerApi == null) return;
+
+            if (serverHandler != null)
+            {
+                ServerApi.Event.OnEntitySpawn -= serverHandler.OnServerEntitySpawn;
+                ServerApi.Event.PlayerNowPlaying -= serverHandler.OnServerPlayerNowPlaying;
+            }
+
+            if (this.serverBeforeActiveSlotChangedDelegate != null)
             {
                 ServerApi.Event.BeforeActiveSlotChanged -= this.serverBeforeActiveSlotChangedDelegate;
                 this.serverBeforeActiveSlotChangedDelegate = null;

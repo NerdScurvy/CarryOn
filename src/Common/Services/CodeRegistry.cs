@@ -67,12 +67,22 @@ namespace CarryOn.Common.Services
         public IEnumerable<string> EnumerateCodes() => entries.Keys;
 
         /// <summary>
-        /// Removes <paramref name="code"/> only if the currently registered instance is
-        /// <paramref name="value"/> (reference-identical).
+        /// Removes the entry registered for the reference-identical <paramref name="value"/>,
+        /// whichever canonical code it is stored under. A value is registered under exactly
+        /// one canonical code (duplicates are rejected), so the instance is the only identity
+        /// a caller needs to release its registration.
         /// </summary>
-        public bool Unregister(string code, T value)
-            => entries.TryGetValue(code, out var existing)
-                && ReferenceEquals(existing, value)
-                && entries.Remove(code);
+        public bool UnregisterByValue(T value)
+        {
+            if (value == null) return false;
+            foreach (var pair in entries)
+            {
+                if (ReferenceEquals(pair.Value, value))
+                {
+                    return entries.Remove(pair.Key);
+                }
+            }
+            return false;
+        }
     }
 }

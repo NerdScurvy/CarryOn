@@ -23,7 +23,7 @@ It reflects the current implementation:
 - `src/CarrySystem.Lifecycle.cs` — boot site (`ResetBaseline`, first `Init`), Mode B join hook
 - `src/CarrySystem.Configuration.cs` — client-side snapshot reconciliation
 - `src/Common/Logic/CarryOnConfigService.cs` — Mode B reload re-run
-- `../CarryOnLib/src/API/Common/Interfaces/IConditionalBlockBehavior.cs`
+- [src/API/Common/Interfaces/IConditionalBlockBehavior.cs](https://github.com/NerdScurvy/CarryOnLib/blob/main/src/API/Common/Interfaces/IConditionalBlockBehavior.cs)
 - `src/Common/Models/Config/CarryablesConfig.cs` (`CarryablesFiltersConfig`)
 - `src/Common/Behaviors/BlockBehaviorCarryable.cs` (`PatchPriority`, `OverrideExistingProperties`, `ForcePickupOnSwapBack`, the `CreatedByConditioning` marker)
 
@@ -617,7 +617,7 @@ Private. Produces the ordered candidate key list for a block. Returns only `["Cl
 - `src/Common/Behaviors/BlockBehaviorCarryable.cs`
 - `src/Common/Behaviors/BlockBehaviorCarryableInteract.cs`
 - `src/Utility/CarryExtensions.cs`
-- `../CarryOnLib/src/API/Common/Interfaces/IConditionalBlockBehavior.cs`
+- [src/API/Common/Interfaces/IConditionalBlockBehavior.cs](https://github.com/NerdScurvy/CarryOnLib/blob/main/src/API/Common/Interfaces/IConditionalBlockBehavior.cs)
 - `src/Common/Models/Config/CarryablesConfig.cs`
 - `tests/CarryOn.Scenarios/CarryOnParityAssert.cs` — raw-array inspection helpers the shape rows assert through
 

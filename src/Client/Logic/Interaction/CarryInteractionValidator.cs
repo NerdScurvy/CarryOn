@@ -396,6 +396,7 @@ namespace CarryOn.Client.Logic.Interaction
 
             var beg = this.api.World.BlockAccessor.GetBlockEntity(selection.Position)
                 as BlockEntityGroundStorage;
+            if (beg == null) return false;
             return beg.IsGroundStorageHeldBagTargeted(selection);
         }
 
@@ -425,6 +426,7 @@ namespace CarryOn.Client.Logic.Interaction
 
             var beg = this.api.World.BlockAccessor.GetBlockEntity(selection.Position)
                 as BlockEntityGroundStorage;
+            if (beg == null) return false;
             return beg.IsGroundStorageBagTargeted(selection);
         }
 
@@ -444,6 +446,7 @@ namespace CarryOn.Client.Logic.Interaction
 
             var beg = api.World.BlockAccessor.GetBlockEntity(selection.Position)
                 as BlockEntityGroundStorage;
+            if (beg == null) return null;
             if (!beg.IsGroundStorageBagTargeted(selection)) return null;
 
             if (!carryManager.HasPermissionAt(player.Entity, selection.Position))

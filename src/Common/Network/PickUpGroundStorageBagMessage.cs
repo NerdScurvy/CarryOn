@@ -33,11 +33,14 @@ namespace CarryOn.Common.Network
             HitPosition = selection.HitPosition.Clone();
         }
 
-        public BlockSelection Selection => new()
-        {
-            Position = Position,
-            Face = BlockFacing.ALLFACES[Face],
-            HitPosition = HitPosition.Clone(),
-        };
+        public BlockSelection? Selection =>
+            Face < BlockFacing.ALLFACES.Length && HitPosition != null && Position != null
+                ? new BlockSelection
+                {
+                    Position = Position,
+                    Face = BlockFacing.ALLFACES[Face],
+                    HitPosition = HitPosition.Clone(),
+                }
+                : null;
     }
 }

@@ -27,6 +27,14 @@ namespace CarryOn.Scenarios
         private const string AttachmentCode = "carryon:test-attachmentresolver";
         private const string EntityCode = "carryon:test-entityresolver";
 
+        /// <summary>A caller mod id other than CarryOn's own, used to pin the
+        /// domain-qualified register/lookup/unregister round-trip.</summary>
+        private const string ForeignModId = "othermod-test";
+
+        private const string UnprefixedRootCode = "test-rootresolver-unprefixed";
+        private const string UnprefixedAttachmentCode = "test-attachmentresolver-unprefixed";
+        private const string UnprefixedEntityCode = "test-entityresolver-unprefixed";
+
         private sealed class StubRootResolver : IRootTransformGroupResolver
         {
             public StubRootResolver(string resolverCode) => ResolverCode = resolverCode;
@@ -278,6 +286,124 @@ namespace CarryOn.Scenarios
             {
                 Carry.UnregisterEntityTransformGroupResolver(first);
                 Carry.UnregisterEntityTransformGroupResolver(second);
+            }
+
+            Assert.NotNull(World.Api);
+            await Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// A resolver registered by a mod other than CarryOn, under an unprefixed
+        /// resolver code, is found through the caller's own domain and can be
+        /// unregistered again. Before the fix, registration qualified the code with
+        /// the caller's mod id, but unregister qualified the resolver's own (bare)
+        /// code with the CarryOn domain, so the lookup missed and the registration
+        /// could never be released.
+        /// </summary>
+        [Trait("summary", "A root resolver registered by another mod with an unprefixed resolver code is found through that mod's domain and Unregister reports true and removes it.")]
+        [Trait("pins", "The public resolver registry unregisters a resolver registered under a non-CarryOn mod id with an unprefixed code.")]
+        [Trait("role", "contract")]
+        [Trait("redfirst", "true")]
+        [Trait("evidence", "Failed on the unfixed head, where unregister qualified the bare resolver code with the CarryOn domain and so never matched the registration.")]
+        [AtlasScenario(RollbackWorld = true)]
+        public async Task RootResolver_ForeignModIdUnprefixedCode_Unregisters()
+        {
+            var resolver = new StubRootResolver(UnprefixedRootCode);
+            string registeredCode = $"{ForeignModId}:{UnprefixedRootCode}";
+            try
+            {
+                Carry.RegisterRootTransformGroupResolver(ForeignModId, resolver);
+
+                // Premise/control: registration qualified the code with the caller's
+                // domain, so the fully-qualified code resolves. This half stays true
+                // with or without the fix and proves the resolver really is stored.
+                Assert.True(Carry.TryGetRootTransformGroupResolver(registeredCode, out var stored),
+                    "premise: the foreign-mod resolver must be retrievable by its domain-qualified code");
+                Assert.Same(resolver, stored);
+
+                Assert.True(Carry.UnregisterRootTransformGroupResolver(resolver),
+                    "unregister must release a resolver registered under another mod id with an unprefixed code");
+                Assert.False(Carry.TryGetRootTransformGroupResolver(registeredCode, out var afterUnregister));
+                Assert.Null(afterUnregister);
+            }
+            finally
+            {
+                Carry.UnregisterRootTransformGroupResolver(resolver);
+            }
+
+            Assert.NotNull(World.Api);
+            await Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// The attachment registry keeps the same round-trip for a resolver registered
+        /// by another mod under an unprefixed code. Before the fix, the same domain
+        /// mismatch between register (caller mod id) and unregister (CarryOn domain)
+        /// applied.
+        /// </summary>
+        [Trait("summary", "An attachment resolver registered by another mod with an unprefixed resolver code is found through that mod's domain and Unregister reports true and removes it.")]
+        [Trait("pins", "The attachment resolver registry unregisters a resolver registered under a non-CarryOn mod id with an unprefixed code.")]
+        [Trait("role", "parity")]
+        [Trait("redfirst", "true")]
+        [Trait("evidence", "Failed on the unfixed head for the same register/unregister domain mismatch as the root registry.")]
+        [AtlasScenario(RollbackWorld = true)]
+        public async Task AttachmentResolver_ForeignModIdUnprefixedCode_Unregisters()
+        {
+            var resolver = new StubAttachmentResolver(UnprefixedAttachmentCode);
+            string registeredCode = $"{ForeignModId}:{UnprefixedAttachmentCode}";
+            try
+            {
+                Carry.RegisterAttachmentTransformGroupResolver(ForeignModId, resolver);
+
+                Assert.True(Carry.TryGetAttachmentTransformGroupResolver(registeredCode, out var stored),
+                    "premise: the foreign-mod attachment resolver must be retrievable by its domain-qualified code");
+                Assert.Same(resolver, stored);
+
+                Assert.True(Carry.UnregisterAttachmentTransformGroupResolver(resolver),
+                    "unregister must release an attachment resolver registered under another mod id with an unprefixed code");
+                Assert.False(Carry.TryGetAttachmentTransformGroupResolver(registeredCode, out var afterUnregister));
+                Assert.Null(afterUnregister);
+            }
+            finally
+            {
+                Carry.UnregisterAttachmentTransformGroupResolver(resolver);
+            }
+
+            Assert.NotNull(World.Api);
+            await Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// The entity registry keeps the same round-trip for a resolver registered by
+        /// another mod under an unprefixed code, including removing it from the
+        /// registration-order list the override helper walks.
+        /// </summary>
+        [Trait("summary", "An entity resolver registered by another mod with an unprefixed resolver code is found through that mod's domain and Unregister reports true and removes it.")]
+        [Trait("pins", "The entity resolver registry unregisters a resolver registered under a non-CarryOn mod id with an unprefixed code.")]
+        [Trait("role", "parity")]
+        [Trait("redfirst", "true")]
+        [Trait("evidence", "Failed on the unfixed head for the same register/unregister domain mismatch as the root registry.")]
+        [AtlasScenario(RollbackWorld = true)]
+        public async Task EntityResolver_ForeignModIdUnprefixedCode_Unregisters()
+        {
+            var resolver = new StubEntityResolver(UnprefixedEntityCode);
+            string registeredCode = $"{ForeignModId}:{UnprefixedEntityCode}";
+            try
+            {
+                Carry.RegisterEntityTransformGroupResolver(ForeignModId, resolver);
+
+                Assert.True(Carry.TryGetEntityTransformGroupResolver(registeredCode, out var stored),
+                    "premise: the foreign-mod entity resolver must be retrievable by its domain-qualified code");
+                Assert.Same(resolver, stored);
+
+                Assert.True(Carry.UnregisterEntityTransformGroupResolver(resolver),
+                    "unregister must release an entity resolver registered under another mod id with an unprefixed code");
+                Assert.False(Carry.TryGetEntityTransformGroupResolver(registeredCode, out var afterUnregister));
+                Assert.Null(afterUnregister);
+            }
+            finally
+            {
+                Carry.UnregisterEntityTransformGroupResolver(resolver);
             }
 
             Assert.NotNull(World.Api);

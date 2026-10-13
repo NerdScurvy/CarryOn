@@ -196,7 +196,6 @@ namespace CarryOn
                 if (PackAdjustmentHandler != null)
                     PackAdjustmentHandler.TemplateManager = TransformTemplateManager;
             }
-            base.AssetsFinalize(api);
         }
 
         public override void Dispose()
@@ -221,6 +220,15 @@ namespace CarryOn
             }
 
             CarryHandler?.Dispose();
+            DeathHandler?.Dispose();
+
+            // Clear the manager we published to the shared API mod system after the consumers
+            // are gone, so a later world in the same process cannot read a disposed manager.
+            if (CarryOnLib != null)
+            {
+                CarryOnLib.CarryManager = null;
+            }
+
             base.Dispose();
         }
     }

@@ -13,13 +13,13 @@ This split allows external mods to control entity spawning while referencing onl
 
 This pipeline covers:
 
-- `../CarryOnLib/src/API/Common/Interfaces/ICarryableEntityPickupHandler.cs`
-- `../CarryOnLib/src/API/Common/Interfaces/ICarryEntitySpawnerFactory.cs`
-- `../CarryOnLib/src/API/Common/Interfaces/ICarryManager.cs`
-- `../CarryOnLib/src/API/Common/Models/CarriedBlock.cs`
-- `../CarryOnLib/src/API/Common/Models/EntitySpawnContext.cs`
-- `../CarryOnLib/src/API/Common/Models/CarryConstants.cs`
-- `../CarryOnLib/src/Utility/CarriedBlockTreeSerializer.cs`
+- [src/API/Common/Interfaces/ICarryableEntityPickupHandler.cs](https://github.com/NerdScurvy/CarryOnLib/blob/main/src/API/Common/Interfaces/ICarryableEntityPickupHandler.cs)
+- [src/API/Common/Interfaces/ICarryEntitySpawnerFactory.cs](https://github.com/NerdScurvy/CarryOnLib/blob/main/src/API/Common/Interfaces/ICarryEntitySpawnerFactory.cs)
+- [src/API/Common/Interfaces/ICarryManager.cs](https://github.com/NerdScurvy/CarryOnLib/blob/main/src/API/Common/Interfaces/ICarryManager.cs)
+- [src/API/Common/Models/CarriedBlock.cs](https://github.com/NerdScurvy/CarryOnLib/blob/main/src/API/Common/Models/CarriedBlock.cs)
+- [src/API/Common/Models/EntitySpawnContext.cs](https://github.com/NerdScurvy/CarryOnLib/blob/main/src/API/Common/Models/EntitySpawnContext.cs)
+- [src/API/Common/Models/CarryConstants.cs](https://github.com/NerdScurvy/CarryOnLib/blob/main/src/API/Common/Models/CarryConstants.cs)
+- [src/Utility/CarriedBlockTreeSerializer.cs](https://github.com/NerdScurvy/CarryOnLib/blob/main/src/Utility/CarriedBlockTreeSerializer.cs)
 - `src/Common/Behaviors/EntityBehaviorCarryable.cs`
 - `src/Common/Handlers/CarryHandlers/CarriedBlockEntityHandler.cs`
 - `src/Common/Handlers/CarryHandlers/CarriedBlockEntityFactory.cs`
@@ -33,7 +33,7 @@ This pipeline covers:
 
 ## 1. `ICarryableEntityPickupHandler` — Pickup Direction
 
-**File:** `../CarryOnLib/src/API/Common/Interfaces/ICarryableEntityPickupHandler.cs`
+**File:** [src/API/Common/Interfaces/ICarryableEntityPickupHandler.cs](https://github.com/NerdScurvy/CarryOnLib/blob/main/src/API/Common/Interfaces/ICarryableEntityPickupHandler.cs)
 
 Handles the entity-to-CarriedBlock conversion: access control, serialization, and post-pickup cleanup.
 
@@ -80,7 +80,7 @@ The handler is responsible for removing or despawning the entity from the world 
 
 ## 2. `ICarryEntitySpawnerFactory` — Placement/Spawn Direction
 
-**File:** `../CarryOnLib/src/API/Common/Interfaces/ICarryEntitySpawnerFactory.cs`
+**File:** [src/API/Common/Interfaces/ICarryEntitySpawnerFactory.cs](https://github.com/NerdScurvy/CarryOnLib/blob/main/src/API/Common/Interfaces/ICarryEntitySpawnerFactory.cs)
 
 Handles the CarriedBlock-to-entity conversion: spawn decision, entity creation, and post-spawn setup. Registered as an instance to support dependency injection.
 
@@ -111,7 +111,7 @@ public interface ICarryEntitySpawnerFactory
 
 ### `EntitySpawnContext`
 
-**File:** `../CarryOnLib/src/API/Common/Models/EntitySpawnContext.cs`
+**File:** [src/API/Common/Models/EntitySpawnContext.cs](https://github.com/NerdScurvy/CarryOnLib/blob/main/src/API/Common/Models/EntitySpawnContext.cs)
 
 Context object passed to `SpawnFromCarriedBlock`:
 
@@ -130,7 +130,7 @@ Context object passed to `SpawnFromCarriedBlock`:
 
 ## 3. The Handler Registries
 
-**File:** `../CarryOnLib/src/API/Common/Interfaces/ICarryManager.cs`
+**File:** [src/API/Common/Interfaces/ICarryManager.cs](https://github.com/NerdScurvy/CarryOnLib/blob/main/src/API/Common/Interfaces/ICarryManager.cs)
 
 `ICarryManager` exposes two independent registries — one for pickup handlers, one for spawner factories.
 
@@ -269,7 +269,7 @@ EntityBehaviorCarryable.Init(CarryManager!);
 
 ## 5. `CarriedBlock` Model — `SpawnerFactoryCode`
 
-**File:** `../CarryOnLib/src/API/Common/Models/CarriedBlock.cs`
+**File:** [src/API/Common/Models/CarriedBlock.cs](https://github.com/NerdScurvy/CarryOnLib/blob/main/src/API/Common/Models/CarriedBlock.cs)
 
 The `CarriedBlock` model carries a `SpawnerFactoryCode` property that routes the placement pipeline:
 
@@ -295,7 +295,7 @@ This is a clean binary: either the carried block was created from an entity (and
 
 ### Serialization Constant
 
-**File:** `../CarryOnLib/src/API/Common/Models/CarryConstants.cs`
+**File:** [src/API/Common/Models/CarryConstants.cs](https://github.com/NerdScurvy/CarryOnLib/blob/main/src/API/Common/Models/CarryConstants.cs)
 
 ```csharp
 public static class CarryConstants
@@ -315,7 +315,7 @@ public static class CarryConstants
 
 ## 6. SpawnerFactoryCode Serialization
 
-**File:** `../CarryOnLib/src/Utility/CarriedBlockTreeSerializer.cs`
+**File:** [src/Utility/CarriedBlockTreeSerializer.cs](https://github.com/NerdScurvy/CarryOnLib/blob/main/src/Utility/CarriedBlockTreeSerializer.cs)
 
 The `SpawnerFactoryCode` is serialized into the `CarriedBlock`'s tree attribute and survives save/load cycles:
 

@@ -258,6 +258,8 @@ General carrying and interaction behavior.
 | `TooHotToCarry` | `bool` | `true` | Blocks pickup of hot blocks/items when true. |
 | `TooHotToCarryTemperature` | `int` | `50` | Temperature threshold used by hot-item checks. |
 | `CarryAttachedWallSigns` | `bool` | `false` | When enabled, wall signs attached to a carryable block are captured and carried together with it. See [cluster-carry.md](cluster-carry.md). |
+| `OpenGroundStorageBagWhileCarrying` | `bool` | `true` | Allows opening ground storage bags while carrying a block. |
+| `PickupGroundStorageBagWhileCarrying` | `bool` | `true` | Allows picking items from a ground storage bag into the hands slot while carrying. The interaction gate applies immediately on reload; the bag help-behavior injection is part of the carry-behavior surface, so it follows the `ReconditionOnConfigChange` rules below. |
 | `ClientSidePermissionCheck` | `bool` | `true` | Allow client-side permission checks to avoid optimistic pickup attempts on claims (may be inaccurate). |
 | `LegacyTrackDroppedBlocks` | `bool` | `false` | Track dropped blocks to allow pickup from claimed areas (legacy behavior). |
 | `BackpackSelectionMode` | `string` | `LastFound` | How to select which backpack to render. One of: `LastFound` (last backpack found in inventory), `FirstFound` (first backpack found), `FirstOnly` (only first backpack, no fallback), `None` (never compensate for a worn backpack). When a supported backpack-hiding mod is installed (Hide Gear, Combat Overhaul and its vanity-slot compat stack, Vanity), the per-player override handles hidden backpacks automatically per wearer, so `None` is only needed for hiding mods CarryOn does not read or to force the no-backpack position globally. |
@@ -318,6 +320,7 @@ Controls the behavior of dropped block entities (spawned when placement fails or
 | Key | Type | Default | Description |
 | --- | --- | --- | --- |
 | `DropMode` | `string` | `EntityOnFailedPlacement` | Controls how carried blocks are dropped. One of: `Items` (always drop as item entities), `EntityOnFailedPlacement` (try to place in world; on failure, drop as block entity), `EntityAlways` (always drop as block entity). |
+| `SpawnAsEntityOnPlacementByDefault` | `bool` | `false` | When enabled, hand-placing a carried block spawns it as a dropped block entity instead of placing it in the world. A carried block whose pickup handler set its own per-block signal re-spawns as an entity regardless of this default. |
 | `RandomDropRotation` | `bool` | `true` | When enabled, dropped block entities spawn with a random facing rotation. |
 | `ShowParticles` | `bool` | `true` | When enabled, dropped block entities display glowing pickup particles. |
 | `DespawnAfterDays` | `float` | `30` | In-game days after which a dropped block entity despawns. `0` or negative to never despawn. |
@@ -355,6 +358,7 @@ Debug and development toggles.
 | `EnablePackAdjustmentTool` | `false` | Enables the in-game pack adjustment tool (development/testing utility). |
 | `DisableConfigWatcher` | `false` | Disables the file system watcher that hot-reloads the config on change (requires restart). |
 | `ReconditionOnConfigChange` | `false` | Re-applies behavioral conditioning and resyncs carryable state to clients when the config changes (requires restart to enable). **Read once when the server process starts:** editing it in the file affects the *next* server start, never the running one, and a running server logs a warning naming both values when the file disagrees with what it booted with. CarryOn never rewrites your value. With it on, `Carryables` / `CarryablesOnBack` / `Interactables` / `CarryablesFilters` edits take effect on the next reload instead of the next server start; with it off, those changes wait for a restart — and a reload that changes them while it is off says so in chat (they take effect on the next server start). A dirty reload converges from the per-world baseline, so a config edit is applied and undone in-session in either direction — see [Behavioral Conditioning](technical-overview/behavioral-conditioning.md#33-what-a-recondition-can-and-cannot-undo) for the one deliberate exception (a live edit to a behavior's own properties, which the baseline reverts). |
+| `ReconditionFullRestore` | `false` | Treats every per-world baseline entry as dirty on the next conditioning run, forcing a full restore before the passes re-derive. Live-debugging fallback and cross-check for convergence bugs; leave off in normal play. |
 
 The `*` on the four behavior sections in the world config editor (`Carryables`, `Carryables on Back`, `Interactables`, `Carryable Filters`) means the restart requirement is conditional: when `ReconditionOnConfigChange` was enabled **at server start**, edits to those sections apply on the next `/carryon-reload` or watcher reload instead of requiring a restart; when it was off at server start, they wait for the next server start.
 

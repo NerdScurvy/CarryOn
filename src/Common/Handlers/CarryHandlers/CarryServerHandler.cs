@@ -74,7 +74,7 @@ namespace CarryOn.Common.Handlers.CarryHandlers
 
                 if (behavior.CanInteract(player))
                 {
-                    var blockSelection = message.Selection;
+                    if (message.Selection is not { } blockSelection) return;
                     blockSelection.Block = block;
                     if (block.OnBlockInteractStart(world, player, blockSelection)
                         && block is IMultiBlockInteract)
@@ -92,7 +92,7 @@ namespace CarryOn.Common.Handlers.CarryHandlers
             {
                 if (RefuseOutOfReachInteract(player, message.Position)) return;
 
-                var blockSelection = message.Selection;
+                if (message.Selection is not { } blockSelection) return;
                 blockSelection.Block = block;
                 var beg = world.BlockAccessor.GetBlockEntity(message.Position)
                     as BlockEntityGroundStorage;
@@ -255,7 +255,11 @@ namespace CarryOn.Common.Handlers.CarryHandlers
                 return;
             }
 
-            var selection = message.Selection;
+            if (message.Selection is not { } selection)
+            {
+                FailCarryAction(player, message.Position, FailureCodes.InvalidData, FailureCodes.PickUpFailed);
+                return;
+            }
             selection.Block = player.Entity.World.BlockAccessor.GetBlock(selection.Position);
 
             string failureCode = FailureCodes.Ignore;

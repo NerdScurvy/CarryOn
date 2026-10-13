@@ -24,9 +24,6 @@ namespace CarryOn.Events
             this.carryManager = carryManager;
             this.configProvider = carryManager as IConfigProvider ?? throw new ArgumentException("carryManager must implement IConfigProvider", nameof(carryManager));
 
-            if (configProvider.Config.CarryOptions?.TrackDroppedBlocks != true)
-                return;
-
             var events = carryManager.CarryEvents ?? throw new InvalidOperationException("CarryEvents not initialized");
 
             if (carryManager.Api.Side == EnumAppSide.Client)

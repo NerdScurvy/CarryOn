@@ -3,13 +3,13 @@
 
 ## Totals
 
-281 tests across 64 classes: 62 Atlas-boot classes, 2 plain test classes.
-20 non-test classes (abstract bases / harness helpers) are not counted.
+300 tests across 70 classes: 64 Atlas-boot classes, 6 plain test classes.
+21 non-test classes (abstract bases / harness helpers) are not counted.
 
 ## Annotation coverage
 
-Rows: 281/281 with `summary`, 281/281 with `pins`, 281/281 with `role`.
-Classes: 64/64 with `area`, 64/64 with `summary`.
+Rows: 298/298 with `summary`, 298/298 with `pins`, 298/298 with `role`.
+Classes: 70/70 with `area`, 70/70 with `summary`.
 
 ## Class list
 
@@ -37,12 +37,13 @@ Classes: 64/64 with `area`, 64/64 with `summary`.
 | ConvergenceStructureScenarios | Recondition | 2 | Plain | Structural coverage rows for the two automap clone kinds: both behavior classes carry the CreatedByConditioning marker the restore pass un-creates clones by, pinned as a class property without booting a world. | - |
 | DamageDropScenarios | Drop | 5 | Atlas | Damage-drop rows: joined players take a synthetic Entity.ReceiveDamage hit, and the row asserts the dropondamage behavior attaches and drops the hands or back carry at its configured thresholds. | - |
 | DisabledCloneParityScenarios | Recondition | 1 | Atlas | Disabled-strip parity row: with a per-view automap clone and a shared patch-loaded twin both proven present while the condition is on, flipping the donor toggle off must clear both instance classes from both behavior arrays. | fixtures/DisabledCloneParityConfig |
-| DropFlowsScenarios | Drop | 5 | Atlas | Drop flows over the public manager seam: open-field placement, the entity-or-item fallback, one event per carried block for multi-slot drops, rotation-aware cluster placement for a chest plus attached wall sign, and the death-drop chain. | - |
+| DropFlowsScenarios | Drop | 6 | Atlas | Drop flows over the public manager seam: open-field placement, the entity-or-item fallback, one event per carried block for multi-slot drops, rotation-aware cluster placement for a chest plus attached wall sign, and the death-drop chain. | - |
 | DropNoticeLocalizationScenarios | Drop | 4 | Atlas | Drop-notice localization rows: a joined player picks up and drops a chest, and the row asserts the chat notice the dropping player receives resolves in their language, stays single-recipient, and never emits a raw slot key. | - |
-| DropOnClaimScenarios | Drop | 6 | Atlas | Dropped carried blocks over player-owned land claims: a stranger's drop inside the claim falls back per mode, the owner's places, and the boundary rows pin that no claim cell is ever written. | - |
+| DropOnClaimScenarios | Drop | 7 | Atlas | Dropped carried blocks over player-owned land claims: a stranger's drop inside the claim falls back per mode, the owner's places, and the boundary rows pin that no claim cell is ever written; the item-class bag twin pins that a denied Items-mode drop lands the carried-block entity instead of spilling items. | - |
 | DroppedCarriedBlockPickupScenarios | Drop | 8 | Atlas | Dropped carried-block entities staged as real spawns through the entity pickup handler assert the shipped owner-first pickup policy with its grace window, the present-but-unreadable tree gate, and the entity reach gate, with deliberate creative bypass halves pinning each opt-in. | - |
 | DroppedTrunkHoleScenarios | Drop | 4 | Atlas | A carried trunk dropped while standing in one end of a dug 1x2 hole fills exactly those two cells, oriented along the hole's axis, without replacing any surrounding block. | fixtures/TrunkConfig |
 | EnclosedRoomDropScenarios | Drop | 3 | Atlas | Dropped carried blocks inside a sealed 2x2x2 room: EntityAlways spawns an entity on the room floor while EntityOnFailedPlacement and Items both place the chest into the player's own feet cell, all fully contained in the room. | - |
+| EventSubscriptionReloadScenarios | Config reload | 1 | Atlas | A config flag enabled by a live reload must take effect for handlers that subscribe from the flag, not only for the in-memory config value: a block dropped after enabling dropped-block tracking is recorded. | fixtures/EventSubscriptionReloadConfig |
 | GravityDropScenarios | Drop | 11 | Atlas | Dropped carried blocks under gravity: tall drops over flat ground, drops over and submerged in a still-water pool, and drops over partial-height path and slab surfaces, asserting where block placements and EntityAlways spawns land. | - |
 | GroundStorageBagFlows | Pickup/Place-down | 10 | Atlas | Ground-storage bag flows: picking wearable and held-only bags out of storage slots into Hands, empty-slot and full-backpack rejections, stowing into the vanilla backpack, and the place-down matrix for existing piles and new wall-attached storage. | - |
 | HandlerPathInteractDoorOffScenarios | Handler path | 1 | Atlas | Seeded Interactables.Door=false: the gate's carryableinteract behavior is removed by config-gated patch removal and not re-added by the automapper, so the interact handler leaves the gate closed. | fixtures/DoorOffConfig |
@@ -59,6 +60,7 @@ Classes: 64/64 with `area`, 64/64 with `summary`.
 | InteractTwinStripScenarios | Handler path | 1 | Atlas | With Interactables.Storage seeded off in Mode B, the automapped interact twin is stripped from both behavior arrays at boot and stays stripped after a second conditioning run. | fixtures/StorageOffConfig |
 | LibContractScenarios | Contract/lib | 4 | Atlas | Rows drive the CarryOnLib public surface (the permission-check priority pipeline, the deserialization status matrix, the lang-key hybrid rule, and the raw unreadable-carry adoption seam) and assert each published contract end to end. | - |
 | LockSlotsScenarios | Smoke | 1 | Atlas | Locks the hotbar slots and asserts the server sends a LockSlotsMessage that the simulated client captures on the carryon channel. | - |
+| MessageInputValidationScenarios | Common/Network | 3 | Atlas | Malformed client carry messages (a face index beyond the engine's face array) are rejected by the server handlers instead of throwing while the selection is rebuilt. | - |
 | MultiblockFootprintScenarios | Multiblock | 3 | Atlas | A shipped vanilla multiblock whose configured box exceeds the pickup gate's hard-coded radius-2 scan anchors rows asserting the footprint computation covers the full configured box and the permission gate verdict follows the real write set. | - |
 | PermissionBaselineScenarios | Claims/Permissions | 2 | Atlas | Permission baselines on a default world: the build-or-break grant for unclaimed non-reinforced cells, and the auto-mapped interact-while-carrying baseline for chests versus terrain. | - |
 | PickUpHandsScenarios | Smoke | 1 | Atlas | Places a vanilla chest and picks it up into the hands slot through the public manager seam, asserting the carryable behavior landed and the world cell it left is now air. | - |
@@ -75,10 +77,14 @@ Classes: 64/64 with `area`, 64/64 with `summary`.
 | RemoveExcludedCarryableScenarios | Recondition | 3 | Atlas | RemoveCarryableBehaviour rows: the type-wide exclusion runs after automapping, so a matched block keeps no carryable in either array while siblings keep their clones, and clearing the exclusion returns the clone. | fixtures/RemoveExcludedCarryableConfig |
 | SwapSlotBookkeepingScenarios | Pickup/Place-down | 4 | Atlas | Slot bookkeeping and swap flows over the public manager seam: occupancy and raw-read queries, swap data exchange, a re-homed slot override, programmatic world pickup, carried-revision increments, and the per-slot carryable matrix. | - |
 | TraderLandScenarios | Claims/Permissions | 3 | Atlas | An ownerless claim with the exact trader-worldgen recipe guards spawn, and the rows assert carry pickup and place-down on trader land match vanilla, with trunk straddles denied under the deliberately stricter whole-footprint gate. | fixtures/TrunkConfig |
-| TransformResolverRegistryScenarios | Recondition | 5 | Atlas | Public resolver-registry rows: root, attachment and entity transform group resolvers round-trip through register, lookup and unregister, a duplicate code is rejected without replacing the first registration, and the entity override chain consults resolvers in registration order with the first claim winning. | - |
+| TransformResolverRegistryScenarios | Recondition | 8 | Atlas | Public resolver-registry rows: root, attachment and entity transform group resolvers round-trip through register, lookup and unregister, a duplicate code is rejected without replacing the first registration, and the entity override chain consults resolvers in registration order with the first claim winning. | - |
 | TwoPlayerScenarios | Sync/Network | 3 | Atlas | Two-player scenarios with a second simulated client: carry state is server-authoritative and per-entity, world mutations and events are shared, and the carrying-player versus fresh-player pickup asymmetry holds through identical public calls. | - |
 | VehicleAttachScenarios | Pickup/Place-down | 8 | Atlas | Attach and detach rows over the real server message handlers and the guarded vanilla TryRemoveAttachment on a sailed cargo boat: the marked-stack attach round trip, the anti-yank block, the failure-code distinction, the unresolvable-stack gate with its creative recovery, and the attach reach gate. | - |
+| BehaviorGuardWiringTests | Client/Interaction | 3 | Plain | Plain xUnit wiring pins: each row reads the staged CarryOn.dll IL and asserts a null guard branches between an as-cast and its first use in a ground-storage validator, with no server boot and no client tick executed. | - |
 | CarryabilitySyncWiringTests | Sync/Network | 4 | Plain | Plain xUnit wiring pins: each row reads the staged CarryOn.dll metadata and IL and asserts a specific call or exception region is present in the carryability-sync and config-reload paths, with no server boot. | - |
+| LifecycleWiringTests | Lifecycle | 4 | Plain | Plain xUnit wiring pins: each row reads the staged CarryOn.dll metadata and IL and asserts teardown symmetry - event unsubscription, owned-handler disposal, manager clearing, and a single base call - with no server boot. | - |
+| MessageContractWiringTests | Common/Network | 1 | Plain | Plain xUnit wiring pins: each row reads the staged CarryOn.dll metadata and asserts a network message member's serializer attribute shape, with no server boot and no wire traffic. | - |
+| RendererLifecycleWiringTests | Client/Renderer | 2 | Plain | Plain xUnit wiring pins: each row reads the staged CarryOn.dll metadata and walks the call graph to assert a renderer teardown or runtime-toggle invalidation is wired, with no server boot and no client render path executed. | - |
 
 ## Rows
 
@@ -528,7 +534,7 @@ Fixture: fixtures/DisabledCloneParityConfig
   pins: The disabled strip resolves the instance per view, so an automap clone's collectible twin is removed as well.
   evidence: Failed on the unfixed head with the clone's collectible twin surviving (block-side=0, collectible-side=1), so the block still reported carryable.
 
-### DropFlowsScenarios - Drop, Atlas, 5 row(s)
+### DropFlowsScenarios - Drop, Atlas, 6 row(s)
 
 Fixture: -
 
@@ -538,6 +544,10 @@ Fixture: -
 - ``DropBlockAsEntityOrItem_ItemPath_FiresUnplacedDrop`` — [regression]
   Driving the drop-as-entity-or-item branch directly clears the slot, fires one BlockDropped with the unplaced flag and writes no chest block.
   pins: The item fallback path reports itself as unplaced.
+- ``DropBlockAsEntityOrItem_ItemClassCarry_LandsItemWithoutThrowing`` — [regression, red-first]
+  Driving the drop-as-entity-or-item branch for an item-class carry lands the bag as a dropped entity, clears the hands slot and does not throw.
+  pins: The drop-as-entity-or-item branch handles an item-class carry (no world block) without dereferencing a null Block.
+  evidence: Failed on the unfixed head, where the branch read the null carried Block and threw, losing the bag.
 - ``DropCarried_MultipleSlots_ClearsAllAndFiresPerBlock`` — [regression]
   Dropping a Hands crate and a Back chest in one call clears both slots, fires one event per carried block and places one chest and one crate.
   pins: A multi-slot drop clears everything and emits exactly one event per block, with no duplicates or misses.
@@ -566,7 +576,7 @@ Fixture: -
   After a hands drop, no chat line contains the raw slot lang key token.
   pins: The slot word resolves through the locale table instead of falling back to a raw key.
 
-### DropOnClaimScenarios - Drop, Atlas, 6 row(s)
+### DropOnClaimScenarios - Drop, Atlas, 7 row(s)
 
 Fixture: -
 
@@ -588,6 +598,10 @@ Fixture: -
 - ``StrangerDropJustOutsideClaim_EntityOnFailedPlacement_PlacesOutsideClaim`` — [coverage]
   A stranger standing at the first unclaimed cell drops with EntityOnFailedPlacement and the chest lands inside the boundary footprint with zero claim cells written.
   pins: The outside cell resolves deterministically to an unclaimed placement and no claim cell is ever written.
+- ``StrangerBagDropInsideClaim_ItemsMode_LandsCarriedBlockEntity`` — [regression, red-first]
+  A stranger's Items-mode drop of a carried bag inside a claim lands one carriedblock entity at the drop point, with no game:item spill and no placement.
+  pins: An item-class carry's claim-denied drop prefers the carried-block entity over the items spill once ground storage is refused.
+  evidence: Fails on the unfixed head, where the Items mode skips the post-storage entity spawn and the bag spills as one game:item with no drop event and no carriedblock entity.
 
 ### DroppedCarriedBlockPickupScenarios - Drop, Atlas, 8 row(s)
 
@@ -652,6 +666,15 @@ Fixture: -
 - ``EnclosedRoom_ItemsMode_PlacesChestInPlayerColumn`` — [regression]
   Items mode inside the sealed room still attempts placement first and places the chest into the player's feet cell with zero items.
   pins: Items mode is not always-items.
+
+### EventSubscriptionReloadScenarios - Config reload, Atlas, 1 row(s)
+
+Fixture: fixtures/EventSubscriptionReloadConfig
+
+- ``DroppedBlockTracking_EnabledByReload_TracksSubsequentDrop`` — [regression, red-first]
+  Enabling dropped-block tracking via a live config reload records the next block dropped, not just the in-memory flag.
+  pins: A handler that subscribes from a config flag at boot responds to a later reload that enables the flag.
+  evidence: Failed on the unfixed head, where the tracker only subscribed at boot and the post-reload drop left no dropped-block record.
 
 ### GravityDropScenarios - Drop, Atlas, 11 row(s)
 
@@ -968,6 +991,23 @@ Fixture: -
   LockHotbarSlots emits a LockSlotsMessage that the simulated client captures on the carryon channel.
   pins: Hotbar locking notifies the real client over the carryon channel and proves the packet-capture seam.
 
+### MessageInputValidationScenarios - Common/Network, Atlas, 3 row(s)
+
+Fixture: -
+
+- ``PlaceDownMessage_HostileFace_RejectedWithoutThrowing`` — [regression, red-first]
+  A place-down message with a face index beyond the engine's face array is rejected by the handler without throwing and leaves the carry untouched.
+  pins: The place-down server handler rejects an out-of-range face instead of throwing while rebuilding the selection.
+  evidence: Failed on the unfixed head, where the selection getter indexed the engine's face array and the handler call threw.
+- ``InteractMessage_HostileFace_RejectedWithoutThrowing`` — [regression, red-first]
+  An interact message with a face index beyond the engine's face array is rejected by the handler without throwing.
+  pins: The interact server handler rejects an out-of-range face instead of throwing while rebuilding the selection.
+  evidence: Failed on the unfixed head, where the selection getter indexed the engine's face array and the handler call threw.
+- ``PickUpGroundStorageBagMessage_HostileFace_RejectedWithoutThrowing`` — [regression, red-first]
+  A ground-storage bag pick-up message with a face index beyond the engine's face array is rejected by the handler without throwing and the storage keeps its bag.
+  pins: The ground-storage bag pick-up server handler rejects an out-of-range face instead of throwing while rebuilding the selection.
+  evidence: Failed on the unfixed head, where the selection getter indexed the engine's face array and the handler call threw.
+
 ### MultiblockFootprintScenarios - Multiblock, Atlas, 3 row(s)
 
 Fixture: -
@@ -1244,7 +1284,7 @@ Fixture: fixtures/TrunkConfig
   pins: The whole-footprint permission rule extends to non-player-owned trader land.
   decision: 1
 
-### TransformResolverRegistryScenarios - Recondition, Atlas, 5 row(s)
+### TransformResolverRegistryScenarios - Recondition, Atlas, 8 row(s)
 
 Fixture: -
 
@@ -1263,6 +1303,18 @@ Fixture: -
 - ``EntityResolver_OverrideChain_FirstClaimedWins`` — [contract]
   ResolveEntityTransformGroupOverride consults entity resolvers in registration order, the first claim wins and later resolvers stay uncalled, and unregistering each claim falls through to the next resolver then the base group.
   pins: A per-entity resolver override wins over the resolved base group without replacing it permanently.
+- ``RootResolver_ForeignModIdUnprefixedCode_Unregisters`` — [contract, red-first]
+  A root resolver registered by another mod with an unprefixed resolver code is found through that mod's domain and Unregister reports true and removes it.
+  pins: The public resolver registry unregisters a resolver registered under a non-CarryOn mod id with an unprefixed code.
+  evidence: Failed on the unfixed head, where unregister qualified the bare resolver code with the CarryOn domain and so never matched the registration.
+- ``AttachmentResolver_ForeignModIdUnprefixedCode_Unregisters`` — [parity, red-first]
+  An attachment resolver registered by another mod with an unprefixed resolver code is found through that mod's domain and Unregister reports true and removes it.
+  pins: The attachment resolver registry unregisters a resolver registered under a non-CarryOn mod id with an unprefixed code.
+  evidence: Failed on the unfixed head for the same register/unregister domain mismatch as the root registry.
+- ``EntityResolver_ForeignModIdUnprefixedCode_Unregisters`` — [parity, red-first]
+  An entity resolver registered by another mod with an unprefixed resolver code is found through that mod's domain and Unregister reports true and removes it.
+  pins: The entity resolver registry unregisters a resolver registered under a non-CarryOn mod id with an unprefixed code.
+  evidence: Failed on the unfixed head for the same register/unregister domain mismatch as the root registry.
 
 ### TwoPlayerScenarios - Sync/Network, Atlas, 3 row(s)
 
@@ -1311,6 +1363,16 @@ Fixture: -
   pins: The creative exemption inside the shared reach predicate on the attach path.
   decision: 19
 
+### BehaviorGuardWiringTests - Client/Interaction, Plain, 3 row(s)
+
+Fixture: -
+
+- ``GroundStorageBagValidator_NullChecksTheCastBeforeUse`` *(Theory - 3 row(s))* — [contract, red-first]
+  Each ground-storage bag validator must null-check its as-cast BlockEntityGroundStorage before dereferencing it.
+  pins: A null block entity cannot reach the dereference in the ground-storage bag validators.
+  evidence: Failed on the unfixed head with no conditional branch between the isinst and the first call that consumes the cast reference in all three validator methods.
+  caveat: Wiring only - proves the guard's IL shape, not its runtime behavior; the validator is client-only and never executes in this headless suite.
+
 ### CarryabilitySyncWiringTests - Sync/Network, Plain, 4 row(s)
 
 Fixture: -
@@ -1331,6 +1393,56 @@ Fixture: -
   OnCarryabilityStateSync must wrap its loop in a finally reaching the derived-state rebuild, apply entries through TryApplyEntry, and catch and warn inside it.
   pins: One malformed entry cannot wedge the client: the per-entry boundary catches and the derived state always rebuilds.
   evidence: Failed on the unfixed head with no finally region reaching the derived-state rebuild and entries applied inline.
+
+### LifecycleWiringTests - Lifecycle, Plain, 4 row(s)
+
+Fixture: -
+
+- ``CarryHandler_Dispose_UnsubscribesEveryBootSubscription`` *(Fact - 1 row(s))* — [contract, red-first]
+  CarryHandler.Dispose must unsubscribe all three server events it subscribed to at boot (entity spawn, player-now-playing, before-active-slot-changed).
+  pins: Every server event CarryHandler subscribes to at boot is unsubscribed at teardown.
+  evidence: Failed on the unfixed head with the spawn and player-now-playing remove accessors absent from Dispose while before-active-slot-changed was present.
+  caveat: Wiring only - proves the remove accessors are called, not that the runtime detachment succeeds.
+- ``CarrySystem_Dispose_DisposesTheDeathHandler`` *(Fact - 1 row(s))* — [contract, red-first]
+  CarrySystem.Dispose must reach DeathHandler.Dispose so the server death handler's subscriptions are released.
+  pins: The server death handler created at boot is disposed with the mod system.
+  evidence: Failed on the unfixed head with DeathHandler.Dispose unreachable from CarrySystem.Dispose by any call path.
+  caveat: Wiring only - proves reachability in the call graph, not that the disposal runs.
+- ``CarrySystem_Dispose_ClearsThePublishedCarryManager`` *(Fact - 1 row(s))* — [contract, red-first]
+  CarrySystem.Dispose must clear the published carry manager so a later world in the same process does not see stale state.
+  pins: The carry manager published to the API mod system is cleared when the mod system is disposed.
+  evidence: Failed on the unfixed head with the CarryManager setter unreachable from CarrySystem.Dispose.
+  caveat: Wiring only - proves the setter is reached, not that a bare null is the fix's shape.
+- ``CarrySystem_AssetsFinalize_CallsBaseExactlyOnce`` *(Fact - 1 row(s))* — [contract, red-first]
+  CarrySystem.AssetsFinalize must call base.AssetsFinalize exactly once.
+  pins: The asset-finalize override runs its base implementation exactly once per invocation.
+  evidence: Failed on the unfixed head by counting two base.AssetsFinalize calls in the override.
+  caveat: Wiring only - proves the call count in the override, not the runtime cost of the extra base call.
+
+### MessageContractWiringTests - Common/Network, Plain, 1 row(s)
+
+Fixture: -
+
+- ``PickUpMessage_AttachedSignFlag_IsARequiredWireMember`` *(Fact - 1 row(s))* — [contract, red-first]
+  PickUpMessage.CaptureAttachedWallSigns must carry a required ProtoMember so an explicit false is not lost on the wire.
+  pins: The attached-sign flag is serialized as a required member rather than inferred from a default.
+  evidence: Failed on the unfixed head with no ProtoMember attribute present on the flag property or its backing field.
+  caveat: Wiring only - proves the attribute shape, not the wire round-trip (encoding is engine code and the client-to-server wire is a parked suite gap).
+
+### RendererLifecycleWiringTests - Client/Renderer, Plain, 2 row(s)
+
+Fixture: -
+
+- ``EntityCarryRenderer_Dispose_ReleasesTheLabelRenderer`` *(Fact - 1 row(s))* — [contract, red-first]
+  EntityCarryRenderer.Dispose must reach CarryLabelRenderer.Dispose so its textures and quad mesh are released.
+  pins: The label renderer that EntityCarryRenderer constructs is disposed with the renderer.
+  evidence: Failed on the unfixed head with CarryLabelRenderer.Dispose unreachable from EntityCarryRenderer.Dispose by any call path.
+  caveat: Wiring only - proves reachability in the call graph, not that the disposal runs, and the renderer is never constructed in this headless suite.
+- ``SetRenderAttachedBlocks_InvalidatesRenderCaches`` *(Fact - 1 row(s))* — [contract, red-first]
+  EntityCarryRenderer.SetRenderAttachedBlocks must reach the render-cache invalidation so the toggle is not served from stale cached render infos.
+  pins: The attached-blocks runtime toggle invalidates the render caches that were built under the previous setting.
+  evidence: Failed on the unfixed head with the cache invalidation unreachable from SetRenderAttachedBlocks - it only flipped the two flags.
+  caveat: Wiring only - proves the invalidation is wired, not that the visual toggle takes effect; the real-client visual outcome is a manual gate.
 
 ## Non-test classes (no rows)
 
@@ -1354,3 +1466,4 @@ Fixture: -
 - **FakeVanitySystemNoMatch** - tests/CarryOn.Scenarios/Scenarios/HiddenBackpackSignalScenarios.cs
 - **FakeVanitySystemNoClient** - tests/CarryOn.Scenarios/Scenarios/HiddenBackpackSignalScenarios.cs
 - **VanillaClientWire** - tests/CarryOn.Scenarios/VanillaClientWire.cs
+- **StagedModProbe** - tests/CarryOn.Scenarios/Wiring/StagedModProbe.cs
