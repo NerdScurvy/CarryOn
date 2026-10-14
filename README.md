@@ -156,6 +156,10 @@ Developer documentation — internals, invariants, and the reasoning behind them
 - [Carried Chest/Trunk Rendering](docs/technical-overview/carried-chest-trunk-rendering.md)
 - [Carried Plant/Container Rendering](docs/technical-overview/carried-plant-container-rendering.md)
 
+## Changelog
+
+Notable changes for each release are documented in [CHANGELOG.md](CHANGELOG.md).
+
 ## Modding
 
 Carry On adds `Carryable` behavior to vanilla blocks through built-in patches, and can also auto-map that behavior to similar modded blocks.
