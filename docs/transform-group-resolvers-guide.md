@@ -17,6 +17,8 @@ CarryOn has two separate resolver types:
 - **Root resolver** — selects which transform groups to use for the root carried block (the block itself).
 - **Attachment resolver** — selects transform groups for attached/cluster children (e.g. items in a display case, plants in a planter).
 
+A third, independent kind — the **entity resolver** — is not configured by a patch. It overrides the *wearing entity's* base group at render time (for example, the built-in hidden-backpack resolver downgrades the back-slot group to `backpack-none` while a cosmetic mod hides that wearer's backpack), so it applies regardless of `rootGroupResolver`/`attachmentGroupResolver`.
+
 A `Carryable` behavior can set either or both:
 
 ```json
@@ -52,6 +54,7 @@ CarryOn registers these resolvers on the client:
 | `carryon:moldrack` | Attachment | `MoldRackTransformGroupResolver` | Mold racks |
 | `carryon:container-slot` | Attachment | `ContainerSlotTransformGroupResolverBase` | Generic container slot content rendering |
 | `carryon:data-attributes` | Attachment | `DataAttributeTransformGroupResolver` | Block entity data attribute content rendering |
+| `carryon:hidden-backpack` | Entity | `HiddenBackpackEntityResolver` | Per-wearer downgrade to `backpack-none` while a hiding mod (Hide Gear, Combat Overhaul and its vanity-slot compat stack, Vanity) hides that player's worn backpack |
 
 Notes:
 
@@ -60,6 +63,7 @@ Notes:
 - Attachment resolvers are only used when `attachmentGroupResolver` (or legacy `transformGroupResolver`) is set.
 - The two resolver types are independent — you can set either, both, or neither.
 - Resolver codes must be unique within each type. If two resolvers register the same code for the same type, CarryManager rejects the duplicate registration.
+- Entity resolvers are not patch-configured: they are consulted for every rendered wearer after the normal base-group resolution, in registration order, and the first resolver to claim a group wins. The built-in hidden-backpack resolver is active automatically whenever one of its hiding mods is installed.
 
 ---
 
@@ -328,6 +332,8 @@ Code path:
 
 C# mods can add custom resolver logic by implementing `IRootTransformGroupResolver` or `IAttachmentTransformGroupResolver` and registering through `CarryManager.RegisterRootTransformGroupResolver(modId, resolver)` or `CarryManager.RegisterAttachmentTransformGroupResolver(modId, resolver)` in client startup.
 
+Mods can also override the wearing entity's base group per wearer by implementing `IEntityTransformGroupResolver` and registering through `CarryManager.RegisterEntityTransformGroupResolver(modId, resolver)` in client startup.
+
 ### IRootTransformGroupResolver
 
 ```csharp
@@ -357,6 +363,19 @@ public interface IAttachmentTransformGroupResolver
 - `TryResolve(...)`: returns `true` with an `AttachmentResolveResult` describing per-child candidate sets, or `false` to skip.
 - See [How Attachment Resolver Output Is Applied](#attachment-resolver) for `AttachmentResolveResult` and `CarriedGroupCandidateSet` details.
 
+### IEntityTransformGroupResolver
+
+```csharp
+public interface IEntityTransformGroupResolver
+{
+    string ResolverCode { get; }
+    bool TryResolve(ICoreAPI api, EntityAgent entity, CarrySlot carrySlot, string baseGroup, out string? group);
+}
+```
+
+- `TryResolve(...)`: returns `true` with a non-empty group to override the wearer's base group (e.g. `backpack-none`), or `false` (or an empty group) to keep `baseGroup`. Only the returned override group is used — no candidate-list fallback applies. If a resolver's check is expensive, memoize inside the resolver; the framework does not cache entity overrides.
+- Entity resolvers are consulted in registration order after the normal base-group resolution; the first resolver to claim a non-empty group wins.
+
 ### Registration notes
 
 - `modId` is required at registration and identifies the owning mod.
@@ -365,6 +384,7 @@ public interface IAttachmentTransformGroupResolver
 - Duplicate canonical resolver codes are rejected per resolver type during registration.
 - A single class can implement both interfaces and register as both root and attachment resolver (like `PlantContainerTransformGroupResolver`).
 - You can subclass `ContainerSlotTransformGroupResolverBase` to customize container-slot candidate generation while reusing the base fallback logic.
+- Entity resolvers are unregistered with `CarryManager.UnregisterEntityTransformGroupResolver(resolver)` and enumerated in registration order with `CarryManager.EnumerateEntityTransformGroupResolvers()`.
 
 ---
 
@@ -388,7 +408,10 @@ public interface IAttachmentTransformGroupResolver
 - `src/Client/Logic/TransformGroupResolvers/GenericCodePathTransformGroupResolver.cs`
 - `src/Client/Logic/TransformGroupResolvers/DataAttributeTransformGroupResolver.cs`
 - `src/Client/Logic/TransformGroupResolvers/ContainerSlotTransformGroupResolverBase.cs`
-- `../CarryOnLib/src/API/Common/Interfaces/IRootTransformGroupResolver.cs` — root resolver interface
-- `../CarryOnLib/src/API/Common/Interfaces/IAttachmentTransformGroupResolver.cs` — attachment resolver interface
-- `../CarryOnLib/src/API/Common/Models/AttachmentResolveResult.cs` — attachment resolver result model
-- `../CarryOnLib/src/API/Common/Models/CarriedGroupCandidateSet.cs` — `CarriedGroupCandidateSet` model
+- `src/Client/Logic/TransformGroupResolvers/HiddenBackpack/HiddenBackpackEntityResolver.cs` — built-in per-wearer hidden-backpack entity resolver
+- `src/Client/Logic/CarryRenderer/CarryRenderDispatcher.cs` — consults the entity resolver override for each rendered carried block
+- [src/API/Common/Interfaces/IRootTransformGroupResolver.cs](https://github.com/NerdScurvy/CarryOnLib/blob/main/src/API/Common/Interfaces/IRootTransformGroupResolver.cs) — root resolver interface
+- [src/API/Common/Interfaces/IAttachmentTransformGroupResolver.cs](https://github.com/NerdScurvy/CarryOnLib/blob/main/src/API/Common/Interfaces/IAttachmentTransformGroupResolver.cs) — attachment resolver interface
+- [src/API/Common/Interfaces/IEntityTransformGroupResolver.cs](https://github.com/NerdScurvy/CarryOnLib/blob/main/src/API/Common/Interfaces/IEntityTransformGroupResolver.cs) — entity resolver interface
+- [src/API/Common/Models/AttachmentResolveResult.cs](https://github.com/NerdScurvy/CarryOnLib/blob/main/src/API/Common/Models/AttachmentResolveResult.cs) — attachment resolver result model
+- [src/API/Common/Models/CarriedGroupCandidateSet.cs](https://github.com/NerdScurvy/CarryOnLib/blob/main/src/API/Common/Models/CarriedGroupCandidateSet.cs) — `CarriedGroupCandidateSet` model

@@ -23,7 +23,6 @@ namespace CarryOn.Events
         public void Init(ICarryManager carryManager)
         {
             configProvider = carryManager as IConfigProvider ?? throw new ArgumentException("carryManager must implement IConfigProvider", nameof(carryManager));
-            if (configProvider.Config.CarryOptions?.TooHotToCarry != true) return;
 
             carryEvents = carryManager.CarryEvents;
             if (carryEvents != null)

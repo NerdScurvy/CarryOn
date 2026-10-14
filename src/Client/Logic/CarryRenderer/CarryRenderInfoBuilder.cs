@@ -4,6 +4,7 @@ using CarryOn.API.Common.Models;
 using CarryOn.Utility;
 using CarryOn.Client.Models;
 using CarryOn.Common.Behaviors;
+using CarryOn.Common.Models;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
@@ -13,6 +14,9 @@ namespace CarryOn.Client.Logic.CarryRenderer
 {
     internal sealed class CarryRenderInfoBuilder(ICoreClientAPI api, bool renderAttachedBlocks = true)
     {
+        // Bounded by families using RootRenderVariant (signs today) + cluster-carry attached blocks.
+        // Currently <100 entries. Eviction would cause costly GPU re-uploads; revisit only if
+        // cluster-carry expands beyond wall signs.
         private readonly Dictionary<AssetLocation, MultiTextureMeshRef> ownedMeshCache = new();
 
         internal bool RenderAttachedBlocks { get => renderAttachedBlocks; set => renderAttachedBlocks = value; }
@@ -245,19 +249,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
                 var offset = CarryRotationHelper.RotateOffset(attached.RelativeOffset, offsetSteps);
 
                 var originalCode = attached.OriginalBlockCode;
-                Block? variantBlock = null;
-                if (originalCode != null)
-                {
-                    var rotatedFace = attached.OriginalLocalFace != null
-                        ? CarryRotationHelper.RotateFacing(attached.OriginalLocalFace, offsetSteps)
-                        : null;
-
-                    if (rotatedFace != null)
-                    {
-                        variantBlock = CarryRotationHelper.GetRotatedVariantBlock(world, originalCode, rotatedFace);
-                    }
-                    variantBlock ??= world.GetBlock(originalCode);
-                }
+                var variantBlock = CarryRenderHelpers.ResolveAttachedVariantBlock(world, originalCode, attached.OriginalLocalFace, offsetSteps, out _);
 
                 ItemStack childStack;
                 if (variantBlock != null)
@@ -360,7 +352,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
                 return null;
             }
 
-            var attrName = "rotation" + slotKey;
+            var attrName = CarryCodes.AttributeKeys.BlockEntityData.RotationSlotKeyPrefix + slotKey;
             var radians = carried.BlockEntityData.GetFloat(attrName, 0f);  // default 0 when absent
             var yawDeg = radians * GameMath.RAD2DEG;
 

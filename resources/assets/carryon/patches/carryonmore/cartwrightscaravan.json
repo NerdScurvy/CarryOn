@@ -5,7 +5,10 @@
 		"op": "add",
 		"path": "/server/behaviors/-",
 		"value": {
-			"code": "carryon:attachablecarryable"
+			"code": "carryon:attachablecarryable",
+			"carrySlots": [
+				"*Storage*"
+			]
 		},
 		"dependsOn": [
 			{
@@ -19,7 +22,10 @@
 		"op": "add",
 		"path": "/client/behaviors/-",
 		"value": {
-			"code": "carryon:attachablecarryable"
+			"code": "carryon:attachablecarryable",
+			"carrySlots": [
+				"*Storage*"
+			]
 		},
 		"dependsOn": [
 			{
@@ -33,7 +39,10 @@
 		"op": "add",
 		"path": "/server/behaviors/-",
 		"value": {
-			"code": "carryon:attachablecarryable"
+			"code": "carryon:attachablecarryable",
+			"carrySlots": [
+				"*Storage*"
+			]
 		},
 		"dependsOn": [
 			{
@@ -47,7 +56,10 @@
 		"op": "add",
 		"path": "/client/behaviors/-",
 		"value": {
-			"code": "carryon:attachablecarryable"
+			"code": "carryon:attachablecarryable",
+			"carrySlots": [
+				"*Storage*"
+			]
 		},
 		"dependsOn": [
 			{
@@ -61,7 +73,10 @@
 		"op": "add",
 		"path": "/server/behaviors/-",
 		"value": {
-			"code": "carryon:attachablecarryable"
+			"code": "carryon:attachablecarryable",
+			"carrySlots": [
+				"*Storage*"
+			]
 		},
 		"dependsOn": [
 			{
@@ -75,7 +90,10 @@
 		"op": "add",
 		"path": "/client/behaviors/-",
 		"value": {
-			"code": "carryon:attachablecarryable"
+			"code": "carryon:attachablecarryable",
+			"carrySlots": [
+				"*Storage*"
+			]
 		},
 		"dependsOn": [
 			{

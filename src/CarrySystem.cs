@@ -1,3 +1,4 @@
+using System;
 using CarryOn.Common.Services;
 using CarryOn.API.Common.Interfaces;
 using CarryOn.Common.Interfaces;
@@ -11,8 +12,10 @@ using CarryOn.Common.Behaviors;
 using CarryOn.Common.Entities;
 using CarryOn.Common.Handlers;
 using CarryOn.Common.Handlers.CarryHandlers;
-using CarryOn.Common.Handlers.PackAdjustment;
+using CarryOn.Client.Handlers.CarryHandlers;
+using CarryOn.Client.Handlers.PackAdjustment;
 using CarryOn.Common.Logic;
+using CarryOn.Common.Network;
 using CarryOn.Events;
 using CarryOn.Server.Logic;
 using CarryOn.Utility;
@@ -24,12 +27,12 @@ using static CarryOn.Common.Models.CarryCodes;
 
 [assembly: ModInfo("Carry On",
     modID: "carryon",
-    Version = "2.0.0-pre.8",
+    Version = "2.0.0-rc.1",
     Description = "Adds the capability to carry various things",
     Website = "https://github.com/NerdScurvy/CarryOn",
     Authors = new[] { "copygirl", "NerdScurvy" })]
 [assembly: ModDependency("game", "1.22.0")]
-[assembly: ModDependency("carryonlib", "1.0.0-pre.8")]
+[assembly: ModDependency("carryonlib", "1.0.0-rc.1")]
 
 namespace CarryOn
 {
@@ -46,6 +49,8 @@ namespace CarryOn
         public HudCarried? HudCarried { get; private set; }
         public ClientModConfig? ClientModConfig { get; private set; }
 
+        public CarryClientHandlers? CarryClientHandlers { get; private set; }
+
         public TransformTemplateManager? TransformTemplateManager { get; private set; }
 
         public PackAdjustmentHandler? PackAdjustmentHandler { get; private set; }
@@ -60,6 +65,24 @@ namespace CarryOn
 
         // Common
         public HotKeyHandler? HotKeyHandler { get; private set; }
+
+        // Carryability snapshot (Mode B: ReconditionOnConfigChange). Built at boot and after
+        // every recondition; broadcast on recondition and sent to each joining player.
+        private CarryabilityStateMessage? carryabilitySnapshot;
+
+        /// <summary>
+        /// Whether operand-mode A or B is active for the boot session: B - the operator
+        /// opted into live reconditioning + resync; A - behavior edits wait for a restart.
+        /// Mode is a boot-time decision (the flag tooltip says "requires restart"), so this
+        /// is the single source of truth for the session: it is read once at
+        /// <c>StartPre</c> and seeded into <c>ConfigService.ReconditionOnConfigChangeEnabled</c>,
+        /// which is what the reload gate consults. It is never re-derived from a reloaded
+        /// config - doing so is a defect: it would let a mid-session file edit change the
+        /// shape of a running session.
+        /// </summary>
+        private bool reconditionOnConfigChange;
+
+        private PlayerDelegate? onServerPlayerJoinSendCarryability;
 
         public CarryHandler? CarryHandler { get; private set; }
 
@@ -109,9 +132,22 @@ namespace CarryOn
             }
 
             ConfigService = new CarryOnConfigService(config);
+            if (ServerApi != null)
+            {
+                // Migrations already applied in ModConfig.Load() via UpgradeVersion()
+                config.ValidateBackpackTransformGroups(ServerApi.Logger);
+            }
             // Note: EntityCarriedBlock.Config is a static field that persists across mod system instances.
             // This is intentional for a singleton mod system. Updated both here and in config change handlers.
             EntityCarriedBlock.Config = config.CarriedBlockEntity;
+
+            reconditionOnConfigChange = config.DebuggingOptions.ReconditionOnConfigChange;
+
+            // The reload gate reads the service's latch, never the reloaded config's own
+            // flag, so a mid-session file edit cannot switch this server's mode. Seeded
+            // here, once, immediately after the service is constructed - the mirror of the
+            // AppliedBehaviorSignature seeding in Lifecycle.cs.
+            ConfigService.ReconditionOnConfigChangeEnabled = reconditionOnConfigChange;
 
             if (!Config.DebuggingOptions.DisableHarmonyPatch)
             {
@@ -130,8 +166,14 @@ namespace CarryOn
             api.Register<BlockBehaviorCarryable>();
             api.Register<BlockBehaviorCarryableInteract>();
             api.Register<EntityBehaviorAttachableCarryable>();
+            api.Register<EntityBehaviorCarryable>();
 
             api.RegisterEntity("EntityCarriedBlock", typeof(EntityCarriedBlock));
+
+            api.RegisterBlockBehaviorClass("Carryable", typeof(BlockBehaviorCarryable));
+            api.RegisterBlockBehaviorClass("CarryableInteract", typeof(BlockBehaviorCarryableInteract));
+            api.RegisterBlockBehaviorClass(BlockBehaviorGroundStorageBagHelp.Name, typeof(BlockBehaviorGroundStorageBagHelp));
+            api.RegisterEntityBehaviorClass("Carryable", typeof(EntityBehaviorCarryableLegacy));
 
             CarryEvents = new CarryEvents
             {
@@ -143,7 +185,7 @@ namespace CarryOn
             {
                 var carryManager = new CarryManager(api, this, CarryEvents);
                 CarryOnLib.CarryManager = carryManager;
-                CarryHandler = new CarryHandler(carryManager, () => this.ClientModConfig?.Config?.CarryOnEnabled ?? true);
+                CarryHandler = new CarryHandler(carryManager, this);
                 HotKeyHandler = new HotKeyHandler(carryManager);
 
                 // Register event handlers explicitly (no assembly scanning)
@@ -152,6 +194,11 @@ namespace CarryOn
                 carryManager.RegisterEventHandler<MeshAngleFix>();
                 carryManager.RegisterEventHandler<DroppedBlockTracker>();
                 carryManager.RegisterEventHandler<CloseBlockEntityDialog>();
+
+                // Register default entity handler (pickup + spawner factory) for EntityCarriedBlock
+                carryManager.RegisterEntityPickupHandler(CarriedBlockEntityHandler.HandlerCode, new CarriedBlockEntityHandler(this));
+                carryManager.RegisterEntitySpawnerFactory(CarriedBlockEntityHandler.HandlerCode, new CarriedBlockEntityFactory(api, this));
+
             }
             else
             {
@@ -164,8 +211,9 @@ namespace CarryOn
 
         private void InitCommon(ICoreAPI api)
         {
-            BlockBehaviorCarryableInteract.Init(CarryManager!);
-            CarryManager!.InitEvents(api);
+            var carryManager = CarryManager!;
+            BlockBehaviorCarryableInteract.Init(carryManager);
+            carryManager.InitEvents(api);
         }
 
         private bool RequireCarryManager(ICoreAPI api)

@@ -24,18 +24,15 @@ namespace CarryOn.Events
             this.carryManager = carryManager;
             this.configProvider = carryManager as IConfigProvider ?? throw new ArgumentException("carryManager must implement IConfigProvider", nameof(carryManager));
 
-            if (configProvider.Config.CarryOptions?.TrackDroppedBlocks != true)
-                return;
-
             var events = carryManager.CarryEvents ?? throw new InvalidOperationException("CarryEvents not initialized");
 
             if (carryManager.Api.Side == EnumAppSide.Client)
             {
-                events.CheckPermissionAt += OnCheckPermissionAtClient;
+                events.RegisterCheckPermissionAt(0, OnCheckPermissionAtClient);
                 return;
             }
 
-            events.CheckPermissionAt += OnCheckPermissionAt;
+            events.RegisterCheckPermissionAt(0, OnCheckPermissionAt);
             events.BlockDropped += OnCarriedBlockDropped;
 
             events.BlockRemoved += OnCarryableBlockRemoved;

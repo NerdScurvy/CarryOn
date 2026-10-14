@@ -10,11 +10,11 @@ It reflects the current implementation:
 
 ## 0. Scope
 
-- `../CarryOnLib/src/API/Common/Interfaces/ICarryableHintPolicy.cs`
-- `../CarryOnLib/src/API/Common/Models/CarryHintType.cs`
-- `../CarryOnLib/src/API/Common/Models/CarryHintContext.cs`
+- [src/API/Common/Interfaces/ICarryableHintPolicy.cs](https://github.com/NerdScurvy/CarryOnLib/blob/main/src/API/Common/Interfaces/ICarryableHintPolicy.cs)
+- [src/API/Common/Models/CarryHintType.cs](https://github.com/NerdScurvy/CarryOnLib/blob/main/src/API/Common/Models/CarryHintType.cs)
+- [src/API/Common/Models/CarryHintContext.cs](https://github.com/NerdScurvy/CarryOnLib/blob/main/src/API/Common/Models/CarryHintContext.cs)
 - `src/Common/Behaviors/BlockBehaviorCarryable.cs`
-- `../RackEmUp/src/BlockBehaviorMoldRackTransfer.cs`
+- [src/BlockBehaviorMoldRackTransfer.cs](https://github.com/NerdScurvy/RackEmUp/blob/main/src/BlockBehaviorMoldRackTransfer.cs)
 
 ---
 
@@ -157,7 +157,7 @@ This directly supports the UX goal:
 ## 6. Non-Breaking Behavior Summary
 
 The hint policy feature is additive:
-- No changes to `ICarryableTransfer` are required.
+- No changes to `ICarryableBlockSlotHandler` are required.
 - Existing mods continue to work without implementing any new interface.
 - Hint filtering is opt-in and per-behavior.
 - Core carry/transfer mechanics are unaffected; only hint visibility is controlled.

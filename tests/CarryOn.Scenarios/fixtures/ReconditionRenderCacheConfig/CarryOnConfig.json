@@ -1,0 +1,15 @@
+{
+  "ConfigVersion": 6,
+  "Carryables": {
+    "Barrel": true
+  },
+  "CarryablesOnBack": {
+    "Barrel": true
+  },
+  "CarryOptions": {
+    "InteractSpeedMultiplier": 2.0
+  },
+  "DebuggingOptions": {
+    "ReconditionOnConfigChange": true
+  }
+}

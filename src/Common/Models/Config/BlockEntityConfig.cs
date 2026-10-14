@@ -2,6 +2,7 @@ using System.ComponentModel;
 using CarryOn.API.Common.Models;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using static CarryOn.Common.Models.CarryCodes;
 
 namespace CarryOn.Common.Models
 {
@@ -44,42 +45,48 @@ namespace CarryOn.Common.Models
     {
         [DisplayName("Drop Mode")]
         [Description("Controls how carried blocks are dropped: Items (place in world or drop as items), EntityOnFailedPlacement (place in world or drop as block entity), EntityAlways (always drop as block entity)")]
-        [DefaultValue(DropMode.EntityOnFailedPlacement)]
+        [DefaultValue(Defaults.CarriedBlockEntity.DropMode)]
         [TreeValue("DropMode")]
         [JsonConverter(typeof(StringEnumConverter))]
-        public DropMode DropMode { get; set; } = DropMode.EntityOnFailedPlacement;
+        public DropMode DropMode { get; set; } = Defaults.CarriedBlockEntity.DropMode;
 
         [DisplayName("Random Drop Rotation")]
         [Description("When enabled, dropped block entities spawn with a random facing rotation")]
-        [DefaultValue(true)]
-        [TreeValue("RandomDropRotation")] public bool RandomDropRotation { get; set; } = true;
+        [DefaultValue(Defaults.CarriedBlockEntity.RandomDropRotation)]
+        [TreeValue("RandomDropRotation")] public bool RandomDropRotation { get; set; } = Defaults.CarriedBlockEntity.RandomDropRotation;
 
         [DisplayName("Show Particles")]
         [Description("When enabled, dropped block entities display glowing pickup particles")]
-        [DefaultValue(true)]
-        [TreeValue("ShowParticles")] public bool ShowParticles { get; set; } = true;
+        [DefaultValue(Defaults.CarriedBlockEntity.ShowParticles)]
+        [TreeValue("ShowParticles")] public bool ShowParticles { get; set; } = Defaults.CarriedBlockEntity.ShowParticles;
 
         [DisplayName("Despawn After Days")]
         [Description("In-game days after which a dropped block entity despawns (0 or negative to never despawn)")]
-        [DefaultValue(30)]
-        [TreeValue("DespawnAfterDays")] public float DespawnAfterDays { get; set; } = 30f;
+        [DefaultValue(Defaults.CarriedBlockEntity.DespawnAfterDays)]
+        [TreeValue("DespawnAfterDays")] public float DespawnAfterDays { get; set; } = Defaults.CarriedBlockEntity.DespawnAfterDays;
 
         [DisplayName("Pickup Access")]
         [Description("Who can pick up the dropped block entity: Anyone (no restrictions), OwnerOnly (only the dropper, forever), or OwnerFirst (only the dropper for GracePeriodSeconds, then anyone)")]
-        [DefaultValue(PickupAccess.OwnerFirst)]
+        [DefaultValue(Defaults.CarriedBlockEntity.PickupAccess)]
         [TreeValue("PickupAccess")]
         [JsonConverter(typeof(StringEnumConverter))]
-        public PickupAccess PickupAccess { get; set; } = PickupAccess.OwnerFirst;
+        public PickupAccess PickupAccess { get; set; } = Defaults.CarriedBlockEntity.PickupAccess;
 
         [DisplayName("Grace Period Seconds")]
         [Description("Real-time seconds the owner has exclusive pickup access. Only relevant when PickupAccess is OwnerFirst")]
-        [DefaultValue(300f)]
-        [TreeValue("GracePeriodSeconds")] public float GracePeriodSeconds { get; set; } = 300f;
+        [DefaultValue(Defaults.CarriedBlockEntity.GracePeriodSeconds)]
+        [TreeValue("GracePeriodSeconds")] public float GracePeriodSeconds { get; set; } = Defaults.CarriedBlockEntity.GracePeriodSeconds;
 
         [DisplayName("Entity Visual Scale")]
-        [Description("Uniform scale for the dropped block entity visual size and collision hitbox (0.1 to 10.0, default 0.6)")]
-        [DefaultValue(0.6f)]
+        [Description($"Uniform scale for the dropped block entity visual size and collision hitbox (0.1 to 10.0, default 0.6)")]
+        [DefaultValue(Defaults.CarriedBlockEntity.Scale)]
         [TreeValue("Scale")]
-        public float Scale { get; set; } = 0.6f;
+        public float Scale { get; set; } = Defaults.CarriedBlockEntity.Scale;
+
+        [DisplayName("Spawn As Entity On Placement")]
+        [Description("When a carried block carries no explicit entity signal (normal blocks picked up from the world), whether it should re-spawn as a dropped block entity when placed by hand instead of being placed as a block. Custom entity blocks (racks, boats, ...) always set their own signal via their pickup handler. Off by default.")]
+        [DefaultValue(Defaults.CarriedBlockEntity.SpawnAsEntityOnPlacementByDefault)]
+        [TreeValue("SpawnAsEntityOnPlacementByDefault")]
+        public bool SpawnAsEntityOnPlacementByDefault { get; set; } = Defaults.CarriedBlockEntity.SpawnAsEntityOnPlacementByDefault;
     }
 }

@@ -15,6 +15,8 @@ namespace CarryOn.Common.Handlers
     /// </summary>
     public class HotKeyHandler(ICarryManager carryManager)
     {
+        private static readonly Type[] HotKeyMessageTypes = [typeof(QuickDropMessage), typeof(PlayerAttributeUpdateMessage)];
+
         private ICoreClientAPI? clientApi;
         private IClientNetworkChannel? clientChannel;
         private ClientModConfig? clientModConfig;
@@ -27,9 +29,8 @@ namespace CarryOn.Common.Handlers
             this.clientChannel = clientChannel ?? throw new ArgumentNullException(nameof(clientChannel));
             this.clientModConfig = clientModConfig ?? throw new ArgumentNullException(nameof(clientModConfig));
 
-            clientChannel
-                .RegisterMessageType<QuickDropMessage>()
-                .RegisterMessageType<PlayerAttributeUpdateMessage>();
+            foreach (var type in HotKeyMessageTypes)
+                clientChannel.RegisterMessageType(type);
 
             var input = api.Input;
 
@@ -49,9 +50,10 @@ namespace CarryOn.Common.Handlers
         {
             ArgumentNullException.ThrowIfNull(serverChannel);
 
+            foreach (var type in HotKeyMessageTypes)
+                serverChannel.RegisterMessageType(type);
+
             serverChannel
-                .RegisterMessageType<QuickDropMessage>()
-                .RegisterMessageType<PlayerAttributeUpdateMessage>()
                 .SetMessageHandler<QuickDropMessage>(OnQuickDropMessage)
                 .SetMessageHandler<PlayerAttributeUpdateMessage>(OnPlayerAttributeUpdateMessage);
         }

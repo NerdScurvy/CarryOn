@@ -195,7 +195,7 @@ namespace CarryOn.Common.Logic
         public static List<ReportRow> CondenseWildcards(List<ReportRow> rows)
         {
             // Group by (Slot, modifier fields, segment count, first segment) - aggregates CarryType
-            var rawGroups = new List<(ReportRow Key, List<ReportRow> Rows)>();
+            var rawGroups = new List<(string[] Segs, ReportRow Key, List<ReportRow> Rows)>();
             foreach (var row in rows)
             {
                 var found = false;
@@ -204,8 +204,7 @@ namespace CarryOn.Common.Logic
                 {
                     if (rg.Key.ModifierEquals(row) && rg.Key.Slot == row.Slot)
                     {
-                        var rgSegs = rg.Key.BlockCode.Split('-');
-                        if (rowSegs.Length == rgSegs.Length && rowSegs[0] == rgSegs[0])
+                        if (rowSegs.Length == rg.Segs.Length && rowSegs[0] == rg.Segs[0])
                         {
                             rg.Rows.Add(row);
                             found = true;
@@ -214,7 +213,7 @@ namespace CarryOn.Common.Logic
                     }
                 }
                 if (!found)
-                    rawGroups.Add((row, new List<ReportRow> { row }));
+                    rawGroups.Add((rowSegs, row, new List<ReportRow> { row }));
             }
 
             var result = new List<ReportRow>();

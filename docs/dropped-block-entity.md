@@ -64,6 +64,7 @@ All settings are under `CarriedBlockEntity` in `CarryOnConfig.json`:
 {
   "CarriedBlockEntity": {
     "DropMode": "EntityOnFailedPlacement",
+    "SpawnAsEntityOnPlacementByDefault": false,
     "RandomDropRotation": true,
     "ShowParticles": true,
     "DespawnAfterDays": 30,
@@ -77,6 +78,7 @@ All settings are under `CarriedBlockEntity` in `CarryOnConfig.json`:
 | Key | Type | Default | Description |
 | --- | --- | --- | --- |
 | `DropMode` | `string` | `EntityOnFailedPlacement` | How carried blocks are dropped: `Items`, `EntityOnFailedPlacement`, or `EntityAlways`. |
+| `SpawnAsEntityOnPlacementByDefault` | `bool` | `false` | Hand-place a carried block as a dropped block entity instead of placing it. Per-block pickup-handler signals win over this default. |
 | `RandomDropRotation` | `bool` | `true` | Spawn dropped block entities with a random facing rotation. |
 | `ShowParticles` | `bool` | `true` | Display glowing pickup particles on dropped block entities. |
 | `DespawnAfterDays` | `float` | `30` | In-game days before the entity despawns. `0` or negative to never despawn. |

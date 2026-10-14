@@ -1,0 +1,21 @@
+name: public-references
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for internal document references
+        shell: pwsh
+        run: ./tools/check-public-references.ps1 -FailOnLeak
+
+      - name: Verify docs links resolve
+        shell: pwsh
+        run: ./tools/check-doc-links.ps1 -FailOnBroken

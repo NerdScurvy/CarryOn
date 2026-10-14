@@ -5,7 +5,7 @@
 		"op": "add",
 		"path": "/behaviors/-",
 		"value": {
-			"name": "Carryable",
+			"name": "carryon:carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Chest",
 				"transformGroups": {
@@ -54,7 +54,7 @@
 		"op": "add",
 		"path": "/behaviors/-",
 		"value": {
-			"name": "CarryableInteract",
+			"name": "carryon:carryableinteract",
 			"properties": {
 				"enabledCondition": "carryon.Interactables.Storage"
 			}
@@ -71,7 +71,7 @@
 		"op": "add",
 		"path": "/behaviors/-",
 		"value": {
-			"name": "Carryable",
+			"name": "carryon:carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Barrel",
 				"transformGroups": {
@@ -123,7 +123,7 @@
 		"op": "add",
 		"path": "/behaviors/-",
 		"value": {
-			"name": "Carryable",
+			"name": "carryon:carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Forge",
 				"transformGroups": {
@@ -160,7 +160,7 @@
 		"op": "add",
 		"path": "/behaviors/-",
 		"value": {
-			"name": "Carryable",
+			"name": "carryon:carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Anvil",
 				"interactDelay": 1.5,
@@ -203,7 +203,7 @@
 		"op": "add",
 		"path": "/behaviorsByType/*/-",
 		"value": {
-			"name": "Carryable",
+			"name": "carryon:carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Flowerpot",
 				"transformTemplates": [
@@ -332,7 +332,7 @@
 		"op": "add",
 		"path": "/behaviors/-",
 		"value": {
-			"name": "Carryable",
+			"name": "carryon:carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.DisplayCase",
 				"renderRootFirst": false,
@@ -373,7 +373,7 @@
 		"op": "add",
 		"path": "/behaviors/-",
 		"value": {
-			"name": "Carryable",
+			"name": "carryon:carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Oven",
 				"transformGroups": {
@@ -410,7 +410,7 @@
 		"op": "add",
 		"path": "/behaviorsByType/*/-",
 		"value": {
-			"name": "Carryable",
+			"name": "carryon:carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Planter",
 				"transformTemplates": [
@@ -609,7 +609,7 @@
 		"op": "add",
 		"path": "/behaviors/-",
 		"value": {
-			"name": "Carryable",
+			"name": "carryon:carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Shelf",
 				"transformGroups": {
@@ -645,41 +645,41 @@
 		"op": "add",
 		"path": "/behaviors/-",
 		"value": {
-			"name": "Carryable",
+			"name": "carryon:carryable",
 			"properties": {
-					"enabledCondition": "carryon.Carryables.Sign",
-					"labelRenderSettings": {
-						"maxWidth": 100,
-						"maxHeight": 150,
-						"verticalAlign": "Top",
-						"transform": {
-							"translation": [ 3.109, 2.653, 0.6 ],
-							"scale": [ 3.596, 3.6, 1.0 ]
+				"enabledCondition": "carryon.Carryables.Sign",
+				"labelRenderSettings": {
+					"maxWidth": 100,
+					"maxHeight": 150,
+					"verticalAlign": "Top",
+					"transform": {
+						"translation": [ 3.109, 2.653, 0.6 ],
+						"scale": [ 3.596, 3.6, 1.0 ]
+					}
+				},
+				"transformGroups": {
+					"hands": [
+						{
+							"id": "root",
+							"disableIfItemStackPath": "itemstack",
+							"translation": [ 0.04, -0.05, 0.0 ],
+							"rotation": [ 0.0, -90.0, -40.0 ]
+						},
+						{
+							"id": "chiseled",
+							"renderPass": "both",
+							"cullFaces": false,
+							"blockEntityDataItemStackPath": "itemstack",
+							"scale": 1.0
 						}
-					},
-					"transformGroups": {
-						"hands": [
-							{
-								"id": "root",
-								"disableIfItemStackPath": "itemstack",
-								"translation": [ 0.04, -0.05, 0.0 ],
-								"rotation": [ 0.0, -90.0, -40.0 ]
-							},
-							{
-								"id": "chiseled",
-								"renderPass": "both",
-								"cullFaces": false,
-								"blockEntityDataItemStackPath": "itemstack",
-								"scale": 1.0
-							}
-						]
-					},
-					"slots": {
-						"Hands": {}
-					},
-					"preventAttaching": true
-				}
-			},
+					]
+				},
+				"slots": {
+					"Hands": {}
+				},
+				"preventAttaching": true
+			}
+		},
 		"dependsOn": [
 			{
 				"modid": "chiseltools"
@@ -692,7 +692,7 @@
 		"op": "add",
 		"path": "/behaviorsByType/*/-",
 		"value": {
-			"name": "Carryable",
+			"name": "carryon:carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.StorageVessel",
 				"transformGroups": {
@@ -762,7 +762,7 @@
 		"op": "add",
 		"path": "/behaviors/-",
 		"value": {
-			"name": "Carryable",
+			"name": "carryon:carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.ToolRack",
 				"transformGroups": {

@@ -1,4 +1,5 @@
 using CarryOn.API.Common.Interfaces;
+using CarryOn.Common.Models;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
 using Vintagestory.GameContent;
@@ -22,31 +23,32 @@ namespace CarryOn.Events
         {
             if (blockEntity == null || blockEntityData == null) return;
 
-            var blockClass = blockEntity?.Block?.Class;
+            var blockClass = blockEntity.Block?.Class;
             switch (blockClass)
             {
-                case "BlockSign":
+                case CarryCodes.BlockClasses.Sign:
                     if (blockEntity is BlockEntitySign sign)
-                        blockEntityData.SetFloat("meshAngle", sign.MeshAngleRad);
+                        blockEntityData.SetFloat(CarryCodes.AttributeKeys.BlockEntityData.MeshAngle, sign.MeshAngleRad);
                     return;
 
                 case "BlockToolMold":
                     if (blockEntity is BlockEntityToolMold toolMold)
-                        blockEntityData.SetFloat("meshAngle", toolMold.MeshAngle);
+                        blockEntityData.SetFloat(CarryCodes.AttributeKeys.BlockEntityData.MeshAngle, toolMold.MeshAngle);
                     return;
 
                 case "BlockBookshelf":
                     if (blockEntity is BlockEntityBookshelf bookshelf)
-                        blockEntityData.SetFloat("meshAngleRad", bookshelf.MeshAngleRad);
+                        blockEntityData.SetFloat(CarryCodes.AttributeKeys.BlockEntityData.MeshAngleRad, bookshelf.MeshAngleRad);
                     return;
 
                 case "BlockClutterBookshelf":
+                case "BlockClutterBookshelfWithLore":
                     if (blockEntity is BlockEntityGeneric clutterBookshelf)
                     {
                         var beh = clutterBookshelf.GetBehavior<BEBehaviorClutterBookshelf>();
                         if (beh != null)
                         {
-                            blockEntityData.SetFloat("meshAngle", beh.rotateY);
+                            blockEntityData.SetFloat(CarryCodes.AttributeKeys.BlockEntityData.MeshAngle, beh.rotateY);
                         }
                     }
                     return;
@@ -57,7 +59,7 @@ namespace CarryOn.Events
                         var beh = clutter.GetBehavior<BEBehaviorShapeFromAttributes>();
                         if (beh != null)
                         {
-                            blockEntityData.SetFloat("meshAngle", beh.rotateY);
+                            blockEntityData.SetFloat(CarryCodes.AttributeKeys.BlockEntityData.MeshAngle, beh.rotateY);
                         }
                     }
                     return;

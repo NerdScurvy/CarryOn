@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using CarryOn.Client.Models;
+using CarryOn.Common.Models;
 using CarryOn.Utility;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;

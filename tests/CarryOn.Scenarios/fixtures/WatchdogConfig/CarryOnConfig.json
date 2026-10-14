@@ -1,0 +1,9 @@
+{
+  "ConfigVersion": 6,
+  "Carryables": {
+    "Chest": false
+  },
+  "CarryOptions": {
+    "InteractSpeedMultiplier": 2.0
+  }
+}

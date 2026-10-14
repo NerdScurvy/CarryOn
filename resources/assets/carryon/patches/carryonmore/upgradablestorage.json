@@ -5,7 +5,7 @@
 		"file": "upgradablestorage:blocktypes/chests",
 		"side": "Server",
 		"value": {
-			"name": "Carryable",
+			"name": "carryon:carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Chest",
 				"transformTemplates": [
@@ -33,7 +33,7 @@
 		"file": "upgradablestorage:blocktypes/labeledchests",
 		"side": "Server",
 		"value": {
-			"name": "Carryable",
+			"name": "carryon:carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.Chest",
 				"labelRenderSettings": {
@@ -68,7 +68,7 @@
 		"op": "add",
 		"path": "/behaviors/-",
 		"value": {
-			"name": "Carryable",
+			"name": "carryon:carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.ChestTrunk",
 				"transformTemplates": [
@@ -108,7 +108,7 @@
 		"op": "add",
 		"path": "/behaviors/-",
 		"value": {
-			"name": "Carryable",
+			"name": "carryon:carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.ChestTrunk",
 				"transformTemplates": [
@@ -141,7 +141,7 @@
 		"op": "add",
 		"path": "/behaviors/-",
 		"value": {
-			"name": "Carryable",
+			"name": "carryon:carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.StorageVessel",
 				"labelRenderSettings": {
@@ -175,7 +175,7 @@
 		"op": "add",
 		"path": "/behaviors/-",
 		"value": {
-			"name": "Carryable",
+			"name": "carryon:carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.StorageVessel",
 				"labelRenderSettings": {

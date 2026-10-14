@@ -25,7 +25,6 @@ namespace CarryOn.Client.Logic.CarryRenderer
     internal sealed class SlotCacheState
     {
         public string? FrameKey { get; set; }
-        public string? PlanSignature { get; set; }
         public string? RenderInfoKey { get; set; }
     }
 
@@ -82,11 +81,6 @@ namespace CarryOn.Client.Logic.CarryRenderer
             if (!string.IsNullOrEmpty(previousState.RenderInfoKey))
             {
                 RenderInfos.Remove(previousState.RenderInfoKey);
-            }
-
-            if (!string.IsNullOrEmpty(previousState.PlanSignature))
-            {
-                TransformPlans.Remove(previousState.PlanSignature);
             }
         }
 

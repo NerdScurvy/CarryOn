@@ -5,7 +5,7 @@
 		"op": "add",
 		"path": "/behaviors/-",
 		"value": {
-			"name": "Carryable",
+			"name": "carryon:carryable",
 			"properties": {
 				"enabledCondition": "carryon.Carryables.MoldRack",
 				"attachmentGroupResolver": "moldrack",
@@ -178,6 +178,76 @@
 								"translationX": 0.45,
 								"translationZ": 0.749,
 								"scale": 1.2
+							}
+						]
+					},
+					"moldrack-slot0-hoop": {
+						"extends": "moldrack-slot0",
+						"overrides": [
+							{
+								"id": "slot0",
+								"translationX": 0.679,
+								"translationY": 0.58,
+								"translationZ": -0.094,
+								"rotationX": 8.0,
+								"rotationY": 0.0,
+								"scale": 1.01
+							}
+						]
+					},
+					"moldrack-slot1-hoop": {
+						"extends": "moldrack-slot1",
+						"overrides": [
+							{
+								"id": "slot1",
+								"translationX": 0.679,
+								"translationY": 0.58,
+								"translationZ": 0.093,
+								"rotationX": 8.0,
+								"rotationY": 0.0,
+								"scale": 1.01
+							}
+						]
+					},
+					"moldrack-slot2-hoop": {
+						"extends": "moldrack-slot2",
+						"overrides": [
+							{
+								"id": "slot2",
+								"translationX": 0.679,
+								"translationY": 0.58,
+								"translationZ": 0.280,
+								"rotationX": 8.0,
+								"rotationY": 0.0,
+								"scale": 1.01
+							}
+						]
+					},
+					"moldrack-slot3-hoop": {
+						"extends": "moldrack-slot3",
+						"overrides": [
+							{
+								"id": "slot3",
+								"translationX": 0.679,
+								"translationY": 0.58,
+								"translationZ": 0.468,
+								"rotationX": 8.0,
+								"rotationY": 0.0,
+								"scale": 1.01
+							}
+						]
+					},
+					"moldrack-slot4-hoop": {
+						"extends": "moldrack-slot4",
+						"overrides": [
+							{
+								"id": "slot4",
+								"translationX": 0.679,
+								"translationY": 0.58,
+								"translationZ": 0.655,
+								"rotationX": 8.0,
+								"rotationY": 0.0,
+								"scale": 1.01
 							}
 						]
 					}

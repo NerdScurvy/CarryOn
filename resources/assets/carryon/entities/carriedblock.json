@@ -14,9 +14,19 @@
 			"sides": {"base": "game:block/wood/crate/kapok-sides"},
 			"frame-generic": {"base": "game:block/wood/crate/frame-generic"}
 		},
-		"behaviors": [  ]
+		"behaviors": [
+			{
+				"code": "carryon:carryable",
+				"handlerCode": "carriedblock"
+			}
+		]
 	},
 	"server": {
-		"behaviors": [  ]
+		"behaviors": [
+			{
+				"code": "carryon:carryable",
+				"handlerCode": "carriedblock"
+			}
+		]
 	}
 }

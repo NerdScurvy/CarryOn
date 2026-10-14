@@ -1,7 +1,7 @@
 using System;
-using System.Collections.Generic;
 using Cairo;
 using CarryOn.Client.Models;
+using CarryOn.Common.Models;
 using OpenTK.Graphics.OpenGL4;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
@@ -13,8 +13,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
     internal class CarryLabelManager : IDisposable
     {
         private readonly ICoreClientAPI api;
-        private readonly Dictionary<string, LabelEntry> textCache = new();
-        private readonly List<string> textLru = new();
+        private readonly LruCache<string, LabelEntry> textCache = new(MaxTextCache, entry => entry.Texture?.Dispose());
         private const int MaxTextCache = 64;
         private const int MaxIconCache = 64;
         private const float MinFontSize = 14f;
@@ -25,8 +24,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
         private const int MaxAreaHeight = 2048;
         private const int MaxTextLength = 240;
 
-        private readonly Dictionary<string, IconEntry> iconCache = new();
-        private readonly List<string> iconLru = new();
+        private readonly LruCache<string, IconEntry> iconCache = new(MaxIconCache, entry => { entry.Mesh?.Dispose(); entry.Texture?.Dispose(); });
 
         protected int TextWidth = 200;
         protected int TextHeight = 100;
@@ -48,8 +46,9 @@ namespace CarryOn.Client.Logic.CarryRenderer
                         int minor = GL.GetInteger(GetPName.MinorVersion);
                         glSupportsTextureSubImage = (major > 4) || (major == 4 && minor >= 3);
                     }
-                    catch
+                    catch (Exception)
                     {
+                        // GL version query failed - likely an older or non-conformant driver.
                         glSupportsTextureSubImage = false;
                     }
                     glVersionQueried = true;
@@ -64,6 +63,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
                 || IconTextureMode == IconTextureMode.StandaloneFallback;
         }
 
+        // Intentionally never freed - reused every frame to avoid repeated allocation.
         private static int[]? atlasScratchBuffer;
 
         private static bool ShouldForceAtlasFallback()
@@ -75,10 +75,6 @@ namespace CarryOn.Client.Logic.CarryRenderer
         {
             return IconTextureMode == IconTextureMode.Disabled;
         }
-
-        internal static event Action? OnModeChanged;
-
-        private static void RaiseModeChanged() => OnModeChanged?.Invoke();
 
         private class LabelEntry
         {
@@ -105,8 +101,6 @@ namespace CarryOn.Client.Logic.CarryRenderer
                 IconTextureMode,
                 GL.GetString(StringName.Version),
                 ShouldUseStandaloneTexture());
-
-            OnModeChanged += InvalidateIconCache;
         }
 
         private static string MakeKey(string text, int color, float fontSize, int areaWidth, int areaHeight, string? fontName, bool boldFont, string? verticalAlign)
@@ -143,7 +137,6 @@ namespace CarryOn.Client.Logic.CarryRenderer
             var key = MakeKey(text, color, fontSize, wrapWidth, areaHeight, fontName, boldFont, verticalAlign);
             if (textCache.TryGetValue(key, out var existing))
             {
-                TouchText(key);
                 return (existing.Texture, existing.Width, existing.Height);
             }
 
@@ -201,9 +194,7 @@ namespace CarryOn.Client.Logic.CarryRenderer
                     Width = tex.Width,
                     Height = tex.Height
                 };
-                textCache[key] = entry;
-                textLru.Add(key);
-                EnforceTextLimit();
+                textCache.Add(key, entry);
 
                 return (tex, entry.Width, entry.Height);
             }
@@ -235,21 +226,18 @@ namespace CarryOn.Client.Logic.CarryRenderer
 
             var size = GameMath.Clamp(settings?.IconPixelSize ?? 64, 24, 256);
             var scale = settings?.IconScale ?? 1f;
-            var code = itemStack.Collectible.Code?.ToString() ?? "unknown";
+            var code = CarryCodes.DisplayName(itemStack.Collectible.Code?.ToString());
             // Do not use Attributes.GetHashCode(): deserialized stacks often produce instance-based
             // hash codes, which causes cache misses every frame and repeated atlas inserts.
             var key = $"{code}|{(int)itemStack.Class}|{itemStack.Id}|{color}|{size}|{scale:0.###}";
 
             if (iconCache.TryGetValue(key, out var existing))
             {
-                TouchIcon(key);
                 return (existing.Mesh, existing.TextureId, existing.Ready);
             }
 
             var entry = new IconEntry { Pending = true, Ready = false };
-            iconCache[key] = entry;
-            iconLru.Add(key);
-            EnforceIconLimit();
+            iconCache.Add(key, entry);
 
             var stackCopy = itemStack.Clone();
             api.Render.RenderItemStackToAtlas(
@@ -441,88 +429,15 @@ namespace CarryOn.Client.Logic.CarryRenderer
             }
         }
 
-        private void TouchText(string key)
-        {
-            textLru.Remove(key);
-            textLru.Add(key);
-        }
-
-        private void TouchIcon(string key)
-        {
-            iconLru.Remove(key);
-            iconLru.Add(key);
-        }
-
-        /// <summary>
-        /// Ensures that the number of cached text textures does not exceed the defined maximum limit. 
-        /// If the cache exceeds the limit, the least recently used entries are removed, and their associated textures 
-        /// are disposed of to free memory. This method is called whenever a new text entry is added to the cache to 
-        /// maintain optimal performance and prevent excessive memory usage.
-        /// </summary>
-        private void EnforceTextLimit()
-        {
-            while (textLru.Count > MaxTextCache)
-            {
-                var oldest = textLru[0];
-                textLru.RemoveAt(0);
-                if (textCache.TryGetValue(oldest, out var entry))
-                {
-                    entry.Texture?.Dispose();
-                    textCache.Remove(oldest);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Ensures that the number of cached icon textures and meshes does not exceed the defined maximum limit. 
-        /// If the cache exceeds the limit, the least recently used entries are removed, and their associated resources 
-        /// are disposed of to free memory. This method is called whenever a new icon entry is added to the cache to 
-        /// maintain optimal performance and prevent excessive memory usage.
-        /// </summary>
-        private void EnforceIconLimit()
-        {
-            while (iconLru.Count > MaxIconCache)
-            {
-                var oldest = iconLru[0];
-                iconLru.RemoveAt(0);
-                if (iconCache.TryGetValue(oldest, out var entry))
-                {
-                    entry.Mesh?.Dispose();
-                    entry.Texture?.Dispose();
-                    iconCache.Remove(oldest);
-                }
-            }
-        }
-
         internal void InvalidateIconCache()
         {
-            foreach (var entry in iconCache.Values)
-            {
-                entry.Mesh?.Dispose();
-                entry.Texture?.Dispose();
-            }
             iconCache.Clear();
-            iconLru.Clear();
         }
 
         public void Dispose()
         {
-            OnModeChanged -= InvalidateIconCache;
-
-            foreach (var kv in textCache)
-            {
-                kv.Value.Texture?.Dispose();
-            }
             textCache.Clear();
-            textLru.Clear();
-
-            foreach (var kv in iconCache)
-            {
-                kv.Value.Mesh?.Dispose();
-                kv.Value.Texture?.Dispose();
-            }
             iconCache.Clear();
-            iconLru.Clear();
         }
     }
 }

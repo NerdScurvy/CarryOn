@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using CarryOn.Client.Logic.CarryRenderer;
 using CarryOn.Client.Models;
 using Vintagestory.API.Client;
@@ -154,21 +155,11 @@ namespace CarryOn.Client.Logic.Commands
             string actionDesc,
             string successMsg)
         {
-            try
-            {
-                var cfg = this.clientModConfig.Config;
-                if (cfg != null)
-                {
-                    updateConfig(cfg);
-                    this.clientModConfig.Save(this.api);
-                }
-            }
-            catch (Exception ex)
-            {
-                this.api.Logger.Error($"Error {actionDesc}: " + ex);
-                return TextCommandResult.Error($"Failed {actionDesc} due to an error.");
-            }
-            return TextCommandResult.Success(successMsg);
+            return ApplyAndSaveConfig(
+                    updateConfig,
+                    $"Error {actionDesc}",
+                    $"Failed {actionDesc} due to an error.")
+                ?? TextCommandResult.Success(successMsg);
         }
 
         private TextCommandResult ShowSetting(
@@ -186,9 +177,8 @@ namespace CarryOn.Client.Logic.Commands
             Action<CarryOnClientConfig, HudCarried.Anchor> setOtherSlot,
             string slotName)
         {
-            var cfg = this.clientModConfig.Config;
-            if (cfg == null)
-                return TextCommandResult.Error("Client config not available.");
+            if (!TryGetConfig(out var cfg, out var configError))
+                return configError!;
 
             if (getSlot(cfg) == target)
                 return TextCommandResult.Success($"{slotName} already at {target}");
@@ -201,17 +191,8 @@ namespace CarryOn.Client.Logic.Commands
 
             setSlot(cfg, target);
 
-            try
-            {
-                this.clientModConfig.Save(this.api);
-            }
-            catch (Exception ex)
-            {
-                this.api.Logger.Error($"Error moving {slotName} anchor: " + ex);
-                return TextCommandResult.Error($"Failed to move {slotName} anchor due to an error.");
-            }
-
-            return TextCommandResult.Success($"{slotName} moved to {target}");
+            return SaveWithErrorHandling($"Error moving {slotName} anchor", $"Failed to move {slotName} anchor due to an error.")
+                ?? TextCommandResult.Success($"{slotName} moved to {target}");
         }
 
         private TextCommandResult ToggleBoolSetting(
@@ -220,9 +201,8 @@ namespace CarryOn.Client.Logic.Commands
             Action<bool> updateConfigValue,
             string displayName)
         {
-            var cfg = this.clientModConfig.Config;
-            if (cfg == null)
-                return TextCommandResult.Error("Client config not available.");
+            if (!TryGetConfig(out var cfg, out var configError))
+                return configError!;
 
             bool newValue;
             if (args[0] is string arg)
@@ -247,21 +227,59 @@ namespace CarryOn.Client.Logic.Commands
             Action<CarryOnClientConfig> applyDefaults,
             string description)
         {
+            return ApplyAndSaveConfig(
+                    applyDefaults,
+                    $"Error resetting {description}",
+                    $"Failed to reset {description} due to an error.")
+                ?? TextCommandResult.Success($"CarryOn GUI reset to defaults");
+        }
+
+        private bool TryGetConfig([NotNullWhen(true)] out CarryOnClientConfig? cfg, out TextCommandResult? error)
+        {
+            cfg = this.clientModConfig.Config;
+            if (cfg == null)
+            {
+                error = TextCommandResult.Error("Client config not available.");
+                return false;
+            }
+            error = null;
+            return true;
+        }
+
+        private TextCommandResult? SaveWithErrorHandling(string logPrefix, string failureMessage)
+        {
+            try
+            {
+                this.clientModConfig.Save(this.api);
+                return null;
+            }
+            catch (Exception ex)
+            {
+                this.api.Logger.Error($"{logPrefix}: " + ex);
+                return TextCommandResult.Error(failureMessage);
+            }
+        }
+
+        private TextCommandResult? ApplyAndSaveConfig(
+            Action<CarryOnClientConfig> apply,
+            string logPrefix,
+            string failureMessage)
+        {
             try
             {
                 var cfg = this.clientModConfig.Config;
                 if (cfg != null)
                 {
-                    applyDefaults(cfg);
+                    apply(cfg);
                     this.clientModConfig.Save(this.api);
                 }
             }
             catch (Exception ex)
             {
-                this.api.Logger.Error($"Error resetting {description}: " + ex);
-                return TextCommandResult.Error($"Failed to reset {description} due to an error.");
+                this.api.Logger.Error($"{logPrefix}: " + ex);
+                return TextCommandResult.Error(failureMessage);
             }
-            return TextCommandResult.Success($"CarryOn GUI reset to defaults");
+            return null;
         }
     }
 }

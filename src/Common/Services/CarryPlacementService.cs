@@ -2,17 +2,20 @@ using System;
 using System.Collections.Generic;
 using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
+using CarryOn.Common.Interfaces;
 using CarryOn.Common.Logic;
+using CarryOn.Common.Models;
 using CarryOn.Utility;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
+using Vintagestory.API.Server;
 using static CarryOn.Common.Models.CarryCodes;
 
 namespace CarryOn.Common.Services
 {
-    internal sealed class CarryPlacementService(ICoreAPI api, ICarryManager carryManager)
+    internal sealed class CarryPlacementService(ICoreAPI api, ICarryManager carryManager, CarryPermissionService permission, IConfigProvider configProvider, GroundStorageItemPlacement groundStorage)
     {
         public bool TryPlaceDown(Entity entity, CarriedBlock carriedBlock, BlockSelection selection, bool dropped = false, bool playSound = true)
         {
@@ -35,46 +38,85 @@ namespace CarryOn.Common.Services
 
             var world = api.World;
 
-            if (carriedBlock.Block == null || carriedBlock.ItemStack == null) return false;
+            if (carriedBlock.ItemStack == null) return false;
             if (!world.BlockAccessor.IsValidPos(selection.Position)) return false;
 
+            // Entity spawn is handled by TryPlaceDownAt (player path).
+            // For drops (dropped=true), check here so CarryDropService gets entity spawning.
+            // Gated on the signal flag: custom entity blocks re-spawn as entities, normal blocks
+            // proceed to block placement (TryPlaceAtTarget) under EntityOnFailedPlacement.
+            if (dropped
+                && CarryEntityPlacementPolicy.ShouldSpawnAsEntityOnPlacement(carriedBlock, configProvider.Config.CarriedBlockEntity)
+                && TrySpawnAsEntity(entity, carriedBlock, selection, dropped))
+                return true;
+
+            // Item-class carry (e.g. a bag picked up from ground storage): placement deposits
+            // into an existing ground storage or creates a new one and finalizes entirely
+            // inside TryPlaceDownAsPlayer - block-class finalize (attached children, block
+            // sounds, block entity restore) does not apply, and the anchor cell is the
+            // storage cell rather than the clicked cell. Dropped items never reach this
+            // point: CarryDropService routes them through its own item pipeline.
+            if (carriedBlock.Block == null)
+            {
+                if (dropped) return false;
+                return TryPlaceAtTarget(entity, carriedBlock, selection, dropped: false, ref failureCode);
+            }
+
+            // Whole-footprint claim preflight (decided rule 1): every cell this placement
+            // writes - the target cell, all multiblock footprint cells of the variant being
+            // placed, all attached-sign cells at their estimated rotated offsets - must be
+            // unclaimed or claim-permitted. One gate covers the player, dropped and fallback
+            // paths; claim denial takes precedence over clearance/support denial. Deliberately
+            // stricter than vanilla, which claim-checks the target cell only (vanilla allows
+            // multiblock part cells to intrude into claims). Server-authoritative: the client
+            // predicts optimistically and resyncs on rejection, as with the single-cell gate
+            // this replaces.
+            if (api.Side == EnumAppSide.Server)
+            {
+                var footprint = CarryFootprint.GetPlacementFootprint(world, entity, carriedBlock, selection, dropped);
+                if (permission.TryGetFirstDeniedCell(entity, footprint, out var deniedCell, out var denialReason))
+                {
+                    // One message for the whole write footprint, and which message depends on
+                    // the reason - see the matching comment in CarryPickupService.
+                    permission.HasPermissionAt(entity, deniedCell!, out _, showErrorMessage: true);
+                    failureCode = denialReason.ToFailureCode();
+                    return false;
+                }
+            }
+
+            // Preflight rotation (client-side prediction parity): the client predicts its
+            // children at these offsets, so the runtime spill branch below needs them to
+            // reconcile the cell the client actually wrote.
+            int estimatedSteps = 0;
             if (carriedBlock.HasAttachedBlocks)
             {
-                var estimatedSteps = CarryRotationHelper.EstimatePreflightRotation(carriedBlock, entity, selection, dropped);
+                estimatedSteps = CarryRotationHelper.EstimatePreflightRotation(carriedBlock, entity, selection, dropped);
                 if (!PreflightAttachedBlocks(carriedBlock, world, selection.Position, estimatedSteps, ref failureCode))
                     return false;
             }
 
-            bool placed = false;
-            if (entity is EntityPlayer playerEntity)
-            {
-                if (!dropped)
-                {
-                    placed = TryPlaceDownAsPlayer(world, playerEntity, carriedBlock, selection, ref failureCode);
-                }
-                else
-                {
-                    if (!carryManager.HasPermissionAt(entity, selection.Position, showErrorMessage: false))
-                    {
-                        failureCode = FailureCodes.NoPermission;
-                    }
-                    else
-                    {
-                        placed = TryPlaceDownDirect(world, carriedBlock, selection);
-                    }
-                }
-            }
-
-            if (!placed) return false;
+            if (!TryPlaceAtTarget(entity, carriedBlock, selection, dropped, ref failureCode)) return false;
 
             if (carriedBlock.HasAttachedBlocks)
             {
                 var rotationSteps = CarryRotationHelper.GetActualRotationSteps(carriedBlock, world, selection.Position);
-                PlaceAttachedChildren(world, carriedBlock, selection.Position, rotationSteps);
+                PlaceAttachedChildren(world, entity, carriedBlock, selection.Position, rotationSteps, estimatedSteps);
             }
 
             FinalizePlacedBlock(world, entity, carriedBlock, selection.Position, dropped, playSound);
             return true;
+        }
+
+        private bool TryPlaceAtTarget(Entity entity, CarriedBlock carriedBlock, BlockSelection selection, bool dropped, ref string failureCode)
+        {
+            if (entity is not EntityPlayer playerEntity) return false;
+
+            if (!dropped)
+                return TryPlaceDownAsPlayer(api.World, playerEntity, carriedBlock, selection, ref failureCode);
+
+            // Dropped-path claims are gated by the whole-footprint preflight in
+            // TryPlaceDown before any write; the direct placement proceeds unguarded.
+            return TryPlaceDownDirect(api.World, carriedBlock, selection);
         }
 
         private bool PreflightAttachedBlocks(CarriedBlock carriedBlock, IWorldAccessor world, BlockPos parentPos, int rotationSteps, ref string failureCode)
@@ -146,7 +188,13 @@ namespace CarryOn.Common.Services
             return true;
         }
 
-        private void PlaceAttachedChildren(IWorldAccessor world, CarriedBlock carriedBlock, BlockPos parentPos, int rotationSteps)
+        private void PlaceAttachedChildren(
+            IWorldAccessor world,
+            Entity? entity,
+            CarriedBlock carriedBlock,
+            BlockPos parentPos,
+            int rotationSteps,
+            int estimatedSteps)
         {
             if (carriedBlock.AttachedBlocks == null) return;
 
@@ -160,10 +208,42 @@ namespace CarryOn.Common.Services
                 var childPos = parentPos.Copy();
                 childPos.Add(rotatedOffset);
 
+                // Actual-rotation claim safety: the pre-gate checks children at the
+                // estimated rotation; the placement's actual rotation (mesh angle or
+                // facing suffix of the placed parent) can diverge. Never silently write
+                // a child into a cell the player lacks permission for - skip the child
+                // and spill it as an item entity at the parent cell, with an audit trace.
+                if (world.Side == EnumAppSide.Server
+                    && entity != null
+                    && !permission.HasPermissionAt(entity, childPos, showErrorMessage: false))
+                {
+                    var dropVec3d = new Vec3d(parentPos.X + 0.5, parentPos.Y + 0.5, parentPos.Z + 0.5);
+                    world.SpawnItemEntity(child.ItemStack, dropVec3d);
+                    world.Logger.Audit(
+                        $"[{ModId}] Player {entity.GetName()} placed down {carriedBlock.Block?.Code.GetName()} at {parentPos} "
+                        + $"but lacked permission for attached child {child.Block.Code.GetName()} at {childPos}; child dropped as item");
+
+                    // The client's prediction wrote this child at the ESTIMATED offset, and
+                    // the parent placement succeeded, so the handler's WrittenCells reconcile
+                    // never runs (placedAt == message.PlacedAt). Dirty the predicted cell -
+                    // not childPos, which the server never wrote and the client never
+                    // predicted - on both channels, so the phantom block and the phantom
+                    // block entity the client created there are evicted.
+                    if (world.Side == EnumAppSide.Server)
+                    {
+                        var predictedOffset = CarryRotationHelper.RotateOffset(child.RelativeOffset, estimatedSteps);
+                        var predictedPos = parentPos.Copy();
+                        predictedPos.Add(predictedOffset);
+                        world.BlockAccessor.MarkBlockDirty(predictedPos);
+                        world.BlockAccessor.MarkBlockEntityDirty(predictedPos);
+                    }
+                    continue;
+                }
+
                 var childBlock = child.Block;
                 if (rotatedFace != null && child.OriginalBlockCode != null)
                 {
-                    var wallSign = CarryRotationHelper.GetWallSignForFacing(world, child.OriginalBlockCode, rotatedFace);
+                    var wallSign = CarryRotationHelper.GetRotatedVariantBlock(world, child.OriginalBlockCode, rotatedFace);
                     if (wallSign != null)
                         childBlock = wallSign;
                 }
@@ -172,9 +252,9 @@ namespace CarryOn.Common.Services
 
                 if (child.BlockEntityData != null && world.Side == EnumAppSide.Server)
                 {
-                    child.BlockEntityData.SetInt("posx", childPos.X);
-                    child.BlockEntityData.SetInt("posy", childPos.Y);
-                    child.BlockEntityData.SetInt("posz", childPos.Z);
+                    child.BlockEntityData.SetInt(AttributeKeys.BlockEntityData.PosX, childPos.X);
+                    child.BlockEntityData.SetInt(AttributeKeys.BlockEntityData.PosY, childPos.Y);
+                    child.BlockEntityData.SetInt(AttributeKeys.BlockEntityData.PosZ, childPos.Z);
 
                     var blockEntity = world.BlockAccessor.GetBlockEntity(childPos);
                     blockEntity?.FromTreeAttributes(child.BlockEntityData, world);
@@ -195,6 +275,12 @@ namespace CarryOn.Common.Services
                 return TryPlaceDownFallback(world, carriedBlock, selection);
             }
 
+            // Item-class carry (e.g. a bag picked up from ground storage): deposits into an
+            // existing ground storage or creates a new one through the shared placement
+            // service, with all vanilla validation (layout, capacity, wall support).
+            if (carriedBlock.Block == null)
+                return TryPlaceDownGroundStorableItem(playerEntity, carriedBlock, selection);
+
             var shift = playerEntity.Controls.ShiftKey;
             var ctrl = playerEntity.Controls.CtrlKey;
 
@@ -213,6 +299,38 @@ namespace CarryOn.Common.Services
                 playerEntity.Controls.CtrlKey = ctrl;
                 activeHotbarSlot.Itemstack = null;
             }
+        }
+
+        /// <summary>
+        /// Places an item-class carried stack (e.g. a bag picked up from ground storage) into
+        /// the ground storage targeted by the selection - depositing into an existing storage
+        /// or creating a new one via <see cref="GroundStorageItemPlacement"/> - and finalizes
+        /// the carry against the storage cell: dirty mark, carry removal and audit. The
+        /// storage's own place/remove sound is played by the placement itself.
+        /// </summary>
+        private bool TryPlaceDownGroundStorableItem(EntityPlayer playerEntity, CarriedBlock carriedBlock, BlockSelection selection)
+        {
+            if (!groundStorage.TryPlaceAtSelection(playerEntity, carriedBlock, selection, out var placedAt))
+                return false;
+
+            var world = api.World;
+
+            if (placedAt != null)
+            {
+                world.BlockAccessor.MarkBlockDirty(placedAt);
+                world.BlockAccessor.TriggerNeighbourBlockUpdate(placedAt);
+            }
+
+            carryManager.RemoveCarried(playerEntity, carriedBlock.Slot);
+
+            if (world.Side == EnumAppSide.Server)
+            {
+                var entityName = playerEntity.GetName() ?? "Unknown Entity";
+                var carriedName = CarryCodes.DisplayName(carriedBlock.ItemStack?.Collectible?.Code?.ToString());
+                api.World.Logger.Audit($"[{ModId}] Player {entityName} placed down block {carriedName} at {placedAt}");
+            }
+
+            return true;
         }
 
         private bool TryPlaceDownFallback(IWorldAccessor world, CarriedBlock carriedBlock, BlockSelection selection)
@@ -236,7 +354,13 @@ namespace CarryOn.Common.Services
                 droppedBlock = world.GetBlock(assetLocation) ?? carriedBlock.Block;
             }
 
-            world.BlockAccessor.ExchangeBlock(droppedBlock.Id, selection.Position);
+            // SetBlock (not ExchangeBlock) so the synchronous behavior sweep runs -
+            // OnBlockRemoved for the replaced replacable block and OnBlockPlaced for the
+            // placed one, which places the multiblock dummy cells exactly like vanilla
+            // item placement. The claim preflight in TryPlaceDown gates exactly this
+            // write set; a dropped trunk that wrote only its controller cell would both
+            // break the trunk and make the footprint check lie.
+            world.BlockAccessor.SetBlock(droppedBlock.Id, selection.Position, carriedBlock.ItemStack);
 
             if (droppedBlock.EntityClass != null)
             {
@@ -248,14 +372,14 @@ namespace CarryOn.Common.Services
             if (meshFacing != null)
             {
                 var meshAngle = -CarryRotationHelper.GetMeshAngle(meshFacing);
-                carriedBlock.BlockEntityData?.SetFloat("meshAngle", meshAngle);
+                carriedBlock.BlockEntityData?.SetFloat(AttributeKeys.BlockEntityData.MeshAngle, meshAngle);
 
                 var worldBE = world.BlockAccessor.GetBlockEntity(selection.Position);
                 if (worldBE != null)
                 {
                     var tempAttr = new TreeAttribute();
                     worldBE.ToTreeAttributes(tempAttr);
-                    tempAttr.SetFloat("meshAngle", meshAngle);
+                    tempAttr.SetFloat(AttributeKeys.BlockEntityData.MeshAngle, meshAngle);
                     worldBE.FromTreeAttributes(tempAttr, world);
                     worldBE.MarkDirty(true);
                 }
@@ -272,7 +396,12 @@ namespace CarryOn.Common.Services
             world.BlockAccessor.TriggerNeighbourBlockUpdate(position);
 
             carryManager.RemoveCarried(entity, carriedBlock.Slot);
-            if (playSound)
+
+            // Item-class carries (e.g. bags) never reach this finalize - they finalize inside
+            // TryPlaceDownGroundStorableItem against the storage cell, where the storage's
+            // own place/remove sound also plays. Block carries play the carried block's
+            // place sound here; the null-Block guard stays as defense.
+            if (playSound && carriedBlock.Block != null)
                 SoundHelper.PlaySound(api, carriedBlock.Block, position, dropped ? null : entity as EntityPlayer);
 
             if (dropped)
@@ -281,7 +410,10 @@ namespace CarryOn.Common.Services
             if (world.Side == EnumAppSide.Server)
             {
                 var entityName = entity?.GetName() ?? "Unknown Entity";
-                api.World.Logger.Audit($"[{ModId}] Player {entityName}  {(dropped ? "dropped" : "placed down")}  block {carriedBlock?.Block?.Code.GetName()} at {position}");
+                var carriedName = carriedBlock.Block != null
+                    ? carriedBlock.Block.Code.GetName()
+                    : CarryCodes.DisplayName(carriedBlock.ItemStack?.Collectible?.Code?.ToString());
+                api.World.Logger.Audit($"[{ModId}] Player {entityName}  {(dropped ? "dropped" : "placed down")}  block {carriedName} at {position}");
             }
         }
 
@@ -290,9 +422,9 @@ namespace CarryOn.Common.Services
             if ((world.Side != EnumAppSide.Server) || (carriedBlock?.BlockEntityData == null)) return;
 
             var blockEntityData = carriedBlock.BlockEntityData;
-            blockEntityData.SetInt("posx", pos.X);
-            blockEntityData.SetInt("posy", pos.Y);
-            blockEntityData.SetInt("posz", pos.Z);
+            blockEntityData.SetInt(AttributeKeys.BlockEntityData.PosX, pos.X);
+            blockEntityData.SetInt(AttributeKeys.BlockEntityData.PosY, pos.Y);
+            blockEntityData.SetInt(AttributeKeys.BlockEntityData.PosZ, pos.Z);
 
             var blockEntity = world.BlockAccessor.GetBlockEntity(pos);
 
@@ -319,11 +451,53 @@ namespace CarryOn.Common.Services
 
             if (selectedBlock == null) return false;
 
-            var carried = carryManager.GetCarried(entity, carrySlot);
+            var readResult = carryManager.GetCarriedReadResult(entity, carrySlot, out var rawTree);
+            if (readResult.IsFailed && readResult.Reason == FailureCodes.MissingBlock)
+            {
+                // The carried block's code is no longer registered (its mod was removed or
+                // disabled). It must never be placed as a missing-texture block: on the server,
+                // drop the carried block as a CarriedBlockEntity (the untouched raw tree preserves
+                // stack + block entity data + attached children) so it can be recovered after the
+                // mod is re-enabled, then clear the slot. The client mirrors the failure so no
+                // placement is attempted prediction-side either.
+                if (entity.World is { Side: EnumAppSide.Server } && rawTree != null)
+                {
+                    UnusableCarriedBlockDrop.TryDrop(api, carryManager, entity, carrySlot, rawTree, entity.Pos.XYZ);
+                }
+
+                failureCode = FailureCodes.CarriedBlockMissing;
+                return false;
+            }
+
+            var carried = readResult.Carried;
             if (carried == null)
             {
                 failureCode = FailureCodes.NotCarrying;
                 return false;
+            }
+
+            // Check entity spawn BEFORE modifying the selection.
+            // The original selection has the player's exact crosshair target.
+            if (TrySpawnAsEntity(entity, carried, blockSelection, dropped: false))
+            {
+                placedAt = blockSelection.Position;
+                return true;
+            }
+
+            // Item-class carry (e.g. a bag picked up from ground storage): no Block to place.
+            // The anchor cell mirrors the vanilla ground-storable decision (existing storage
+            // at the clicked cell or above it, else a new storage above an upward click) and
+            // the selection stays as the player aimed it. Server-authoritative: the client
+            // computes only the anchor cell - the storage mutation (inventory transfer,
+            // storage block) happens exclusively on the server, so no client-side ghost
+            // storage can appear, and the carry state clears through the watched-attribute
+            // sync once the server removes it.
+            if (carried.Block == null)
+            {
+                placedAt = BlockUtils.GetGroundStoragePlacementPosition(entity.World?.BlockAccessor, blockSelection);
+                if (placedAt == null) return false;
+                if (api.Side == EnumAppSide.Client) return true;
+                return TryPlaceDown(entity, carried, blockSelection, ref failureCode);
             }
 
             if (selectedBlock.IsReplacableBy(carried.Block))
@@ -339,6 +513,47 @@ namespace CarryOn.Common.Services
 
             placedAt = blockSelection.Position;
             return TryPlaceDown(entity, carried, blockSelection, ref failureCode);
+        }
+
+        private bool TrySpawnAsEntity(Entity entity, CarriedBlock carriedBlock, BlockSelection selection, bool dropped)
+        {
+            var hitPos = selection.HitPosition ?? new Vec3d(0.5, 0.5, 0.5);
+            var position = new Vec3d(
+                selection.Position.X + hitPos.X,
+                selection.Position.Y + hitPos.Y,
+                selection.Position.Z + hitPos.Z);
+
+            var context = new EntitySpawnContext
+            {
+                CarriedBlock = carriedBlock,
+                OwnerUid = (entity as EntityPlayer)?.Player?.PlayerUID ?? "unknown",
+                Position = position,
+                BlockPosition = selection.Position,
+                HitPosition = selection.HitPosition,
+                Face = selection.Face,
+                Dropped = dropped,
+                Api = api,
+            };
+
+            if (EntityHandlerSpawner.TrySpawn(carryManager, entity, context))
+            {
+                if (dropped)
+                    carryManager.CarryEvents?.TriggerBlockDropped(selection.Position, entity, carriedBlock);
+                return true;
+            }
+
+            // When the factory is applicable (ShouldSpawnAsEntity == true)
+            // but the actual spawn failed - e.g. not enough space - prevent
+            // block placement on both sides. The carry is retained because
+            // RemoveCarried is only called on a successful spawn. On the
+            // client, TrySpawn always returns false (it can't spawn), so
+            // this guard is what stops the client from placing a block.
+            if (EntityHandlerSpawner.IsEntitySpawnApplicable(api, carryManager, carriedBlock, dropped))
+            {
+                return true;
+            }
+
+            return false;
         }
 
     }

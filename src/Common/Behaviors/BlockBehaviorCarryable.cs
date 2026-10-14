@@ -4,8 +4,6 @@ using System.Linq;
 using CarryOn.API.Common.Interfaces;
 using CarryOn.API.Common.Models;
 using CarryOn.Common.Models;
-using CarryOn.Client.Logic.TransformTemplates;
-using CarryOn.Client.Models;
 using CarryOn.Common.Logic;
 using CarryOn.Utility;
 using Newtonsoft.Json.Linq;
@@ -19,7 +17,29 @@ namespace CarryOn.Common.Behaviors
 {
     public class BlockBehaviorCarryable : BlockBehavior, IConditionalBlockBehavior
     {
-        public static string Name { get; } = "Carryable";
+        public static string Name { get; } = GetCarryCode("carryable");
+
+        private static ICarryManager? carryManager;
+
+        /// <summary>
+        /// Initializes the behavior with the carry manager for transfer handler registry lookups.
+        /// Must be called during mod startup on both client and server.
+        /// </summary>
+        public static void Init(ICarryManager manager)
+        {
+            carryManager = manager ?? throw new ArgumentNullException(nameof(manager));
+        }
+
+        /// <summary>
+        /// Whether CarryOn's own factory constructed this instance (a baseline remount
+        /// or an automap clone), as opposed to the engine loading it from a blocktype
+        /// or patch, another mod registering it, or test code appending it. Internal
+        /// and not serialized: it is the un-create predicate of the conditioning
+        /// baseline's restore pass, invisible to the wire, to snapshots and to mod authors. Set only by the
+        /// factory - <see cref="Server.Logic.BehavioralConditions.ConditioningBaseline"/>
+        /// remounts and the automapper's appends.
+        /// </summary>
+        internal bool CreatedByConditioning;
 
         public string[] TransformTemplates { get; private set; } = [];
 
@@ -40,8 +60,6 @@ namespace CarryOn.Common.Behaviors
         public string? DataAttributesPrefix { get; private set; }
 
         public bool HasLocalTransformGroups { get; private set; } = false;
-
-        public Dictionary<string, TransformSettings[]> ResolvedTransformGroups { get; private set; } = [];
 
         public static BlockBehaviorCarryable Default { get; }
             = new BlockBehaviorCarryable(null);
@@ -81,13 +99,83 @@ namespace CarryOn.Common.Behaviors
 
         public bool SwapBackKeyPassthrough { get; private set; } = false;
 
-        public bool TransferEnabled { get; private set; } = false;
+        private bool transferEnabled;
+
+        public bool TransferEnabled
+        {
+            get
+            {
+                EnsureTransferHandler();
+                return transferEnabled;
+            }
+            private set => transferEnabled = value;
+        }
 
         public Type? TransferHandlerType { get; set; }
 
         public string EnabledCondition { get; set; } = string.Empty;
 
-        public ICarryableTransfer? TransferHandler { get; private set; }
+        private string transferCode = "";
+
+        private ICarryableBlockSlotHandler? transferHandler;
+
+        private bool transferHandlerResolved;
+
+        public ICarryableBlockSlotHandler? TransferHandler
+        {
+            get
+            {
+                EnsureTransferHandler();
+                return transferHandler;
+            }
+            private set => transferHandler = value;
+        }
+
+        private void EnsureTransferHandler()
+        {
+            if (transferHandlerResolved) return;
+
+            if (string.IsNullOrEmpty(transferCode))
+            {
+                transferHandlerResolved = true;
+                return;
+            }
+
+            if (transferCode == ReservedCodes.Auto)
+            {
+                if (carryManager == null) return;
+
+                foreach (var behavior in block.BlockBehaviors)
+                {
+                    if (behavior is ICarryableBlockSlotHandler transfer)
+                    {
+                        ConfigureTransferBehavior(transfer, carryManager.Api);
+                        transferHandlerResolved = true;
+                        return;
+                    }
+                }
+
+                carryManager.Api.Logger.Debug("Failed to resolve transfer handler for block {0}", block.Code);
+                transferHandlerResolved = true;
+                return;
+            }
+
+            if (carryManager != null
+                && carryManager.TryGetTransferHandler(transferCode, out var handler)
+                && handler != null)
+            {
+                ConfigureTransferBehavior(handler, carryManager.Api);
+                transferHandlerResolved = true;
+                return;
+            }
+
+            if (carryManager != null)
+            {
+                carryManager.Api.Logger.Debug("Failed to resolve transfer handler for block {0}", block.Code);
+            }
+
+            transferHandlerResolved = false;
+        }
 
         public IDictionary<string, string> TypeGroup { get; private set; } = new Dictionary<string, string>();
 
@@ -96,10 +184,35 @@ namespace CarryOn.Common.Behaviors
 
         public JsonObject? Properties { get; set; }
 
+        /// <summary>
+        /// The behavior's property JSON with slot-level condition removals already applied:
+        /// <c>ProcessConditions</c> rewrites <c>propertiesAtString</c> after dropping
+        /// condition-disabled slots, so a snapshot taken after conditioning carries the
+        /// faithful final slots.
+        /// </summary>
+        internal string CurrentPropertiesJson
+            => propertiesAtString ?? Properties?.Token?.ToString() ?? string.Empty;
+
         public override void Initialize(JsonObject properties)
         {
             Properties = properties;
             base.Initialize(properties);
+
+            ParseBaseSettings(properties);
+            ParseRenderSettings(properties);
+            ParseResolverSettings(properties);
+            ParseDataAttributes(properties);
+            ParseTransformTemplates(properties);
+            ParseLocalTransformGroups(properties);
+            ParseTypeGroup(properties);
+            ParseLabelRenderSettings(properties);
+
+            DefaultTransform = ModelTransformParser.GetTransform(properties, DefaultBlockTransform);
+            Slots.Initialize(properties["slots"]);
+        }
+
+        private void ParseBaseSettings(JsonObject properties)
+        {
             if (JsonHelper.TryGetInt(properties, "patchPriority", out var p)) PatchPriority = p;
             if (JsonHelper.TryGetBool(properties, "overrideExistingProperties", out var oep)) OverrideExistingProperties = oep;
             if (JsonHelper.TryGetFloat(properties, "interactDelay", out var d)) InteractDelay = d;
@@ -109,10 +222,19 @@ namespace CarryOn.Common.Behaviors
             if (JsonHelper.TryGetBool(properties, "forcePickupOnSwapBack", out var fp)) ForcePickupOnSwapBack = fp;
             if (JsonHelper.TryGetBool(properties, "swapBackKeyPassthrough", out var sbkp)) SwapBackKeyPassthrough = sbkp;
             if (!SwapBackKeyPassthrough && JsonHelper.TryGetBool(properties, "preventSwapBack", out var psb)) SwapBackKeyPassthrough = psb;
-            if (JsonHelper.TryGetString(properties, "enabledCondition", out var e)) EnabledCondition = e ?? string.Empty;
+            if (JsonHelper.TryGetString(properties, BehaviorJsonKeys.EnabledCondition, out var e)) EnabledCondition = e ?? string.Empty;
+            if (JsonHelper.TryGetString(properties, "transferCode", out var tc)) transferCode = tc ?? string.Empty;
+        }
+
+        private void ParseRenderSettings(JsonObject properties)
+        {
             if (JsonHelper.TryGetBool(properties, "renderRootFirst", out var rootFirst)) RenderRootFirst = rootFirst;
             if (JsonHelper.TryGetString(properties, "rootRenderFacing", out var drf)) RootRenderFacing = drf;
             if (JsonHelper.TryGetString(properties, "rootRenderVariant", out var drv)) RootRenderVariant = drv;
+        }
+
+        private void ParseResolverSettings(JsonObject properties)
+        {
             if (JsonHelper.TryGetString(properties, "transformGroupResolver", out var g)) TransformGroupResolver = g;
             if (JsonHelper.TryGetString(properties, "rootGroupResolver", out var rg)) RootGroupResolver = rg;
             if (JsonHelper.TryGetString(properties, "attachmentGroupResolver", out var ag)) AttachmentGroupResolver = ag;
@@ -122,7 +244,10 @@ namespace CarryOn.Common.Behaviors
                 RootGroupResolver ??= TransformGroupResolver;
                 AttachmentGroupResolver ??= TransformGroupResolver;
             }
+        }
 
+        private void ParseDataAttributes(JsonObject properties)
+        {
             if (properties.KeyExists("dataAttributes"))
             {
                 var attrs = properties["dataAttributes"].AsArray<string>();
@@ -130,20 +255,29 @@ namespace CarryOn.Common.Behaviors
             }
             if (JsonHelper.TryGetString(properties, "dataAttributesPrefix", out var bp))
                 DataAttributesPrefix = bp;
+        }
 
+        private void ParseTransformTemplates(JsonObject properties)
+        {
             if (properties.KeyExists("transformTemplates"))
             {
                 var templates = properties["transformTemplates"]?.AsArray<string>();
                 if (templates != null)
                     TransformTemplates = templates.Select(s => s?.ToLowerInvariant() ?? "").ToArray();
             }
+        }
 
+        private void ParseLocalTransformGroups(JsonObject properties)
+        {
             if (JsonHelper.TryGetObject(properties, "transformGroups", out var transformGroupsObj))
             {
                 if (transformGroupsObj?.Properties().Any() == true)
                     HasLocalTransformGroups = true;
             }
+        }
 
+        private void ParseTypeGroup(JsonObject properties)
+        {
             if (JsonHelper.TryGetObject(properties, "groups", out var groupJObj) && groupJObj != null)
             {
                 var groupObj = properties["groups"];
@@ -157,30 +291,14 @@ namespace CarryOn.Common.Behaviors
                     }
                 }
             }
-
-            if (properties.KeyExists("labelRenderSettings"))
-                LabelRenderSettings = LabelRenderSettingsParser.Parse(properties["labelRenderSettings"], transformInChildObject: true);
-            else if (properties.KeyExists("labelTransform"))
-                LabelRenderSettings = LabelRenderSettingsParser.Parse(properties["labelTransform"], transformInChildObject: false);
-
-            DefaultTransform = ModelTransformParser.GetTransform(properties, DefaultBlockTransform);
-            Slots.Initialize(properties["slots"]);
         }
 
-        public void ResolveTransformGroups(TransformTemplateManager manager)
+        private void ParseLabelRenderSettings(JsonObject properties)
         {
-            if (HasLocalTransformGroups)
-            {
-                var jObj = JObject.Parse(propertiesAtString);
-                if (manager.TryParseTransformGroups(new JsonObject(jObj), out var localTransformGroups))
-                    ResolvedTransformGroups = manager.ResolveAndFlattenTransformGroups(TransformTemplates, localTransformGroups);
-                else
-                    ResolvedTransformGroups = manager.ResolveAndFlattenTransformGroups(TransformTemplates);
-            }
-            else
-            {
-                ResolvedTransformGroups = manager.ResolveAndFlattenTransformGroups(TransformTemplates);
-            }
+            if (properties.KeyExists("labelRenderSettings"))
+                LabelRenderSettings = LabelRenderSettingsParser.Parse(properties["labelRenderSettings"], transformInChildObject: true);
+            else if (properties.KeyExists(LabelTransformGroup))
+                LabelRenderSettings = LabelRenderSettingsParser.Parse(properties[LabelTransformGroup], transformInChildObject: false);
         }
 
         public void ProcessConditions(ICoreAPI api, Block block)
@@ -212,34 +330,11 @@ namespace CarryOn.Common.Behaviors
             }
         }
 
-        public void ConfigureTransferBehavior(ICarryableTransfer transferHandler, ICoreAPI api)
+        private void ConfigureTransferBehavior(ICarryableBlockSlotHandler transferHandler, ICoreAPI api)
         {
-            TransferEnabled = transferHandler.IsTransferEnabled(api);
+            TransferEnabled = true;
             TransferHandlerType = transferHandler.GetType();
-            TransferHandler = transferHandler;
-        }
-
-        public string GetTransformGroupName(CarriedBlock carried, string baseGroup, bool checkExists = true)
-        {
-            var type = carried.ItemStack?.Attributes?.GetString("type");
-
-            if (!string.IsNullOrEmpty(type) && TypeGroup != null && TypeGroup.Count > 0)
-            {
-                TypeGroup.TryGetValue(type, out var typeGroupName);
-                if (typeGroupName != null)
-                    typeGroupName = $"-{typeGroupName}";
-
-                if (!checkExists || TransformGroupExists(carried, baseGroup + typeGroupName))
-                    baseGroup += typeGroupName;
-            }
-            return baseGroup;
-        }
-
-        public bool TransformGroupExists(CarriedBlock carried, string group)
-        {
-            if (carried == null || Slots == null || Slots[carried.Slot] == null || ResolvedTransformGroups.Count == 0)
-                return false;
-            return ResolvedTransformGroups.ContainsKey(group);
+            this.transferHandler = transferHandler;
         }
 
         public bool CanCarryInSlot(CarrySlot slot, ItemStack? itemStack)
@@ -248,9 +343,9 @@ namespace CarryOn.Common.Behaviors
             if (slotStorage == null)
                 return false;
 
-            if (itemStack != null && itemStack.Attributes.HasAttribute("type"))
+            if (itemStack != null && itemStack.Attributes.HasAttribute(AttributeKeys.Type))
             {
-                var itemType = itemStack.Attributes.GetString("type");
+                var itemType = itemStack.Attributes.GetString(AttributeKeys.Type);
                 if (!string.IsNullOrEmpty(itemType) && slotStorage.ExcludedTypes != null && slotStorage.ExcludedTypes.Contains(itemType))
                     return false;
             }
@@ -273,7 +368,7 @@ namespace CarryOn.Common.Behaviors
 
         public override void OnBlockRemoved(IWorldAccessor world, BlockPos pos, ref EnumHandling handling)
         {
-            world.GetCarryEvents()?.TriggerBlockRemoved(pos);
+            world.GetCarryEvents().TriggerBlockRemoved(pos);
             base.OnBlockRemoved(world, pos, ref handling);
         }
     }

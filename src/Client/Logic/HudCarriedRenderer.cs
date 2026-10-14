@@ -35,7 +35,7 @@ namespace CarryOn.Client.Logic
         private MeshRef? highlightMesh;
         private MeshRef? rectMesh;
 
-        // Color cache — only re-parse hex when the string changes
+        // Color cache - only re-parse hex when the string changes
         private string? cachedBgHex;
         private float cachedBgAlpha;
         private Vec4f cachedBgVec = new();
@@ -102,6 +102,9 @@ namespace CarryOn.Client.Logic
             var player = this.api.World.Player;
             if (player == null) return;
 
+            // Spectators are invisible observers - no carry HUD for ghosts
+            if (player.WorldData.CurrentGameMode == EnumGameMode.Spectator) return;
+
             var rapi = this.api.Render;
 
             // Check if we need to update cached positioning (like StatusHud renderer pattern)
@@ -126,7 +129,7 @@ namespace CarryOn.Client.Logic
             var handsAnchor = config.HandsAnchor;
             var backAnchor = config.BackAnchor;
 
-            // Parse colors from config (cached — only re-parses when hex string changes)
+            // Parse colors from config (cached - only re-parses when hex string changes)
             var bgVec = GetCachedBgColor();
             var brVec = GetCachedBrColor();
 

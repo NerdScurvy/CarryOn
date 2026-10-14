@@ -1,0 +1,16 @@
+{
+  "ConfigVersion": 6,
+  "Carryables": {
+    "Chest": true
+  },
+  "CarryablesFilters": {
+    "AutoMapSimilar": true,
+    "RemoveBaseCarryableBehaviour": ["woodchests:wtrunk"]
+  },
+  "CarryOptions": {
+    "InteractSpeedMultiplier": 2.0
+  },
+  "DebuggingOptions": {
+    "ReconditionOnConfigChange": true
+  }
+}

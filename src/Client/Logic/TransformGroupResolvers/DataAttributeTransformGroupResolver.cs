@@ -104,8 +104,7 @@ namespace CarryOn.Client.Logic.TransformGroupResolvers
                 }
 
                 sb.Append((int)stack.Class).Append(':')
-                    .Append(stack.Id).Append(':')
-                    .Append(stack.StackSize).Append(';');
+                    .Append(stack.Id).Append(';');
             }
 
             return sb.ToString();
